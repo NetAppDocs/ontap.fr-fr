@@ -1,0 +1,172 @@
+---
+permalink: upgrade/task_download_and_install_ontap_software_image.html 
+sidebar: sidebar 
+keywords: ontap, software, image, download, downloading, install, installing 
+summary: 'Vous devez d"abord télécharger le logiciel ONTAP depuis le site du support NetApp, puis l"installer via une mise à niveau automatique sans interruption (ANDU) ou une mise à niveau manuelle.' 
+---
+= Téléchargez et installez l'image du logiciel ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devez d'abord télécharger le logiciel ONTAP depuis le site du support NetApp, puis l'installer via une mise à niveau automatique sans interruption (ANDU) ou une mise à niveau manuelle.
+
+
+
+== Téléchargez l'image du logiciel
+
+Selon la version de ONTAP, vous pouvez copier l'image logicielle de ONTAP depuis le site de support NetApp vers l'un des emplacements suivants : un serveur HTTP, HTTPS ou FTP sur votre réseau ou un dossier local.
+
+Notez les informations importantes suivantes :
+
+* Les images logicielles sont spécifiques aux modèles de plate-forme.
++
+Vous devez obtenir l'image correcte pour votre cluster. Le site de support NetApp propose les images logicielles, les informations de version du firmware et la dernière version du firmware pour votre modèle de plateforme.
+
+* Les images logicielles incluent la dernière version du micrologiciel système disponible lorsqu'une version donnée de ONTAP a été publiée.
+* Si vous mettez à niveau un système avec NetApp Volume Encryption vers ONTAP 9.5 ou une version ultérieure, vous devez télécharger l'image logicielle de ONTAP pour les pays non soumis à des restrictions, notamment NetApp Volume Encryption.
++
+Si vous utilisez l'image logicielle ONTAP pour des pays limités pour mettre à niveau un système avec NetApp Volume Encryption, le système fonctionne de façon incohérente et l'accès aux volumes est perdu.
+
+* Si vous effectuez une mise à niveau de ONTAP 9.5 vers 9.9.1, vous devez copier l'image logicielle pour ONTAP 9.7 et 9.9.1.
+* Si vous effectuez une mise à niveau de ONTAP 9.3 vers 9.7, vous devez copier l'image logicielle pour ONTAP 9.5 et 9.7.
+
+
+.Étapes
+. Recherchez le logiciel ONTAP cible dans le link:http://mysupport.netapp.com/NOW/cgi-bin/software["Téléchargements de logiciels"] Domaine du site de support NetApp.
+. Copiez l'image logicielle (par exemple, 97_q_image.tgz) à l'emplacement approprié.
++
+En fonction de votre version ONTAP, l'emplacement sera un répertoire, un serveur HTTP, HTTPS ou FTP à partir duquel l'image sera desservie par le système local, ou un dossier local sur le système de stockage.
+
++
+[cols="2"]
+|===
+| Vous pouvez copier l'image à cet emplacement... | Si vous exécutez ces versions ONTAP... 
+
+
+| Un serveur HTTP ou FTP | ONTAP 9.0 et versions ultérieures 
+
+
+| Un dossier local | ONTAP 9.4 et versions ultérieures 
+
+
+| Un serveur HTTPS + le certificat d'autorité de certification du serveur doit être installé sur le système local. | ONTAP 9.6 et versions ultérieures 
+|===
+
+
+
+
+== Installez l'image logicielle
+
+Vous devez installer l'image logicielle cible sur les nœuds du cluster.
+
+* Si vous mettez à niveau un système avec NetApp Volume Encryption vers ONTAP 9.5 ou une version ultérieure, vous devez avoir téléchargé l'image logicielle de ONTAP pour les pays non soumis à des restrictions, notamment NetApp Volume Encryption.
++
+Si vous utilisez l'image logicielle ONTAP pour des pays limités pour mettre à niveau un système avec NetApp Volume Encryption, le système fonctionne de façon incohérente et l'accès aux volumes est perdu.
+
+* Si vous effectuez une mise à niveau directe de ONTAP 9.5 vers 9.9.1, vous devez télécharger l'image logicielle pour ONTAP 9.7 et 9.9.1. Si vous effectuez la mise à niveau directement de ONTAP 9.3 vers 9.7, vous devez télécharger l'image logicielle pour ONTAP 9.5 et 9.7.
++
+Le processus de mise à niveau automatique utilise les deux images en arrière-plan pour terminer la mise à niveau.
+
+
+
+
+
+=== Pour les mises à niveau automatiques sans interruption (ANDU)
+
+. Vérifiez le référentiel d'images et supprimez les images précédentes.
++
+`cluster image package show-repository`
+
++
+[listing]
+----
+cluster image package show-repository\
+<<name_of_vsim|There are no packages in the repository.\r\n
+----
+. Téléchargez l'image.
++
+`cluster image package get -url url_to_image_on_nss`
+
++
+`cluster image package get -url http://10.60.132.98/x/eng/rlse/DOT/9.7P13X2/promo/9.7P13X2/x86_64.optimize/image.tgz`
+
+. Vérifiez que le pack est téléchargé.
++
+`cluster image package show-repository`
+
++
+.Exemple
+[listing]
+----
+cluster image package show-repository -fields download-ver\
+<<name_of_vsim| download-verX;X\r\n
+<<name_of_vsim| Downloaded VersionX;X\r\n
+<<name_of_vsim| ONTAP 9.10.1.X;X\r\n
+----
+
+
+
+
+=== Pour les mises à niveau manuelles
+
+. Définissez le niveau de privilège sur avancé, en entrant *y* lorsque vous êtes invité à continuer : `set -privilege advanced`
++
+L'invite avancée (`*>`) s'affiche.
+
+. Téléchargez l'image.
++
+.. Si vous mettez à niveau un cluster sans configuration MetroCluster ou sans configuration MetroCluster à deux nœuds, utilisez la commande suivante pour télécharger l'image :
++
+`system node image update -node * -package _location_ -replace-package true -setdefault true -background true`
+
++
+_Location_ peut être un serveur Web ou un dossier local, selon la version de ONTAP. Voir la `system node image update` page de manuel pour plus de détails.
+
++
+Cette commande télécharge et installe l'image logicielle sur tous les nœuds simultanément. Pour télécharger et installer l'image un par un sur chaque nœud, ne spécifiez pas le `-background` paramètre.
+
+.. Si vous mettez à niveau une configuration MetroCluster à quatre ou huit nœuds, vous devez lancer la commande suivante sur les deux clusters :
++
+`system node image update -node * -package location -replace-package true -background true -setdefault false`
+
++
+Cette commande utilise une requête étendue pour modifier l'image du logiciel cible, qui est installée comme image alternative sur chaque nœud.
+
+
+
+. Entrez `y` pour continuer lorsque vous y êtes invité.
+. Vérifiez que l'image logicielle est téléchargée et installée sur chaque nœud.
++
+`system node image show-update-progress -node *`
+
++
+Cette commande affiche l'état actuel du téléchargement et de l'installation de l'image logicielle. Vous devez continuer à exécuter cette commande jusqu'à ce que tous les nœuds signalent un *Run Status* de *unch* et un *Exit Status* de *Success*.
+
++
+La commande de mise à jour de l'image du nœud système peut échouer et afficher des messages d'erreur ou d'avertissement. Après avoir résolu les erreurs ou les avertissements, vous pouvez relancer la commande.
+
++
+Cet exemple montre un cluster à deux nœuds dans lequel l'image logicielle est téléchargée et installée correctement sur les deux nœuds :
+
++
+[listing]
+----
+cluster1::*> system node image show-update-progress -node *
+There is no update/install in progress
+Status of most recent operation:
+        Run Status:     Exited
+        Exit Status:    Success
+        Phase:          Run Script
+        Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node0.
+There is no update/install in progress
+Status of most recent operation:
+        Run Status:     Exited
+        Exit Status:    Success
+        Phase:          Run Script
+        Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node1.
+2 entries were acted on.
+----
+

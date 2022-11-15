@@ -1,0 +1,101 @@
+---
+sidebar: sidebar 
+permalink: networking/lif_roles95.html 
+keywords: lif, role, ontap 9.5, lif roles in ontap 9.5 and earlier, lifs with different roles have different characteristics, lif compatibility with port types, network interface modify -vserver _vserver name_ -lif _intercluster lif_ -status-admin up|down, lif security, lif failover, lif routing, lif rebalancing 
+summary: Les LIF avec des rôles différents ont des caractéristiques différentes 
+---
+= Rôles LIF dans ONTAP 9.5 et versions antérieures
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Les LIF avec des rôles différents ont des caractéristiques différentes. Un rôle LIF détermine le type de trafic pris en charge via l'interface, ainsi que les règles de basculement qui s'appliquent, les restrictions de pare-feu en place, la sécurité, l'équilibrage de la charge et le comportement de routage pour chaque LIF. Une LIF peut avoir l'un des rôles suivants : cluster, gestion du cluster, données, intercluster, node management, et undef (non défini). Le rôle undef est utilisé pour les LIF BGP.
+
+Depuis la version ONTAP 9.6, les rôles LIF sont obsolètes. Vous devez définir des stratégies de service pour les LIF au lieu d'un rôle. Il n'est pas nécessaire de spécifier un rôle LIF lors de la création d'une LIF avec une policy de services.
+
+
+
+== Sécurité de LIF
+
+|===
+
+
+|  | LIF de données | LIF Cluster | FRV de gestion des nœuds | LIF Cluster-management | FRV InterCluster 
+
+
+| Besoin d'un sous-réseau IP privé ? | Non | Oui. | Non | Non | Non 
+
+
+| Besoin d'un réseau sécurisé ? | Non | Oui. | Non | Non | Oui. 
+
+
+| Politique de pare-feu par défaut | Très restrictif | Entièrement ouvert | Moyen | Moyen | Très restrictif 
+
+
+| Le pare-feu est-il personnalisable ? | Oui. | Non | Oui. | Oui. | Oui. 
+|===
+
+
+== Le basculement de LIF
+
+|===
+
+
+|  | LIF de données | LIF Cluster | FRV de gestion des nœuds | LIF Cluster-management | FRV InterCluster 
+
+
+| Comportement par défaut | Seuls les ports du même groupe de basculement se trouvent sur le nœud de rattachement de la LIF et sur un nœud partenaire non SFO | Seuls les ports du même failover group qui sont sur le home node de la LIF | Seuls les ports du même failover group qui sont sur le home node de la LIF | N'importe quel port dans le même groupe de basculement | Seuls les ports du même failover group qui sont sur le home node de la LIF 
+
+
+| Est personnalisable ? | Oui. | Non | Oui. | Oui. | Oui. 
+|===
+
+
+== Routage de LIF
+
+|===
+
+
+|  | LIF de données | LIF Cluster | FRV de gestion des nœuds | LIF Cluster-management | FRV InterCluster 
+
+
+| Quand une route par défaut est-elle nécessaire ? | Lorsque les clients ou le contrôleur de domaine se trouvent sur un sous-réseau IP différent | Jamais | Lorsque l'un des types de trafic principaux nécessite l'accès à un sous-réseau IP différent | Lorsque l'administrateur se connecte à partir d'un autre sous-réseau IP | Lorsque d'autres LIFs intercluster se trouvent sur un sous-réseau IP différent 
+
+
+| Quand une route statique vers un sous-réseau IP spécifique est-elle nécessaire ? | Rares | Jamais | Rares | Rares | Lorsque les nœuds d'un autre cluster disposent de leurs LIF intercluster dans différents sous-réseaux IP 
+
+
+| Quand une route hôte statique vers un serveur spécifique est-elle nécessaire ? | Pour obtenir l'un des types de trafic répertoriés sous LIF de node-management, passez par une LIF de données plutôt qu'une LIF de node-management. Cela nécessite un changement de pare-feu correspondant. | Jamais | Rares | Rares | Rares 
+|===
+
+
+== Rééquilibrage LIF
+
+|===
+
+
+|  | LIF de données | LIF Cluster | FRV de gestion des nœuds | LIF Cluster-management | FRV InterCluster 
+
+
+| DNS : utiliser comme serveur DNS ? | Oui. | Non | Non | Non | Non 
+
+
+| DNS : exporter en tant que zone ? | Oui. | Non | Non | Non | Non 
+|===
+
+
+== Types de trafic principaux LIF
+
+|===
+
+
+|  | LIF de données | LIF Cluster | FRV de gestion des nœuds | LIF Cluster-management | FRV InterCluster 
+
+
+| Types de trafic principaux | Serveur NFS, serveur CIFS, client NIS, Active Directory, LDAP, WINS, client et serveur DNS, iSCSI et FC | Intracluster | Serveur SSH, serveur HTTPS, client NTP, SNMP, client AutoSupport, Client DNS, chargement des mises à jour logicielles | Serveur SSH et serveur HTTPS | Réplication entre les clusters 
+|===

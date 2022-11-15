@@ -1,0 +1,90 @@
+---
+permalink: encryption-at-rest/key-management-servers-not-reachable-boot-concept.html 
+sidebar: sidebar 
+keywords: what, happens, key management servers, not reachable, boot, process 
+summary: 'ONTAP prend certaines précautions afin d"éviter tout comportement indésirable dans l"éventualité où un système de stockage configuré pour NSE ne puisse pas atteindre l"un des serveurs de gestion des clés spécifiés lors du processus de démarrage.' 
+---
+= Que se passe-t-il lorsque les serveurs de gestion des clés ne sont pas accessibles lors du processus de démarrage
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP prend certaines précautions afin d'éviter tout comportement indésirable dans l'éventualité où un système de stockage configuré pour NSE ne puisse pas atteindre l'un des serveurs de gestion des clés spécifiés lors du processus de démarrage.
+
+Si le système de stockage est configuré pour NSE, les disques SED sont de nouveau et verrouillés, et les disques SED sont sous tension, le système de stockage doit récupérer les clés d'authentification requises à partir des serveurs de gestion des clés pour s'authentifier auprès des disques SED avant qu'ils puissent accéder aux données.
+
+Le système de stockage tente de contacter les serveurs de gestion des clés spécifiés pendant jusqu'à trois heures. Si le système de stockage ne peut pas atteindre l'un d'eux après ce délai, le processus d'amorçage s'arrête et le système de stockage s'arrête.
+
+Si le système de stockage contacte avec succès un serveur de gestion de clés spécifié, il tente alors d'établir une connexion SSL pendant 15 minutes. Si le système de stockage ne parvient pas à établir de connexion SSL avec un serveur de gestion de clés spécifié, le processus d'amorçage s'arrête et le système de stockage s'arrête.
+
+Pendant que le système de stockage tente de contacter et de se connecter aux serveurs de gestion des clés, il affiche des informations détaillées sur les tentatives de contact ayant échoué au niveau de l'interface de ligne de commande. Vous pouvez interrompre les tentatives de contact à tout moment en appuyant sur Ctrl-C.
+
+Par mesure de sécurité, les disques SED ne permettent qu'un nombre limité de tentatives d'accès non autorisées, après quoi ils désactivent l'accès aux données existantes. Si le système de stockage ne peut pas contacter les serveurs de gestion des clés spécifiés pour obtenir les clés d'authentification appropriées, il peut uniquement tenter de s'authentifier auprès de la clé par défaut, ce qui entraîne une tentative d'échec et un incident. Si le système de stockage est configuré pour redémarrer automatiquement en cas de panique, il entre dans une boucle d'amorçage qui entraîne des tentatives d'authentification continues sur les disques SED ayant échoué.
+
+Dans ces scénarios, l'arrêt du système de stockage a été conçu pour éviter que le système de stockage ne pénètre dans une boucle d'amorçage et qu'il puisse y avoir des pertes de données inattendues suite au verrouillage permanent des disques SED, raison du dépassement de la limite de sécurité d'un certain nombre de tentatives d'authentification consécutives ayant échoué. La limite et le type de protection de verrouillage dépendent des spécifications de fabrication et du type de SED :
+
+[cols="30,15,55"]
+|===
+
+
+| Type SED | Nombre de tentatives d'authentification consécutives ayant échoué entraînant un blocage | Type de protection de verrouillage lorsque la limite de sécurité est atteinte 
+
+
+ a| 
+DISQUES DURS
+ a| 
+1024
+ a| 
+Permanent. Les données ne peuvent pas être restaurées, même si la clé d'authentification appropriée est à nouveau disponible.
+
+
+
+ a| 
+X440_PHM2800MCTO SSD NSE 800 Go avec révisions du firmware NA00 ou NA01
+ a| 
+5
+ a| 
+Temporaire. Le verrouillage est activé uniquement jusqu'à ce que le disque soit mis hors/sous tension.
+
+
+
+ a| 
+X577_PHM2800MNA00 SSD NSE 800 Go avec révisions de firmware ou NA01
+ a| 
+5
+ a| 
+Temporaire. Le verrouillage est activé uniquement jusqu'à ce que le disque soit mis hors/sous tension.
+
+
+
+ a| 
+X440_PHM2800MCTO SSD NSE 800 Go avec révisions de firmware plus élevées
+ a| 
+1024
+ a| 
+Permanent. Les données ne peuvent pas être restaurées, même si la clé d'authentification appropriée est à nouveau disponible.
+
+
+
+ a| 
+X577_PHM2800MCTO SSD NSE 800 Go avec révisions de micrologiciel plus élevées
+ a| 
+1024
+ a| 
+Permanent. Les données ne peuvent pas être restaurées, même si la clé d'authentification appropriée est à nouveau disponible.
+
+
+
+ a| 
+Tous les autres modèles de SSD
+ a| 
+1024
+ a| 
+Permanent. Les données ne peuvent pas être restaurées, même si la clé d'authentification appropriée est à nouveau disponible.
+
+|===
+Pour tous les types SED, une authentification réussie réinitialise le nombre d'essayer à zéro.
+
+Si vous rencontrez ce scénario lorsque le système de stockage est arrêté en raison d'un échec d'accès aux serveurs de gestion de clés spécifiés, vous devez d'abord identifier et corriger la cause de l'échec de communication avant de poursuivre le démarrage du système de stockage.

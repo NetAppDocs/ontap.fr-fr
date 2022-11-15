@@ -1,0 +1,108 @@
+---
+permalink: smb-hyper-v-sql/volume-config-worksheet-reference.html 
+sidebar: sidebar 
+keywords: complete, volume, configuration, worksheet, sql, server, hyper, v, smb, configuration 
+summary: 'Cette fiche fournit un moyen simple d"enregistrer les valeurs nécessaires lors de la création de volumes pour les configurations SQL Server et Hyper-V sur SMB.' 
+---
+= Renseignez la fiche technique de configuration des volumes
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cette fiche fournit un moyen simple d'enregistrer les valeurs nécessaires lors de la création de volumes pour les configurations SQL Server et Hyper-V sur SMB.
+
+Pour chaque volume, vous devez spécifier les informations suivantes :
+
+* Nom de la machine virtuelle de stockage (SVM)
++
+Le nom du SVM est identique pour tous les volumes.
+
+* Nom du volume
+* Nom de l'agrégat
++
+Vous pouvez créer des volumes sur des agrégats situés sur n'importe quel nœud du cluster.
+
+* Taille
+* Un chemin de jonction
+
+
+Lorsque vous créez des volumes utilisés pour stocker des données de serveur d'applications, vous devez garder à l'esprit les éléments suivants :
+
+* Si le volume racine n'a pas de style de sécurité NTFS, vous devez spécifier le style de sécurité comme NTFS lorsque vous créez le volume.
++
+Par défaut, les volumes héritent du style de sécurité du volume root du SVM.
+
+* Les volumes doivent être configurés avec la garantie d'espace du volume par défaut.
+* Vous pouvez éventuellement configurer le paramètre de gestion de l'espace de dimensionnement automatique.
+* Vous devez définir l'option qui détermine la réserve d'espace de copie Snapshot sur `0`.
+* La politique Snapshot appliquée au volume doit être désactivée.
++
+Si la SVM Snapshot policy est désactivée, il n'est donc pas nécessaire de spécifier une policy Snapshot pour les volumes. Les volumes héritent de la politique Snapshot pour le SVM. Si la politique Snapshot de la SVM n'est pas désactivée et qu'elle est configurée pour créer des copies Snapshot, vous devez spécifier une policy Snapshot au niveau du volume, et cette policy doit être désactivée. Les sauvegardes Shadow Copy et les sauvegardes SQL Server gèrent la création et la suppression de copies Snapshot.
+
+* Vous ne pouvez pas configurer de miroirs de partage de charge pour les volumes.
+
+
+Les chemins de jonction sur lesquels vous prévoyez de créer des partages que les serveurs d'applications doivent être choisis de sorte qu'aucun volume relié par jonction ne se trouve sous le point d'entrée du partage.
+
+Par exemple, si vous souhaitez stocker des fichiers de machine virtuelle sur quatre volumes nommés « vol1 », « vol2 », « vol3 » et « vol4 », vous pouvez créer l'espace de noms indiqué dans l'exemple. Vous pouvez ensuite créer des partages pour les serveurs d'applications aux chemins suivants : `/data1/vol1`, `/data1/vol2`, `/data2/vol3`, et `/data2/vol4`.
+
+[listing]
+----
+
+                     Junction                       Junction
+Vserver Volume       Active   Junction Path         Path Source
+------- ------------ -------- -------------------   -----------
+vs1     data1         true     /data1               RW_volume
+vs1     vol1          true     /data1/vol1          RW_volume
+vs1     vol2          true     /data1/vol2          RW_volume
+vs1     data2         true     /data2               RW_volume
+vs1     vol3          true     /data2/vol3          RW_volume
+vs1     vol4          true     /data2/vol4          RW_volume
+----
+|===
+| Types d'information | Valeurs 
+
+
+ a| 
+_Volume 1 : nom du volume, agrégat, taille, Junction path_
+ a| 
+
+
+
+ a| 
+_Volume 2 : nom du volume, agrégat, taille, Junction path_
+ a| 
+
+
+
+ a| 
+_Volume 3 : nom du volume, agrégat, taille, Junction path_
+ a| 
+
+
+
+ a| 
+_Volume 4 : nom du volume, agrégat, taille, Junction path_
+ a| 
+
+
+
+ a| 
+_Volume 5 : nom du volume, agrégat, taille, Junction path_
+ a| 
+
+
+
+ a| 
+_Volume 6 : nom du volume, agrégat, taille, Junction path_
+ a| 
+
+
+
+ a| 
+_Volumes supplémentaires : nom du volume, agrégat, taille, Junction path_
+ a| 
+
+|===

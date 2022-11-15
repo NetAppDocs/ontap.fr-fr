@@ -1,0 +1,66 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_how_hardware-assisted_takeover_works.html 
+keywords: ontap, high, availability, hardware-assisted, hardware, assisted, takeovers 
+summary: 'Activée par défaut, la fonctionnalité hardware-Assisted Takeover permet d"accélérer le processus de Takeover à l"aide d"un périphérique de gestion à distance (Service Processor) d"un nœud.' 
+---
+= Fonctionnement du basculement assisté par matériel
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Activée par défaut, la fonctionnalité hardware-Assisted Takeover permet d'accélérer le processus de Takeover à l'aide d'un périphérique de gestion à distance (Service Processor) d'un nœud.
+
+Lorsque le périphérique de gestion distant détecte une défaillance, il lance rapidement le basculement au lieu d'attendre que ONTAP reconnaisse que la pulsation du partenaire s'est arrêtée. En cas de défaillance sans cette fonctionnalité activée, le partenaire attend jusqu'à ce qu'il remarque que le nœud ne fournit plus de signal de détection, confirme la perte de signal de détection, puis lance le basculement.
+
+La fonctionnalité hardware-Assisted Takeover utilise le processus suivant pour éviter cette attente :
+
+. Le périphérique de gestion à distance surveille le système local pour détecter certains types de défaillances.
+. Si une défaillance est détectée, le périphérique de gestion à distance envoie immédiatement une alerte au nœud partenaire.
+. Le partenaire commence le basculement dès réception de l'alerte.
+
+
+
+
+== Événements système qui déclenchent un basculement assisté par matériel
+
+Le nœud partenaire peut générer un basculement en fonction du type d'alerte qu'il reçoit du périphérique de gestion à distance (Service Processor).
+
+[cols="30,20,50"]
+|===
+
+
+| Alerte | Prise de contrôle lancée à réception ? | Description 
+
+
+| redémarrage anormal | Non | Un redémarrage anormal du nœud s'est produit. 
+
+
+| l2_watchdog_reset | Oui. | Le matériel de surveillance du système a détecté une réinitialisation L2. Le périphérique de gestion à distance a détecté un manque de réponse de la CPU du système et réinitialisé le système. 
+
+
+| perte_de_pulsation | Non | Le périphérique de gestion à distance ne reçoit plus le message de pulsation du nœud. Cette alerte ne fait pas référence aux messages de signal de détection entre les nœuds de la paire HA ; il fait référence au signal de détection entre le nœud et son périphérique de gestion à distance local. 
+
+
+| message_périodique | Non | Un message périodique est envoyé lors d'une opération normale de basculement assisté par matériel. 
+
+
+| power_cycle_via_sp | Oui. | Le périphérique de gestion à distance a mis le système hors tension et sous tension. 
+
+
+| perte_de_puissance | Oui. | Une panne d'alimentation s'est produite sur le nœud. Le périphérique de gestion à distance est doté d'une alimentation qui maintient l'alimentation pendant une courte période après une coupure de courant, ce qui lui permet de signaler la perte de puissance au partenaire. 
+
+
+| power_off_via_sp | Oui. | Le périphérique de gestion à distance a mis hors tension le système. 
+
+
+| reset_via_sp | Oui. | Le périphérique de gestion à distance réinitialise le système. 
+
+
+| testez | Non | Un message de test est envoyé pour vérifier une opération de basculement assisté par matériel. 
+|===

@@ -1,0 +1,143 @@
+---
+sidebar: sidebar 
+permalink: high-availability/halt-reboot-node-wo-takeover-task.html 
+keywords: high availability pair, hair, inhibit-takeover, reboot, epsilon, HA 
+summary: 'Vous arrêtez ou redémarrez un nœud dans un cluster à deux nœuds sans passer par le basculement lorsque vous effectuez certaines opérations de maintenance matérielle sur un nœud ou un tiroir. Vous pouvez également limiter les temps d"indisponibilité en maintenant le nœud partenaire en fonctionnement, en cas de problème empêchant un basculement manuel, vous devez également maintenir les agrégats du nœud partenaire et assurer le service des données. De plus, si le support technique vous aide à résoudre les problèmes, il se peut que vous deviez effectuer cette procédure dans le cadre de ces efforts.' 
+---
+= Arrêtez ou redémarrez un nœud sans initier le basculement dans un cluster à deux nœuds
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous arrêtez ou redémarrez un nœud dans un cluster à deux nœuds sans passer par le basculement lorsque vous effectuez certaines opérations de maintenance matérielle sur un nœud ou un tiroir. Vous pouvez également limiter les temps d'indisponibilité en maintenant le nœud partenaire en fonctionnement, en cas de problème empêchant un basculement manuel, vous devez également maintenir les agrégats du nœud partenaire et assurer le service des données. De plus, si le support technique vous aide à résoudre les problèmes, il se peut que vous deviez effectuer cette procédure dans le cadre de ces efforts.
+
+.Description de la tâche
+* Avant de désactiver le basculement (à l'aide du `-inhibit-takeover true` Paramètre), vous désactivez le cluster HA.
+
+
+[CAUTION]
+====
+* Dans un cluster à deux nœuds, la haute disponibilité du cluster permet de s'assurer que la défaillance d'un nœud ne désactive pas le cluster. Cependant, si vous ne désactivez pas la haute disponibilité du cluster avant d'utiliser le  `-inhibit-takeover true` paramètre, le service des données n'est plus servi sur les deux nœuds.
+* Si vous tentez d'arrêter ou de redémarrer un nœud avant de désactiver la haute disponibilité du cluster, ONTAP émet un avertissement et vous indique de désactiver la haute disponibilité du cluster.
+
+
+====
+* Vous migrez les LIF (interfaces logiques) vers le nœud partenaire que vous souhaitez conserver en ligne.
+* Si sur le nœud que vous arrête ou redémarrez, des agrégats doivent être conservés, vous les déplacez vers le nœud que vous souhaitez conserver en ligne.
+
+
+.Étapes
+. Vérifiez que les deux nœuds fonctionnent correctement :
+`cluster show`
++
+Pour les deux nœuds, `true` s'affiche dans le `Health` colonne.
+
++
+[listing]
+----
+cluster::> cluster show
+Node         Health  Eligibility
+------------ ------- ------------
+node1        true     true
+node2        true     true
+----
+. Migrer toutes les LIFs du nœud qui vont s'arrêter ou redémarrer vers le nœud partenaire :
+`network interface migrate-all -node _node_name_`
+. Si vous arrêtez ou redémarrez le nœud, vous voulez garder les agrégats en ligne lorsque le nœud n'est pas en panne, puis les transférer vers le nœud partenaire ; sinon, passez à l'étape suivante.
++
+.. Afficher les agrégats du nœud vous arrêtez ou redémarrez :
+`storage aggregates show -node _node_name_`
++
+Par exemple, le nœud 1 est le nœud qui sera arrêté ou redémarré :
+
++
+[listing]
+----
+cluster::> storage aggregates show -node node1
+Aggregate  Size  Available  Used%  State  #Vols   Nodes   RAID  Status
+---------  ----  ---------  -----  -----  -----   -----   ----  ------
+aggr0_node_1_0
+           744.9GB   32.68GB   96% online       2 node1    raid_dp,
+                                                                normal
+aggr1       2.91TB    2.62TB   10% online       8 node1    raid_dp,
+                                                                normal
+aggr2
+            4.36TB    3.74TB   14% online      12 node1    raid_dp,
+                                                                normal
+test2_aggr  2.18TB    2.18TB    0% online       7 node1    raid_dp,
+                                                                normal
+4 entries were displayed.
+----
+.. Déplacez les agrégats vers le nœud partenaire :
+`storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
++
+Par exemple, les agrégats aggr1, aggr2 et test2_aggr sont déplacés du nœud 1 vers le nœud 2 :
+
++
+`storage aggregate relocation start -node _node1_ -destination _node2_ -aggregate-list _aggr1_,_aggr2_,_test2_aggr_`
+
+
+
+. Désactivation du cluster HA :
+`cluster ha modify -configured false`
++
+La sortie de retour confirme que la HA est désactivée : `Notice: HA is disabled`
+
++
+
+NOTE: Cette opération ne désactive pas le basculement du stockage.
+
+. Arrêtez ou redémarrez et inhiber le basculement du nœud cible, en utilisant la commande appropriée :
++
+** `system node halt -node _node_name_ -inhibit-takeover true`
+** `system node reboot -node _node_name_ -inhibit-takeover true`
++
+
+NOTE: Dans le résultat de la commande, un avertissement s'affiche vous demandant si vous souhaitez continuer, entrez `y`.
+
+
+
+. Vérifiez que le nœud qui est toujours en ligne est en état de santé (alors que le partenaire n'est pas en panne) :
+`cluster show`
++
+Pour le nœud en ligne, `true` s'affiche dans le `Health` colonne.
+
++
+
+NOTE: Dans le résultat de la commande, un avertissement s'affiche indiquant que le cluster HA n'est pas configuré. Vous pouvez ignorer l'avertissement pour le moment.
+
+. Exécutez les actions qui vous permettent d'arrêter ou de redémarrer le nœud.
+. Démarrage du nœud de mise hors ligne à partir de l'invite DU CHARGEUR :
+`boot_ontap`
+. Vérifiez que les deux nœuds fonctionnent correctement :
+`cluster show`
++
+Pour les deux nœuds, `true` s'affiche dans le `Health` colonne.
+
++
+
+NOTE: Dans le résultat de la commande, un avertissement s'affiche indiquant que le cluster HA n'est pas configuré. Vous pouvez ignorer l'avertissement pour le moment.
+
+. Réactiver la haute disponibilité du cluster :
+`cluster ha modify -configured true`
+. Si vous avez précédemment transféré des agrégats vers le nœud partenaire, déplacez-les vers le nœud de rattachement ; sinon, passez à l'étape suivante :
+`storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
++
+Par exemple, les agrégats aggr1, aggr2 et test2_aggr sont déplacés du nœud node2 vers le nœud node1 :
+`storage aggregate relocation start -node _node2_ -destination _node1_ -aggregate-list _aggr1_,_aggr2_,_test2_aggr_`
+
+. Rerestaurez les LIF sur leurs home ports :
++
+.. Affichez les LIF qui ne sont pas à la maison :
+`network interface show -is-home false`
+.. Si certaines LIF ne se trouvent pas chez soi et n'ont pas été migrées depuis le nœud défaillant, vérifiez qu'il est sûr de les déplacer avant le rétablissement.
+.. Si vous êtes sûr de le faire, rerestaurez toutes les LIF à la maison.
+`network interface revert *`
+
+
+

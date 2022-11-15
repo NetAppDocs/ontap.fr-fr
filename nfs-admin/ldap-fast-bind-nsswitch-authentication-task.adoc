@@ -1,0 +1,66 @@
+---
+permalink: nfs-admin/ldap-fast-bind-nsswitch-authentication-task.html 
+sidebar: sidebar 
+keywords: use, ldap, fast, bind, authentication, configure 
+summary: 'Depuis ONTAP 9.11.1, vous pouvez bénéficier de la fonctionnalité LDAP _FAST bind_ (également appelée _bind_ simultanée) pour des requêtes d"authentification client plus rapides et plus simples. Pour utiliser cette fonctionnalité, le serveur LDAP doit prendre en charge la fonctionnalité de liaison rapide' 
+---
+= Utilisez LDAP FAST bind pour l'authentification nsswitch
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.11.1, vous pouvez bénéficier de la fonctionnalité LDAP _FAST bind_ (également appelée _bind_ simultanée) pour des requêtes d'authentification client plus rapides et plus simples. Pour utiliser cette fonctionnalité, le serveur LDAP doit prendre en charge la fonctionnalité de liaison rapide.
+
+Sans liaison rapide, ONTAP utilise LDAP simple BIND pour authentifier les utilisateurs admin avec le serveur LDAP. Avec cette méthode d'authentification, ONTAP envoie un nom d'utilisateur ou de groupe au serveur LDAP, reçoit le mot de passe de hachage stocké et compare le code de hachage du serveur avec le code de hachage généré localement à partir du mot de passe de l'utilisateur. S'ils sont identiques, ONTAP accorde l'autorisation de connexion.
+
+Grâce à la fonctionnalité de liaison rapide, ONTAP n'envoie que les informations d'identification de l'utilisateur (nom d'utilisateur et mot de passe) au serveur LDAP via une connexion sécurisée. Le serveur LDAP valide ensuite ces informations d'identification et demande à ONTAP d'accorder des autorisations de connexion.
+
+L'un des avantages de Fast bind est qu'il n'est pas nécessaire que ONTAP prenne en charge chaque nouvel algorithme de hachage pris en charge par les serveurs LDAP, car le hachage du mot de passe est effectué par le serveur LDAP.
+
+link:https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/dc4eb502-fb94-470c-9ab8-ad09fa720ea6["En savoir plus sur l'utilisation de FAST BIND."^]
+
+Vous pouvez utiliser les configurations client LDAP existantes pour la liaison rapide LDAP. Cependant, il est fortement recommandé de configurer le client LDAP pour TLS ou LDAPS ; dans le cas contraire, le mot de passe est envoyé sur le réseau en texte brut.
+
+Pour activer la liaison rapide LDAP dans un environnement ONTAP, vous devez répondre aux exigences suivantes :
+
+* Les utilisateurs admin ONTAP doivent être configurés sur un serveur LDAP qui prend en charge la liaison rapide.
+* Le SVM ONTAP doit être configuré pour LDAP dans la base de données du switch des services de noms (nsswitch).
+* Les comptes utilisateur et groupe admin ONTAP doivent être configurés pour l'authentification nsswitch avec le bind rapide.
+
+
+.Étapes
+. Vérifiez auprès de votre administrateur LDAP que la liaison rapide LDAP est prise en charge sur le serveur LDAP.
+. Assurez-vous que les informations d'identification de l'utilisateur administrateur ONTAP sont configurées sur le serveur LDAP.
+. Vérifier que le SVM admin ou données est configuré correctement pour LDAP FAST BIND.
++
+.. Pour confirmer que le serveur LDAP FAST BIND est répertorié dans la configuration du client LDAP, entrez :
++
+`vserver services name-service ldap client show`
+
++
+link:https://docs.netapp.com/us-en/ontap/nfs-config/create-ldap-client-config-task.html["En savoir plus sur la configuration du client LDAP."]
+
+.. Pour le confirmer `ldap` est l'une des sources configurées pour le nsswitch `passwd` base de données, entrez :
++
+`vserver services name-service ns-switch show`
+
++
+link:https://docs.netapp.com/us-en/ontap/nfs-config/configure-name-service-switch-table-task.html["Découvrez la configuration nsswitch."]
+
+
+
+. Assurez-vous que les utilisateurs admin s'authentifient auprès de nsswitch et que l'authentification LDAP FAST BIND est activée dans leurs comptes.
++
+** Pour les utilisateurs existants, entrez `security login modify` et vérifiez les paramètres suivants :
++
+`-authentication-method nsswitch`
+
++
+`-is-ldap-fastbind true`
+
+** Pour les nouveaux utilisateurs admin, voir link:https://docs.netapp.com/us-en/ontap/authentication/grant-access-nis-ldap-user-accounts-task.html["Activez l'accès aux comptes LDAP ou NIS."]
+
+
+

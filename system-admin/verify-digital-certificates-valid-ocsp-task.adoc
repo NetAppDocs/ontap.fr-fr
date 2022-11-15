@@ -1,0 +1,115 @@
+---
+permalink: system-admin/verify-digital-certificates-valid-ocsp-task.html 
+sidebar: sidebar 
+keywords: verfiy, digital, certificate, valid, ocsp, online, status, protocol, transport, layer, security, tls, enable, disable 
+summary: 'Depuis ONTAP 9.2, le protocole OCSP (Online Certificate Status Protocol) permet aux applications ONTAP qui utilisent les communications TLS (transport Layer Security) de recevoir le statut du certificat numérique lorsque le protocole OCSP est activé. Vous pouvez à tout moment activer ou désactiver les vérifications d"état des certificats OCSP pour des applications spécifiques. Par défaut, la vérification du statut du certificat OCSP est désactivée.' 
+---
+= Vérifiez que les certificats numériques sont valides à l'aide du protocole OCSP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.2, le protocole OCSP (Online Certificate Status Protocol) permet aux applications ONTAP qui utilisent les communications TLS (transport Layer Security) de recevoir le statut du certificat numérique lorsque le protocole OCSP est activé. Vous pouvez à tout moment activer ou désactiver les vérifications d'état des certificats OCSP pour des applications spécifiques. Par défaut, la vérification du statut du certificat OCSP est désactivée.
+
+Ces commandes doivent être exécutées au niveau de privilège avancé.
+
+OCSP prend en charge les applications suivantes :
+
+* AutoSupport
+* Système de gestion des événements (EMS)
+* LDAP sur TLS
+* Protocole KMIP (Key Management Interoperability Protocol)
+* Consignation d'audits
+* FabricPool
+
+
+.Étapes
+. Définissez le niveau de privilège sur avancé : `set -privilege advanced`.
+. Pour activer ou désactiver les vérifications du statut des certificats OCSP pour des applications ONTAP spécifiques, utilisez la commande appropriée.
++
+|===
+| Si vous souhaitez que l'état du certificat OCSP soit vérifié pour certaines applications... | Utilisez la commande... 
+
+
+ a| 
+Activé
+ a| 
+`security config ocsp enable -app`
+
+`app name`
+
+
+
+ a| 
+Désactivé
+ a| 
+`security config ocsp disable -app`
+
+`app name`
+
+|===
++
+La commande suivante active la prise en charge OCSP pour AutoSupport et EMS.
+
++
+[listing]
+----
+cluster::*> security config ocsp enable -app asup,ems
+----
++
+Lorsque OCSP est activé, l'application reçoit l'une des réponses suivantes :
+
++
+** Bon - le certificat est valide et la communication continue.
+** Révoqué - le certificat est considéré comme non digne de confiance par son autorité de certification émettrice et la communication ne peut pas se poursuivre.
+** Inconnu - le serveur n'a pas d'informations d'état sur le certificat et la communication ne peut pas se poursuivre.
+** Il manque des informations de serveur OCSP dans le certificat. Le serveur agit comme si OCSP est désactivé et continue avec la communication TLS, mais aucune vérification d'état n'a lieu.
+** Aucune réponse du serveur OCSP - l'application ne peut pas continuer.
+
+
+. Pour activer ou désactiver les vérifications d'état des certificats OCSP pour toutes les applications utilisant les communications TLS, utilisez la commande appropriée.
++
+|===
+| Si vous souhaitez que l'état du certificat OCSP soit vérifié pour toutes les applications... | Utilisez la commande... 
+
+
+ a| 
+Activé
+ a| 
+`security config ocsp enable`
+
+`-app all`
+
+
+
+ a| 
+Désactivé
+ a| 
+`security config ocsp disable`
+
+`-app all`
+
+|===
++
+Lorsque cette option est activée, toutes les applications reçoivent une réponse signée indiquant le statut du certificat spécifié : bon, révoqué ou inconnu. Dans le cas d'un certificat révoqué, l'application ne pourra pas continuer. Si l'application ne parvient pas à recevoir de réponse du serveur OCSP ou si le serveur est inaccessible, l'application ne pourra pas continuer.
+
+. Utilisez le `security config ocsp show` Commande pour afficher toutes les applications qui prennent en charge OCSP et leur état de support.
++
+[listing]
+----
+cluster::*> security config ocsp show
+         Application                        OCSP Enabled?
+         --------------------               ---------------------
+         autosupport                        false
+         audit_log                          false
+         fabricpool                         false
+         ems                                false
+         kmip                               false
+         ldap_ad                            true
+         ldap_nis_namemap                   true
+
+         7 entries were displayed.
+----
+

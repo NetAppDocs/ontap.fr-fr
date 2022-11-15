@@ -1,0 +1,114 @@
+---
+permalink: encryption-at-rest/return-seds-unprotected-mode-task.html 
+sidebar: sidebar 
+keywords: returning, fips, drive, unprotected, mode 
+summary: 'Un lecteur FIPS ou SED est protégé contre les accès non autorisés uniquement si l"ID de clé d"authentification du nœud est défini sur une valeur autre que la valeur par défaut. Vous pouvez rétablir un lecteur FIPS ou SED en mode non protégé en utilisant la commande Storage Encryption disk modify pour définir l"ID de clé sur la valeur par défaut.' 
+---
+= Retournez un lecteur FIPS ou SED en mode non protégé
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Un lecteur FIPS ou SED est protégé contre les accès non autorisés uniquement si l'ID de clé d'authentification du nœud est défini sur une valeur autre que la valeur par défaut. Vous pouvez rétablir un lecteur FIPS ou SED en mode non protégé à l'aide de la `storage encryption disk modify` Commande pour définir l'ID de clé sur la valeur par défaut.
+
+Si une paire haute disponibilité utilise des disques avec cryptage SAS ou NVMe (SED, NSE, FIPS), vous devez suivre cette procédure pour tous les disques de la paire haute disponibilité avant d'initialiser le système (options de démarrage 4 ou 9). Si vous ne le faites pas, vous risquez de subir des pertes de données si les disques sont requalifiés.
+
+Vous devez être un administrateur de cluster pour effectuer cette tâche.
+
+.Étapes
+. Définissez le niveau de privilège sur avancé :
++
+`set -privilege advanced`
+
+. Si un lecteur FIPS est exécuté en mode FIPS-Compliance, définissez l'ID de clé d'authentification FIPS du nœud sur le MSID 0x0 par défaut :
++
+`storage encryption disk modify -disk _disk_id_ -fips-key-id 0x0`
+
++
+Vous pouvez utiliser le `security key-manager query` Commande permettant d'afficher les ID de clés.
+
++
+[listing]
+----
+cluster1::> storage encryption disk modify -disk 2.10.11 -fips-key-id 0x0
+
+Info: Starting modify on 14 disks.
+      View the status of the operation by using the
+      storage encryption disk show-status command.
+----
++
+Confirmer la réussite de l'opération à l'aide de la commande :
+
++
+`storage encryption disk show-status`
+
++
+Répétez la commande show-status jusqu'à ce que les chiffres de "disques commencés" et de "disques réalisés" soient identiques.
+
++
+[listing]
+----
+cluster1:: storage encryption disk show-status
+
+            FIPS    Latest   Start               Execution   Disks   Disks Disks
+Node        Support Request  Timestamp           Time (sec)  Begun   Done  Successful
+-------     ------- -------- ------------------  ---------- ------ ------  ----------
+cluster1    true    modify   1/18/2022 15:29:38    3           14     5         5
+1 entry was displayed.
+----
+. Définissez à nouveau l'ID de clé d'authentification des données du nœud sur le MSID 0x0 par défaut :
++
+`storage encryption disk modify -disk _disk_id_ -data-key-id 0x0`
+
++
+La valeur de `-data-key-id` Doit être défini sur 0x0 si vous retournez un disque SAS ou NVMe en mode non protégé.
+
++
+Vous pouvez utiliser le `security key-manager query` Commande permettant d'afficher les ID de clés.
+
++
+[listing]
+----
+cluster1::> storage encryption disk modify -disk 2.10.11 -data-key-id 0x0
+
+Info: Starting modify on 14 disks.
+      View the status of the operation by using the
+      storage encryption disk show-status command.
+----
++
+Confirmer la réussite de l'opération à l'aide de la commande :
+
++
+`storage encryption disk show-status`
+
++
+Répétez la commande show-status jusqu'à ce que les chiffres soient identiques. L’opération est terminée lorsque les nombres dans “disques commencés” et “disques réalisés” sont identiques.
+
+
+
+
+
+== Mode Maintenance
+
+Depuis ONTAP 9.7, vous pouvez ressaisir un disque FIPS à partir du mode de maintenance. Si vous ne pouvez pas utiliser les instructions de l'interface de ligne de commandes ONTAP décrites dans la section précédente, vous devez utiliser le mode de maintenance.
+
+.Étapes
+. Définissez à nouveau l'ID de clé d'authentification FIPS du nœud sur le MSID 0x0 par défaut :
++
+`disk encrypt rekey_fips 0x0 _disklist_`
+
+. Définissez à nouveau l'ID de clé d'authentification des données du nœud sur le MSID 0x0 par défaut :
++
+`disk encrypt rekey 0x0 _disklist_`
+
+. Vérifiez que la clé d'authentification FIPS a bien été reclés :
++
+`disk encrypt show_fips`
+
+. Confirmer que la clé d'authentification des données a bien été reclés avec :
++
+`disk encrypt show`
+
+

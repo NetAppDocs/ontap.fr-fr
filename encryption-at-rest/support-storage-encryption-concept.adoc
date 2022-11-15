@@ -1,0 +1,111 @@
+---
+permalink: encryption-at-rest/support-storage-encryption-concept.html 
+sidebar: sidebar 
+keywords: configuring, netapp, hardware-based, encryption 
+summary: 'Le chiffrement matériel NetApp prend en charge le chiffrement de disque intégral (FDE) des données au fur et à mesure de leur écriture. Les données ne peuvent pas être lues si une clé de chiffrement est stockée sur le micrologiciel. La clé de chiffrement, à son tour, n"est accessible qu"à un nœud authentifié.' 
+---
+= Configuration de la présentation de NetApp Hardware-based Encryption
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le chiffrement matériel NetApp prend en charge le chiffrement de disque intégral (FDE) des données au fur et à mesure de leur écriture. Les données ne peuvent pas être lues si une clé de chiffrement est stockée sur le micrologiciel. La clé de chiffrement, à son tour, n'est accessible qu'à un nœud authentifié.
+
+
+
+== Présentation du cryptage matériel NetApp
+
+Un nœud s'authentifie auprès d'un disque auto-chiffré à l'aide d'une clé d'authentification extraite d'un serveur de gestion externe des clés ou d'un gestionnaire de clés intégré :
+
+* Le serveur externe de gestion des clés est un système tiers de votre environnement de stockage qui transmet des clés aux nœuds à l'aide du protocole KMIP (Key Management Interoperability Protocol). Il est recommandé de configurer des serveurs de gestion externe des clés sur un système de stockage différent de vos données.
+* Le gestionnaire de clés intégré est un outil intégré qui sert des clés d'authentification aux nœuds du même système de stockage que vos données.
+
+
+Vous pouvez utiliser NetApp Volume Encryption avec chiffrement matériel pour « paramétrer la fonctionnalité de chiffrement » des données sur des disques à autochiffrement.
+
+AFF A220, AFF A800, FAS2720, FAS2750 et versions ultérieures stockent les core dumps sur leur périphérique de démarrage. Lorsque des disques à chiffrement automatique sont activés sur ces systèmes, le « core dump » est également chiffré.
+
+
+NOTE: Si une paire haute disponibilité utilise des disques avec cryptage SAS ou NVMe (SED, NSE, FIPS), vous devez suivre les instructions de la rubrique xref:return-seds-unprotected-mode-task.html[Retour d'un lecteur FIPS ou SED en mode non protégé] Pour tous les disques de la paire HA avant d'initialiser le système (options de démarrage 4 ou 9). Si vous ne le faites pas, vous risquez de subir des pertes de données si les disques sont requalifiés.
+
+
+
+== Types de disques à autocryptage pris en charge
+
+Deux types de disques à autocryptage sont pris en charge :
+
+* Tous les systèmes FAS et AFF prennent en charge les disques SAS ou NVMe certifiés FIPS avec le chiffrement automatique. Ces unités, appelées unités _FIPS,_ sont conformes aux exigences de la publication 140-2 de la norme fédérale de traitement des informations, niveau 2. Les fonctionnalités certifiées permettent d'ajouter des protections au chiffrement, comme la prévention d'attaques par déni de service sur le disque. Les disques FIPS ne peuvent pas être combinés avec d'autres types de disques sur le même nœud ou la même paire HA.
+* Depuis ONTAP 9.6, les disques NVMe à autocryptage n'ayant pas encore été testés FIPS sont pris en charge sur des systèmes AFF A800, A320 et versions ultérieures. Ces disques, appelés _SED_, offrent les mêmes fonctionnalités de cryptage que les disques FIPS, mais peuvent être combinés avec des disques sans cryptage sur un même nœud ou une paire haute disponibilité.
+* Tous les disques validés FIPS utilisent un module cryptographique de firmware qui a été validé par FIPS. Le module cryptographique du lecteur FIPS n'utilise aucune clé générée en dehors du disque (la phrase de passe d'authentification entrée dans le lecteur est utilisée par le module cryptographique du firmware du disque pour obtenir une clé de chiffrement).
+
+
+
+NOTE: Les disques sans chiffrement sont des disques qui ne sont pas des disques SED ou FIPS.
+
+
+
+== Quand utiliser la gestion externe des clés
+
+Le gestionnaire de clés intégré est moins coûteux et généralement plus pratique, mais vous devez utiliser une gestion externe des clés si l'un des éléments suivants est vrai :
+
+* La stratégie de votre entreprise nécessite une solution de gestion des clés qui utilise un module cryptographique FIPS 140-2 de niveau 2 (ou supérieur).
+* Vous avez besoin d'une solution à plusieurs clusters et d'une gestion centralisée des clés de chiffrement.
+* Votre entreprise exige que les clés d'authentification soient sécurisées sur un système ou à un emplacement différent de celui des données.
+
+
+
+
+== Détails du support
+
+Le tableau suivant présente des détails importants sur la prise en charge du chiffrement matériel. Consultez la matrice d'interopérabilité pour obtenir les dernières informations sur les serveurs, les systèmes de stockage et les tiroirs disques KMIP pris en charge.
+
+[cols="30,70"]
+|===
+
+
+| Ressource ou fonctionnalité | Détails du support 
+
+
+ a| 
+Jeux de disques non homogènes
+ a| 
+* Les disques FIPS ne peuvent pas être combinés avec d'autres types de disques sur le même nœud ou la même paire HA. Les paires haute disponibilité conformes peuvent coexister avec des paires haute disponibilité non conformes dans le même cluster.
+* Les disques SED peuvent être combinés avec des disques sans cryptage sur un même nœud ou une même paire haute disponibilité.
+
+
+
+
+ a| 
+Type de disque
+ a| 
+* Les disques FIPS peuvent être des disques SAS ou NVMe.
+* Les disques SED doivent être des disques NVMe.
+
+
+
+
+ a| 
+Interfaces réseau de 10 Go
+ a| 
+Depuis ONTAP 9.3, les configurations de gestion des clés KMIP prennent en charge des interfaces réseau de 10 Gbit pour les communications avec des serveurs de gestion des clés externes.
+
+
+
+ a| 
+Ports de communication avec le serveur de gestion des clés
+ a| 
+Depuis ONTAP 9.3, vous pouvez utiliser n'importe quel port du contrôleur de stockage pour la communication avec le serveur de gestion des clés. Dans le cas contraire, vous devez utiliser le port e0M pour la communication avec les serveurs de gestion des clés. Selon le modèle du contrôleur de stockage, certaines interfaces réseau peuvent ne pas être disponibles durant le processus de démarrage pour la communication avec les serveurs de gestion des clés.
+
+
+
+ a| 
+MetroCluster (MCC)
+ a| 
+* Les disques NVMe prennent en charge MCC.
+* Les disques SAS ne prennent pas en charge MCC.
+
+
+|===
+https://hwu.netapp.com/["NetApp Hardware Universe"^]

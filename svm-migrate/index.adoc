@@ -1,0 +1,172 @@
+---
+permalink: svm-migrate/index.html 
+sidebar: sidebar 
+keywords: svm, migrate, workflow, relocate, prerequisites, data mobility 
+summary: 'Depuis ONTAP 9.10.1, les administrateurs de clusters peuvent déplacer un SVM d"un cluster source vers un cluster de destination sans interruption afin de gérer la capacité et l"équilibrage de la charge, ou encore de permettre la mise à niveau d"équipements ou la consolidation des data centers. Depuis la version ONTAP 9.12.1, cette fonctionnalité est prise en charge sur les plateformes FAS et AFF, ainsi que sur les agrégats hybrides.' 
+---
+= Présentation de la mobilité des données des SVM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.10.1, les administrateurs de clusters peuvent déplacer un SVM d'un cluster source vers un cluster de destination sans interruption afin de gérer la capacité et l'équilibrage de la charge, ou encore de permettre la mise à niveau d'équipements ou la consolidation des data centers. Depuis la version ONTAP 9.12.1, cette fonctionnalité est prise en charge sur les plateformes FAS et AFF, ainsi que sur les agrégats hybrides.
+
+Le nom et l'UUID du SVM restent inchangés après la migration, ainsi que le nom de la LIF de données, l'adresse IP et les noms d'objet, comme le nom du volume. L'UUID des objets du SVM sera différent.
+
+
+
+== Flux de production de la migration SVM
+
+Le schéma représente le workflow standard d'une migration de SVM. Démarrer une migration SVM depuis le cluster destination. Vous pouvez contrôler la migration depuis la source ou la destination. Vous pouvez effectuer une mise en service manuelle ou automatique. La mise en service automatique est effectuée par défaut.
+
+image::../media/workflow_svm_migrate.gif[Flux de production de la migration SVM]
+
+
+
+== Configurations compatibles
+
+Le tableau indique les configurations prises en charge et les versions de ONTAP disponibles.
+
+[cols="3,1,1,1"]
+|===
+
+
+| Configuration prise en charge dans... | ONTAP 9.10.1 | ONTAP 9.11.1 | ONTAP 9.12.1 
+
+
+| Les baies AFF uniquement | Oui. | Oui. | Non 
+
+
+| Plateformes mixtes (AFF-FAS, FAS-AFF, FAS 100 % Flash avec agrégats hybrides) | Non | Non | Oui. 
+
+
+| Total de paires de baies/nœuds | 1 | 3 | 3 
+
+
+| Migrez avec un data Center et une latence réseau maximale de 2 ms. | Oui. | Oui. | Oui. 
+|===
+
+
+== Prérequis
+
+* Vous êtes un administrateur de cluster
+* Les clusters source et de destination sont associés les uns aux autres
+* Les clusters source et de destination disposent d'une licence Data protection Bundle
+* Tous les nœuds du cluster source doivent exécuter ONTAP 9.10.1 ou une version ultérieure
+* Tous les nœuds du cluster source doivent exécuter la même version de ONTAP
+* Le cluster de destination est identique ou plus récent à la version de cluster effective (ECV) que le cluster source
+* Les clusters source et de destination se trouvent sur le même réseau de données
+* Le SVM source contient moins de volumes de données que le nombre maximal de volumes pris en charge pour la version. Le nombre maximum de volumes de données pris en charge est le suivant :
++
+** Baies AFF : 100
+** Plateformes FAS : 80
+
+
+* L'espace suffisant pour le placement des volumes est disponible sur le volume de destination
+* Onboard Key Manager doit être configuré sur le site de destination si le SVM source possède des volumes chiffrés
+
+
+
+
+== Des opérations contradictoires
+
+Vous devez vérifier si les opérations peuvent entrer en conflit avec une migration SVM :
+
+* Aucune opération de basculement n'est en cours
+* WAFLIRON ne peut pas être en cours d'exécution
+* L'empreinte digitale n'est pas en cours
+* Le déplacement de volumes, le réhébergement, le clonage, la création, la conversion ou l'analytique ne sont pas en cours d'exécution
+
+
+
+
+== Fonctionnalités prises en charge
+
+Le tableau indique les fonctionnalités prises en charge et les versions de ONTAP disponibles.
+
+[cols="3,1,1,1,4"]
+|===
+
+
+| Fonction prise en charge dans... | ONTAP 9.10.1 | ONTAP 9.11.1 | ONTAP 9.12.1 | Informations supplémentaires 
+
+
+| Relations SnapMirror asynchrones vers le cloud | Non | Non | Oui. | Depuis ONTAP 9.12.1, lorsque vous migrez un SVM avec des relations SnapMirror copie vers le cloud, le cluster de destination doit disposer de la copie vers la licence cloud et doit disposer de suffisamment de capacité pour prendre en charge le déplacement de la capacité des volumes en cours de mise en miroir vers le cloud. 
+
+
+| Destination SnapMirror asynchrone | Non | Non | Oui. |  
+
+
+| Source SnapMirror asynchrone | Non | Oui. | Oui.  a| 
+* Les transferts peuvent se poursuivre normalement sur les relations FlexVol SnapMirror pendant la majeure partie de la migration.
+* Tout transfert en cours est annulé pendant la mise en service et les nouveaux transferts échouent pendant la mise en service et ils ne peuvent pas être redémarrés tant que la migration n'est pas terminée.
+* Les transferts programmés qui ont été annulés ou manqués pendant la migration ne sont pas démarrés automatiquement une fois la migration terminée.
++
+[NOTE]
+====
+Lorsqu'une source SnapMirror est migrée, ONTAP n'empêche pas la suppression du volume après la migration jusqu'à ce que la mise à jour SnapMirror ait lieu après. Cela se produit car les informations relatives à SnapMirror pour les volumes source SnapMirror migrés sont connues uniquement après la première mise à jour effectuée.
+
+====
+
+
+
+
+| Protection autonome contre les ransomwares | Non | Non | Oui. |  
+
+
+| Gestionnaire de clés externe | Non | Oui. | Oui. |  
+
+
+| Relations « fan out » (la source migrée possède un volume SnapMirror source offrant plusieurs cibles) | Non | Oui. | Oui. |  
+
+
+| Réplication de la planification des tâches | Non | Oui. | Oui. | Dans ONTAP 9.10.1, les planifications de tâches ne sont pas répliquées au cours de la migration et doivent être créées manuellement sur le volume de destination. Depuis ONTAP 9.11.1, les planifications des tâches utilisées par la source sont automatiquement répliquées au cours de la migration. 
+
+
+| NetApp Volume Encryption | Oui. | Oui. | Oui. |  
+
+
+| Protocoles NFS v3, NFS v4.1 et NFS v4.2 | Oui. | Oui. | Oui. |  
+
+
+| Protocole SMB | Non | Non | Oui.  a| 
+* Depuis ONTAP 9.12.1, la migration des SVM inclut l'interruption de la migration avec SMB.
+
+
+
+
+| SVM peering pour les applications SnapMirror | Non | Oui. | Oui. |  
+|===
+
+
+== Fonctions non prises en charge
+
+Les fonctionnalités suivantes ne sont pas prises en charge par la migration des SVM :
+
+* Audit
+* Cloud Volumes ONTAP
+* Volume de protection des données
+* FabricPool
+* Les agrégats Flash Pool
+* Volumes FlexCache
+* Volumes FlexGroup
+* Stratégie IPsec
+* LIF IPv6
+* Workloads iSCSI
+* Miroirs de partage de charge
+* MetroCluster
+* NDMP
+* SAN, NVMe over Fibre, VSCAN, NFS v4.0, vStorage, Réplication S3
+* SMTape
+* SnapLock
+* SVM-DR
+* Migration de SVM lorsque le mode Onboard Key Manager (OKM) du cluster source est activé pour le mode Common Criteria (CC)
+* SnapMirror synchrone, continuité de l'activité SnapMirror
+* System Manager
+* Qtree, quota
+* LIF VIP/BGP
+* Virtual Storage Console pour VMware vSphere (VSC fait partie du https://docs.netapp.com/us-en/ontap-tools-vmware-vsphere/index.html["Appliance virtuelle ONTAP Tools pour VMware vSphere"^] À partir de VSC 7.0.)
+* Clones de volumes
+

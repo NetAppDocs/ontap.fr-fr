@@ -1,0 +1,262 @@
+---
+sidebar: sidebar 
+permalink: networking/configure_virtual_ip_@vip@_lifs.html 
+keywords: 'configure, configuration, configuring, setup, setting, set, up, virtual, vip, ip, lif, data, configure virtual IP (vip) lifs, set up border gateway protocol (bgp), use-peer-as-next-hop, asn-prepend-type, asn-prepend-count, community, network bgp peer-group, med, multi-exit discriminator, create a virtual ip (vip) data lif, commands for managing the BGP, network bgp, manage bgp configuration, manage bgp default values, manage bgp peer groups' 
+summary: Basculez les LIF entre les sous-réseaux 
+---
+= Configuration des LIF IP virtuelles (VIP
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Certains data centers nouvelle génération utilisent des mécanismes Network-Layer-3 qui requièrent que les LIF soient basculés entre les sous-réseaux. Depuis ONTAP 9.5, les LIF de données VIP et le protocole de routage associé, le protocole BGP (Border Gateway Protocol), sont pris en charge, qui permettent à ONTAP de participer à ces réseaux nouvelle génération.
+
+Une LIF de données VIP est une LIF qui ne fait pas partie d'un sous-réseau et est accessible depuis tous les ports qui hébergent une LIF BGP dans le même IPspace. Une LIF de données VIP élimine la dépendance d'un hôte sur des interfaces réseau individuelles. Étant donné que plusieurs adaptateurs physiques transportent le trafic des données, la charge entière n'est pas concentrée sur un seul adaptateur et le sous-réseau associé. L'existence d'une LIF de données VIP est annoncée pour les routeurs homologues par le biais du protocole de routage, BGP (Border Gateway Protocol).
+
+Les LIF de données VIP offrent les avantages suivants :
+
+* Portabilité de LIF au-delà d'un domaine de broadcast ou d'un sous-réseau : les LIF de données VIP peuvent basculer vers n'importe quel sous-réseau du réseau en annonçant l'emplacement actuel de chaque LIF de données VIP vers des routeurs via BGP.
+* Débit global : la LIF de données VIP peut prendre en charge un débit global supérieur à celui d'un port individuel, car les LIF VIP peuvent envoyer ou recevoir simultanément des données provenant de plusieurs sous-réseaux ou ports.
+
+
+
+
+== Configuration du protocole BGP (Border Gateway Protocol)
+
+Avant de créer des LIF VIP, vous devez configurer le protocole BGP, qui est le protocole de routage utilisé pour annoncer l'existence d'une LIF VIP pour les routeurs de l'égal.
+
+Depuis la version ONTAP 9.9.1, VIP BGP offre une automatisation de la route par défaut grâce au regroupement de pairs BGP pour simplifier la configuration.
+
+ONTAP offre un moyen simple d'apprendre les routes par défaut en utilisant les pairs BGP comme routeurs de saut suivant lorsque l'homologue BGP se trouve sur le même sous-réseau. Pour utiliser la fonction, définissez l' `-use-peer-as-next-hop` attribut à `true`. Par défaut, cet attribut est `false`.
+
+Si vous avez des routes statiques configurées, celles-ci sont encore préférées sur ces routes automatisées par défaut.
+
+Le routeur homologue doit être configuré pour accepter une connexion BGP à partir du LIF BGP pour le numéro de système autonome configuré (ASN).
+
+
+NOTE: ONTAP ne traite aucune annonce de route entrante à partir du routeur ; par conséquent, vous devez configurer le routeur homologue pour qu'il n'envoie aucune mise à jour de route au cluster.
+
+La configuration du protocole BGP implique la création d'une configuration BGP, la création d'une LIF BGP et la création d'un groupe de pairs BGP. ONTAP crée automatiquement une configuration BGP par défaut avec des valeurs par défaut lorsque le premier groupe de pairs BGP est créé sur un nœud donné. Une LIF BGP est utilisée pour établir des sessions TCP BGP avec des routeurs homologues. Pour un routeur homologue, une LIF BGP est le prochain saut pour atteindre une LIF VIP. Le basculement est désactivé pour le LIF BGP. Un groupe de pairs BGP annonce les routes VIP de tous les SVM dans l'IPspace du groupe Peer.
+
+Depuis ONTAP 9.8, ces champs ont été ajoutés au `network bgp peer-group` commande :
+
+* -asn-type-préfixe
+* -asn-prépend-count
+* -communauté
+
+
+Ces attributs BGP permettent de configurer le EN TANT qu'attributs de chemin et de communauté pour le groupe de pairs BGP.
+
+Depuis ONTAP 9.9.1, ces champs ont été ajoutés :
+
+* -asn ou -peer-asn (valeur de 4 octets) l'attribut lui-même n'est pas nouveau, mais utilise maintenant un entier de 4 octets.
+* -med
+* -utiliser-peer-as-next-hop
+
+
+Vous pouvez effectuer des sélections avancées de route grâce à la prise en charge du décriminateur multi-sortie (MED) pour la hiérarchisation des chemins. MED est un attribut facultatif du message de mise à jour BGP qui indique aux routeurs de sélectionner le meilleur itinéraire pour le trafic. Le MED est un entier 32 bits non signé (0 - 4294967295) ; les valeurs inférieures sont préférées.
+
+
+NOTE: Bien que ONTAP prenne en charge les attributs BGP ci-dessus, les routeurs ne doivent pas les respecter. NetApp vous recommande vivement de vérifier les attributs pris en charge par votre routeur et de configurer les groupes de pairs BGP en conséquence. Pour plus de détails, reportez-vous à la documentation BGP fournie par votre routeur.
+
+.Étapes
+. Connectez-vous au niveau de privilège avancé :
++
+`set -privilege advanced`
+
+. Facultatif : créez une configuration BGP ou modifiez la configuration par défaut du cluster en effectuant l'une des opérations suivantes :
++
+.. Créez une configuration BGP :
++
+....
+network bgp config create -node {node_name | local} -asn asn_integer -holdtime
+hold_time -routerid local_router_IP_address
+....
++
+Échantillon avec un ASN de 2 octets :
+
++
+....
+network bgp config create -node node1 -asn 65502 -holdtime 180 -routerid 1.1.1.1
+....
++
+Échantillon avec un ASN de 4 octets :
+
++
+....
+network bgp config create -node node1 -asn 85502 -holdtime 180 -routerid 1.1.1.1
+....
+.. Modifiez la configuration BGP par défaut :
++
+....
+network bgp defaults modify -asn asn_integer -holdtime hold_time
+network bgp defaults modify -asn 65502
+....
++
+*** `asn_integer` Spécifie l'ASN. À partir de ONTAP 9.8, ASN pour BGP prend en charge un entier non négatif de 2 octets. Il s'agit d'un nombre de 16 bits (1 - 65534 valeurs disponibles). À partir de ONTAP 9.9.1, ASN pour BGP prend en charge un entier non négatif de 4 octets (1 - 4294967295). L'ASN par défaut est 65501. ASN 23456 est réservé à l'établissement de session ONTAP avec des pairs qui n'annoncent pas la capacité ASN de 4 octets.
+*** `hold_time` spécifie le temps d'attente en secondes. La valeur par défaut est 180s.
+
+
+
+
+. Créez une LIF BGP pour le SVM du système :
++
+....
+network interface create -vserver system_svm -lif lif_name -service-policy default-route-announce -home-node home_node -home-port home_port -address ip_address -netmask netmask
+....
++
+Vous pouvez utiliser le `default-route-announce` Politique de service pour le LIF BGP ou toute règle de services personnalisée qui contient le service « management-bgp ».
+
++
+....
+network interface create -vserver cluster1 -lif bgp1 -service-policy default-route-announce -home-node cluster1-01 -home-port e0c -address 10.10.10.100 -netmask 255.255.255.0
+....
+. Créez un groupe d'homologues BGP utilisé pour établir des sessions BGP avec les routeurs homologues distants et configurer les informations de routage VIP annoncées aux routeurs homologues :
++
+Exemple 1 : créez un groupe de pairs sans route par défaut automatique
+
++
+Dans ce cas, l'administrateur doit créer une route statique vers l'homologue BGP.
+
++
+....
+network bgp peer-group create -peer-group group_name -ipspace ipspace_name -bgp-lif bgp_lif -peer-address peer-router_ip_address -peer-asn 65502 -route-preference integer
+-asn-prepend-type <ASN_prepend_type> -asn-prepend-count integer -med integer -community BGP community list <0-65535>:<0-65535>
+....
++
+....
+network bgp peer-group create -peer-group group1 -ipspace Default -bgp-lif bgp1 -peer-address 10.10.10.1 -peer-asn 65502 -route-preference 100 -asn-prepend-type local-asn -asn-prepend-count 2 -med 100 -community 9000:900,8000:800
+....
++
+Exemple 2 : créez un groupe de pairs avec une route par défaut automatique
+
++
+....
+network bgp peer-group create -peer-group group_name -ipspace ipspace_name -bgp-lif bgp_lif -peer-address peer-router_ip_address -peer-asn 65502 -use-peer-as-next-hop true -route-preference integer -asn-prepend-type <ASN_prepend_type> -asn-prepend-count integer -med integer -community BGP community list <0-65535>:<0-65535>
+....
++
+....
+network bgp peer-group create -peer-group group1 -ipspace Default -bgp-lif bgp1 -peer-address 10.10.10.1 -peer-asn 65502 -use-peer-as-next-hop true -route-preference 100 -asn-prepend-type local-asn -asn-prepend-count 2 -med 100 -community 9000:900,8000:800
+....
+
+
+
+
+== Créer une LIF de données VIP (Virtual IP
+
+L'existence d'une LIF de données VIP est annoncée pour les routeurs homologues par le biais du protocole de routage, BGP (Border Gateway Protocol).
+
+.Avant de commencer
+* Le groupe de pairs BGP doit être configuré et la session BGP pour le SVM sur lequel la LIF est créée doit être active.
+* Une route statique vers le routeur BGP ou tout autre routeur du sous-réseau de la LIF BGP doit être créée pour tout trafic VIP sortant pour la SVM.
+* Vous devez activer le routage multichemin afin que le trafic VIP sortant puisse utiliser toutes les routes disponibles.
++
+Si le routage multichemin n'est pas activé, tout le trafic VIP sortant passe à partir d'une interface unique.
+
+
+
+.Étapes
+. Créer une LIF de données VIP :
++
+....
+network interface create -vserver svm_name -lif lif_name -role data -data-protocol
+{nfs|cifs|iscsi|fcache|none|fc-nvme} -home-node home_node -address ip_address -is-vip true
+....
++
+Un port VIP est automatiquement sélectionné si vous ne spécifiez pas le port d'accueil avec le `network interface create` commande.
+
++
+Par défaut, la LIF de données VIP appartient au domaine de diffusion créé par le système, nommé « VIP », pour chaque IPspace. Vous ne pouvez pas modifier le broadcast domain VIP.
+
++
+Une LIF de données VIP est accessible simultanément sur tous les ports hébergeant une LIF BGP d'un IPspace. En l'absence de session BGP active pour le SVM de VIP sur le nœud local, la LIF de données VIP bascule vers le port VIP suivant sur le nœud sur lequel une session BGP est établie pour ce SVM.
+
+. Vérifier que la session BGP est au statut up pour le SVM de la LIF de données VIP :
++
+....
+network bgp vserver-status show
+
+Node        Vserver  bgp status
+	    ----------  -------- ---------
+	    node1       vs1      up
+....
++
+Si le statut BGP est de `down` Pour le SVM sur un nœud, la LIF de données VIP bascule vers un nœud différent où l'état BGP est activé pour le SVM. Si le statut BGP est de `down` Sur tous les nœuds, la LIF de données VIP ne peut pas être hébergée n'importe où et possède le statut LIF comme étant arrêté.
+
+
+
+
+
+== Commandes de gestion du protocole BGP
+
+À partir de ONTAP 9.5, vous utilisez le `network bgp` Commandes permettant de gérer les sessions BGP dans ONTAP.
+
+
+
+=== Gérer la configuration BGP
+
+|===
+
+
+| Les fonctions que vous recherchez... | Utilisez cette commande... 
+
+
+| Créez une configuration BGP | création de la configuration bgp du réseau 
+
+
+| Modifiez la configuration BGP | modification de la configuration bgp du réseau 
+
+
+| Supprimez la configuration BGP | suppression de la configuration bgp du réseau 
+
+
+| Affiche la configuration BGP | affichage de la configuration bgp du réseau 
+
+
+| Affiche l'état BGP pour le SVM de la LIF VIP | network bgp : affichage du statut d'un vserver 
+|===
+
+
+=== Gérer les valeurs par défaut du protocole BGP
+
+|===
+
+
+| Les fonctions que vous recherchez... | Utilisez cette commande... 
+
+
+| Modifiez les valeurs par défaut du protocole BGP | les paramètres par défaut de network bgp sont modifiés 
+
+
+| Affiche les valeurs par défaut du protocole BGP | les valeurs par défaut de network bgp s'affichent 
+|===
+
+
+=== Gérez les groupes de pairs BGP
+
+|===
+
+
+| Les fonctions que vous recherchez... | Utilisez cette commande... 
+
+
+| Créez un groupe de pairs BGP | création du groupe d'homologues bgp réseau 
+
+
+| Modifiez un groupe de pairs BGP | modification du groupe d'homologues bgp du réseau 
+
+
+| Supprimez un groupe de pairs BGP | suppression du groupe d'homologues bgp du réseau 
+
+
+| Affiche les informations sur les groupes de pairs BGP | network bgp peer-group show 
+
+
+| Renommez un groupe d'homologues BGP | nom du groupe d'homologues bgp du réseau 
+|===
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes ONTAP 9"^]

@@ -1,0 +1,75 @@
+---
+permalink: antivirus/apply-scanner-policy-pool-task.html 
+sidebar: sidebar 
+keywords: apply, scanner policy, single, cluster 
+summary: Une politique scanner détermine si un pool de scanner est actif. On doit rendre un pool de scanner actif avant les serveurs Vscan définis dans le pool de scanner peuvent se connecter à une SVM. 
+---
+= Appliquer une politique scanner sur un seul cluster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une politique scanner détermine si un pool de scanner est actif. On doit rendre un pool de scanner actif avant les serveurs Vscan définis dans le pool de scanner peuvent se connecter à une SVM.
+
+.Description de la tâche
+* Vous ne pouvez appliquer qu'une seule politique scanner à un pool de scanner.
+* Si vous avez créé un pool de scanner pour tous les SVM d'un cluster, vous devez appliquer une scanner policy sur chaque SVM individuellement.
+* Pour les configurations MetroCluster et de reprise sur incident, vous devez appliquer une scanner policy aux pools de scanner pour le cluster local et le cluster partenaire.
++
+Dans la règle que vous créez pour le cluster local, vous devez spécifier le cluster local dans le `cluster` paramètre. Dans la règle que vous créez pour le cluster partenaire, vous devez spécifier le cluster partenaire dans le `cluster` paramètre. Le cluster partenaire peut alors reprendre les opérations d'analyse antivirus en cas d'incident.
+
+
+
+.Étapes
+. Appliquer une politique scanner :
++
+`vserver vscan scanner-pool apply-policy -vserver data_SVM -scanner-pool scanner_pool -scanner-policy primary|secondary|idle -cluster cluster_to_apply_policy_on`
+
++
+Une politique scanner peut avoir l'une des valeurs suivantes :
+
++
+** `Primary` indique que le pool de scanner est actif.
+** `Secondary` Spécifie que le pool de scanner est actif uniquement si aucun des serveurs Vscan du pool de scanner principal n'est connecté.
+** `Idle` indique que le pool de scanner est inactif.
+
+
++
+L'exemple suivant montre que le pool de scanner est nommé `SP` sur le ``vs1`` Le SVM est actif :
+
++
+[listing]
+----
+cluster1::> vserver vscan scanner-pool apply-policy -vserver vs1 -scanner-pool SP  -scanner-policy primary
+----
+. Vérifiez que le pool de scanner est actif :
++
+`vserver vscan scanner-pool show -vserver data_SVM|cluster_admin_SVM -scanner-pool scanner_pool`
+
++
+Pour obtenir la liste complète des options, consultez la page man de la commande.
+
++
+La commande suivante affiche les détails de `SP` scanner pool :
+
++
+[listing]
+----
+cluster1::> vserver vscan scanner-pool show -vserver vs1 -scanner-pool SP
+
+                                    Vserver: vs1
+                               Scanner Pool: SP
+                             Applied Policy: primary
+                             Current Status: on
+         Cluster on Which Policy Is Applied: cluster1
+                  Scanner Pool Config Owner: vserver
+       List of IPs of Allowed Vscan Servers: 1.1.1.1, 10.72.204.27
+List of Host Names of Allowed Vscan Servers: 1.1.1.1, vmwin204-27.fsct.nb
+                   List of Privileged Users: cifs\u1, cifs\u2
+----
++
+Vous pouvez utiliser le `vserver vscan scanner-pool show-active` Commande pour afficher les scanner pool actifs sur un SVM. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man de la commande.
+
+

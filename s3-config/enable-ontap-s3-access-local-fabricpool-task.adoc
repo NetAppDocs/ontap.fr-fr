@@ -1,0 +1,77 @@
+---
+permalink: s3-config/enable-ontap-s3-access-local-fabricpool-task.html 
+sidebar: sidebar 
+keywords: enable, ontap, s3 access, local, fabricpool, tiering 
+summary: 'Pour qu"ONTAP S3 puisse être utilisé comme Tier de capacité FabricPool locale, vous devez définir un magasin d"objets en fonction du compartiment que vous avez créé, puis relier le magasin d"objets à un agrégat de Tier de performance pour créer une FabricPool.' 
+---
+= Activez l'accès ONTAP S3 pour le Tiering FabricPool local
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour qu'ONTAP S3 puisse être utilisé comme Tier de capacité FabricPool locale, vous devez définir un magasin d'objets en fonction du compartiment que vous avez créé, puis relier le magasin d'objets à un agrégat de Tier de performance pour créer une FabricPool.
+
+Vous devez disposer du nom du serveur ONTAP S3 et d'un nom de compartiment, et le serveur S3 doit avoir été créé à l'aide des LIFs de cluster (avec le `-vserver Cluster` paramètre).
+
+La configuration du magasin d'objets contient des informations sur le Tier de capacité locale, notamment les noms de compartiment et de serveur S3 et les exigences d'authentification.
+
+Une fois créée, une configuration de magasin d'objets ne doit pas être associée à un autre magasin d'objets ou compartiment. Vous pouvez créer plusieurs compartiments pour les tiers locaux, mais il n'est pas possible de créer plusieurs magasins d'objets dans un seul compartiment.
+
+Aucune licence FabricPool n'est requise pour un niveau de capacité locale.
+
+.Étapes
+. Créez le magasin d'objets pour le Tier de capacité locale :
++
+`storage aggregate object-store config create -object-store-name _store_name_ -ipspace Cluster -provider-type ONTAP_S3 -server _S3_server_name_ -container-name _bucket_name_ -access-key _access_key_ -secret-password password`
+
++
+** Le `-container-name` Est le compartiment S3 que vous avez créé.
+** Le `-access-key` Paramètre autorise les requêtes vers le serveur ONTAP S3.
+** Le `-secret-password` Le paramètre (clé d'accès secrète) authentifie les requêtes vers le serveur ONTAP S3.
+** Vous pouvez définir le `-is-certificate-validation-enabled` paramètre à `false` Pour désactiver la vérification du certificat pour ONTAP S3.
+
+
++
+[listing]
+----
+cluster1::> storage aggregate object-store config create
+-object-store-name MyLocalObjStore -ipspace Cluster -provider-type ONTAP_S3 -server s3.example.com
+-container-name bucket1 -access-key myS3key -secret-password myS3pass
+----
+. Afficher et vérifier les informations de configuration du magasin d'objets :
++
+`storage aggregate object-store config show`
+
+. Facultatif : pour connaître le volume de données inactives d'un volume, suivez les étapes de la section http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-mgng-stor-tier-fp/GUID-78C09B0C-9508-4CEC-96FE-7ED73F7F5120.html["Détermination de la quantité de données inactives d'un volume grâce au reporting des données inactives"].
++
+Vous savez combien de données inactives d'un volume peut vous aider à choisir l'agrégat à utiliser pour le Tiering FabricPool local.
+
+. Attacher le magasin d'objets à un agrégat :
++
+`storage aggregate object-store attach -aggregate _aggr_name_ -object-store-name _store_name_`
+
++
+Vous pouvez utiliser le `allow-flexgroup *true*` Possibilité de connecter des agrégats contenant des composants de volume FlexGroup
+
++
+[listing]
+----
+cluster1::> storage aggregate object-store attach
+-aggregate aggr1 -object-store-name MyLocalObjStore
+----
+. Afficher les informations du magasin d'objets et vérifier que le magasin d'objets attaché est disponible :
++
+`storage aggregate object-store show`
+
++
+[listing]
+----
+cluster1::> storage aggregate object-store show
+
+Aggregate    Object Store Name    Availability State
+---------    -----------------    ------------------
+aggr1        MyLocalObjStore      available
+----
+

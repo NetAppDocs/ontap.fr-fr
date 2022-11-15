@@ -1,0 +1,85 @@
+---
+permalink: smb-admin/enable-disable-access-based-enumeration-task.html 
+sidebar: sidebar 
+keywords: enable, disable, access-based, enumeration, abe, smb, allow, prevent, user, permission, access, enable or disable access-based enumeration on smb shares 
+summary: 'Vous pouvez activer ou désactiver l"énumération basée sur l"accès (ABE) sur les partages SMB afin d"autoriser ou d"empêcher les utilisateurs de voir les ressources partagées qu"ils ne disposent pas des autorisations d"accès.' 
+---
+= Activez ou désactivez l'énumération basée sur l'accès pour les partages SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez activer ou désactiver l'énumération basée sur l'accès (ABE) sur les partages SMB afin d'autoriser ou d'empêcher les utilisateurs de voir les ressources partagées qu'ils ne disposent pas des autorisations d'accès.
+
+Par défaut, ABE est désactivé.
+
+.Étapes
+. Effectuez l'une des opérations suivantes :
++
+|===
+| Les fonctions que vous recherchez... | Entrez la commande... 
+
+
+ a| 
+Activer ABE sur un nouveau partage
+ a| 
+`vserver cifs share create -vserver vserver_name -share-name share_name -path path -share-properties access-based-enumeration` Vous pouvez spécifier des paramètres de partage facultatifs supplémentaires et d'autres propriétés de partage lorsque vous créez un partage SMB. Pour plus d'informations, consultez la page de manuel du `vserver cifs share create` commande.
+
+
+
+ a| 
+Activer ABE sur un partage existant
+ a| 
+`vserver cifs share properties add -vserver vserver_name -share-name share_name -share-properties access-based-enumeration` Les propriétés de partage existantes sont conservées. La propriété partage ABE est ajoutée à la liste existante des propriétés de partage.
+
+
+
+ a| 
+Désactivez ABE sur un partage existant
+ a| 
+`vserver cifs share properties remove -vserver vserver_name -share-name share_name -share-properties access-based-enumeration` Les autres propriétés de partage sont conservées. Seule la propriété partage ABE est supprimée de la liste des propriétés de partage.
+
+|===
+. Vérifiez que la configuration du partage est correcte à l'aide du `vserver cifs share show` commande.
+
+
+L'exemple suivant crée un partage ABE SMB nommé "sales" avec un chemin de `/sales` Sur la SVM vs1. Le partage est créé avec `access-based-enumeration` en tant que propriété de partage :
+
+[listing]
+----
+cluster1::> vserver cifs share create -vserver vs1 -share-name sales -path /sales  -share-properties access-based-enumeration,oplocks,browsable,changenotify
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name sales
+
+                      Vserver: vs1
+                        Share: sales
+     CIFS Server NetBIOS Name: VS1
+                         Path: /sales
+             Share Properties: access-based-enumeration
+                               oplocks
+                               browsable
+                               changenotify
+           Symlink Properties: enable
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----
+L'exemple suivant ajoute le `access-based-enumeration` Partagez la propriété dans un partage SMB nommé "data2":
+
+[listing]
+----
+cluster1::> vserver cifs share properties add -vserver vs1 -share-name data2 -share-properties access-based-enumeration
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data2 -fields share-name,share-properties
+server  share-name share-properties
+------- ---------- -------------------------------------------------------
+vs1     data2      oplocks,browsable,changenotify,access-based-enumeration
+----
+xref:add-remove-share-properties-eexisting-share-task.adoc[Ajout ou suppression de propriétés de partage sur un partage SMB existant]

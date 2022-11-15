@@ -1,0 +1,58 @@
+---
+permalink: san-admin/register-svm-isns-server-task.html 
+sidebar: sidebar 
+keywords: register, svm, isns, server 
+summary: 'Vous pouvez utiliser la commande vserver iscsi isns pour configurer la machine virtuelle de stockage (SVM) afin de vous inscrire avec un serveur iSNS.' 
+---
+= Enregistrez le SVM avec un serveur iSNS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser le `vserver iscsi isns` Commande permettant de configurer la machine virtuelle de stockage (SVM) à enregistrer avec un serveur iSNS.
+
+Le `vserver iscsi isns create` Commande permet de configurer le SVM pour qu'il s'enregistre avec le serveur iSNS. Le SVM ne fournit pas de commandes permettant de configurer ou de gérer le serveur iSNS. Pour gérer le serveur iSNS, vous pouvez utiliser les outils d'administration du serveur ou l'interface fournie par le fournisseur pour le serveur iSNS.
+
+.Étapes
+. Sur votre serveur iSNS, assurez-vous que votre service iSNS est opérationnel et disponible.
+. Créer la LIF de SVM management sur un port data :
++
+`network interface create -vserver _SVM_name_ -lif _lif_name_ -role data -data-protocol none -home-node _home_node_name_ -home-port _home_port_ -address _IP_address_ -netmask _network_mask_`
+
+. Créer un service iSCSI sur votre SVM si celui-ci n'existe pas déjà :
++
+`vserver iscsi create -vserver _SVM_name_`
+
+. Vérifiez que le service iSCSI a été créé avec succès :
++
+`iscsi show -vserver _SVM_name_`
+
+. Vérifier qu'une route par défaut existe pour le SVM :
++
+`network route show -vserver _SVM_name_`
+
+. Si une route par défaut n'existe pas pour le SVM, créer une route par défaut :
++
+`network route create -vserver _SVM_name_ -destination _destination_ -gateway _gateway_`
+
+. Configurer le SVM pour s'enregistrer avec le service iSNS :
++
+`vserver iscsi isns create -vserver _SVM_name_ -address _IP_address_`
+
++
+Les familles d'adresses IPv4 et IPv6 sont prises en charge. La famille d'adresses du serveur iSNS doit être identique à celle du LIF de gestion des SVM.
+
++
+Par exemple, vous ne pouvez pas connecter une LIF de gestion SVM avec une adresse IPv4 à un serveur iSNS avec une adresse IPv6.
+
+. Vérifiez que le service iSNS fonctionne :
++
+`vserver iscsi isns show -vserver _SVM_name_`
+
+. Si le service iSNS n'est pas en cours d'exécution, démarrez-le :
++
+`vserver iscsi isns start -vserver _SVM_name_`
+
+

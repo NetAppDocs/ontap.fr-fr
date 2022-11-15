@@ -1,0 +1,53 @@
+---
+permalink: volumes/default-user-group-quotas-derived-concept.html 
+sidebar: sidebar 
+keywords: how, default, user, group quotas, create, derived, quotas 
+summary: 'Lorsque vous créez des quotas d"utilisateur ou de groupe par défaut, les quotas d"utilisateur ou de groupe dérivés correspondants sont automatiquement créés pour chaque utilisateur ou groupe qui possède des fichiers au même niveau.' 
+---
+= Comment les quotas d'utilisateur et de groupe par défaut créent des quotas dérivés
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Lorsque vous créez des quotas d'utilisateur ou de groupe par défaut, les quotas d'utilisateur ou de groupe dérivés correspondants sont automatiquement créés pour chaque utilisateur ou groupe qui possède des fichiers au même niveau.
+
+Les quotas d'utilisateur et de groupe dérivés sont créés de l'une des manières suivantes :
+
+* Un quota utilisateur par défaut sur un volume FlexVol crée des quotas utilisateur dérivés pour chaque utilisateur propriétaire d'un fichier n'importe où sur le volume.
+* Un quota utilisateur par défaut sur un qtree crée des quotas d'utilisateur dérivés pour chaque utilisateur qui possède un fichier dans le qtree.
+* Un quota de groupe par défaut sur un volume FlexVol crée des quotas de groupe dérivés pour chaque groupe qui possède un fichier n'importe où sur le volume.
+* Un quota de groupe par défaut sur un qtree crée des quotas de groupe dérivés pour chaque groupe qui possède un fichier dans le qtree.
+
+
+Si un utilisateur ou un groupe ne possède pas de fichiers au niveau d'un quota utilisateur ou groupe par défaut, les quotas dérivés ne sont pas créés pour l'utilisateur ou le groupe. Par exemple, si un quota utilisateur par défaut est créé pour qtree proj1 et que l'utilisateur jsmith possède des fichiers sur un qtree différent, aucun quota utilisateur dérivé n'est créé pour jsmith.
+
+Les quotas dérivés ont les mêmes paramètres que les quotas par défaut, y compris les limites et le mappage des utilisateurs. Par exemple, si un quota utilisateur par défaut a une limite de disque de 50 Mo et que le mappage des utilisateurs est activé, tous les quotas dérivés résultant ont également une limite de disque de 50 Mo et un mappage des utilisateurs activés.
+
+Cependant, il n'existe aucune limite dans les quotas dérivés pour trois utilisateurs et groupes spéciaux. Si les utilisateurs et groupes suivants possèdent des fichiers au niveau d'un quota utilisateur ou groupe par défaut, un quota dérivé est créé avec le même paramètre de mappage utilisateur que le quota utilisateur ou groupe par défaut, mais il ne s'agit que d'un quota de suivi (sans limites) :
+
+* Utilisateur root UNIX (UID 0)
+* Groupe racine UNIX (GID 0)
+* Groupe Windows BUILTIN\Administrators
++
+Comme les quotas pour les groupes Windows sont suivis comme des quotas d'utilisateur, un quota dérivé pour ce groupe est un quota d'utilisateur dérivé d'un quota d'utilisateur par défaut, et non d'un quota de groupe par défaut.
+
+
+
+Si vous avez un volume où trois utilisateurs (fichiers root, jsmith et bob) sont propriétaires, et que vous créez un quota d'utilisateur par défaut sur le volume, ONTAP crée automatiquement trois quotas d'utilisateurs dérivés. Ainsi, une fois de nouveau initialisez les quotas sur le volume, quatre nouveaux quotas apparaissent dans le rapport quota :
+
+[listing]
+----
+cluster1::> volume quota report
+  Vserver: vs1
+                                     ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol1               user    *           0B   50MB       0       -   *
+vol1               user    root        5B      -       1       -
+vol1               user    jsmith     30B   50MB      10       -   *
+vol1               user    bob        40B   50MB      15       -   *
+4 entries were displayed.
+----
+La première nouvelle ligne est le quota utilisateur par défaut que vous avez créé, qui est identifiable par l'astérisque (*) comme ID. Les autres nouvelles lignes sont les quotas d'utilisateur dérivés. Les quotas dérivés pour jsmith et bob ont la même limite de disque de 50 Mo que le quota par défaut. Le quota dérivé pour l'utilisateur root est un quota de suivi sans limites.

@@ -1,0 +1,76 @@
+---
+permalink: smb-hyper-v-sql/verify-kerberos-ntlmv2-authentication-task.html 
+sidebar: sidebar 
+keywords: nondisruptive, operation, hyper, v, verify, kerberos, ntlmv2, authentication, cifs, server, svm, data 
+summary: 'La continuité de l"activité pour Hyper-V over SMB requiert que le serveur CIFS d"un SVM de données et le serveur Hyper-V autorisent l"authentification Kerberos et NTLMv2. Vous devez vérifier les paramètres du serveur CIFS et des serveurs Hyper-V qui contrôlent les méthodes d"authentification autorisées.' 
+---
+= Vérifier que les authentifications Kerberos et NTLMv2 sont autorisées (Hyper-V sur les partages SMB)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La continuité de l'activité pour Hyper-V over SMB requiert que le serveur CIFS d'un SVM de données et le serveur Hyper-V autorisent l'authentification Kerberos et NTLMv2. Vous devez vérifier les paramètres du serveur CIFS et des serveurs Hyper-V qui contrôlent les méthodes d'authentification autorisées.
+
+L'authentification Kerberos est requise lors de la mise en place d'une connexion de partage disponible en continu. Une partie du processus VSS distant utilise l'authentification NTLMv2. Par conséquent, les connexions utilisant les deux méthodes d'authentification doivent être prises en charge dans les configurations Hyper-V sur SMB.
+
+Les paramètres suivants doivent être configurés pour autoriser l'authentification Kerberos et NTLMv2 :
+
+* Les export policy pour SMB doivent être désactivées sur le serveur virtuel de stockage (SVM).
+
+
+Les authentifications Kerberos et NTLMv2 sont toujours activées sur les SVM, mais les règles d'exportation peuvent être utilisées pour limiter l'accès en fonction de la méthode d'authentification.
+
+Les export policy pour SMB sont facultatives et désactivées par défaut. Si les règles d'exportation sont désactivées, l'authentification Kerberos et NTLMv2 sont autorisées par défaut sur un serveur CIFS.
+
+* Le domaine auquel le serveur CIFS et les serveurs Hyper-V appartiennent doit autoriser l'authentification Kerberos et NTLMv2.
+
+
+L'authentification Kerberos est activée par défaut sur les domaines Active Directory. Toutefois, l'authentification NTLMv2 peut être refusée, en utilisant des paramètres de stratégie de sécurité ou des stratégies de groupe.
+
+.Étapes
+. Effectuer les opérations suivantes pour vérifier que les export policies sont désactivée sur le SVM:
++
+.. Définissez le niveau de privilège sur avancé :
++
+`*set -privilege advanced*`
+
+.. Vérifiez que le `-is-exportpolicy-enabled` L'option de serveur CIFS est définie sur `false`:
++
+`*vserver cifs options show -vserver _vserver_name_ -fields vserver,is-exportpolicy-enabled*`
+
+.. Retour au niveau de privilège admin :
++
+`*set -privilege admin*`
+
+
+
+. Si les export policy pour SMB ne sont pas désactivées, désactivez-les :
++
+`*vserver cifs options modify -vserver _vserver_name_ -is-exportpolicy-enabled false*`
+
+. Vérifiez que les authentifications NTLMv2 et Kerberos sont autorisées dans le domaine.
++
+Pour plus d'informations sur la détermination des méthodes d'authentification autorisées dans le domaine, consultez la bibliothèque Microsoft TechNet.
+
+. Si le domaine n'autorise pas l'authentification NTMLv2, activez l'authentification NTLMv2 en utilisant l'une des méthodes décrites dans la documentation Microsoft.
+
+
+Les commandes suivantes vérifient que les export policies pour SMB sont désactivées sur le SVM vs1 :
+
+[listing]
+----
+cluster1::> set -privilege advanced
+Warning: These advanced commands are potentially dangerous; use them
+only when directed to do so by technical support personnel.
+Do you wish to continue? (y or n): y
+
+cluster1::*> vserver cifs options show -vserver vs1 -fields vserver,is-exportpolicy-enabled
+
+vserver  is-exportpolicy-enabled
+-------- -----------------------
+vs1      false
+
+cluster1::*> set -privilege admin
+----

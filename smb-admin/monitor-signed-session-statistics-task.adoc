@@ -1,0 +1,145 @@
+---
+permalink: smb-admin/monitor-signed-session-statistics-task.html 
+sidebar: sidebar 
+keywords: monitor, smb, session, statistic, establish, sign, monitor smb signed session statistics 
+summary: Vous pouvez surveiller les statistiques des sessions SMB et déterminer les sessions établies qui sont signées et qui ne le sont pas. 
+---
+= Surveiller les statistiques de session signées SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez surveiller les statistiques des sessions SMB et déterminer les sessions établies qui sont signées et qui ne le sont pas.
+
+Le `statistics` la commande au niveau de privilège avancé fournit le `signed_sessions` Compteur que vous pouvez utiliser pour surveiller le nombre de sessions SMB signées. Le `signed_sessions` le compteur est disponible avec les objets de statistiques suivants :
+
+* `cifs` Permet de surveiller la signature SMB pour toutes les sessions SMB.
+* `smb1` Permet de surveiller la signature SMB pour les sessions SMB 1.0.
+* `smb2` Permet de surveiller la signature SMB pour les sessions SMB 2.x et SMB 3.0.
++
+[NOTE]
+====
+Les statistiques SMB 3.0 sont incluses dans les résultats de `smb2` objet.
+
+====
+
+
+Si vous souhaitez comparer le nombre de sessions signées au nombre total de sessions, vous pouvez comparer les résultats de la session `signed_sessions` compteur avec la sortie pour le `established_sessions` compteur.
+
+Vous devez démarrer une collecte d'échantillons de statistiques avant de pouvoir afficher les données résultantes. Vous pouvez afficher les données de l'échantillon si vous n'arrêtez pas la collecte de données. L'arrêt de la collecte de données vous donne un échantillon fixe. L'option ne pas arrêter la collecte de données vous permet d'obtenir des données mises à jour que vous pouvez utiliser pour comparer à des requêtes précédentes. La comparaison vous aide à identifier les tendances.
+
+.Étapes
+. Définissez le niveau de privilège sur avancé : `set -privilege advanced`
+. Démarrer une collecte de données : `statistics start -object {cifs|smb1|smb2} -instance instance -sample-id _sample_ID_ [-node _node_name_]`
++
+Si vous ne spécifiez pas le `-sample-id` Paramètre, la commande génère un exemple d'identificateur pour vous et définit cet échantillon comme échantillon par défaut pour la session de l'interface de ligne de commande. La valeur pour `-sample-id` est une chaîne de texte. Si vous exécutez cette commande pendant la même session CLI et ne spécifiez pas le `-sample-id` paramètre, la commande remplace l'échantillon par défaut précédent.
+
++
+Vous pouvez spécifier le nœud sur lequel vous souhaitez collecter les statistiques. Si vous ne spécifiez pas le nœud, l'exemple collecte les statistiques de tous les nœuds du cluster.
+
+. Utilisez le `statistics stop` commande pour arrêter la collecte des données de l'échantillon.
+. Afficher les statistiques de signature SMB :
++
+|===
+| Si vous souhaitez afficher les informations pour... | Entrer... 
+
+
+ a| 
+Sessions signées
+ a| 
+`show -sample-id sample_ID -counter signed_sessions|_node_name_ [-node _node_name_]`
+
+
+
+ a| 
+Sessions signées et sessions établies
+ a| 
+`show -sample-id _sample_ID_ -counter signed_sessions|established_sessions|_node_name_ [-node node_name]`
+
+|===
++
+Si vous souhaitez afficher les informations pour un seul nœud, spécifiez l'option `-node` paramètre.
+
+. Retour au niveau de privilège admin : `set -privilege admin`
+
+
+L'exemple suivant montre comment surveiller les statistiques de signature SMB 2.x et SMB 3.0 sur la machine virtuelle de stockage (SVM) vs1.
+
+La commande suivante permet d'accéder au niveau de privilège avancé :
+
+[listing]
+----
+cluster1::> set -privilege advanced
+
+Warning: These advanced commands are potentially dangerous; use them only when directed to do so by support personnel.
+Do you want to continue? {y|n}: y
+----
+La commande suivante démarre la collecte de données pour un nouvel échantillon :
+
+[listing]
+----
+cluster1::*> statistics start -object smb2 -sample-id smbsigning_sample -vserver vs1
+Statistics collection is being started for Sample-id: smbsigning_sample
+----
+La commande suivante arrête la collecte des données de l'échantillon :
+
+[listing]
+----
+cluster1::*> statistics stop -sample-id smbsigning_sample
+Statistics collection is being stopped for Sample-id: smbsigning_sample
+----
+La commande suivante affiche les sessions SMB signées et les sessions SMB établies par nœud à partir de l'exemple :
+
+[listing]
+----
+cluster1::*> statistics show -sample-id smbsigning_sample -counter signed_sessions|established_sessions|node_name
+
+Object: smb2
+Instance: vs1
+Start-time: 2/6/2013 01:00:00
+End-time: 2/6/2013 01:03:04
+Cluster: cluster1
+
+    Counter                                              Value
+    -------------------------------- -------------------------
+    established_sessions                                     0
+    node_name                                           node1
+    signed_sessions                                          0
+    established_sessions                                     1
+    node_name                                           node2
+    signed_sessions                                          1
+    established_sessions                                     0
+    node_name                                           node3
+    signed_sessions                                          0
+    established_sessions                                     0
+    node_name                                           node4
+    signed_sessions                                          0
+----
+La commande suivante affiche les sessions SMB signées pour le nœud 2 à partir de l'exemple :
+
+[listing]
+----
+cluster1::*> statistics show -sample-id smbsigning_sample -counter signed_sessions|node_name -node node2
+
+Object: smb2
+Instance: vs1
+Start-time: 2/6/2013 01:00:00
+End-time: 2/6/2013 01:22:43
+Cluster: cluster1
+
+    Counter                                              Value
+    -------------------------------- -------------------------
+    node_name                                            node2
+    signed_sessions                                          1
+----
+La commande suivante revient au niveau de privilège admin :
+
+[listing]
+----
+cluster1::*> set -privilege admin
+----
+xref:determine-sessions-signed-task.adoc[Détermination de la signature des sessions SMB]
+
+link:../performance-config/index.html["Configuration rapide de la surveillance des performances"]

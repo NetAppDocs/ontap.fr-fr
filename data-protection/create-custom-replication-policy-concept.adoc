@@ -1,0 +1,113 @@
+---
+permalink: data-protection/create-custom-replication-policy-concept.html 
+sidebar: sidebar 
+keywords: create, custom, replication, policy 
+summary: 'Vous pouvez créer une stratégie de réplication personnalisée si la stratégie par défaut d"une relation n"est pas appropriée. Vous pouvez compresser les données d"un transfert réseau, par exemple, ou modifier le nombre de tentatives de transfert de copies Snapshot par SnapMirror.' 
+---
+= Création d'une règle de réplication personnalisée
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez créer une stratégie de réplication personnalisée si la stratégie par défaut d'une relation n'est pas appropriée. Vous pouvez compresser les données d'un transfert réseau, par exemple, ou modifier le nombre de tentatives de transfert de copies Snapshot par SnapMirror.
+
+Vous pouvez utiliser une règle par défaut ou personnalisée lorsque vous créez une relation de réplication. Dans le cas d'une archivage personnalisé (anciennement SnapVault) ou d'une règle de réplication unifiée, vous devez définir une ou plusieurs _règles_ qui déterminent les copies Snapshot qui sont transférées lors de l'initialisation et de la mise à jour.vous pouvez également définir un calendrier pour la création de copies Snapshot locales sur le volume de destination.
+
+Le _policy type_ de la règle de réplication détermine le type de relation qu'elle prend en charge. Le tableau ci-dessous présente les types de stratégies disponibles.
+
+[cols="2*"]
+|===
+
+
+| Type de règle | Type de relation 
+
+
+ a| 
+mise en miroir asynchrone
+ a| 
+Reprise sur incident SnapMirror
+
+
+
+ a| 
+coffre-fort
+ a| 
+SnapVault
+
+
+
+ a| 
+coffre-fort
+ a| 
+Réplication unifiée
+
+
+
+ a| 
+miroir-synchro-strict
+ a| 
+SnapMirror synchrone en mode StructSync (pris en charge à partir de ONTAP 9.5)
+
+
+
+ a| 
+miroir synchrone
+ a| 
+SnapMirror synchrone en mode synchrone (pris en charge à partir de ONTAP 9.5)
+
+|===
+[TIP]
+====
+Lorsque vous créez une stratégie de réplication personnalisée, il est conseillé de modéliser la stratégie après une stratégie par défaut.
+
+====
+.Étape
+. Création d'une règle de réplication personnalisée :
++
+`snapmirror policy create -vserver _SVM_ -policy _policy_ -type async-mirror|vault|mirror-vault|strict-sync-mirror|sync-mirror -comment _comment_ -tries _transfer_tries_ -transfer-priority low|normal -is-network-compression-enabled true|false`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+Depuis la version ONTAP 9.5, vous pouvez définir le planning de création d'un planning de copie Snapshot commun pour les relations SnapMirror synchrone à l'aide de la `-common-snapshot-schedule` paramètre. Par défaut, la planification commune de copies Snapshot pour les relations SnapMirror synchrone est d'une heure. Définissez une valeur de 30 minutes à deux heures pour la planification de copie Snapshot pour les relations SnapMirror synchrone.
+
++
+L'exemple suivant crée une règle de réplication personnalisée pour SnapMirror DR qui permet la compression réseau pour les transferts de données :
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy create -vserver svm1 -policy DR_compressed -type async-mirror -comment “DR with network compression enabled” -is-network-compression-enabled true
+----
++
+L'exemple suivant illustre la création d'une règle de réplication personnalisée pour SnapVault :
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy create -vserver svm1 -policy my_snapvault -type vault
+----
++
+L'exemple suivant crée une règle de réplication personnalisée pour la réplication unifiée :
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy create -vserver svm1 -policy my_unified -type mirror-vault
+----
++
+L'exemple suivant illustre la création d'une règle de réplication personnalisée pour la relation SnapMirror synchrone en mode StrictSync :
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy create -vserver svm1 -policy my_strictsync -type strict-sync-mirror -common-snapshot-schedule my_sync_schedule
+----
+
+
+Pour les types de règles « vault » et « miroir-coffre-fort », vous devez définir des règles qui déterminent les copies Snapshot qui sont transférées lors de l'initialisation et de la mise à jour.
+
+Utilisez le `snapmirror policy show` Commande pour vérifier que la règle SnapMirror a été créée. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.

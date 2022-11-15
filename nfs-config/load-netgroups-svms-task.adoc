@@ -1,0 +1,56 @@
+---
+permalink: nfs-config/load-netgroups-svms-task.html 
+sidebar: sidebar 
+keywords: load, netgroups, svms 
+summary: 'L"une des méthodes que vous pouvez utiliser pour faire correspondre les clients dans les règles d"export policy consiste à utiliser les hôtes répertoriés dans netgroups. Vous pouvez charger des netgroups à partir d"un identificateur de ressource uniforme (URI) en SVM comme une alternative à l"utilisation de netgroups stockés sur des serveurs de noms externes (vserver services name-service netgroup load).' 
+---
+= Chargement des netgroups en SVM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+L'une des méthodes que vous pouvez utiliser pour faire correspondre les clients dans les règles d'export policy consiste à utiliser les hôtes répertoriés dans netgroups. Vous pouvez charger des netgroups à partir d'un URI (Uniform Resource identifier) dans des SVM, au lieu d'utiliser des netgroups stockés dans des serveurs de noms externes (`vserver services name-service netgroup load`).
+
+Les fichiers netgroup doivent respecter les conditions suivantes avant d'être chargés dans un SVM :
+
+* Le fichier doit utiliser le même format de fichier texte de groupe réseau que celui utilisé pour remplir NIS.
++
+ONTAP vérifie le format du fichier texte du groupe réseau avant de le charger. Si le fichier contient des erreurs, il ne sera pas chargé et un message s'affiche indiquant les corrections que vous devez effectuer dans le fichier. Après avoir corrigé les erreurs, vous pouvez recharger le fichier netgroup dans la SVM spécifiée.
+
+* Les caractères alphabétiques des noms d'hôte dans le fichier de groupe réseau doivent être en minuscules.
+* La taille maximale de fichier prise en charge est de 5 Mo.
+* Le niveau maximal pris en charge pour l'imbrication de groupes réseau est 1000.
+* Seuls les noms d'hôte DNS principaux peuvent être utilisés lors de la définition de noms d'hôte dans le fichier netgroup.
++
+Pour éviter les problèmes d'accès à l'exportation, les noms d'hôte ne doivent pas être définis à l'aide d'enregistrements DNS CNAME ou Round Robin.
+
+* Les parties utilisateur et domaine des triples du fichier netgroup doivent être conservées vides car ONTAP ne les prend pas en charge.
++
+Seule la partie hôte/IP est prise en charge.
+
+
+
+ONTAP prend en charge les recherches netgroup-by-host pour le fichier netgroup local. Une fois le fichier netgroup chargé, ONTAP crée automatiquement un mappage netgroup.byhost pour activer les recherches netgroup-par-hôte. Cela peut accélérer considérablement les recherches des groupes réseau locaux lors du traitement des règles d'export pour évaluer l'accès client.
+
+.Étape
+. Chargement des netgroups dans des SVM depuis un URI :
++
+`vserver services name-service netgroup load -vserver _vserver_name_ -source {ftp|http|ftps|https}://_uri_`
+
++
+Le chargement du fichier netgroup et la création du mappage netgroup.byhost peuvent prendre plusieurs minutes.
+
++
+Si vous souhaitez mettre à jour les netgroups, vous pouvez modifier le fichier et charger le fichier netgroup mis à jour dans la SVM.
+
+
+
+La commande suivante charge les définitions netgroup dans le SVM nommé vs1 à partir de l'URL HTTP `+http://intranet/downloads/corp-netgroup+`:
+
+[listing]
+----
+vs1::> vserver services name-service netgroup load -vserver vs1
+-source http://intranet/downloads/corp-netgroup
+----

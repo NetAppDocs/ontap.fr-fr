@@ -1,0 +1,60 @@
+---
+permalink: flexgroup/transition-snapmirror-relationship-svm-dr-task.html 
+sidebar: sidebar 
+keywords: transition, flexgroup, snapmirror, relationship, svm, dr 
+summary: Vous pouvez créer une relation de FlexGroup SVM DR en migrant une relation SnapMirror volume FlexGroup existante. 
+---
+= Effectuer la transition d'une relation FlexGroup SnapMirror existante vers une reprise après incident de SVM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez créer une relation de FlexGroup SVM DR en migrant une relation SnapMirror volume FlexGroup existante.
+
+.Ce dont vous avez besoin, 8217;ll
+* La relation SnapMirror volume FlexGroup est en état de santé.
+* Les volumes FlexGroup source et destination ont le même nom.
+
+
+.Étapes
+. Depuis la destination SnapMirror, resynchroniser la relation SnapMirror de niveau FlexGroup : `snapmirror resync`
+. Création de la relation SnapMirror SVM DR FlexGroup Utilisez la même règle SnapMirror que celle configurée sur les relations FlexGroup volume SnapMirror : `snapmirror create -destination-path dest_svm: -source-path src_svm: -identity-preserve true -policy MirrorAllSnapshots`
+
+
+====
+Vous devez utiliser le `-identity-preserve true` de la `snapmirror create` commande lorsque vous créez votre relation de réplication.
+
+====
+. Vérifiez que la relation est rompue : `snapmirror show -destination-path dest_svm: -source-path src_svm:`
++
+[listing]
+----
+snapmirror show -destination-path fg_vs_renamed: -source-path fg_vs:
+
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+fg_vs:        XDP  fg_vs1_renamed:     Broken-off
+                                      Idle           -         true   -
+----
+. Arrêter le SVM de destination : `vserver stop -vserver vs_name`
++
+[listing]
+----
+vserver stop -vserver fg_vs_renamed
+[Job 245] Job is queued: Vserver Stop fg_vs_renamed.
+[Job 245] Done
+----
+. Resynchroniser la relation SVM SnapMirror : `snapmirror resync -destination-path dest_svm: -source-path src_svm:`
++
+[listing]
+----
+snapmirror resync -destination-path fg_vs_renamed: -source-path fg_vs:
+Warning: This Vserver has volumes which are the destination of FlexVol or FlexGroup SnapMirror relationships. A resync on the Vserver SnapMirror relationship will cause disruptions in data access
+----
+. Vérifier que la relation SnapMirror au niveau du SVM DR atteint un état inactif sain : `snapmirror show -expand`
+. Vérifier que la relation de FlexGroup SnapMirror est bien en état : `snapmirror show`
+

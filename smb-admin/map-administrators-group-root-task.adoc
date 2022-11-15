@@ -1,0 +1,41 @@
+---
+permalink: smb-admin/map-administrators-group-root-task.html 
+sidebar: sidebar 
+keywords: cifs, client, environment, storage, virtual, machine, svm, multiprotocol, storage, system, windows, account, root, privilege, svm, sufficient, user, right, map the administrators group to root 
+summary: 'Si vous ne possédez que des clients CIFS dans votre environnement et que votre machine virtuelle de stockage (SVM) a été configurée comme un système de stockage multiprotocole, vous devez disposer d"au moins un compte Windows disposant de privilège racine pour accéder aux fichiers sur la SVM ; Sinon, vous ne pouvez pas gérer la SVM car vous ne disposez pas de droits d"utilisateur suffisants.' 
+---
+= Mappez le groupe d'administrateurs à la racine
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous ne possédez que des clients CIFS dans votre environnement et que votre machine virtuelle de stockage (SVM) a été configurée comme un système de stockage multiprotocole, vous devez disposer d'au moins un compte Windows disposant de privilège racine pour accéder aux fichiers sur la SVM ; Sinon, vous ne pouvez pas gérer la SVM car vous ne disposez pas de droits d'utilisateur suffisants.
+
+Si votre système de stockage a été configuré en NTFS-only, cependant, le `/etc` Le répertoire dispose d'une liste de contrôle d'accès de niveau fichier qui permet au groupe d'administrateurs d'accéder aux fichiers de configuration ONTAP.
+
+.Étapes
+. Définissez le niveau de privilège sur avancé : `set -privilege advanced`
+. Configurez l'option de serveur CIFS qui mappe le groupe d'administrateurs à root, le cas échéant :
++
+|===
+| Les fonctions que vous recherchez... | Alors... 
+
+
+ a| 
+Associez les membres du groupe d'administrateurs à la racine
+ a| 
+`vserver cifs options modify -vserver _vserver_name_ -is-admin-users-mapped-to-root-enabled true` Tous les comptes du groupe administrateurs sont considérés comme root, même si vous n'avez pas de `/etc/usermap.cfg` entrée mappant les comptes à la racine. Si vous créez un fichier à l'aide d'un compte appartenant au groupe d'administrateurs, le fichier est détenu par root lorsque vous affichez le fichier à partir d'un client UNIX.
+
+
+
+ a| 
+Désactivez le mappage des membres du groupe d'administrateurs à la racine
+ a| 
+`vserver cifs options modify -vserver _vserver_name_ -is-admin-users-mapped-to-root-enabled false` Les comptes du groupe d'administrateurs ne sont plus mis en correspondance avec root. Vous ne pouvez mapper explicitement un seul utilisateur qu'à la racine.
+
+|===
+. Vérifiez que l'option est réglée sur la valeur souhaitée : `vserver cifs options show -vserver _vserver_name_`
+. Retour au niveau de privilège admin : `set -privilege admin`
+

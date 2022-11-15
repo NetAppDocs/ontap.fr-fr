@@ -1,0 +1,68 @@
+---
+permalink: nfs-config/configure-svms-ldap-task.html 
+sidebar: sidebar 
+keywords: verify, ldap, sources, name, service, switch, table 
+summary: On doit vérifier que les sources LDAP pour les services de noms sont correctement répertoriées dans la table de commutation de services de noms pour la SVM. 
+---
+= Vérifiez les sources LDAP dans la table du commutateur de service de noms
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+On doit vérifier que les sources LDAP pour les services de noms sont correctement répertoriées dans la table de commutation de services de noms pour la SVM.
+
+.Étapes
+. Afficher le contenu de la table du commutateur de service du nom actuel :
++
+`vserver services name-service ns-switch show -vserver _svm_name_`
+
++
+La commande suivante affiche les résultats du SVM My_SVM :
+
++
+[listing]
+----
+ie3220-a::> vserver services name-service ns-switch show -vserver My_SVM
+                               Source
+Vserver         Database       Order
+--------------- ------------   ---------
+My_SVM          hosts          files,
+                               dns
+My_SVM          group          files,ldap
+My_SVM          passwd         files,ldap
+My_SVM          netgroup       files
+My_SVM          namemap        files
+5 entries were displayed.
+----
++
+`namemap` spécifie les sources pour rechercher des informations de mappage de noms et dans quel ordre. Dans un environnement UNIX uniquement, cette entrée n'est pas nécessaire. Le mappage de noms n'est requis que dans un environnement mixte utilisant à la fois UNIX et Windows.
+
+. Mettez à jour le `ns-switch` saisie au besoin :
++
+|===
+| Si vous souhaitez mettre à jour l'entrée du commutateur ns pour... | Entrez la commande... 
+
+
+ a| 
+Informations utilisateur
+ a| 
+`vserver services name-service ns-switch modify -vserver _vserver_name_ -database passwd -sources ldap,files`
+
+
+
+ a| 
+Informations de groupe
+ a| 
+`vserver services name-service ns-switch modify -vserver _vserver_name_ -database group -sources ldap,files`
+
+
+
+ a| 
+Informations sur le groupe réseau
+ a| 
+`vserver services name-service ns-switch modify -vserver _vserver_name_ -database netgroup -sources ldap,files`
+
+|===
+

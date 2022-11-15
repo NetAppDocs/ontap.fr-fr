@@ -1,0 +1,308 @@
+---
+permalink: nfs-config/add-rule-export-policy-task.html 
+sidebar: sidebar 
+keywords: add, rule, export, policy 
+summary: 'Sans règles, l"export policy ne peut pas fournir aux clients l"accès aux données. Pour créer une nouvelle règle d"exportation, vous devez identifier les clients et sélectionner un format de correspondance client, sélectionner les types d"accès et de sécurité, spécifier un mappage d"ID utilisateur anonyme, sélectionner un numéro d"index de règle et sélectionner le protocole d"accès. Vous pouvez ensuite utiliser la commande vserver export-policy rule create pour ajouter la nouvelle règle à une export policy.' 
+---
+= Ajouter une règle à une export-policy
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Sans règles, l'export policy ne peut pas fournir aux clients l'accès aux données. Pour créer une nouvelle règle d'exportation, vous devez identifier les clients et sélectionner un format de correspondance client, sélectionner les types d'accès et de sécurité, spécifier un mappage d'ID utilisateur anonyme, sélectionner un numéro d'index de règle et sélectionner le protocole d'accès. Vous pouvez ensuite utiliser le `vserver export-policy rule create` commande pour ajouter la nouvelle règle à une export-policy.
+
+.Ce dont vous avez besoin, 8217;ll
+* L'export policy à laquelle vous souhaitez ajouter les règles d'exportation doit déjà exister.
+* Le DNS doit être correctement configuré sur le SVM de données et les serveurs DNS doivent avoir des entrées correctes pour les clients NFS.
++
+En effet, ONTAP effectue des recherches DNS en utilisant la configuration DNS du SVM de données pour certains formats de correspondance client, et les échecs de mise en correspondance de règles d'export peuvent empêcher l'accès aux données client.
+
+* Si vous authentifiez avec Kerberos, vous devez avoir déterminé les méthodes de sécurité suivantes utilisées sur vos clients NFS :
++
+** `krb5` (Protocole Kerberos V5)
+** `krb5i` (Protocole Kerberos V5 avec contrôle d'intégrité à l'aide de checksums)
+** `krb5p` (Protocole Kerberos V5 avec service de confidentialité)
+
+
+
+
+Il n'est pas nécessaire de créer une nouvelle règle si une règle existante d'une stratégie d'exportation couvre la correspondance de vos clients et les exigences d'accès.
+
+Si vous authentifiez avec Kerberos et si tous les volumes du SVM sont accessibles via Kerberos, vous pouvez définir les options des règles d'exportation `-rorule`, `-rwrule`, et `-superuser` pour le volume racine à `krb5`, `krb5i`, ou `krb5p`.
+
+.Étapes
+. Identifiez les clients et le format de correspondance client pour la nouvelle règle.
++
+Le `-clientmatch` spécifie les clients auxquels la règle s'applique. Des valeurs de correspondance client uniques ou multiples peuvent être spécifiées ; les spécifications de valeurs multiples doivent être séparées par des virgules. Vous pouvez spécifier la correspondance dans l'un des formats suivants :
+
++
+|===
+| Format de correspondance client | Exemple 
+
+
+ a| 
+Nom de domaine précédé du caractère "."
+ a| 
+`.example.com` ou `+.example.com,.example.net,...+`
+
+
+
+ a| 
+Nom d'hôte
+ a| 
+`host1` ou `+host1,host2, ...+`
+
+
+
+ a| 
+Adresse IPv4
+ a| 
+`10.1.12.24` ou `+10.1.12.24,10.1.12.25, ...+`
+
+
+
+ a| 
+Adresse IPv4 avec un masque de sous-réseau exprimé en nombre de bits
+ a| 
+`10.1.12.10/4` ou `+10.1.12.10/4,10.1.12.11/4,...+`
+
+
+
+ a| 
+Adresse IPv4 avec un masque de réseau
+ a| 
+`10.1.16.0/255.255.255.0` ou `+10.1.16.0/255.255.255.0,10.1.17.0/255.255.255.0,...+`
+
+
+
+ a| 
+Adresse IPv6 en format pointillé
+ a| 
+`::1.2.3.4` ou `+::1.2.3.4,::1.2.3.5,...+`
+
+
+
+ a| 
+Adresse IPv6 avec un masque de sous-réseau exprimé en nombre de bits
+ a| 
+`ff::00/32` ou `+ff::00/32,ff::01/32,...+`
+
+
+
+ a| 
+Un seul groupe de réseau avec le nom de groupe de réseau précédé du caractère @
+ a| 
+`@netgroup1` ou `+@netgroup1,@netgroup2,...+`
+
+|===
++
+Vous pouvez également combiner des types de définitions de client, par exemple, `.example.com,@netgroup1`.
+
++
+Lors de la définition des adresses IP, notez les éléments suivants :
+
++
+** La saisie d'une plage d'adresses IP, par exemple 10.1.12.10-10.1.12.70, n'est pas autorisée.
++
+Les entrées de ce format sont interprétées comme une chaîne de texte et sont traitées comme un nom d'hôte.
+
+** Lors de la spécification d'adresses IP individuelles dans des règles d'exportation pour la gestion granulaire de l'accès client, ne spécifiez pas d'adresses IP dynamiquement (par exemple, DHCP) ou temporairement (par exemple, IPv6) attribuées.
++
+Sinon, le client perd l'accès lorsque son adresse IP change.
+
+** La saisie d'une adresse IPv6 avec un masque de réseau, par exemple ff::12/ff::00, n'est pas autorisée.
+
+
+. Sélectionnez les types d'accès et de sécurité pour les correspondances client.
++
+Vous pouvez spécifier un ou plusieurs des modes d'accès suivants aux clients qui s'authentifient avec les types de sécurité spécifiés :
+
++
+** `-rorule` (accès en lecture seule)
+** `-rwrule` (accès en lecture/écriture)
+** `-superuser` (accès racine)
++
+[NOTE]
+====
+Un client peut uniquement obtenir un accès en lecture/écriture pour un type de sécurité spécifique si la règle d'exportation autorise également un accès en lecture seule pour ce type de sécurité. Si le paramètre lecture seule est plus restrictif pour un type de sécurité que le paramètre lecture-écriture, il se peut que le client n'ait pas accès en lecture-écriture. Il en va de même pour l'accès superutilisateur.
+
+====
++
+Vous pouvez spécifier une liste de plusieurs types de sécurité séparés par des virgules pour une règle. Si vous spécifiez le type de sécurité comme `any` ou `never`, ne spécifiez aucun autre type de sécurité. Choisissez parmi les types de sécurité valides suivants :
+
++
+|===
+| Lorsque le type de sécurité est défini sur... | Un client correspondant peut accéder aux données exportées... 
+
+
+ a| 
+`any`
+ a| 
+Toujours, quel que soit le type de sécurité entrant.
+
+
+
+ a| 
+`none`
+ a| 
+S'ils sont répertoriés seuls, l'accès des clients possédant n'importe quel type de sécurité est accordé en tant qu'anonyme. Si elle est répertoriée avec d'autres types de sécurité, les clients avec un type de sécurité spécifié bénéficient d'un accès et les clients avec un autre type de sécurité bénéficient d'un accès anonyme.
+
+
+
+ a| 
+`never`
+ a| 
+Jamais, quel que soit le type de sécurité entrant.
+
+
+
+ a| 
+`krb5`
+ a| 
+S'il est authentifié par Kerberos 5. Authentification uniquement : l'en-tête de chaque requête et réponse est signé.
+
+
+
+ a| 
+`krb5i`
+ a| 
+S'il est authentifié par Kerberos 5i. Authentification et intégrité : l'en-tête et le corps de chaque requête et réponse sont signés.
+
+
+
+ a| 
+`krb5p`
+ a| 
+S'il est authentifié par Kerberos 5p. Authentification, intégrité et confidentialité : l'en-tête et le corps de chaque requête et réponse sont signés, et la charge utile des données NFS est chiffrée.
+
+
+
+ a| 
+`ntlm`
+ a| 
+S'il est authentifié par CIFS NTLM.
+
+
+
+ a| 
+`sys`
+ a| 
+S'il est authentifié par NFS AUTH_SYS.
+
+|===
++
+Le type de sécurité recommandé est `sys`, Ou si Kerberos est utilisé, `krb5`, `krb5i`, ou `krb5p`.
+
+
+
++
+Si vous utilisez Kerberos avec NFSv3, la règle de export policy doit autoriser `-rorule` et `-rwrule` accès à `sys` en plus de `krb5`. Ceci est dû au besoin d'autoriser l'accès à Network Lock Manager (NLM) pour l'exportation.
+
+. Spécifiez un mappage d'ID utilisateur anonyme.
++
+Le `-anon` Option spécifie un ID utilisateur ou un nom d'utilisateur UNIX qui est mappé aux demandes client qui arrivent avec un ID utilisateur de 0 (zéro), généralement associé à la racine du nom d'utilisateur. La valeur par défaut est `65534`. Les clients NFS associent généralement l'ID utilisateur 65534 au nom d'utilisateur personne (également appelé _root scaling_). Dans ONTAP, cet ID utilisateur est associé à l'utilisateur pcuser. Pour désactiver l'accès par tout client ayant un ID utilisateur de 0, spécifiez une valeur de `65535`.
+
+. Sélectionnez l'ordre d'index des règles.
++
+Le `-ruleindex` option spécifie le numéro d'index de la règle. Les règles sont évaluées en fonction de leur ordre dans la liste des numéros d'index ; les règles avec des numéros d'index inférieurs sont évaluées en premier. Par exemple, la règle avec l'index numéro 1 est évaluée avant la règle avec l'index numéro 2.
+
++
+|===
+| Si vous ajoutez... | Alors... 
+
+
+ a| 
+La première règle vers une export-policy
+ a| 
+Entrez `1`.
+
+
+
+ a| 
+Règles supplémentaires à une export-policy
+ a| 
+.. Afficher les règles existantes dans la règle : +
+`vserver export-policy rule show -instance -policyname _your_policy_`
+.. Sélectionnez un numéro d'index pour la nouvelle règle en fonction de l'ordre dans lequel elle doit être évaluée.
+
+
+|===
+. Sélectionnez la valeur d'accès NFS applicable : {`nfs`|`nfs3`|`nfs4`}.
++
+`nfs` correspond à n'importe quelle version, `nfs3` et `nfs4` correspondent uniquement à ces versions spécifiques.
+
+. Créer la règle d'exportation et l'ajouter à une export policy existante :
++
+`vserver export-policy rule create -vserver _vserver_name_ -policyname _policy_name_ -ruleindex _integer_ -protocol {nfs|nfs3|nfs4} -clientmatch { text | _"text,text,..."_ } -rorule _security_type_ -rwrule _security_type_ -superuser _security_type_ -anon _user_ID_`
+
+. Afficher les règles pour l'export policy pour vérifier que la nouvelle règle est présente :
++
+`vserver export-policy rule show -policyname _policy_name_`
+
++
+La commande affiche un récapitulatif de cette export policy, y compris une liste des règles appliquées à cette policy. ONTAP attribue à chaque règle un numéro d'index de règle. Après avoir connu le numéro d'index de la règle, vous pouvez l'utiliser pour afficher des informations détaillées sur la règle d'exportation spécifiée.
+
+. Vérifiez que les règles appliquées à l'export policy sont configurées correctement :
++
+`vserver export-policy rule show -policyname _policy_name_ -vserver _vserver_name_ -ruleindex _integer_`
+
+
+
+Les commandes suivantes créent et vérifient la création d'une règle d'exportation sur le SVM nommé vs1 dans une export policy nommée rs1. La règle a l'index numéro 1. La règle correspond à n'importe quel client du domaine eng.company.com et au groupe réseau @netgroup1. La règle active tous les accès NFS. Il active l'accès en lecture seule et en lecture-écriture aux utilisateurs authentifiés avec AUTH_SYS. Les clients possédant l'ID utilisateur UNIX 0 (zéro) sont anonymisés sauf s'ils sont authentifiés avec Kerberos.
+
+[listing]
+----
+vs1::> vserver export-policy rule create -vserver vs1 -policyname exp1 -ruleindex 1 -protocol nfs
+-clientmatch eng.company.com,@netgoup1 -rorule sys -rwrule sys -anon 65534 -superuser krb5
+
+vs1::> vserver export-policy rule show -policyname nfs_policy
+Virtual      Policy         Rule    Access    Client           RO
+Server       Name           Index   Protocol  Match            Rule
+------------ -------------- ------  --------  ---------------- ------
+vs1          exp1           1       nfs       eng.company.com, sys
+                                              @netgroup1
+
+vs1::> vserver export-policy rule show -policyname exp1 -vserver vs1 -ruleindex 1
+
+                                    Vserver: vs1
+                                Policy Name: exp1
+                                 Rule Index: 1
+                            Access Protocol: nfs
+Client Match Hostname, IP Address, Netgroup, or Domain: eng.company.com,@netgroup1
+                             RO Access Rule: sys
+                             RW Access Rule: sys
+User ID To Which Anonymous Users Are Mapped: 65534
+                   Superuser Security Types: krb5
+               Honor SetUID Bits in SETATTR: true
+                  Allow Creation of Devices: true
+----
+Les commandes suivantes créent et vérifient la création d'une règle d'exportation sur le SVM nommé vs2 dans une export policy nommée expol2. La règle a le numéro d'index 21. La règle correspond aux clients aux membres du groupe réseau dev_netgroup_main. La règle active tous les accès NFS. Il active un accès en lecture seule pour les utilisateurs authentifiés avec AUTH_SYS et nécessite une authentification Kerberos pour l'accès en lecture-écriture et racine. Les clients possédant l'ID utilisateur UNIX 0 (zéro) se voient refuser l'accès racine sauf s'ils sont authentifiés avec Kerberos.
+
+[listing]
+----
+vs2::> vserver export-policy rule create -vserver vs2 -policyname expol2 -ruleindex 21 -protocol nfs
+-clientmatch @dev_netgroup_main -rorule sys -rwrule krb5 -anon 65535 -superuser krb5
+
+vs2::> vserver export-policy rule show -policyname nfs_policy
+Virtual  Policy       Rule    Access    Client              RO
+Server   Name         Index   Protocol  Match               Rule
+-------- ------------ ------  --------  ------------------  ------
+vs2      expol2       21       nfs      @dev_netgroup_main  sys
+
+vs2::> vserver export-policy rule show -policyname expol2 -vserver vs1 -ruleindex 21
+
+                                    Vserver: vs2
+                                Policy Name: expol2
+                                 Rule Index: 21
+                            Access Protocol: nfs
+Client Match Hostname, IP Address, Netgroup, or Domain:
+                                             @dev_netgroup_main
+                             RO Access Rule: sys
+                             RW Access Rule: krb5
+User ID To Which Anonymous Users Are Mapped: 65535
+                   Superuser Security Types: krb5
+               Honor SetUID Bits in SETATTR: true
+                  Allow Creation of Devices: true
+----

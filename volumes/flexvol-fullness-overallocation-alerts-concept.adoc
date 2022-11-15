@@ -1,0 +1,99 @@
+---
+permalink: volumes/flexvol-fullness-overallocation-alerts-concept.html 
+sidebar: sidebar 
+keywords: how to, address, flexvol, volume, fullness, overallocation, alerts 
+summary: 'ONTAP publie des messages EMS lorsque les volumes FlexVol sont à court d"espace, ce qui vous permet de mettre en place une action corrective en fournissant davantage d"espace pour le volume complet. Connaître les types d"alertes et les traiter vous aide à assurer la disponibilité de vos données.' 
+---
+= Adressage des alertes de volume FlexVol et sur-allocation
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP publie des messages EMS lorsque les volumes FlexVol sont à court d'espace, ce qui vous permet de mettre en place une action corrective en fournissant davantage d'espace pour le volume complet. Connaître les types d'alertes et les traiter vous aide à assurer la disponibilité de vos données.
+
+Lorsqu'un volume est décrit comme _full_, cela signifie que le pourcentage d'espace du volume disponible pour le système de fichiers actif (données utilisateur) est tombé en dessous d'un seuil (configurable). Lorsqu'un volume devient _suralloué_, l'espace utilisé par ONTAP pour les métadonnées et pour prendre en charge l'accès aux données de base a été épuisé. Parfois, l'espace normalement réservé à d'autres fins peut être utilisé pour maintenir le volume en fonctionnement, mais la réservation d'espace ou la disponibilité des données peuvent être en danger.
+
+La surallocation peut être logique ou physique. _La surallocation logique_ signifie que l'espace réservé pour respecter les engagements futurs en matière d'espace, tels que la réservation d'espace, a été utilisé pour un autre but. _La surallocation physique_ signifie que le volume n'exécute plus de blocs physiques à utiliser. Les volumes présents dans cet état risquent de refuser les écritures, de se mettre hors ligne ou de provoquer une interruption du contrôleur.
+
+Un volume peut être saturé à plus de 100 % en raison de l'espace utilisé ou réservé par les métadonnées. Cependant, un volume saturé à plus de 100 % peut être saturé, ne pas être surestimé. Si des partages au niveau des qtrees et des volumes sont présents sur le même pool FlexVol ou SCVMM, les qtrees apparaissent comme des répertoires du partage FlexVol. Par conséquent, veillez à ne pas les supprimer accidentellement.
+
+Le tableau ci-dessous décrit les alertes de remplissage et de surallocation du volume, les actions que vous pouvez effectuer pour résoudre le problème et les risques de non-prise d'action :
+
+[cols="6*"]
+|===
+| Type d'alerte | Niveau EMS | Configurable ? | Définition | Façons de traiter | Risque si aucune action n'a été prise 
+
+
+ a| 
+Presque pleine
+ a| 
+Débogage
+ a| 
+Y
+ a| 
+Le système de fichiers a dépassé le seuil défini pour cette alerte (la valeur par défaut est 95 %). Le pourcentage est le `Used` Total moins la taille de la réserve Snapshot.
+ a| 
+* Augmentation de la taille du volume
+* Réduction des données utilisateur
+
+ a| 
+Écriture de données et disponibilité des données simplifiées.
+
+
+
+ a| 
+Pleine
+ a| 
+Débogage
+ a| 
+Y
+ a| 
+Le système de fichiers a dépassé le seuil défini pour cette alerte (la valeur par défaut est 98 %). Le pourcentage est le `Used` Total moins la taille de la réserve Snapshot.
+ a| 
+* Augmentation de la taille du volume
+* Réduction des données utilisateur
+
+ a| 
+Pas encore de risque pour les opérations d'écriture ou la disponibilité des données, mais le volume est proche du stade où les opérations d'écriture pourraient être menacées.
+
+
+
+ a| 
+Sur-allocation logique
+ a| 
+Erreur SVC
+ a| 
+N
+ a| 
+En plus de la saturation du système de fichiers, l'espace du volume utilisé pour les métadonnées a été épuisé.
+ a| 
+* Augmentation de la taille du volume
+* Suppression des copies Snapshot
+* Réduction des données utilisateur
+* Désactivation de la réservation d'espace pour les fichiers ou les LUN
+
+ a| 
+Les opérations d'écriture sur les fichiers non réservés peuvent échouer.
+
+
+
+ a| 
+Sur-allocation physique
+ a| 
+Erreur de nœud
+ a| 
+N
+ a| 
+Le volume manque de blocs physiques sur lequel il peut écrire.
+ a| 
+* Augmentation de la taille du volume
+* Suppression des copies Snapshot
+* Réduction des données utilisateur
+
+ a| 
+Les opérations d'écriture sont menacées, ainsi que la disponibilité des données ; le volume peut être mis hors ligne.
+
+|===
+Chaque fois qu'un seuil est franchi pour un volume, que le pourcentage de plénitude augmente ou tombe, un message EMS est généré. Lorsque le niveau de remplissage du volume tombe en dessous d'un seuil, un `volume ok` Un message EMS est généré.

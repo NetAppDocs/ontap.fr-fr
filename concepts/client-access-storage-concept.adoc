@@ -1,0 +1,63 @@
+---
+permalink: concepts/client-access-storage-concept.html 
+sidebar: sidebar 
+keywords: client authentication, authorization 
+summary: 'ONTAP authentifie un ordinateur client et un utilisateur en vérifiant son identité avec une source de confiance. ONTAP autorise un utilisateur à accéder à un fichier ou à un répertoire en comparant les informations d"identification de l"utilisateur aux autorisations configurées sur le fichier ou le répertoire.' 
+---
+= Authentification et autorisation du client
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP utilise des méthodes standard pour sécuriser l'accès client et administrateur au stockage et se protéger contre les virus. Des technologies avancées sont disponibles pour le chiffrement des données au repos et WORM.
+
+ONTAP authentifie un ordinateur client et un utilisateur en vérifiant son identité avec une source de confiance. ONTAP autorise un utilisateur à accéder à un fichier ou à un répertoire en comparant les informations d'identification de l'utilisateur aux autorisations configurées sur le fichier ou le répertoire.
+
+
+
+== Authentification
+
+Vous pouvez créer des comptes utilisateur locaux ou distants :
+
+* Un compte local est un compte dans lequel les informations de compte résident sur le système de stockage.
+* Un compte distant est un compte dans lequel les informations de compte sont stockées sur un contrôleur de domaine Active Directory, un serveur LDAP ou un serveur NIS.
+
+
+ONTAP utilise des services de noms locaux ou externes pour rechercher les informations de nom d'hôte, d'utilisateur, de groupe, de groupe réseau et de mappage de noms. ONTAP prend en charge les noms suivants :
+
+* Utilisateurs locaux
+* DNS
+* Domaines NIS externes
+* Domaines LDAP externes
+
+
+Un _name service switch table_ spécifie les sources à rechercher des informations sur le réseau et l'ordre dans lequel les rechercher (fournissant la fonctionnalité équivalente du fichier /etc/nsswitch.conf sur les systèmes UNIX). Lorsqu'un client NAS se connecte au SVM, ONTAP vérifie les services de nom spécifiés pour obtenir les informations requises.
+
+|===
+
+
+ a| 
+*_prise en charge de Kerberos_* Kerberos est un protocole d'authentification réseau qui fournit "`l'authentification`tongs'' en cryptant les mots de passe utilisateur dans les implémentations client-serveur. ONTAP prend en charge l'authentification Kerberos 5 avec contrôle d'intégrité (krb5i) et l'authentification Kerberos 5 avec vérification de la confidentialité (krb5p).
+
+|===
+
+
+== Autorisation
+
+ONTAP évalue trois niveaux de sécurité pour déterminer si une entité est autorisée à effectuer une action demandée sur les fichiers et répertoires résidant sur une SVM. L'accès est déterminé par les autorisations effectives après évaluation des niveaux de sécurité :
+
+* Sécurité des exportations (NFS) et des partages (SMB)
++
+La sécurité des exportations et des partages s'applique à l'accès client à une exportation NFS ou à un partage SMB donné. Les utilisateurs disposant de privilèges d'administration peuvent gérer la sécurité au niveau de l'exportation et du partage à partir des clients SMB et NFS.
+
+* Sécurité des fichiers et répertoires Access Guard du niveau de stockage
++
+La sécurité Access Guard du niveau de stockage s'applique aux accès des clients SMB et NFS pour les volumes SVM. Seules les autorisations d'accès NTFS sont prises en charge. Pour que ONTAP puisse effectuer des vérifications de sécurité sur les utilisateurs UNIX afin d'accéder aux données sur les volumes pour lesquels Storage-Level Access Guard a été appliqué, l'utilisateur UNIX doit mapper un utilisateur Windows sur le SVM propriétaire du volume.
+
+* Sécurité native au niveau des fichiers NTFS, UNIX et NFSv4
++
+La sécurité native au niveau du fichier existe sur le fichier ou le répertoire qui représente l'objet de stockage. Vous pouvez définir la sécurité au niveau des fichiers à partir d'un client. Les autorisations liées aux fichiers sont efficaces, que SMB ou NFS soit utilisé pour accéder aux données.
+
+

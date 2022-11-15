@@ -1,0 +1,165 @@
+---
+sidebar: sidebar 
+permalink: multi-admin-verify/enable-disable-task.html 
+keywords: ontap, mav, multi, admin, verification, administrator, enable, disable, approval, groups, cli, system manager 
+summary: 'La vérification multi-administrateur (MAV) doit être activée explicitement. Une fois que vous avez activé la vérification multi-administrateur, l"approbation par les administrateurs d"un groupe d"approbation MAV (administrateurs MAV) est requise pour la supprimer.' 
+---
+= Activez et désactivez la vérification multi-administration
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La vérification multi-administrateur (MAV) doit être activée explicitement. Une fois que vous avez activé la vérification multi-administrateur, l'approbation par les administrateurs d'un groupe d'approbation MAV (administrateurs MAV) est requise pour la supprimer.
+
+Une fois MAV activé, la modification ou la désactivation de MAV nécessite l'approbation de l'administrateur MAV.
+
+
+NOTE: Si vous avez besoin de désactiver la fonctionnalité de vérification multi-administrateurs sans l'approbation de l'administrateur MAV, contactez le support NetApp et mentionnez l'article suivant de la base de connaissances : https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_to_disable_Multi-Admin_Verification_if_MAV_admin_is_unavailable["Comment désactiver la vérification multi-administrateur si MAV admin n'est pas disponible"^].
+
+Lorsque vous activez MAV, vous pouvez spécifier globalement les paramètres suivants.
+
+Groupes d'approbation:: Une liste de groupes d'approbation globaux. Au moins un groupe est requis pour activer la fonctionnalité MAV.
+Approbateurs requis:: Nombre d'approbateurs requis pour exécuter une opération protégée. La valeur par défaut et le nombre minimum sont 1.
++
+--
+*Remarque :* le nombre requis d'approbateurs doit être inférieur au nombre total d'approbateurs uniques dans les groupes d'approbation par défaut.
+
+--
+Expiration de l'approbation (heures, minutes, secondes):: Période pendant laquelle un administrateur MAV doit répondre à une demande d'approbation. La valeur par défaut est une heure (1h), la valeur minimale prise en charge est une seconde (1s) et la valeur maximale prise en charge est de 14 jours (14d).
+Expiration de l'exécution (heures, minutes, secondes):: Période pendant laquelle l'administrateur requérant doit effectuer l'opération ::. La valeur par défaut est une heure (1h), la valeur minimale prise en charge est une seconde (1s) et la valeur maximale prise en charge est de 14 jours (14d).
+
+
+Vous pouvez également remplacer n'importe lequel de ces paramètres pour un particulier link:manage-rules-task.html["règles de fonctionnement."]
+
+
+
+== Procédure de System Manager
+
+. Identifiez les administrateurs pour qu'ils reçoivent une vérification multi-administrateur.
++
+.. Cliquez sur *Cluster > Paramètres.*
+.. Cliquez sur image:icon_arrow.gif["icône de flèche bleue"] À côté de *utilisateurs et rôles.*
+.. Cliquez sur image:icon_add.gif["ajouter une icône"] Sous *utilisateurs.*
+.. Modifiez la liste si nécessaire.
++
+Pour plus d'informations, voir link:../task_security_administrator_access.html["Contrôlez l'accès administrateur."]
+
+
+
+. Activez la vérification multi-administration en créant au moins un groupe d'approbation et en ajoutant au moins une règle.
++
+.. Cliquez sur *Cluster > Paramètres.*
+.. Cliquez sur image:icon_gear.gif["icône de vitesse"] En regard de *Multi-Admin Approval* dans la section *Security*.
+.. Cliquez sur image:icon_add.gif["ajouter une icône"] pour ajouter au moins un groupe d'approbation.
++
+*** Nom – Entrez un nom de groupe.
+*** Approbateurs : sélectionnez des approbateurs dans une liste d'utilisateurs.
+*** Adresse e-mail – Entrez une ou plusieurs adresses e-mail.
+*** Groupe par défaut : sélectionnez un groupe.
+
+
+.. Ajoutez au moins une règle.
++
+*** Opération – sélectionnez une commande prise en charge dans la liste.
+*** Requête – saisissez les options et les valeurs de commande souhaitées.
+*** Paramètres facultatifs ; laissez vide pour appliquer des paramètres globaux ou attribuez une valeur différente pour des règles spécifiques afin de remplacer les paramètres globaux.
++
+**** Nombre requis d'approbateurs
+**** Groupes d'approbation
+
+
+
+
+.. Cliquez sur *Paramètres avancés* pour afficher ou modifier les valeurs par défaut.
++
+*** Nombre d'approbateurs requis (par défaut : 1)
+*** Expiration de la demande d'exécution (par défaut : 1 heure)
+*** Expiration de la demande d'approbation (par défaut : 1 heure)
+*** Serveur de messagerie*
+*** De l'adresse e-mail*
++
+*Ces paramètres mettent à jour les paramètres de messagerie gérés sous "gestion des notifications". Vous êtes invité à les définir si elles n'ont pas encore été configurées.
+
+
+
+.. Cliquez sur *Activer* pour terminer la configuration initiale du MAV.
+
+
+
+
+Après la configuration initiale, l'état actuel du MAV est affiché dans la mosaïque *Multi-Admin Approval*.
+
+* État (activé ou non)
+* Opérations actives pour lesquelles des approbations sont requises
+* Nombre de demandes ouvertes à l'état en attente
+
+
+Vous pouvez afficher une configuration existante en cliquant sur image:icon_arrow.gif["icône de flèche bleue"]. L'approbation MAV est requise pour modifier une configuration existante.
+
+Pour désactiver la vérification multi-administrateur :
+
+. Cliquez sur *Cluster > Paramètres.*
+. Cliquez sur image:icon_gear.gif["icône de vitesse"] En regard de *Multi-Admin Approval* dans la section *Security*.
+. Cliquez sur le bouton bascule activé.
++
+L'approbation MAV est requise pour effectuer cette opération.
+
+
+
+
+
+== Procédure CLI
+
+Avant d'activer la fonctionnalité MAV au niveau de la CLI, au moins une link:manage-groups-task.html["Groupe administrateur MAV"] doit avoir été créé.
+
+[cols="50,50"]
+|===
+| Si vous voulez… | Saisissez cette commande 
+
+
+ a| 
+Activer la fonctionnalité MAV
+ a| 
+`security multi-admin-verify modify -approval-groups _group1_[,_group2_...] [-required-approvers _nn_ ] -enabled true   [ -execution-expiry [__nn__h][__nn__m][__nn__s]]    [ -approval-expiry [__nn__h][__nn__m][__nn__s]]`
+
+*Exemple* : la commande suivante active MAV avec 1 groupe d'approbation, 2 approbateurs requis et périodes d'expiration par défaut.
+
+[listing]
+----
+cluster-1::> security multi-admin-verify modify -approval-groups mav-grp1 -required-approvers 2 -enabled true
+----
+Terminez la configuration initiale en ajoutant au moins une configuration link:manage-rules-task.html["règle de fonctionnement."]
+
+
+
+ a| 
+Modifier une configuration MAV (nécessite l'approbation MAV)
+ a| 
+`security multi-admin-verify approval-group modify [-approval-groups _group1_[,_group2_...]] [-required-approvers _nn_ ]    [ -execution-expiry [__nn__h][__nn__m][__nn__s]]    [ -approval-expiry [__nn__h][__nn__m][__nn__s]]`
+
+
+
+ a| 
+Vérifier la fonctionnalité MAV
+ a| 
+`security multi-admin-verify show`
+
+*Exemple:*
+
+....
+cluster-1::> security multi-admin-verify show
+Is      Required  Execution Approval Approval
+Enabled Approvers Expiry    Expiry   Groups
+------- --------- --------- -------- ----------
+true    2         1h        1h       mav-grp1
+....
+
+
+ a| 
+Désactiver la fonctionnalité MAV (nécessite l'approbation MAV)
+ a| 
+`security multi-admin-verify modify -enabled false`
+
+|===

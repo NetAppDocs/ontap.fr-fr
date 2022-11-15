@@ -1,0 +1,164 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_test_takeover_giveback.html 
+keywords: ontap, high, availability, ha, pair, test, testing, takeover, giveback 
+summary: 'Une fois que vous avez configuré tous les aspects de votre paire haute disponibilité, vérifiez qu"elle fonctionne comme prévu afin de maintenir un accès ininterrompu au stockage des deux nœuds lors des opérations de basculement et de rétablissement' 
+---
+= Test de basculement et de rétablissement
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Une fois que vous avez configuré tous les aspects de votre paire haute disponibilité, vérifiez qu'elle fonctionne comme prévu afin de maintenir un accès ininterrompu au stockage des deux nœuds lors des opérations de basculement et de rétablissement. Tout au long du processus de basculement, le nœud local (ou le basculement) doit continuer à transmettre les données normalement fournies par le nœud partenaire. Lors du rétablissement, le contrôle et la livraison du stockage du partenaire doivent revenir sur le nœud partenaire.
+
+.Étapes
+. Vérifiez le câblage des câbles d'interconnexion haute disponibilité pour vous assurer qu'ils sont bien fixés.
+. Vérifiez que vous pouvez créer et récupérer des fichiers sur les deux nœuds pour chaque protocole sous licence.
+. Saisissez la commande suivante :
++
+`storage failover takeover -ofnode partnernode`
+
++
+Consultez la page man pour plus de détails sur la commande.
+
+. Entrez l'une ou l'autre des commandes suivantes pour confirmer que le basculement a eu lieu :
++
+`storage failover show-takeover`
+
++
+`storage failover show`
+
++
+--
+Si vous avez le `storage failover` commandes `-auto-giveback` option activée :
+
+|===
+
+
+| Nœud | En tant que partenaire | Basculement possible | Description de l'état 
+
+
+| nœud 1 | nœud 2 | - | Attente du retour 
+
+
+| nœud 2 | nœud 1 | faux | En cas de basculement, le rétablissement automatique sera initié en quelques secondes 
+|===
+Si vous avez le `storage failover` commandes `-auto-giveback` option désactivée :
+
+|===
+
+
+| Nœud | En tant que partenaire | Basculement possible | Description de l'état 
+
+
+| nœud 1 | nœud 2 | - | Attente du retour 
+
+
+| nœud 2 | nœud 1 | faux | En prise de contrôle 
+|===
+--
+. Afficher tous les disques qui appartiennent au nœud partenaire (Node4) que le nœud Takeover (Node1) peut détecter :
++
+`storage disk show -home node2 -ownership`
+
++
+--
+La commande suivante affiche tous les disques appartenant au nœud 2 que le nœud 1 peut détecter :
+`cluster::> storage disk show -home node2 -ownership`
+
+|===
+
+
+| Disque | Agrégat | Accueil | Propriétaire | Accueil de la reprise après incident | ID domicile | ID propriétaire | ID domicile DR | Réservation | Piscine 
+
+
+| 1.0.2 | - | nœud 2 | nœud 2 | - | 4078312453 | 4078312453 | - | 4078312452 | Pool0 
+
+
+| 1.0.3 | - | nœud 2 | nœud 2 | - | 4078312453 | 4078312453 | - | 4078312452 | Pool0 
+|===
+--
+. Confirmer que le nœud du basculement (Node1) contrôle les agrégats du nœud partenaire (Node2) :
++
+`aggr show ‑fields home‑id,home‑name,is‑home`
+
++
+--
+|===
+
+
+| agrégat | id-domicile | maison-nameh | chez soi 
+
+
+ a| 
+aggr0_1
+ a| 
+2014942045
+ a| 
+nœud 1
+ a| 
+vrai
+
+
+
+ a| 
+aggr0_2
+ a| 
+4078312453
+ a| 
+nœud 2
+ a| 
+faux
+
+
+
+ a| 
+aggr1_1
+ a| 
+2014942045
+ a| 
+nœud 1
+ a| 
+vrai
+
+
+
+| aggr1_2 | 4078312453 | nœud 2  a| 
+faux
+
+|===
+Pendant l'acquisition, la valeur « is-home » des agrégats du nœud partenaire est fausse.
+
+--
+. Remettre le service de données du nœud partenaire après avoir affiché le message « en attente de rétablissement » :
++
+`storage failover giveback -ofnode partnernode`
+
+. Entrez l'une ou l'autre des commandes suivantes pour observer la progression de l'opération de rétablissement :
++
+`storage failover show-giveback`
+
++
+`storage failover show`
+
+. Continuer, selon que vous avez vu le message que le rétablissement a été effectué correctement :
++
+--
+|===
+
+
+| Si le basculement et le rétablissement... | Alors... 
+
+
+| Sont terminées avec succès | Répétez les étapes 2 à 8 sur le nœud partenaire. 
+
+
+| Echec | Corrigez l'échec de basculement ou de rétablissement, puis répétez cette procédure. 
+|===
+--
+

@@ -1,0 +1,139 @@
+---
+permalink: smb-admin/configure-unix-symbolic-link-support-shares-task.html 
+sidebar: sidebar 
+keywords: configure, unix, symbol, link, support, smb, share, share-property, setting, create, modify, exist, configure unix symbolic link support, on smb shares 
+summary: Vous pouvez configurer la prise en charge des liens symboliques UNIX sur les partages SMB en spécifiant un paramètre de propriété de partage de liens symboliques lorsque vous créez des partages SMB ou en modifiant à tout moment des partages SMB existants. La prise en charge des liens symboliques UNIX est activée par défaut. Vous pouvez également désactiver la prise en charge des liens symboliques UNIX sur un partage. 
+---
+= Configurez la prise en charge des liens symboliques UNIX sur les partages SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez configurer la prise en charge des liens symboliques UNIX sur les partages SMB en spécifiant un paramètre de propriété de partage de liens symboliques lorsque vous créez des partages SMB ou en modifiant à tout moment des partages SMB existants. La prise en charge des liens symboliques UNIX est activée par défaut. Vous pouvez également désactiver la prise en charge des liens symboliques UNIX sur un partage.
+
+Lors de la configuration de la prise en charge des liens symboliques UNIX pour les partages SMB, vous pouvez choisir l'un des paramètres suivants :
+
+|===
+| Réglage | Description 
+
+
+ a| 
+`enable` (OBSOLÈTE*)
+ a| 
+Indique que les liens symboliques sont activés pour l'accès en lecture/écriture.
+
+
+
+ a| 
+`read_only` (OBSOLÈTE*)
+ a| 
+Indique que les symlinks sont activés pour l'accès en lecture seule. Ce paramètre ne s'applique pas aux boutons de mode. L'accès Widelink est toujours en lecture-écriture.
+
+
+
+ a| 
+`hide` (OBSOLÈTE*)
+ a| 
+Spécifie que les clients SMB ne peuvent pas voir les symlinks.
+
+
+
+ a| 
+`no-strict-security`
+ a| 
+Spécifie que les clients suivent des symlinks en dehors des limites de partage.
+
+
+
+ a| 
+`symlinks`
+ a| 
+Indique que les symlinks sont activés localement pour l'accès en lecture/écriture. Les annonces DFS ne sont pas générées même si l'option CIFS `is-advertise-dfs-enabled` est défini sur `true`. Il s'agit du paramètre par défaut.
+
+
+
+ a| 
+`symlinks-and-widelinks`
+ a| 
+Spécifie que les liens symlinks locaux et les widelinks pour l'accès en lecture-écriture. Les annonces DFS sont générées pour les symlinks locaux et les widelinks, même si l'option CIFS `is-advertise-dfs-enabled` est défini sur `false`.
+
+
+
+ a| 
+`disable`
+ a| 
+Spécifie que les liens symlinks et les liens de fil sont désactivés. Les annonces DFS ne sont pas générées même si l'option CIFS `is-advertise-dfs-enabled` est défini sur `true`.
+
+
+
+ a| 
+`""` (nul, non défini)
+ a| 
+Désactive les liens symboliques sur le partage.
+
+
+
+ a| 
+`-` (non défini)
+ a| 
+Désactive les liens symboliques sur le partage.
+
+|===
+[NOTE]
+====
+*Les paramètres _enable_, _hide_ et _read-only_ sont obsolètes et peuvent être supprimés dans une version future de ONTAP.
+
+====
+.Étapes
+. Configurer ou désactiver la prise en charge des liens symboliques :
++
+|===
+| Si c'est... | Entrer... 
+
+
+ a| 
+Un nouveau partage SMB
+ a| 
+`+vserver cifs share create -vserver vserver_name -share-name share_name -path path -symlink-properties {enable|hide|read-only|""|-|symlinks|symlinks-and-widelinks|disable},...]+`
+
+
+
+ a| 
+Un partage SMB existant
+ a| 
+`+vserver cifs share modify -vserver vserver_name -share-name share_name -symlink-properties {enable|hide|read-only|""|-|symlinks|symlinks-and-widelinks|disable},...]+`
+
+|===
+. Vérifiez que la configuration du partage SMB est correcte : `vserver cifs share show -vserver vserver_name -share-name share_name -instance`
+
+
+La commande suivante crée un partage SMB nommé "data1" avec la configuration de lien symbolique UNIX définie sur `enable`:
+
+[listing]
+----
+cluster1::> vserver cifs share create -vserver vs1 -share-name data1 -path /data1 -symlink-properties enable
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data1 -instance
+
+                          Vserver: vs1
+                            Share: data1
+         CIFS Server NetBIOS Name: VS1
+                             Path: /data1
+                 Share Properties: oplocks
+                                   browsable
+                                   changenotify
+               Symlink Properties: enable
+          File Mode Creation Mask: -
+     Directory Mode Creation Mask: -
+                    Share Comment: -
+                        Share ACL: Everyone / Full Control
+    File Attribute Cache Lifetime: -
+                      Volume Name: -
+                    Offline Files: manual
+    Vscan File-Operations Profile: standard
+Maximum Tree Connections on Share: 4294967295
+       UNIX Group for File Create: -
+----
+xref:create-symbolic-link-mappings-task.adoc[Création de mappages de liens symboliques pour les partages SMB]

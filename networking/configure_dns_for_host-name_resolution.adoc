@@ -1,0 +1,113 @@
+---
+sidebar: sidebar 
+permalink: networking/configure_dns_for_host-name_resolution.html 
+keywords: configure, configuring, configuration, setup, set, setting, dns, local, remote, host, name, host-name, resolution, configure dns for host-name resolution, nsswitch.conf, configure an svm and data lifs for host-name resolution using an external dns server, vserver services name-service dns, vserver services name-service dns create, network interface modify -lif lifname -dns-zone, network interface create -lif lifname -dns-zone, vserver services name-service dns check, configure the name service switch table for host-name resolution 
+summary: 'Utilisez DNS pour accéder à des sources locales ou distantes pour obtenir des informations sur l"hôte' 
+---
+= Configurez le DNS pour la résolution du nom d'hôte
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Vous utilisez DNS pour accéder aux sources locales ou distantes pour obtenir des informations sur l'hôte. Vous devez configurer DNS pour accéder à l'une de ces sources, ou aux deux.
+
+ONTAP doit être en mesure de rechercher les informations relatives à l'hôte afin de fournir aux clients un accès approprié. Vous devez configurer les services de noms pour permettre à ONTAP d'accéder aux services DNS locaux ou externes afin d'obtenir les informations sur l'hôte.
+
+ONTAP stocke les informations de configuration du service de noms dans un tableau équivalent à `/etc/nsswitch.conf` Fichier sur les systèmes UNIX.
+
+
+
+== Configurer un SVM et des LIFs de données pour la résolution de nom d'hôte à l'aide d'un serveur DNS externe
+
+Vous pouvez utiliser le `vserver services name-service dns` Commande permettant d'activer DNS sur un SVM et de le configurer afin d'utiliser DNS pour la résolution de nom d'hôte. Les noms d'hôte sont résolus à l'aide de serveurs DNS externes.
+
+Un serveur DNS au niveau du site doit être disponible pour les recherches de noms d'hôte.
+
+Vous devez configurer plusieurs serveurs DNS pour éviter un point de défaillance unique. Le `vserver services name-service dns create` Commande émet un avertissement si vous entrez un seul nom de serveur DNS.
+
+Voir xref:configure_dynamic_dns_services.html[Configuration des services DNS dynamiques] Pour plus d'informations sur la configuration de DNS dynamique sur le SVM.
+
+.Étapes
+. Activer le DNS sur le SVM :
++
+....
+vserver services name-service dns create -vserver vserver_name -domains domain_name - name-servers ip_addresses -state enabled
+....
++
+La commande suivante permet d'activer les serveurs DNS externes sur le SVM vs1 :
+
++
+....
+vserver services name-service dns create -vserver <vs1.example.com> -domains <example.com> -name-servers <192.0.2.201,192.0.2.202> -state <enabled>
+....
++
+
+NOTE: La commande vserver services name-service dns create effectue une validation automatique de la configuration et signale un message d'erreur si ONTAP ne peut pas contacter le name serveur.
+
+. Activer DNS sur les LIFs détenues par le SVM :
++
+|===
+
+
+| Si vous l'êtes | Utilisez cette commande : 
+
+
+ a| 
+Modification d'une zone LIF existante
+ a| 
+`network interface modify -lif lifname -dns-zone`
+
+
+
+ a| 
+Création d'une nouvelle zone LIF nom-zone
+ a| 
+`network interface create -lif lifname -dns-zone`
+
+|===
++
+....
+vserver services name-service dns create -vserver <vs1> -domains <example.com> -name-servers <192.0.2.201, 192.0.2.202> -state <enabled> network interface modify -lif <datalif1> -dns-zone <zonename.whatever.com>
+....
+. Validez l'état des serveurs de noms à l'aide de la `vserver services name-service dns check` commande.
++
+....
+vserver services name-service dns check -vserver vs1.example.com
+VserverName       Server     Status    Status Details
+----------------  ---------- -------   --------------------------
+vs1.example.com   10.0.0.50  up        Response time (msec): 2
+vs1.example.com   10.0.0.51  up        Response time (msec): 2
+....
+
+
+
+
+== Configurez la table du commutateur de service de noms pour la résolution du nom d'hôte
+
+Vous devez configurer correctement la table du commutateur de service de noms pour permettre à ONTAP de consulter le service de noms local ou externe afin de récupérer les informations relatives à l'hôte.
+
+Vous devez avoir déterminé le service de nom à utiliser pour le mappage des hôtes dans votre environnement.
+
+.Étapes
+. Ajoutez les entrées nécessaires à la table de changement de nom du service :
++
+....
+vserver services name-service <ns-switch> create -vserver <vserver_name> -database <database_name> -source <source_names>
+....
+. Vérifiez que le tableau des commutateurs de service de noms contient les entrées attendues dans l'ordre souhaité :
++
+....
+vserver services name-service <ns-switch> show -vserver <vserver_name>
+....
+
+
+L'exemple suivant crée une entrée dans la table name service switch pour que le SVM vs1 utilise d'abord le fichier hosts local, puis un serveur DNS externe pour résoudre les noms d'hôte :
+
+....
+vserver services name-service ns-switch create -vserver vs1 -database hosts -sources files dns
+....

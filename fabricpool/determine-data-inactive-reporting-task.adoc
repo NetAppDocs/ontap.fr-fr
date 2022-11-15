@@ -1,0 +1,110 @@
+---
+permalink: fabricpool/determine-data-inactive-reporting-task.html 
+sidebar: sidebar 
+keywords: determining, how, much, data, volume, inactive, using, data reporting, fabricpool 
+summary: 'Une vu la quantité de données inactives d"un volume, vous permet d"utiliser correctement les tiers de stockage. Les informations contenues dans le reporting de données inactives vous aident à décider de l"agrégat à utiliser pour FabricPool, qu"il s"agisse de déplacer un volume vers ou hors FabricPool, ou de modifier la règle de Tiering d"un volume.' 
+---
+= Déterminez la quantité de données inactives d'un volume grâce au reporting des données inactives
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une vu la quantité de données inactives d'un volume, vous permet d'utiliser correctement les tiers de stockage. Les informations contenues dans le reporting de données inactives vous aident à décider de l'agrégat à utiliser pour FabricPool, qu'il s'agisse de déplacer un volume vers ou hors FabricPool, ou de modifier la règle de Tiering d'un volume.
+
+Vous devez exécuter ONTAP 9.4 ou version ultérieure pour utiliser la fonctionnalité de reporting des données inactives.
+
+.Description de la tâche
+* Le reporting de données inactives n'est pas pris en charge sur certains agrégats.
++
+Lorsque FabricPool ne peut pas être activé, vous ne pouvez pas activer le reporting des données inactives, y compris les instances suivantes :
+
++
+** Agrégats racine
+** Agrégats MetroCluster exécutant des versions ONTAP antérieures à 9.7
+** Flash Pool (agrégats hybrides ou agrégats SnapLock)
+
+
+* Le reporting sur les données inactives est activé par défaut sur les agrégats sur lesquels la compression adaptative est activée pour tous les volumes.
+* Le reporting sur les données inactives est activé par défaut sur tous les agrégats SSD dans ONTAP 9.6.
+* Le reporting des données inactives est activé par défaut sur les agrégats FabricPool dans les environnements ONTAP 9.4 et ONTAP 9.5.
+* Vous pouvez activer le reporting des données inactives sur des agrégats non FabricPool à l'aide de l'interface de ligne de commande ONTAP, y compris les agrégats HDD, à partir de ONTAP 9.6.
+
+
+
+
+== Procédure
+
+Déterminez la quantité de données inactives avec ONTAP System Manager ou l'interface de ligne de commandes ONTAP.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Choisissez l'une des options suivantes :
++
+** Lorsque vous disposez d'agrégats de disques durs existants, accédez à *stockage > niveaux* et cliquez sur image:icon_kabob.gif["alt=Options de menu"] concerne l'agrégat sur lequel vous souhaitez activer le reporting des données inactives.
+** Lorsqu'aucun niveau de Cloud n'est configuré, accédez à *Dashboard* et cliquez sur le lien *Activer le reporting des données inactives* sous *Capacity*.
+
+
+
+
+--
+.CLI
+--
+.Pour activer le reporting des données inactives avec l'interface de ligne de commandes :
+. Si l'agrégat pour lequel vous souhaitez voir le reporting de données inactives n'est pas utilisé dans FabricPool, activez le reporting de données inactives de l'agrégat à l'aide de `storage aggregate modify` commande avec `-is-inactive-data-reporting-enabled` `true` paramètre.
++
+[listing]
+----
+cluster1::> storage aggregate modify -aggregate aggr1 -is-inactive-data-reporting-enabled true
+----
++
+Vous devez activer de manière explicite la fonctionnalité de reporting de données inactives sur un agrégat non utilisé pour FabricPool.
+
++
+Il n'est pas nécessaire d'activer le reporting des données inactives sur un agrégat compatible FabricPool, car l'agrégat est déjà inclus dans le reporting des données inactives. Le `-is-inactive-data-reporting-enabled` Le paramètre ne fonctionne pas sur les agrégats compatibles avec FabricPool.
+
++
+Le `-fields is-inactive-data-reporting-enabled` paramètre du `storage aggregate show` commande indique si le reporting de données inactives est activé sur un agrégat.
+
+. Pour afficher la quantité de données inactives sur un volume, utilisez le `volume show` commande avec `-fields performance-tier-inactive-user-data,performance-tier-inactive-user-data-percent` paramètre.
++
+[listing]
+----
+cluster1::> volume show -fields performance-tier-inactive-user-data,performance-tier-inactive-user-data-percent
+
+vserver volume performance-tier-inactive-user-data performance-tier-inactive-user-data-percent
+------- ------ ----------------------------------- -------------------------------------------
+vsim1   vol0   0B                                  0%
+vs1     vs1rv1 0B                                  0%
+vs1     vv1    10.34MB                             0%
+vs1     vv2    10.38MB                             0%
+4 entries were displayed.
+----
++
+** Le `performance-tier-inactive-user-data` affiche la quantité de données utilisateur stockées dans l'agrégat inactives.
+** Le `performance-tier-inactive-user-data-percent` Indique quel pourcentage des données inactives sur le système de fichiers actif et les copies Snapshot.
+** Dans le cas d'un agrégat qui n'est pas utilisé pour FabricPool, le reporting des données inactives utilise la règle de Tiering afin de déterminer la quantité de données à signaler comme inactives.
++
+*** Pour le `none` règle de tiering, 31 jours sont utilisés.
+*** Pour le `snapshot-only` et `auto`, utilisation de rapports de données inactives `tiering-minimum-cooling-days`.
+*** Pour le `ALL` la génération de rapports de données inactives suppose que les données seront stockées sur un tier d'ici une journée.
++
+Jusqu'à ce que la période soit atteinte, la production indique "-" pour la quantité de données inactives au lieu d'une valeur.
+
+
+
+** Sur un volume faisant partie d'FabricPool, le rapport ONTAP inactif dépend de la règle de Tiering définie sur un volume.
++
+*** Pour le `none` Règle de Tiering, ONTAP indique le volume entier inactif pendant au moins 31 jours. Vous ne pouvez pas utiliser `-tiering-minimum-cooling-days` paramètre avec le `none` règle de hiérarchisation.
+*** Pour le `ALL`, `snapshot-only`, et `auto` les règles de tiering, le reporting des données inactives n'est pas pris en charge.
+
+
+
+
+
+
+--
+====

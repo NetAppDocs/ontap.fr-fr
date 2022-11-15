@@ -1,0 +1,92 @@
+---
+permalink: encryption-at-rest/purge-data-encrypted-asynchronous-snapmirror-task.html 
+sidebar: sidebar 
+keywords: securely, purging, scrub, data, encrypted, volume, nve, netapp, volume encryption, snapmirror, asynchronous 
+summary: Depuis ONTAP 9.8, vous pouvez utiliser la suppression sécurisée pour « nettoyage » des données sans interruption sur les volumes NVE avec une relation SnapMirror asynchrone. 
+---
+= Supprimez en toute sécurité les données d'un volume chiffré avec une relation SnapMirror asynchrone
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.8, vous pouvez utiliser une suppression sécurisée des données « `réplication```ss'' sans interruption sur les volumes NVE avec une relation SnapMirror asynchrone.
+
+.Ce dont vous avez besoin, 8217;ll
+* Vous devez être un administrateur de cluster pour effectuer cette tâche.
+* Des privilèges avancés sont requis pour cette tâche.
+
+
+La suppression sécurisée peut prendre de plusieurs minutes à plusieurs heures, selon la quantité de données contenues dans les fichiers supprimés. Vous pouvez utiliser le `volume encryption secure-purge show` commande permettant d'afficher le statut de l'opération. Vous pouvez utiliser le `volume encryption secure-purge abort` commande pour mettre fin à l'opération.
+
+[NOTE]
+====
+Pour effectuer une purge sécurisée sur un hôte SAN, vous devez supprimer la LUN entière contenant les fichiers à purger, ou vous devez pouvoir perforer les trous dans la LUN pour les blocs appartenant aux fichiers à purger. Si vous ne pouvez pas supprimer la LUN ou si votre système d'exploitation hôte ne prend pas en charge la perforation dans la LUN, vous ne pouvez pas effectuer de purge sécurisée.
+
+====
+.Étapes
+. Sur le système de stockage, passez au niveau de privilège avancé :
++
+`set -privilege advanced`
+
+. Supprimez les fichiers ou la LUN que vous souhaitez supprimer en toute sécurité.
++
+** Sur un client NAS, supprimez les fichiers que vous souhaitez purger en toute sécurité.
+** Sur un hôte SAN, supprimez le LUN que vous souhaitez purger ou perforer en toute sécurité les blocs appartenant aux fichiers à supprimer.
+
+
+. Préparez le volume de destination dans la relation asynchrone à supprimer de manière sécurisée :
++
+`volume encryption secure-purge start -vserver SVM_name -volume volume_name -prepare true`
+
++
+Répétez cette étape pour chaque volume de la relation SnapMirror asynchrone.
+
+. Si les fichiers que vous souhaitez supprimer de manière sécurisée se trouvent dans des copies Snapshot, supprimez les copies Snapshot :
++
+`snapshot delete -vserver SVM_name -volume vol_name -snapshot`
+
+. Si les fichiers que vous souhaitez supprimer de manière sécurisée se trouvent dans les copies Snapshot de base, procédez comme suit :
++
+.. Créez une copie Snapshot sur le volume de destination dans la relation SnapMirror asynchrone :
++
+`volume snapshot create -snapshot snapshot_name -vserver SVM_name -volume vol_name`
+
+.. Mettre à jour SnapMirror pour transférer la copie Snapshot de base :
++
+`snapmirror update -source-snapshot snapshot_name -destination-path destination_path`
+
++
+Répétez cette étape pour chaque volume de la relation SnapMirror asynchrone.
+
+.. Les étapes de répétition (a) et (b) sont égales au nombre de copies Snapshot de base plus une.
++
+Par exemple, si vous avez deux copies Snapshot de base, vous devez répéter les étapes (a) et (b) trois fois.
+
+.. Vérifiez que la copie Snapshot de base est présente : +
+`snapshot show -vserver SVM_name -volume vol_name``
+.. Supprimez la copie Snapshot de base : +
+`snapshot delete -vserver SVM_name -volume vol_name -snapshot snapshot`
+
+
+. Supprimez les fichiers supprimés de manière sécurisée :
++
+`volume encryption secure-purge start -vserver SVM_name -volume volume_name`
+
++
+Répétez cette étape pour chaque volume de la relation SnapMirror asynchrone.
+
++
+La commande suivante purge de manière sécurisée les fichiers supprimés sur « 'vol1' » du SVM « vs1 » :
+
++
+[listing]
+----
+cluster1::> volume encryption secure-purge start -vserver vs1 -volume vol1
+----
+. Vérifier l'état de l'opération de purge sécurisée :
++
+`volume encryption secure-purge show`
+
+

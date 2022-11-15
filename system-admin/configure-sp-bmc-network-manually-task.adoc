@@ -1,0 +1,93 @@
+---
+permalink: system-admin/configure-sp-bmc-network-manually-task.html 
+sidebar: sidebar 
+keywords: configure, sp, bmc, network, manually, ip, address 
+summary: 'Si vous ne disposez pas de configuration réseau automatique définie pour le processeur de service, vous devez configurer manuellement le réseau SP d"un nœud pour que ce dernier soit accessible via une adresse IP.' 
+---
+= Configurez le réseau SP/BMC manuellement
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous ne disposez pas d'une configuration réseau automatique définie pour le processeur de service, vous devez configurer manuellement le réseau SP d'un nœud pour que ce dernier soit accessible via une adresse IP.
+
+Si vous souhaitez utiliser des connexions IPv6 pour le processeur de service, IPv6 doit déjà être configuré et activé pour ONTAP. Le `network options ipv6` Les commandes gèrent les paramètres IPv6 pour ONTAP.
+
+[NOTE]
+====
+Cette tâche s'applique à la fois au processeur de service et au contrôleur BMC.
+
+====
+Vous pouvez configurer le processeur de service pour qu'il utilise IPv4, IPv6 ou les deux. La configuration IPv4 du processeur de service prend en charge l'adressage statique et DHCP, et la configuration IPv6 du processeur de service prend uniquement en charge l'adressage statique.
+
+Si la configuration réseau automatique du processeur de service a été configurée, vous n'avez pas besoin de configurer manuellement le réseau SP pour des nœuds individuels, et le `system service-processor network modify` La commande vous permet d'activer ou de désactiver uniquement l'interface réseau du processeur de service.
+
+.Étapes
+. Configurez le réseau du processeur de service d'un nœud en utilisant le `system service-processor network modify` commande.
++
+** Le `-address-family` Le paramètre spécifie si la configuration IPv4 ou IPv6 du processeur de service doit être modifiée.
+** Le `-enable` Paramètre active l'interface réseau de la famille d'adresses IP spécifiée.
+** Le `-dhcp` Paramètre indique si la configuration réseau doit être utilisée depuis le serveur DHCP ou l'adresse réseau que vous fournissez.
++
+Vous pouvez activer DHCP (par paramètre) `-dhcp` à `v4`) Uniquement si vous utilisez IPv4. Vous ne pouvez pas activer DHCP pour les configurations IPv6.
+
+** Le `-ip-address` Le paramètre spécifie l'adresse IP publique pour le processeur de service.
++
+Un message d'avertissement apparaît lorsque vous tentez de configurer manuellement le réseau du processeur de service avec des adresses allouées à un sous-réseau. L'omission de l'avertissement et la poursuite de l'attribution manuelle d'adresse peuvent entraîner une affectation d'adresse en double.
+
+** Le `-netmask` Le paramètre spécifie le masque de réseau du processeur de service (si vous utilisez IPv4).
+** Le `-prefix-length` Paramètre spécifie la longueur du préfixe réseau du masque de sous-réseau pour le processeur de service (si vous utilisez IPv6).
+** Le `-gateway` Le paramètre spécifie l'adresse IP de passerelle pour le processeur de service.
+
+
+. Configurez le réseau SP pour les nœuds restants du cluster en répétant l'étape 1.
+. Affiche la configuration réseau du processeur de service et vérifie le statut de configuration du processeur de service à l'aide de `system service-processor network show` commande avec `–instance` ou `–field setup-status` paramètres.
++
+Le statut de configuration du processeur de service d'un nœud peut être l'un des suivants :
+
++
+** `not-setup` -- non configuré
+** `succeeded` -- Configuration réussie
+** `in-progress` -- Configuration en cours
+** `failed` -- Echec de la configuration
+
+
+
+
+L'exemple suivant configure le processeur de service d'un nœud pour utiliser IPv4, active le processeur de service et affiche la configuration réseau du processeur de service pour vérifier les paramètres :
+
+[listing]
+----
+
+cluster1::> system service-processor network modify -node local
+-address-family IPv4 -enable true -ip-address 192.168.123.98
+-netmask 255.255.255.0 -gateway 192.168.123.1
+
+cluster1::> system service-processor network show -instance -node local
+
+                               Node: node1
+                       Address Type: IPv4
+                  Interface Enabled: true
+                     Type of Device: SP
+                             Status: online
+                        Link Status: up
+                        DHCP Status: none
+                         IP Address: 192.168.123.98
+                        MAC Address: ab:cd:ef:fe:ed:02
+                            Netmask: 255.255.255.0
+       Prefix Length of Subnet Mask: -
+         Router Assigned IP Address: -
+              Link Local IP Address: -
+                 Gateway IP Address: 192.168.123.1
+                  Time Last Updated: Thu Apr 10 17:02:13 UTC 2014
+                        Subnet Name: -
+Enable IPv6 Router Assigned Address: -
+            SP Network Setup Status: succeeded
+    SP Network Setup Failure Reason: -
+
+1 entries were displayed.
+
+cluster1::>
+----

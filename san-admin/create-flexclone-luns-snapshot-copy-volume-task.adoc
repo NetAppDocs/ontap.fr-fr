@@ -1,0 +1,49 @@
+---
+permalink: san-admin/create-flexclone-luns-snapshot-copy-volume-task.html 
+sidebar: sidebar 
+keywords: create, flexclone, luns, snapshot, copy, volume 
+summary: Vous pouvez utiliser une copie Snapshot de votre volume pour créer des copies FlexClone de vos LUN. Les copies FlexClone des LUN sont à la fois lisibles et inscriptibles. 
+---
+= Créer des LUN FlexClone à partir d'une copie Snapshot d'un volume
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser une copie Snapshot de votre volume pour créer des copies FlexClone de vos LUN. Les copies FlexClone des LUN sont à la fois lisibles et inscriptibles.
+
+Une licence FlexClone doit être installée.
+
+La LUN FlexClone hérite de l'attribut réservations d'espace de la LUN parent. Une LUN FlexClone à espace réservé requiert autant d'espace que la LUN parent à espace réservé. Si la LUN FlexClone n'est pas Space-Reserved, l'espace du volume doit être suffisant pour prendre en charge les modifications apportées au clone.
+
+.Étapes
+. Vérifiez que la LUN n'est pas mappée ou en cours d'écriture sur.
+. Créer une copie Snapshot du volume qui contient les LUN :
++
+`volume snapshot create -vserver _vserver_name_ -volume _volume_name_ -snapshot _snapshot_name_`
+
++
+Vous devez créer une copie Snapshot (copie Snapshot de support) de la LUN à cloner.
+
+. Créer la LUN FlexClone à partir de la copie Snapshot :
++
+`file clone create -vserver _vserver_name_ -volume _volume_name_ -source-path _source_path_ -snapshot-name _snapshot_name_ -destination-path _destination_path_`
+
++
+Si le LUN FlexClone doit être disponible pour la suppression automatique, vous devez inclure `-autodelete true`. Si vous créez cette LUN FlexClone dans un volume avec provisionnement semi-lourd, vous devez activer la suppression automatique pour toutes les LUN FlexClone.
+
+. Vérifiez que la LUN FlexClone est correcte :
++
+`lun show -vserver _vserver_name_`
+
++
+[listing]
+----
+
+Vserver Path                      State    Mapped    Type     Size
+------- ----------------------    -------- --------- -------- -------
+vs1     /vol/vol1/lun1_clone      online   unmapped windows   47.07MB
+vs1     /vol/vol1/lun1_snap_clone online   unmapped windows   47.07MB
+----
+

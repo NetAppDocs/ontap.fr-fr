@@ -1,0 +1,53 @@
+---
+permalink: smb-admin/multi-byte-file-directory-qtree-names-concept.html 
+sidebar: sidebar 
+keywords: ontap, suppot, byte, utf, encode, name, enable, creation, display, file, directory, tree, unicode, supplement, character, multilingual, plane, bmp, release, display, environment, how ontap handles multi-byte file, qtree 
+summary: 'À partir de ONTAP 9.5, la prise en charge des noms codés UTF-8 de 4 octets permet la création et l"affichage des noms de fichier, de répertoire et d"arborescence qui incluent des caractères supplémentaires Unicode à l"extérieur du plan multilingue de base (BMP). Dans les versions précédentes, ces caractères supplémentaires ne s"affichent pas correctement dans les environnements multiprotocoles.' 
+---
+= Comment ONTAP gère les noms de fichier, de répertoire et de qtree à plusieurs octets
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de ONTAP 9.5, la prise en charge des noms codés UTF-8 de 4 octets permet la création et l'affichage des noms de fichier, de répertoire et d'arborescence qui incluent des caractères supplémentaires Unicode à l'extérieur du plan multilingue de base (BMP). Dans les versions précédentes, ces caractères supplémentaires ne s'affichent pas correctement dans les environnements multiprotocoles.
+
+Pour activer la prise en charge des noms codés UTF-8 à 4 octets, un nouveau code de langue _utf8mb4_ est disponible pour l' `vserver` et `volume` familles de commandement.
+
+* Vous devez créer un volume de l'une des manières suivantes :
+* Réglage du volume `-language` explicitement option : `volume create -language utf8mb4 {…}`
+* Hériter du volume `-language` Option d'un SVM qui a été créé avec ou modifié pour l'option : `vserver [create|modify] -language utf8mb4 {…}``volume create {…}`
+* Vous ne pouvez pas modifier les volumes existants pour la prise en charge de utf8mb4 ; vous devez créer un nouveau volume utf8mb4-ready, puis migrer les données à l'aide d'outils de copie basés sur le client.
++
+Vous pouvez mettre à jour les SVM pour la prise en charge de utf8mb4, mais les volumes existants conservent leurs codes de langue d'origine.
+
++
+[NOTE]
+====
+Les noms de LUN portant des caractères UTF-8 de 4 octets ne sont pas pris en charge actuellement.
+
+====
+* Les données de caractères Unicode sont généralement représentées dans les applications de systèmes de fichiers Windows utilisant le format de transformation Unicode 16 bits (UTF-16) et dans les systèmes de fichiers NFS utilisant le format de transformation Unicode 8 bits (UTF-8).
++
+Dans les versions antérieures à ONTAP 9.5, les noms, y compris les caractères supplémentaires UTF-16 créés par les clients Windows, étaient correctement affichés sur d'autres clients Windows mais n'étaient pas traduits correctement en UTF-8 pour les clients NFS. De même, les noms comportant des caractères supplémentaires UTF-8 par les clients NFS créés n'ont pas été correctement traduits en UTF-16 pour les clients Windows.
+
+* Lorsque vous créez des noms de fichier sur des systèmes exécutant ONTAP 9.4 ou une version antérieure contenant des caractères supplémentaires valides ou non valides, ONTAP rejette le nom de fichier et renvoie une erreur de nom de fichier non valide.
++
+Pour éviter ce problème, utilisez uniquement des caractères BMP dans les noms de fichiers et évitez d'utiliser des caractères supplémentaires, ou mettez à niveau vers ONTAP 9.5 ou version ultérieure.
+
+
+
+À partir de ONTAP 9, les caractères Unicode sont autorisés dans les noms de qtree.
+
+* Vous pouvez utiliser le `volume qtree` Famille de commandes ou System Manager pour définir ou modifier les noms des qtree.
+* Les noms des qtrees peuvent inclure des caractères multi-octets au format Unicode, comme les caractères japonais et chinois.
+* Dans les versions antérieures à ONTAP 9.5, seuls les caractères BMP (c'est-à-dire ceux qui pouvaient être représentés en 3 octets) étaient pris en charge.
++
+[NOTE]
+====
+Dans les versions antérieures à ONTAP 9.5, le Junction-path du volume parent du qtree peut contenir des noms de qtree et de répertoire avec des caractères Unicode. Le `volume show` La commande affiche ces noms correctement lorsque le volume parent a un paramètre de langue UTF-8. Cependant, si la langue du volume parent n'est pas l'un des paramètres de langue UTF-8, certaines parties du chemin de jonction sont affichées à l'aide d'un nom de remplacement NFS numérique.
+
+====
+* Dans les versions 9.5 et ultérieures, les noms des qtree prennent en charge des caractères de 4 octets, à condition que le qtree se trouve dans un volume activé pour utf8m4.
+

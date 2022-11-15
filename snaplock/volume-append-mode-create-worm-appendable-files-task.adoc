@@ -1,0 +1,50 @@
+---
+permalink: snaplock/volume-append-mode-create-worm-appendable-files-task.html 
+sidebar: sidebar 
+keywords: volume, append, mode, create, worm, file, vam, rentention, period, data 
+summary: 'Depuis ONTAP 9.3, vous pouvez utiliser la fonctionnalité SnapLock Volume Adappend mode (VAM) pour créer par défaut des fichiers WORM utilisables. Un fichier WORM fiable conserve les données écrites de manière incrémentielle, comme les entrées de journal. Les données sont ajoutées au fichier par blocs de 256 Ko. Au fur et à mesure que chaque bloc est écrit, le bloc précédent devient protégé par WORM. Vous ne pouvez pas supprimer le fichier tant que la période de conservation n"est pas écoulée.' 
+---
+= Utilisez le mode d'ajout de volumes pour créer des fichiers d'ajout WORM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.3, vous pouvez utiliser la fonctionnalité SnapLock _volume append mode_ (VAM) pour créer par défaut des fichiers WORM utilisables. Un fichier WORM fiable conserve les données écrites de manière incrémentielle, comme les entrées de journal. Les données sont ajoutées au fichier par blocs de 256 Ko. Au fur et à mesure que chaque bloc est écrit, le bloc précédent devient protégé par WORM. Vous ne pouvez pas supprimer le fichier tant que la période de conservation n'est pas écoulée.
+
+.Ce dont vous avez besoin, 8217;ll
+* Le fichier fiable WORM doit résider sur un volume SnapLock.
+* Le volume SnapLock doit être démonté et vide des copies Snapshot et des fichiers créés par l'utilisateur.
+
+
+Les données n'ont pas besoin d'être écrites de manière séquentielle dans le bloc actif de 256 Ko. Lorsque les données sont écrites sur l'octet n×256 Ko+1 du fichier, le segment 256 Ko précédent devient protégé par WORM.
+
+Si vous spécifiez une période de validation automatique pour le volume, les fichiers modifiables WORM qui ne sont pas modifiés pour une période supérieure à la période de validation automatique sont validés en mode WORM.
+
+[NOTE]
+====
+Le mode VAM n'est pas pris en charge sur les volumes des journaux d'audit SnapLock.
+
+====
+.Étapes
+. Activer VAM :
++
+`*volume snaplock modify -vserver _SVM_name_ -volume _volume_name_ -is-volume-append-mode-enabled true|false*`
+
++
+Pour obtenir la liste complète des options, consultez la page man de la commande.
+
++
+La commande suivante active le mode VAM sur le volume `vol1` De SVM``vs1``:
+
++
+[listing]
+----
+cluster1::>volume snaplock modify -vserver vs1 -volume vol1 -is-volume-append-mode-enabled true
+----
+. Utilisez une commande ou un programme approprié pour créer des fichiers avec des autorisations d'écriture.
++
+Les fichiers sont par défaut modifiables.
+
+

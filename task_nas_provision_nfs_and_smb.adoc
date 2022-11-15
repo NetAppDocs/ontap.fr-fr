@@ -1,0 +1,114 @@
+---
+sidebar: sidebar 
+permalink: task_nas_provision_nfs_and_smb.html 
+keywords: netapp, ontap, name mapping, multiprotocol, povision NAS, linux, windows, NAS provisioning, active directory, workgroup, smb, CIFS, SMB, share name, default ACL, access control list, LIF, network interface 
+summary: 'Créez des volumes pour fournir le stockage à l"aide des protocoles NFS ou SMB' 
+---
+= Provisionnement de stockage NAS pour Windows et Linux à l'aide des protocoles NFS et SMB
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+Créer des volumes afin de fournir un stockage aux clients qui utilisent le protocole NFS ou SMB.
+
+Cette procédure crée de nouveaux volumes sur un link:task_nas_enable_nfs_and_smb.html["VM de stockage existante activée pour les protocoles NFS et SMB"].
+
+image:workflow_provision_multi_nas.gif["Schéma des flux de production pour le provisionnement du stockage nas pour Windows et Linux via NFS et SMB"]
+
+Vous pouvez créer des volumes FlexVol, ou pour des systèmes de fichiers volumineux répondant à des besoins de performances élevées, des volumes FlexGroup. Voir aussi link:task_nas_provision_flexgroup.html["Provisionnez le stockage NAS pour les systèmes de fichiers volumineux à l'aide de FlexGroup volumes"].
+
+Vous pouvez également enregistrer les spécifications de ce volume dans un PlayBook Ansible. Pour plus d'informations, consultez la page link:task_admin_use_ansible_playbooks_add_edit_volumes_luns.html["Utilisez les manuels de vente Ansible pour ajouter ou modifier des volumes ou des LUN"].
+
+.Étapes
+. Ajoutez un nouveau volume dans une machine virtuelle de stockage activée pour les protocoles NFS et SMB.
++
+.. Cliquez sur *Storage > volumes*, puis sur *Add*.
+.. Entrez un nom, sélectionnez la machine virtuelle de stockage, puis entrez une taille. Seules les machines virtuelles de stockage configurées avec les protocoles NFS et SMB sont répertoriées. Si une seule machine virtuelle de stockage configurée avec les protocoles NFS et SMB est disponible, le champ *Storage VM* n'est pas affiché.
+.. Cliquez sur *plus d'options* et sélectionnez *partager via NFS*.
++
+Le paramètre par défaut permet un accès complet à tous les utilisateurs. Vous pouvez ajouter ultérieurement des règles plus restrictives à l'export policy.
+
+.. Sélectionnez *partager via SMB*.
++
+Le partage est créé avec une liste de contrôle d'accès par défaut (ACL) définie sur « contrôle total » pour le groupe *Everyone*. Vous pouvez ajouter des restrictions à la liste de contrôle d’accès ultérieurement.
+
+.. Si vous cliquez sur *Enregistrer* à ce stade, System Manager utilise les valeurs par défaut du système pour créer et ajouter un volume FlexVol.
+
+
++
+Vous pouvez également continuer à activer tous les services supplémentaires requis, tels que l'autorisation, la qualité de services et la protection des données. Reportez-vous à la section  the volume configuration, puis revenez ici pour effectuer les étapes suivantes.
+
+. [[step2-complète-Prov-nfs-smb,étape 2 du workflow]] sur un client Linux, vérifiez que l'exportation est accessible.
++
+.. Créez et montez le volume à l'aide de l'interface réseau du VM de stockage.
+.. Sur le volume récemment monté, créez un fichier test, écrivez du texte et supprimez le fichier.
+
+
+. Sur un client Windows, procédez comme suit pour vérifier que le partage est accessible.
++
+.. Dans l'Explorateur Windows, mappez un lecteur sur le partage au format suivant : `+\\_SMB_Server_Name__Share_Name_+`
+.. Sur le lecteur nouvellement créé, créez un fichier test, écrivez du texte et supprimez le fichier.
+
+
++
+Après avoir vérifié l'accès, vous pouvez link:task_nas_provision_export_policies.html["Limitez l'accès client aux export policy du volume et restreignez l'accès client à l'aide de la liste ACL du partage"], et définissez les droits de propriété et autorisations souhaités sur le volume exporté et partagé.
+
+
+
+
+
+== Personnaliser la configuration de volume
+
+Vous pouvez personnaliser la configuration du volume lorsque vous ajoutez des volumes au lieu d'accepter les valeurs par défaut du système.
+
+Après avoir cliqué sur *plus d'options*, sélectionnez la fonctionnalité dont vous avez besoin et saisissez les valeurs requises.
+
+* Cache pour le volume distant.
+* Niveau de service de performance (qualité de service, QoS)
++
+Depuis ONTAP 9.8, vous pouvez spécifier une règle QoS personnalisée ou désactiver QoS, en plus de la sélection de valeur par défaut.
+
++
+** Pour désactiver QoS, sélectionnez *personnalisé*, *existant*, puis *aucun*.
+** Si vous sélectionnez *personnalisé* et spécifiez un niveau de service existant, un niveau local est automatiquement choisi.
+** À partir de ONTAP 9.9.1, si vous choisissez de créer un niveau de service de performances personnalisé, vous pouvez utiliser System Manager pour sélectionner manuellement le niveau local (*placement manuel*) sur lequel vous souhaitez placer le volume que vous créez.
++
+Cette option n'est pas disponible si vous sélectionnez les options de cache distant ou de volume FlexGroup.
+
+
+
+* Volumes FlexGroup (sélectionnez *distribuer les données de volume sur le cluster*).
++
+Cette option n'est pas disponible si vous avez précédemment sélectionné *placement manuel* sous *niveau de service de performance*. Sinon, le volume que vous ajoutez devient par défaut un volume FlexVol.
+
+* Autorisations d'accès pour les protocoles pour lesquels le volume est configuré.
+* Protection des données avec SnapMirror (local ou distant), spécifiez ensuite la règle de protection et les paramètres du cluster de destination dans les listes déroulantes.
+* Cliquez sur *Save* pour créer le volume et l'ajouter au cluster et à la machine virtuelle de stockage.
+
+
+Une fois le volume enregistré, revenez à  Pour assurer un provisionnement multiprotocole complet pour les serveurs Windows et Linux.
+
+
+
+== D'autres façons de le faire dans ONTAP
+
+[cols="2"]
+|===
+| Pour effectuer ces tâches avec... | Voir ce contenu... 
+
+
+| System Manager Classic (ONTAP 9.7 et versions antérieures) | link:https://docs.netapp.com/us-en/ontap-sm-classic/nas-multiprotocol-config/index.html["Présentation de la configuration multiprotocole SMB et NFS"^] 
+
+
+| Interface de ligne de commande ONTAP | link:https://docs.netapp.com/us-en/ontap/smb-config/index.html["Présentation de la configuration SMB avec l'interface de ligne de commande"^] +link:https://docs.netapp.com/us-en/ontap/nfs-config/index.html["Présentation de la configuration NFS avec l'interface de ligne de commande"^] +link:https://docs.netapp.com/us-en/ontap/nfs-admin/security-styles-their-effects-concept.html["Quels sont les styles de sécurité et leurs effets"^] +link:https://docs.netapp.com/us-en/ontap/nfs-admin/case-sensitivity-file-directory-multiprotocol-concept.html["Sensibilité à la casse des noms de fichiers et de répertoires dans un environnement multiprotocole"^] 
+|===

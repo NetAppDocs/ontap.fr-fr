@@ -1,0 +1,51 @@
+---
+permalink: disks-aggregates/determine-modify-caching-policy-flash-pool-task.html 
+sidebar: sidebar 
+keywords: modify, cache, policy, flash pool, aggregate, local tier 
+summary: 'Vous pouvez attribuer des règles de conservation du cache aux volumes des niveaux locaux Flash Pool (agrégats) afin de déterminer la durée pendant laquelle les données du volume restent dans le cache Flash Pool. Toutefois, dans certains cas, la modification de la règle de rétention du cache peut ne pas affecter le temps pendant que les données du volume restent dans le cache.' 
+---
+= Déterminer si modifier la règle de mise en cache des niveaux locaux Flash Pool (agrégats)
+:allow-uri-read: 
+
+
+[role="lead"]
+Vous pouvez attribuer des règles de conservation du cache aux volumes des niveaux locaux Flash Pool (agrégats) afin de déterminer la durée pendant laquelle les données du volume restent dans le cache Flash Pool. Toutefois, dans certains cas, la modification de la règle de conservation du cache peut n'avoir aucune incidence sur la durée pendant laquelle les données du volume sont conservées dans le cache.
+
+Si vos données répondent à l'une des conditions suivantes, la modification de la règle de conservation du cache peut n'avoir aucun impact :
+
+* Votre charge de travail est séquentielle.
+* Votre charge de travail ne relise pas les blocs aléatoires mis en cache dans les disques SSD.
+* La taille du cache du volume est trop petite.
+
+
+Les étapes suivantes permettent de vérifier les conditions devant être remplies par les données. La tâche doit être effectuée à l'aide de l'interface de ligne de commandes en mode de privilège avancé.
+
+. Utilisez l'interface de ligne de commande pour afficher le volume des workloads :
++
+`statistics start -object workload_volume`
+
+. Déterminez le modèle de charge de travail du volume :
++
+`statistics show -object workload_volume -instance _volume-workload_ -counter sequential_reads`
+
+. Déterminez le taux d'impact du volume :
++
+`statistics show -object wafl_hya_vvol -instance _volume_ -counter read_ops_replaced_pwercent|wc_write_blks_overwritten_percent`
+
+. Déterminez le `Cacheable Read` et `Project Cache Alloc` du volume :
++
+`system node run -node node_name wafl awa start _aggr_name_`
+
+. Afficher le résumé AWA :
++
+`system node run -node node_name wafl awa print _aggr_name_`
+
+. Comparez le taux de réussite du volume avec le `Cacheable Read`.
++
+Si le taux de réussite du volume est supérieur à `Cacheable Read`, Votre charge de travail ne relise pas les blocs aléatoires mis en cache dans les disques SSD.
+
+. Comparer la taille actuelle du cache au `Project Cache Alloc`.
++
+Si la taille actuelle du cache du volume est supérieure à `Project Cache Alloc`, puis la taille de votre cache de volume est trop petite.
+
+

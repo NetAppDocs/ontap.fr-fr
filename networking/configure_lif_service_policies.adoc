@@ -1,0 +1,295 @@
+---
+sidebar: sidebar 
+permalink: networking/configure_lif_service_policies.html 
+keywords: create service policy, assign service policy, service policy commands, configure lif service policies, create and assign a service policy for lifs, configure lif service policies, create a service policy for lifs, network interface service show, service-policy create, assign a service policy to a lif, examples, commands for managing lif service policies 
+summary: Créer et affecter une policy de service pour les LIFs 
+---
+= Configurer les règles de service LIF
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Vous pouvez configurer les stratégies de service LIF afin d'identifier un seul service ou une liste de services qui utiliseront une LIF.
+
+
+
+== Création d'une policy de service pour les LIFs
+
+Vous pouvez créer une policy de service pour les LIF. Vous pouvez affecter une stratégie de service à une ou plusieurs LIF, permettant ainsi au LIF de transporter du trafic pour un seul service ou une liste de services.
+
+Vous avez besoin de privilèges avancés pour exécuter le `network interface service-policy create` commande.
+
+Les services et les règles de service intégrés sont disponibles pour la gestion du trafic de données et de gestion sur les SVM de données et de système. La plupart des cas d'utilisation sont satisfaits à l'aide d'une règle de service intégrée plutôt que de créer une règle de service personnalisée.
+
+Vous pouvez modifier ces règles de service intégrées, si nécessaire.
+
+.Étapes
+. Afficher les services disponibles dans le cluster :
++
+....
+network interface service show
+....
++
+Les services représentent les applications auxquelles un LIF accède, ainsi que les applications servies par le cluster. Chaque service inclut zéro ou plus de ports TCP et UDP sur lesquels l'application écoute.
+
++
+Les services de gestion et de données supplémentaires suivants sont disponibles :
+
++
+....
+cluster1::> network interface service show
+
+Service                     Protocol:Ports
+-------                     --------------
+cluster-core                -
+data-cifs                   -
+data-core                   -
+data-flexcache              -
+data-iscsi                  -
+data-nfs                    -
+intercluster-core           tcp:11104-11105
+management-autosupport      -
+management-bgp              tcp:179
+management-core             -
+management-https            tcp:443
+management-ssh              tcp:22
+12 entries were displayed.
+....
+. Afficher les politiques de service qui existent dans le cluster :
++
+....
+cluster1::> network interface service-policy show
+
+Vserver   Policy                     Service: Allowed Addresses
+--------- -------------------------- ----------------------------------------
+cluster1
+          default-intercluster       intercluster-core: 0.0.0.0/0
+                                     management-https: 0.0.0.0/0
+
+          default-management         management-core: 0.0.0.0/0
+                                     management-autosupport: 0.0.0.0/0
+                                     management-ssh: 0.0.0.0/0
+                                     management-https: 0.0.0.0/0
+
+          default-route-announce     management-bgp: 0.0.0.0/0
+
+Cluster
+          default-cluster            cluster-core: 0.0.0.0/0
+
+vs0
+          default-data-blocks        data-core: 0.0.0.0/0
+                                     data-iscsi: 0.0.0.0/0
+
+          default-data-files         data-core: 0.0.0.0/0
+                                     data-nfs: 0.0.0.0/0
+                                     data-cifs: 0.0.0.0/0
+                                     data-flexcache: 0.0.0.0/0
+
+          default-management         data-core: 0.0.0.0/0
+                                     management-ssh: 0.0.0.0/0
+                                     management-https: 0.0.0.0/0
+
+7 entries were displayed.
+....
+. Création d'une règle de services :
++
+....
+cluster1::> set -privilege advanced
+Warning: These advanced commands are potentially dangerous; use them only when directed to do so by technical support.
+Do you wish to continue? (y or n): y
+
+cluster1::> network interface service-policy create -vserver <svm_name> -policy <service_policy_name> -services <service_name> -allowed-addresses <IP_address/mask,...>
+....
++
+** « nom_service » indique une liste de services à inclure dans la stratégie.
+** "IP_address/mask" spécifie la liste des masques de sous-réseau pour les adresses autorisées à accéder aux services dans la stratégie de service. Par défaut, tous les services spécifiés sont ajoutés avec une liste d'adresses par défaut autorisée de 0.0.0.0/0, ce qui permet le trafic de tous les sous-réseaux. Lorsqu'une liste d'adresses autorisées par défaut est fournie, les LIF utilisant la règle sont configurées pour bloquer toutes les demandes avec une adresse source qui ne correspond à aucun des masques spécifiés.
++
+L'exemple suivant montre comment créer une stratégie de service de données, _svm1_Data_policy_, pour une SVM qui inclut _NFS_ et _SMB_ services :
+
++
+....
+cluster1::> set -privilege advanced
+Warning: These advanced commands are potentially dangerous; use them only when directed to do so by technical support.
+Do you wish to continue? (y or n): y
+
+cluster1::> network interface service-policy create -vserver svm1 -policy svm1_data_policy -services data-nfs,data-cifs,data-core
+....
++
+L'exemple suivant montre comment créer une politique de service intercluster :
+
++
+....
+cluster1::> set -privilege advanced
+Warning: These advanced commands are potentially dangerous; use them only when directed to do so by technical support.
+Do you wish to continue? (y or n): y
+
+cluster1::> network interface service-policy create -vserver cluster1 -policy intercluster1 -services intercluster-core
+....
+
+
+. Vérifiez que la stratégie de service est créée.
++
+....
+cluster1::> network interface service-policy show
+....
++
+Le résultat suivant indique les règles de service disponibles :
+
++
+....
+cluster1::> network interface service-policy show
+
+Vserver   Policy                     Service: Allowed Addresses
+--------- -------------------------- ----------------------------------------
+cluster1
+          default-intercluster       intercluster-core: 0.0.0.0/0
+                                     management-https: 0.0.0.0/0
+
+          intercluster1              intercluster-core: 0.0.0.0/0
+
+          default-management         management-core: 0.0.0.0/0
+                                     management-autosupport: 0.0.0.0/0
+                                     management-ssh: 0.0.0.0/0
+                                     management-https: 0.0.0.0/0
+
+          default-route-announce     management-bgp: 0.0.0.0/0
+
+Cluster
+          default-cluster            cluster-core: 0.0.0.0/0
+
+vs0
+          default-data-blocks        data-core: 0.0.0.0/0
+                                     data-iscsi: 0.0.0.0/0
+
+          default-data-files         data-core: 0.0.0.0/0
+                                     data-nfs: 0.0.0.0/0
+                                     data-cifs: 0.0.0.0/0
+                                     data-flexcache: 0.0.0.0/0
+
+          default-management         data-core: 0.0.0.0/0
+                                     management-ssh: 0.0.0.0/0
+                                     management-https: 0.0.0.0/0
+
+          svm1_data_policy           data-core: 0.0.0.0/0
+                                     data-nfs: 0.0.0.0/0
+                                     data-cifs: 0.0.0.0/0
+
+9 entries were displayed.
+....
+
+
+Assigner la policy de service à une LIF soit au moment de la création, soit en modifiant une LIF existante.
+
+
+
+== Assigner une policy de service à une LIF
+
+Vous pouvez affecter une policy de service à une LIF au moment de la création de cette LIF ou en modifiant la LIF. Une policy de service définit la liste de services qui peuvent être utilisés avec la LIF.
+
+Vous pouvez attribuer des règles de service pour les LIF dans les SVM admin et data.
+
+Selon l'heure à laquelle vous souhaitez affecter la policy de service à une LIF, effectuez l'une des actions suivantes :
+
+[cols="25,75"]
+|===
+| Si vous êtes... | Affecter la stratégie de service... 
+
+
+| Création d'une LIF | Interface réseau create -vserver svm_name -lif <lif_name> -home-node <nom_node> -home-port <nom_port> {(-adresse <adresse_IP> -masque de réseau <adresse_IP>) -subnet-name <nom_sous-réseau>} -service-policy <nom_service> 
+
+
+| Modification d'une LIF | interface réseau modify -vserver <svm_name> -lif <lif_name> -service-policy <service_name> 
+|===
+Lorsque vous spécifiez une policy de services pour une LIF, il n'est pas nécessaire de spécifier le protocole de données et le rôle de cette dernière. La création des LIF en spécifiant le rôle et les protocoles de données est également pris en charge.
+
+
+NOTE: Une politique de service peut uniquement être utilisée par les LIFs dans le même SVM que vous avez spécifié lors de la création de la policy de service.
+
+
+
+=== Exemples
+
+L'exemple suivant montre comment modifier la policy de service d'une LIF pour utiliser la policy de service de gestion par défaut :
+
+....
+cluster1::> network interface modify -vserver cluster1 -lif lif1 -service-policy default-management
+....
+
+
+== Commandes permettant de gérer les règles de service LIF
+
+Utilisez le `network interface service-policy` Commandes permettant de gérer les règles de service LIF.
+
+|===
+
+
+| Les fonctions que vous recherchez... | Utilisez cette commande... 
+
+
+ a| 
+Création d'une stratégie de service (privilèges avancés requis)
+ a| 
+`network interface service-policy create`
+
+
+
+ a| 
+Ajouter une entrée de service supplémentaire à une stratégie de service existante (privilèges avancés requis)
+ a| 
+`network interface service-policy add-service`
+
+
+
+ a| 
+Cloner une stratégie de service existante (privilèges avancés requis)
+ a| 
+`network interface service-policy clone`
+
+
+
+ a| 
+Modification d'une entrée de service dans une stratégie de service existante (privilèges avancés requis)
+ a| 
+`network interface service-policy modify-service`
+
+
+
+ a| 
+Suppression d'une entrée de service d'une stratégie de service existante (privilèges avancés requis)
+ a| 
+`network interface service-policy remove-service`
+
+
+
+ a| 
+Renommer une stratégie de service existante (privilèges avancés requis)
+ a| 
+`network interface service-policy rename`
+
+
+
+ a| 
+Suppression d'une stratégie de service existante (privilèges avancés requis)
+ a| 
+`network interface service-policy delete`
+
+
+
+ a| 
+Restaurer une stratégie de service intégrée à son état d'origine (privilèges avancés requis)
+ a| 
+`network interface service-policy restore-defaults`
+
+
+
+ a| 
+Afficher les stratégies de service existantes
+ a| 
+`network interface service-policy show`
+
+|===

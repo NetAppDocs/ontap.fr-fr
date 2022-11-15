@@ -1,0 +1,174 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_manual_giveback.html 
+keywords: ontap, high, availability, ha, pair, manual, giveback, interrupted, vetoed, veto, commands, performing, perform 
+summary: Vous pouvez effectuer un retour normal, un retour dans lequel vous interrompez les processus sur un nœud partenaire ou un rétablissement forcé. 
+---
+= Commandes de rétablissement manuel
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Vous pouvez effectuer un retour normal, un retour dans lequel vous interrompez les processus sur un nœud partenaire ou un rétablissement forcé.
+
+
+NOTE: Avant d'effectuer un retour, vous devez supprimer les disques défectueux dans le système de mise en service, comme décrit dans la link:../disks-aggregates/index.html["Gestion des disques et des agrégats"].
+
+
+
+== Si le retour est interrompu
+
+En cas de défaillance ou de panne d'alimentation au cours du processus de rétablissement, ce processus s'arrête et le nœud de basculement revient en mode basculement jusqu'à ce que la panne soit réparée ou que l'alimentation soit restaurée.
+
+Toutefois, cela dépend du stade de rétablissement dans lequel l'échec s'est produit. Si le nœud a rencontré une panne ou une panne de courant lors de l'état de rétablissement partiel (après qu'il a été renvoyé l'agrégat racine), celui-ci ne sera pas renvoyé en mode basculement. À la place, le nœud revient en mode de retour partiel. Dans ce cas, terminez le processus en répétant l'opération de rétablissement.
+
+
+
+== Si le retour est refusé
+
+Si le retour est vetoté, vous devez vérifier les messages EMS pour en déterminer la cause. En fonction de la ou des raisons, vous pouvez décider si vous pouvez ignorer les vetos en toute sécurité.
+
+Le `storage failover show-giveback` la commande affiche la progression du rétablissement et affiche le sous-système qui a veto au rétablissement, le cas échéant. Les vetos souples peuvent être remplacés, alors que les vetos durs ne peuvent pas être, même si forcé. Les tableaux suivants résument les vetos logiciels qui ne doivent pas être remplacés, ainsi que les solutions de contournement recommandées.
+
+Vous pouvez vérifier les détails EMS de tout giveback en utilisant la commande suivante:
+
+`event log show -node * -event gb*`
+
+
+
+== Rétablissement de l'agrégat racine
+
+Ces vetos ne s'appliquent pas aux opérations de transfert d'agrégats :
+
+[cols="35,65"]
+|===
+
+
+| Vetoing sous-module | Solution de contournement 
+
+
+ a| 
+vfiler_bas_niveau
+ a| 
+Mettez fin aux sessions SMB à l'origine du veto, ou arrêtez l'application SMB qui a établi les sessions ouvertes.
+
+Le fait de ne pas accorder ce droit de veto peut entraîner la déconnexion soudaine de l'application utilisant SMB et la perte de données.
+
+
+
+ a| 
+Vérification du disque
+ a| 
+Tous les disques défectueux ou contournés doivent être supprimés avant de tenter le rétablissement. Si un disque est en cours de nettoyage, vous devez patienter jusqu'à la fin de l'opération.
+
+Le fait d'ignorer ce droit de veto peut entraîner une panne causée par des agrégats ou des volumes déconnectés en raison de conflits de réservation ou de disques inaccessibles.
+
+|===
+
+
+== Rétablissement des agrégats SFO
+
+Ces vetos ne s'appliquent pas aux opérations de transfert d'agrégats :
+
+[cols="35,65"]
+|===
+
+
+| Vetoing sous-module | Solution de contournement 
+
+
+ a| 
+Gestionnaire de verrous
+ a| 
+Arrêtez aisément les applications SMB qui disposent de fichiers ouverts ou déplacez ces volumes vers un autre agrégat.
+
+Le fait de ne pas accorder ce droit de veto entraîne une perte de l'état de verrouillage SMB, ce qui entraîne une interruption et une perte de données.
+
+
+
+ a| 
+CONTINUITÉ de l'activité de Lock Manager
+ a| 
+Attendez que les verrous soient mis en miroir.
+
+Le fait de ne pas accorder ce droit de veto entraîne des perturbations sur les machines virtuelles Microsoft Hyper-V.
+
+
+
+| RAID  a| 
+Vérifiez les messages EMS pour déterminer la cause du droit de veto :
+
+Si le veto est dû au fichier nvfile, mettez les volumes et les agrégats hors ligne en ligne.
+
+Si des opérations d'ajout de disque ou de réaffectation de propriété des disques sont en cours, attendez qu'elles soient terminées.
+
+Si le veto est dû à un conflit de nom d'agrégat ou d'UUID, dépannez et résolvez le problème.
+
+Si le veto est dû à une resynchronisation du miroir, à une vérification du miroir ou à des disques hors ligne, le veto peut être annulé et l'opération redémarre après le rétablissement.
+
+
+
+| Inventaire des disques  a| 
+Dépanner pour identifier et résoudre la cause du problème.
+
+Le nœud de destination peut ne pas voir les disques appartenant à un agrégat en cours de migration.
+
+Les disques inaccessibles peuvent entraîner des agrégats ou des volumes inaccessibles.
+
+
+
+| Opération de déplacement de volume  a| 
+Dépanner pour identifier et résoudre la cause du problème.
+
+Ce veto empêche l'opération de déplacement du volume de passer outre lors de la phase importante de la mise en service. Si le travail est abandonné au cours de la mise en service, le volume risque d'être inaccessible.
+
+|===
+
+
+=== Commandes pour effectuer un rétablissement manuel
+
+Vous pouvez lancer manuellement un retour sur un nœud d'une paire haute disponibilité pour renvoyer le stockage au propriétaire d'origine après la maintenance ou pour résoudre tout problème ayant provoqué le basculement.
+
+|===
+
+
+| Les fonctions que vous recherchez... | Utilisez cette commande... 
+
+
+ a| 
+Renvoyer le stockage à un nœud partenaire
+| `storage failover giveback ‑ofnode _nodename_` 
+
+
+ a| 
+Remettre le stockage de retour même si le partenaire n'est pas en mode d'attente de rétablissement
+ a| 
+`storage failover giveback ‑ofnode _nodename_`
+`‑require‑partner‑waiting false`
+
+N'utilisez pas cette option à moins qu'une interruption de service client plus longue ne soit acceptable.
+
+
+
+| Remettre le stockage en arrière même si les processus sont vetoting the giveback opération (forcer le giveback)  a| 
+`storage failover giveback ‑ofnode _nodename_`
+`‑override‑vetoes true`
+
+L'utilisation de cette option peut potentiellement entraîner une panne du client plus longue ou des agrégats et des volumes non mis en ligne après le rétablissement.
+
+
+
+| Renvoyer uniquement les agrégats CFO (l'agrégat racine)  a| 
+`storage failover giveback ‑ofnode _nodename_`
+
+`‑only‑cfo‑aggregates true`
+
+
+
+| Surveiller la progression du retour après l'exécution de la commande giveback | `storage failover show‑giveback` 
+|===

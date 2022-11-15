@@ -1,0 +1,172 @@
+---
+permalink: smb-admin/client-signing-policies-communication-concept.html 
+sidebar: sidebar 
+keywords: addition, cifs, server, smb, sign, security, windows, client, control, digital, communication, business, requirement, how smb signing policies affect communication with a cifs server 
+summary: Outre les paramètres de sécurité de signature SMB du serveur CIFS, deux stratégies de signature SMB sur les clients Windows contrôlent la signature numérique des communications entre les clients et le serveur CIFS. Vous pouvez configurer le paramètre qui répond aux besoins de votre entreprise. 
+---
+= Comment les stratégies de signature SMB affectent la communication avec un serveur CIFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Outre les paramètres de sécurité de signature SMB du serveur CIFS, deux stratégies de signature SMB sur les clients Windows contrôlent la signature numérique des communications entre les clients et le serveur CIFS. Vous pouvez configurer le paramètre qui répond aux besoins de votre entreprise.
+
+Les stratégies SMB du client sont contrôlées via les paramètres de stratégie de sécurité locale de Windows, qui sont configurés à l'aide des stratégies de groupe MMC (Microsoft Management Console) ou Active Directory. Pour plus d'informations sur les problèmes de sécurité et de signature SMB du client, consultez la documentation Microsoft Windows.
+
+Voici les descriptions des deux stratégies de signature SMB sur les clients Microsoft :
+
+* `Microsoft network client: Digitally sign communications (if server agrees)`
++
+Ce paramètre détermine si la fonctionnalité de signature SMB du client est activée. Elle est activée par défaut. Lorsque ce paramètre est désactivé sur le client, les communications client avec le serveur CIFS dépendent du paramètre de signature SMB sur le serveur CIFS.
+
+* `Microsoft network client: Digitally sign communications (always)`
++
+Ce paramètre détermine si le client requiert la signature SMB pour communiquer avec un serveur. Elle est désactivée par défaut. Lorsque ce paramètre est désactivé sur le client, le comportement de signature SMB est basé sur le paramètre de stratégie pour `Microsoft network client: Digitally sign communications (if server agrees)` Et le paramètre sur le serveur CIFS.
+
++
+[NOTE]
+====
+Si votre environnement inclut des clients Windows configurés pour exiger une signature SMB, vous devez activer la signature SMB sur le serveur CIFS. Dans le cas contraire, le serveur CIFS ne peut pas transmettre de données à ces systèmes.
+
+====
+
+
+Les résultats effectifs des paramètres de signature SMB du client et du serveur CIFS dépendent du fait que les sessions SMB utilisent SMB 1.0 ou SMB 2.x et versions ultérieures.
+
+Le tableau suivant récapitule le comportement de signature SMB efficace si la session utilise SMB 1.0 :
+
+|===
+| Client | Signature ONTAP : non requise | Signature ONTAP requise 
+
+
+ a| 
+Signature désactivée et non requise
+ a| 
+Non signé
+ a| 
+Signé
+
+
+
+ a| 
+Signature activée et non requise
+ a| 
+Non signé
+ a| 
+Signé
+
+
+
+ a| 
+Signature désactivée et requise
+ a| 
+Signé
+ a| 
+Signé
+
+
+
+ a| 
+Signature activée et requise
+ a| 
+Signé
+ a| 
+Signé
+
+|===
+[NOTE]
+====
+Les anciens clients Windows SMB 1 et certains clients non Windows SMB 1 peuvent ne pas se connecter si la signature est désactivée sur le client mais requise sur le serveur CIFS.
+
+====
+Le tableau suivant récapitule le comportement de signature SMB efficace si la session utilise SMB 2.x ou SMB 3.0 :
+
+[NOTE]
+====
+Pour les clients SMB 2.x et SMB 3.0, la signature SMB est toujours activée. Elle ne peut pas être désactivée.
+
+====
+|===
+| Client | Signature ONTAP : non requise | Signature ONTAP requise 
+
+
+ a| 
+Signature non requise
+ a| 
+Non signé
+ a| 
+Signé
+
+
+
+ a| 
+Signature requise
+ a| 
+Signé
+ a| 
+Signé
+
+|===
+Le tableau suivant récapitule le comportement de signature SMB du serveur et du client Microsoft par défaut :
+
+|===
+| Protocole | Algorithme de hachage | Peut activer/désactiver | Peut exiger/non requis | Client par défaut | Serveur par défaut | DC par défaut 
+
+
+ a| 
+SMB 1.0
+ a| 
+MD5
+ a| 
+Oui.
+ a| 
+Oui.
+ a| 
+Activé (non requis)
+ a| 
+Désactivé (non requis)
+ a| 
+Obligatoire
+
+
+
+ a| 
+SMB 2.x
+ a| 
+HMAC SHA-256
+ a| 
+Non
+ a| 
+Oui.
+ a| 
+Non requis
+ a| 
+Non requis
+ a| 
+Obligatoire
+
+
+
+ a| 
+SMB 3.0
+ a| 
+AES-CMAC.
+ a| 
+Non
+ a| 
+Oui.
+ a| 
+Non requis
+ a| 
+Non requis
+ a| 
+Obligatoire
+
+|===
+[NOTE]
+====
+Microsoft ne recommande plus d'utiliser `Digitally sign communications (if client agrees)` ou `Digitally sign communications (if server agrees)` Paramètres de stratégie de groupe. Microsoft ne recommande plus par ailleurs l'utilisation du `EnableSecuritySignature` paramètres du registre. Ces options n'affectent que le comportement du SMB 1 et peuvent être remplacées par le `Digitally sign communications (always)` Stratégie de groupe ou `RequireSecuritySignature` paramètre de registre. Vous pouvez également obtenir plus d'informations sur le blog Microsoft.http://blogs.technet.com/b/josebda/archive/2010/12/01/the-basics-of-smb-signing-covering-both-smb1-and-smb2.aspx[The principes de base de SMB Signing (couvrant à la fois SMB1 et SMB2)]
+
+====

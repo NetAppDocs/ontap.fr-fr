@@ -1,0 +1,71 @@
+---
+permalink: system-admin/shut-down-node-task.html 
+sidebar: sidebar 
+keywords: shut, down, node, unresponsive, support, personnel, direct, troubleshoot 
+summary: 'Vous pouvez arrêter un nœud s"il ne répond plus, ou si le personnel de support vous y dirige, dans le cadre des opérations de dépannage.' 
+---
+= Arrêtez un nœud
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez arrêter un nœud s'il ne répond plus, ou si le personnel de support vous y dirige, dans le cadre des opérations de dépannage.
+
+.Étapes
+. Si le cluster contient quatre nœuds ou plus, vérifier que le nœud à arrêter ne contient pas epsilon :
++
+.. Définissez le niveau de privilège sur avancé :
++
+`*set -privilege advanced*`
+
+.. Déterminer quel nœud contient epsilon :
++
+`*cluster show*`
+
++
+L'exemple suivant montre que « node1 » possède epsilon :
+
++
+[listing]
+----
+cluster1::*> cluster show
+Node                 Health  Eligibility   Epsilon
+-------------------- ------- ------------  ------------
+node1                true    true          true
+node2                true    true          false
+node3                true    true          false
+node4                true    true          false
+4 entries were displayed.
+----
+.. Si le nœud à arrêter contient epsilon, retirer epsilon du nœud :
++
+`*cluster modify -node _node_name_ -epsilon false*`
+
+.. Assigner epsilon à un nœud différent qui demeurera en service :
++
+`*cluster modify -node _node_name_ -epsilon true*`
+
+.. Retour au niveau de privilège admin :
++
+`*set -privilege admin*`
+
+
+
+. Utilisez le `system node halt` commande permettant d'arrêter le nœud.
++
+Si vous ne spécifiez pas le `-skip-lif-migration` Paramètre, la commande tente de migrer les LIF de gestion des données et du cluster de manière synchrone vers un autre nœud avant l'arrêt. Si la migration de LIF échoue ou se trouve en dehors des délais, le processus d'arrêt est interrompu et ONTAP affiche une erreur pour indiquer l'échec de la migration de LIF.
+
++
+Vous pouvez déclencher manuellement un « core dump » avec l'arrêt en utilisant les deux `-dump` paramètre.
+
++
+L'exemple suivant arrête le nœud nommé « node1 » pour la maintenance matérielle :
+
++
+[listing]
+----
+cluster1::> system node halt -node node1 -reason 'hardware maintenance'
+----
+

@@ -1,0 +1,68 @@
+---
+permalink: system-admin/reboot-node-system-prompt-task.html 
+sidebar: sidebar 
+keywords: reboot, node, system, prompt, normal, boot, device, pc, compactflash, card 
+summary: 'Vous pouvez redémarrer un nœud en mode normal depuis l"invite du système. Un nœud est configuré pour démarrer à partir du périphérique d"amorçage, tel qu"une carte CompactFlash pour PC.' 
+---
+= Redémarrez un nœud à l'invite du système
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez redémarrer un nœud en mode normal depuis l'invite du système. Un nœud est configuré pour démarrer à partir du périphérique d'amorçage, tel qu'une carte CompactFlash pour PC.
+
+.Étapes
+. Si le cluster contient quatre nœuds ou plus, vérifier que le nœud à redémarrer ne contient pas epsilon :
++
+.. Définissez le niveau de privilège sur avancé :
++
+`*set -privilege advanced*`
+
+.. Déterminer quel nœud contient epsilon :
++
+`*cluster show*`
+
++
+L'exemple suivant montre que « node1 » possède epsilon :
+
++
+[listing]
+----
+cluster1::*> cluster show
+Node                 Health  Eligibility   Epsilon
+-------------------- ------- ------------  ------------
+node1                true    true          true
+node2                true    true          false
+node3                true    true          false
+node4                true    true          false
+4 entries were displayed.
+----
+.. Si le nœud à redémarrer contient epsilon, retirer epsilon du nœud :
++
+`*cluster modify -node _node_name_ -epsilon false*`
+
+.. Assigner epsilon à un nœud différent qui demeurera en service :
++
+`*cluster modify -node _node_name_ -epsilon true*`
+
+.. Retour au niveau de privilège admin :
++
+`*set -privilege admin*`
+
+
+
+. Utilisez le `system node reboot` commande permettant de redémarrer le nœud.
++
+Si vous ne spécifiez pas le `-skip-lif-migration` Paramètre, la commande tente de migrer les LIF de gestion du cluster et des données de manière synchrone vers un autre nœud avant le redémarrage. Si la migration de LIF échoue ou se trouve en dehors des délais, le processus de redémarrage est interrompu et ONTAP affiche une erreur pour indiquer l'échec de la migration de LIF.
+
++
+[listing]
+----
+cluster1::> system node reboot -node node1 -reason "software upgrade"
+----
++
+Le processus de redémarrage du nœud démarre. L'invite de connexion ONTAP apparaît, indiquant que le processus de redémarrage est terminé.
+
+

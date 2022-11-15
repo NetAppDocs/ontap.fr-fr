@@ -1,0 +1,44 @@
+---
+permalink: system-admin/enable-sp-bmc-automatic-network-config-task.html 
+sidebar: sidebar 
+keywords: enable, sp, bmc, automatic, network, configuration 
+summary: 'Pour permettre au processeur de service d"utiliser la configuration réseau automatique, il est préférable de ne pas configurer le réseau du processeur de service manuellement. Étant donné que la configuration réseau automatique du processeur de service est à l"échelle du cluster, vous n"avez pas besoin de gérer manuellement le réseau du processeur de service pour les nœuds individuels.' 
+---
+= Activez la configuration réseau automatique SP/BMC
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour permettre au processeur de service d'utiliser la configuration réseau automatique, il est préférable de ne pas configurer le réseau du processeur de service manuellement. Étant donné que la configuration réseau automatique du processeur de service est à l'échelle du cluster, vous n'avez pas besoin de gérer manuellement le réseau du processeur de service pour les nœuds individuels.
+
+[NOTE]
+====
+Cette tâche s'applique à la fois au processeur de service et au contrôleur BMC.
+
+====
+* Le sous-réseau que vous souhaitez utiliser pour la configuration réseau automatique du processeur de service doit déjà être défini dans le cluster et ne doit pas avoir de conflit de ressources avec l'interface réseau du processeur de service.
++
+Le `network subnet show` la commande affiche les informations de sous-réseau du cluster.
+
++
+Le paramètre qui force l'association de sous-réseau (le `-force-update-lif-associations` paramètre du `network subnet` Commandes) est pris en charge uniquement sur les LIFs réseau et non sur l'interface réseau du processeur de service.
+
+* Si vous souhaitez utiliser des connexions IPv6 pour le processeur de service, IPv6 doit déjà être configuré et activé pour ONTAP.
++
+Le `network options ipv6 show` Commande affiche l'état actuel des paramètres IPv6 pour ONTAP.
+
+
+
+.Étapes
+. Spécifiez la famille d'adresses IPv4 ou IPv6 et le nom du sous-réseau que vous souhaitez que le processeur de service utilise `system service-processor network auto-configuration enable` commande.
+. Affiche la configuration réseau automatique du processeur de service à l'aide de `system service-processor network auto-configuration show` commande.
+. Si vous souhaitez par la suite désactiver ou réactiver l'interface réseau IPv4 ou IPv6 du processeur de service pour tous les nœuds qui se trouvent dans le quorum, utilisez le `system service-processor network modify` commande avec `-address-family` [`IPv4`|`IPv6`] et `-enable` [`true`|`false`] paramètres.
++
+Lorsque la configuration réseau automatique du processeur de service est activée, vous ne pouvez pas modifier l'adresse IP du processeur de service pour un nœud qui se trouve au quorum. Vous pouvez activer ou désactiver uniquement l'interface réseau IPv4 ou IPv6 du processeur de service.
+
++
+Si un nœud est hors quorum, vous pouvez modifier la configuration réseau du processeur de service du nœud, y compris l'adresse IP du processeur de service, en exécutant `system service-processor network modify` Depuis le nœud et confirmer que vous souhaitez remplacer la configuration réseau automatique du processeur de service pour le nœud. Cependant, lorsque le nœud rejoint le quorum, la reconfiguration automatique du processeur de service est effectuée pour le nœud en fonction du sous-réseau spécifié.
+
+

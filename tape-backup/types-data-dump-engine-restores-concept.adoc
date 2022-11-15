@@ -1,0 +1,53 @@
+---
+permalink: tape-backup/types-data-dump-engine-restores-concept.html 
+sidebar: sidebar 
+keywords: types, data, dump, engine, restores, disaster, controller, disruption, file, attribute 
+summary: 'En cas d"incident ou de perturbation du contrôleur, le moteur de dump offre plusieurs méthodes permettant de restaurer l"ensemble des données sauvegardées, depuis des fichiers uniques jusqu"aux attributs de fichiers, vers des répertoires entiers. Connaître les types de données que le moteur de vidage peut restaurer et quand utiliser quelle méthode de récupération peut aider à réduire les temps d"arrêt.' 
+---
+= Types de données que le moteur de vidage restaure
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+En cas d'incident ou de perturbation du contrôleur, le moteur de dump offre plusieurs méthodes permettant de restaurer l'ensemble des données sauvegardées, depuis des fichiers uniques jusqu'aux attributs de fichiers, vers des répertoires entiers. Connaître les types de données que le moteur de vidage peut restaurer et quand utiliser quelle méthode de récupération peut aider à réduire les temps d'arrêt.
+
+Vous pouvez restaurer les données sur une LUN mappée en ligne. Cependant, les applications hôtes ne peuvent pas accéder à cette LUN tant que l'opération de restauration n'est pas terminée. Une fois l'opération de restauration terminée, le cache hôte des données de la LUN doit être vidé pour assurer la cohérence avec les données restaurées.
+
+Le moteur de vidage peut récupérer les données suivantes :
+
+* Contenu des fichiers et répertoires
+* Autorisations relatives aux fichiers UNIX
+* ACL
++
+Si vous restaurez un fichier possédant uniquement des autorisations de fichier UNIX sur un qtree ou un volume NTFS, le fichier ne dispose pas de listes de contrôle d’accès Windows NT. Le système de stockage utilise uniquement les autorisations de fichier UNIX sur ce fichier jusqu'à ce que vous y créiez une liste de contrôle d'accès Windows NT.
+
++
+[NOTE]
+====
+Si vous restaurez les listes de contrôle d'accès sauvegardées à partir des systèmes de stockage exécutant Data ONTAP 8.2 vers les systèmes de stockage exécutant Data ONTAP 8.1.x et les versions antérieures ayant une limite ACE inférieure à 1,024, une liste de contrôle d'accès par défaut est restaurée.
+
+====
+* Informations sur les qtrees
++
+Les informations relatives à qtree sont utilisées uniquement si un qtree est restauré à la racine d'un volume. Les informations qtree ne sont pas utilisées si un qtree est restauré dans un répertoire inférieur, par exemple `/vs1/vol1/subdir/lowerdir`, et il cesse d'être un qtree.
+
+* Tous les autres attributs de fichier et de répertoire
+* Flux Windows NT
+* LUN
++
+** Une LUN doit être restaurée au niveau d'un volume ou d'une qtree pour qu'elle reste une LUN.
++
+S'il est restauré dans un répertoire, il est restauré en tant que fichier car il ne contient aucune métadonnées valide.
+
+** Une LUN 7-mode est restaurée sous forme de LUN sur un volume ONTAP.
+
+
+* Un volume 7-mode peut être restauré vers un volume ONTAP.
+* Les fichiers alignés sur les machines virtuelles restaurés sur un volume de destination héritent des propriétés d'alignement des machines virtuelles du volume de destination.
+* Le volume de destination pour une opération de restauration peut avoir des fichiers avec des verrous obligatoires ou consultatifs.
++
+Lors de l'exécution de l'opération de restauration sur un tel volume de destination, le moteur de vidage ignore ces verrous.
+
+

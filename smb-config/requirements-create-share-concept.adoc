@@ -1,0 +1,57 @@
+---
+permalink: smb-config/requirements-create-share-concept.html 
+sidebar: sidebar 
+keywords: creating, create, smb, share, requirement, path, properties, property, home, directories, directory, requirements and considerations for creating an smb share 
+summary: Avant de créer un partage SMB, vous devez comprendre les exigences en matière de chemins de partage et de propriétés de partage, en particulier pour les répertoires locaux. 
+---
+= Exigences et considérations relatives à la création d'un partage SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de créer un partage SMB, vous devez comprendre les exigences en matière de chemins de partage et de propriétés de partage, en particulier pour les répertoires locaux.
+
+La création d'un partage SMB implique la spécification d'une structure de chemin d'accès au répertoire (à l'aide de `-path` dans le `vserver cifs share create` commande) à laquelle les clients accèdent. Le chemin du répertoire correspond à la Junction path d'un volume ou qtree que vous avez créé dans le SVM namespace. Le chemin du répertoire et le chemin de jonction correspondant doivent exister avant de créer votre partage.
+
+Les chemins de partage ont les exigences suivantes :
+
+* Le chemin d'accès à un répertoire peut comporter jusqu'à 255 caractères.
+* Si un espace est présent dans le chemin d'accès, toute la chaîne doit être placée entre guillemets (par exemple, `"/new volume/mount here"`).
+* Si le chemin UNC (`\\servername\sharename\filepath`) Du partage contient plus de 256 caractères (à l'exception de la valeur initiale "`\`" dans le chemin UNC), alors l'onglet *Security* de la zone Propriétés de Windows n'est pas disponible.
++
+Il s'agit d'un problème de client Windows plutôt que d'un problème ONTAP. Pour éviter ce problème, ne créez pas de partages avec des chemins UNC de plus de 256 caractères.
+
+
+
+Les valeurs par défaut des propriétés de partage peuvent être modifiées :
+
+* Les propriétés initiales par défaut de tous les partages sont `oplocks`, `browsable`, `changenotify`, et `show-previous-versions`.
+* Lorsque vous créez un partage, il est facultatif de spécifier des propriétés de partage.
++
+Toutefois, si vous spécifiez des propriétés de partage lorsque vous créez le partage, les valeurs par défaut ne sont pas utilisées. Si vous utilisez le `-share-properties` paramètre lorsque vous créez un partage, vous devez spécifier toutes les propriétés de partage que vous souhaitez appliquer au partage à l'aide d'une liste délimitée par des virgules.
+
+* Pour désigner un partage de répertoire personnel, utilisez le `homedirectory` propriété.
++
+Cette fonctionnalité vous permet de configurer un partage qui correspond à différents répertoires en fonction de l'utilisateur qui se connecte à celui-ci et d'un ensemble de variables. Au lieu de devoir créer des partages distincts pour chaque utilisateur, vous pouvez configurer un partage unique avec quelques paramètres de home Directory afin de définir la relation d'un utilisateur entre un point d'entrée (le partage) et son home Directory (un répertoire sur le SVM).
+
++
+[NOTE]
+====
+Vous ne pouvez pas ajouter ou supprimer cette propriété après avoir créé le partage.
+
+====
+
+
+Les partages de home Directory présentent les exigences suivantes :
+
+* Avant de créer des home directories SMB, vous devez ajouter au moins un chemin de recherche de répertoire personnel à l'aide de l' `vserver cifs home-directory search-path add` commande.
+* Partages de répertoire personnel spécifiés par la valeur de `homedirectory` sur le `-share-properties` le paramètre doit inclure le `%w` (Nom d'utilisateur Windows) variable dynamique dans le nom de partage.
++
+Le nom du partage peut également contenir le `%d` (nom de domaine) variable dynamique (par exemple, `%d/%w`) ou une partie statique dans le nom du partage (par exemple, `home1_%w`).
+
+* Si le partage est utilisé par les administrateurs ou les utilisateurs pour se connecter aux répertoires d'accueil d'autres utilisateurs (à l'aide des options de l' `vserver cifs home-directory modify` commande), le modèle de nom de partage dynamique doit être précédé d'un tilde (`~`).
+
+
+link:../smb-admin/index.html["Gestion SMB"] et `vserver cifs share` les pages man contiennent des informations supplémentaires.

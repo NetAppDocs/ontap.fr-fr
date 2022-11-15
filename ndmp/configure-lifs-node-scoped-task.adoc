@@ -1,0 +1,92 @@
+---
+permalink: ndmp/configure-lifs-node-scoped-task.html 
+sidebar: sidebar 
+keywords: configure, lif 
+summary: 'Vous devez identifier une LIF qui sera utilisée pour établir une connexion de données et une connexion de contrôle entre le nœud et l"application de sauvegarde. Après avoir identifié le LIF, vous devez vérifier que les politiques de pare-feu et de basculement sont définies pour le LIF.' 
+---
+= Configurer une LIF
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devez identifier une LIF qui sera utilisée pour établir une connexion de données et une connexion de contrôle entre le nœud et l'application de sauvegarde. Après avoir identifié le LIF, vous devez vérifier que les politiques de pare-feu et de basculement sont définies pour le LIF.
+
+.Étapes
+. Identifier le LIF intercluster hébergé sur les nœuds en utilisant le `network interface show` commande avec `-role` paramètre.
++
+[listing]
+----
+cluster1::> network interface show -role intercluster
+
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+cluster1    IC1        up/up      192.0.2.65/24      cluster1-1    e0a     true
+cluster1    IC2        up/up      192.0.2.68/24      cluster1-2    e0b     true
+----
+. S'assurer que la politique de pare-feu est activée pour NDMP sur les LIFs intercluster :
++
+.. Vérifiez que la politique de pare-feu est activée pour NDMP à l'aide de `system services firewall policy show` commande.
++
+La commande suivante affiche la politique de pare-feu pour le LIF intercluster :
+
++
+[listing]
+----
+cluster1::> system services firewall policy show -policy intercluster
+
+Vserver     Policy       Service    Allowed
+-------     ------------ ---------- -------------------
+cluster1    intercluster dns        -
+                         http       -
+                         https      -
+                         **ndmp       0.0.0.0/0, ::/0**
+                         ndmps      -
+                         ntp        -
+                         rsh        -
+                         ssh        -
+                         telnet     -
+9 entries were displayed.
+----
+.. Si la politique de pare-feu n'est pas activée, activez la politique de pare-feu à l'aide du `system services firewall policy modify` commande avec `-service` paramètre.
++
+La commande suivante active la politique de pare-feu pour le LIF intercluster :
+
++
+[listing]
+----
+cluster1::> system services firewall policy modify -vserver cluster1 -policy intercluster -service ndmp 0.0.0.0/0
+----
+
+
+. S'assurer que la politique de basculement est correctement définie pour les LIFs intercluster :
++
+.. Vérifier que la policy de basculement pour les LIFs intercluster est définie sur `local-only` à l'aide du `network interface show -failover` commande.
++
+[listing]
+----
+cluster1::> network interface show -failover
+            Logical          Home              Failover     Failover
+Vserver     Interface        Node:Port         Policy       Group
+--------    ---------------  ----------------- ------------ --------
+cluster1    **IC1               cluster1-1:e0a    local-only   Default**
+                                                    Failover Targets:
+                                                    .......
+            **IC2               cluster1-2:e0b    local-only   Default**
+                                                    Failover Targets:
+                                                    .......
+cluster1-1  cluster1-1_mgmt1 cluster1-1:e0m    local-only    Default
+                                                    Failover Targets:
+                                                    .......
+----
+.. Si la stratégie de basculement n'est pas définie de manière appropriée, modifiez la stratégie de basculement en utilisant le `network interface modify` commande avec `-failover-policy` paramètre.
++
+[listing]
+----
+cluster1::> network interface modify -vserver cluster1 -lif IC1 -failover-policy local-only
+----
+
+
+

@@ -1,0 +1,89 @@
+---
+permalink: error-messages/ems-routing-notifications-models-concept.html 
+sidebar: sidebar 
+keywords: configure, map, important, ems, events, notifications, filters 
+summary: 'Avant ONTAP 9.0, les événements EMS ne pouvaient être mappés qu"à des destinations d"événement en fonction de la correspondance du modèle de nom d"événement. Les commandes ONTAP associées à ce modèle continuent d"être disponibles, mais elles sont devenues obsolètes depuis ONTAP 9.0.' 
+---
+= Modèles de mappage d'événements EMS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant ONTAP 9.0, les événements EMS ne pouvaient être mappés qu'à des destinations d'événement en fonction de la correspondance du modèle de nom d'événement. La commande ONTAP définit (`event destination`, `event route`) Qui utilisent ce modèle continue d'être disponible dans les dernières versions de ONTAP, mais ils ont été obsolètes à partir de ONTAP 9.0.
+
+Depuis ONTAP 9.0, la meilleure pratique pour le mappage de destination d'événements EMS ONTAP consiste à utiliser le modèle de filtre d'événements plus évolutif dans lequel la correspondance de modèles est effectuée sur plusieurs champs, à l'aide du `event filter`, `event notification`, et `event notification destination` jeux de commandes.
+
+Si votre mappage EMS est configuré à l'aide des commandes obsolètes, vous devez mettre à jour votre mappage pour utiliser le `event filter`, `event notification`, et `event notification destination` jeux de commandes.
+
+Il existe deux types de destinations d'événements :
+
+. *Destinations générées par le système* : il existe cinq destinations d'événements générées par le système (créées par défaut)
++
+** `allevents`
+** `asup`
+** `criticals`
+** `pager`
+** `traphost`
++
+Certaines des destinations générées par le système sont à des fins spéciales. Par exemple, la destination d'asup achemine les événements callhome.* vers le module AutoSupport dans ONTAP pour générer des messages AutoSupport.
+
+
+
+. *Destinations créées par l'utilisateur* : elles sont créées manuellement à l'aide de `event destination create` commande.
++
+[listing]
+----
+cluster-1::event*> destination show
+                                                                 Hide
+Name             Mail Dest.        SNMP Dest.         Syslog Dest.       Params
+---------------- ----------------- ------------------ ------------------ ------
+allevents        -                 -                  -                  false
+asup             -                 -                  -                  false
+criticals        -                 -                  -                  false
+pager            -                 -                  -                  false
+traphost         -                 -                  -                  false
+5 entries were displayed.
++
+cluster-1::event*> destination create -name test -mail test@xyz.com
+This command is deprecated. Use the "event filter", "event notification destination" and "event notification" commands, instead.
++
+cluster-1::event*> destination show
++                                                                     Hide
+Name             Mail Dest.        SNMP Dest.         Syslog Dest.       Params
+---------------- ----------------- ------------------ ------------------ ------
+allevents        -                 -                  -                  false
+asup             -                 -                  -                  false
+criticals        -                 -                  -                  false
+pager            -                 -                  -                  false
+test             test@xyz.com      -                  -                  false
+traphost         -                 -                  -                  false
+6 entries were displayed.
+----
+
+
+Dans le modèle obsolète, les événements EMS sont mappés individuellement vers une destination à l'aide de l' `event route add-destinations` commande.
+
+[listing]
+----
+cluster-1::event*> route add-destinations -message-name raid.aggr.* -destinations test
+This command is deprecated. Use the "event filter", "event notification destination" and "event notification" commands, instead.
+4 entries were acted on.
+
+cluster-1::event*> route show -message-name raid.aggr.*
+                                                               Freq    Time
+Message                          Severity       Destinations   Threshd Threshd
+-------------------------------- -------------- -------------- ------- -------
+raid.aggr.autoGrow.abort         NOTICE         test           0       0
+raid.aggr.autoGrow.success       NOTICE         test           0       0
+raid.aggr.lock.conflict          INFORMATIONAL  test           0       0
+raid.aggr.log.CP.count           DEBUG          test           0       0
+4 entries were displayed.
+----
+Le nouveau mécanisme plus évolutif de notification d'événements EMS est basé sur des filtres d'événements et des destinations de notification d'événements. Pour plus d'informations sur le nouveau mécanisme de notification d'événements, reportez-vous à l'article suivant de la base de connaissances :
+
+* link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/FAQ%3A_Overview_of_Event_Management_System_for_ONTAP_9["Présentation du système de gestion des événements pour ONTAP 9"^]
+
+
+image:../media/ems-event-diag.jpg["schéma des modèles d'événement"]

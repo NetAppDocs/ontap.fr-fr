@@ -1,0 +1,130 @@
+---
+permalink: system-admin/access-cluster-ssh-task.html 
+sidebar: sidebar 
+keywords: access, ssh, cluster, administrative, task 
+summary: 'Vous pouvez émettre des requêtes SSH au cluster pour effectuer des tâches d"administration. SSH est activé par défaut.' 
+---
+= Accéder au cluster via SSH
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez émettre des requêtes SSH au cluster pour effectuer des tâches d'administration. SSH est activé par défaut.
+
+.Ce dont vous avez besoin, 8217;ll
+* Vous devez disposer d'un compte utilisateur configuré pour l'utilisation `ssh` comme méthode d'accès.
++
+Le `-application` paramètre du `security login` les commandes spécifie la méthode d'accès pour un compte utilisateur. Le `security login` les pages man contiennent des informations supplémentaires.
+
+* Si vous utilisez un compte utilisateur de domaine Active Directory (AD) pour accéder au cluster, un tunnel d'authentification pour le cluster doit avoir été configuré via un SVM (Storage Virtual machine) compatible CIFS et votre compte utilisateur AD domain doit également avoir été ajouté au cluster avec `ssh` comme méthode d'accès et `domain` comme méthode d'authentification.
+* Si vous utilisez des connexions IPv6, vous devez déjà configurer et activer IPv6 sur le cluster, et les politiques de pare-feu doivent déjà être configurées avec des adresses IPv6.
++
+Le `network options ipv6 show` La commande indique si le protocole IPv6 est activé. Le `system services firewall policy show` la commande affiche les politiques de pare-feu.
+
+
+
+.Description de la tâche
+* Vous devez utiliser un client OpenSSH 5.7 ou version ultérieure.
+* Seul le protocole SSH v2 est pris en charge ; SSH v1 n'est pas pris en charge.
+* ONTAP prend en charge un maximum de 64 sessions SSH simultanées par nœud.
++
+Si la LIF de cluster management réside sur le nœud, il partage cette limite avec la LIF de node management.
+
++
+Si le taux de connexions entrantes est supérieur à 10 par seconde, le service est temporairement désactivé pendant 60 secondes.
+
+* ONTAP ne prend en charge que les algorithmes de cryptage AES et 3DES (également appelés _chiffrements_) pour SSH.
++
+AES est pris en charge avec des clés de 128, 192 et 256 bits. 3DES a une longueur clé de 56 bits comme dans les DES d'origine, mais elle est répétée trois fois.
+
+* Lorsque le mode FIPS est activé, les clients SSH doivent négocier avec les algorithmes de clé publique ECDSA (Elliptic Curve Digital Signature Algorithm) pour que la connexion soit réussie.
+* Pour accéder à l'interface de ligne de commandes de ONTAP à partir d'un hôte Windows, vous pouvez faire appel à un utilitaire tiers tel que PuTTY.
+* Si vous utilisez un nom d'utilisateur Windows AD pour vous connecter à ONTAP, vous devez utiliser les mêmes lettres majuscules ou minuscules que celles qui ont été utilisées lorsque le nom d'utilisateur AD et le nom de domaine ont été créés dans ONTAP.
++
+Les noms d'utilisateur ET de domaine AD ne sont pas sensibles à la casse. Toutefois, les noms d'utilisateur ONTAP sont sensibles à la casse. La non-concordance de cas entre le nom d'utilisateur créé dans ONTAP et le nom d'utilisateur créé dans AD entraîne un échec de connexion.
+
+* Depuis ONTAP 9.3, vous pouvez activer l'authentification multifacteur SSH pour les comptes d'administrateur local.
++
+Lorsque l'authentification multifacteur SSH est activée, les utilisateurs sont authentifiés à l'aide d'une clé publique et d'un mot de passe.
+
+* Depuis ONTAP 9.4, vous pouvez activer l'authentification multifacteur SSH pour les utilisateurs distants LDAP et NIS.
+
+
+.Étapes
+. À partir d'un hôte d'administration, entrez le `ssh` commande dans l'un des formats suivants :
++
+** `*ssh _username@hostname_or_IP_ [_command_]*`
+** `*ssh -l _username hostname_or_IP_ [_command_]*`
+
+
+
+
+Si vous utilisez un compte utilisateur de domaine AD, vous devez le préciser `_username_` au format de `_domainname\\AD_accountname_` (avec doubles barres obliques inverses après le nom de domaine) ou `"_domainname\AD_accountname_"` (entre guillemets doubles et avec une barre oblique inverse unique après le nom de domaine).
+
+`_hostname_or_IP_` Est le nom d'hôte ou l'adresse IP de la LIF de cluster management ou une LIF de node management. Il est recommandé d'utiliser la LIF de cluster management. Vous pouvez utiliser une adresse IPv4 ou IPv6.
+
+`_command_` N'est pas requis pour les sessions interactives SSH.
+
+Les exemples suivants montrent comment le compte utilisateur nommé « joe » peut émettre une demande SSH pour accéder à un cluster dont la LIF de gestion du cluster est 10.72.137.28 :
+
+[listing]
+----
+$ ssh joe@10.72.137.28
+Password:
+cluster1::> cluster show
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node1                 true    true
+node2                 true    true
+2 entries were displayed.
+----
+[listing]
+----
+$ ssh -l joe 10.72.137.28 cluster show
+Password:
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node1                 true    true
+node2                 true    true
+2 entries were displayed.
+----
+Les exemples suivants montrent comment le compte utilisateur nommé « john » du domaine nommé « `DOMAIN1' » peut émettre une requête SSH pour accéder à un cluster dont la LIF de gestion de cluster est 10.72.137.28 :
+
+[listing]
+----
+$ ssh DOMAIN1\\john@10.72.137.28
+Password:
+cluster1::> cluster show
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node1                 true    true
+node2                 true    true
+2 entries were displayed.
+----
+[listing]
+----
+$ ssh -l "DOMAIN1\john" 10.72.137.28 cluster show
+Password:
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node1                 true    true
+node2                 true    true
+2 entries were displayed.
+----
+L'exemple suivant montre comment le compte utilisateur nommé « joe » peut émettre une demande SSH MFA pour accéder à un cluster dont la LIF de gestion du cluster est de 10.72.137.32 :
+
+[listing]
+----
+$ ssh joe@10.72.137.32
+Authenticated with partial success.
+Password:
+cluster1::> cluster show
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node1                 true    true
+node2                 true    true
+2 entries were displayed.
+----
+link:../authentication/index.html["Authentification de l'administrateur et RBAC"]

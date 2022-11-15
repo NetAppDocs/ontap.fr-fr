@@ -1,0 +1,274 @@
+---
+permalink: nfs-admin/requirements-configuring-kerberos-concept.html 
+sidebar: sidebar 
+keywords: requirement, configure, kerberos, nfs 
+summary: Avant de configurer Kerberos avec NFS sur votre système, vous devez vérifier que certains éléments de votre réseau et de votre environnement de stockage sont correctement configurés. 
+---
+= Conditions requises pour la configuration de Kerberos avec NFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de configurer Kerberos avec NFS sur votre système, vous devez vérifier que certains éléments de votre réseau et de votre environnement de stockage sont correctement configurés.
+
+[NOTE]
+====
+Les étapes de configuration de votre environnement dépendent de la version et du type du système d'exploitation client, du contrôleur de domaine, de Kerberos, DNS, etc. Que vous utilisez. La documentation de toutes ces variables dépasse le cadre de ce document. Pour plus d'informations, reportez-vous à la documentation correspondante pour chaque composant.
+
+Pour obtenir un exemple détaillé de la configuration de ONTAP et de Kerberos 5 avec NFSv3 et NFSv4 dans un environnement utilisant des hôtes Windows Server 2008 R2 Active Directory et Linux, consultez le rapport technique 4073.
+
+====
+Les éléments suivants doivent d'abord être configurés :
+
+
+
+== Conditions requises pour l'environnement réseau
+
+* Kerberos
++
+Vous devez avoir une configuration Kerberos fonctionnant avec un centre de distribution de clés (KDC), tel que Windows Active Directory Based Kerberos ou MIT Kerberos.
+
++
+Les serveurs NFS doivent utiliser `nfs` en tant que composant principal de leur machine principale.
+
+* Service d'annuaire
++
+Vous devez utiliser un service d'annuaire sécurisé dans votre environnement, tel qu'Active Directory ou OpenLDAP, configuré pour utiliser LDAP sur SSL/TLS.
+
+* NTP
++
+Vous devez disposer d'un serveur de temps de travail exécutant NTP. Cette opération est nécessaire pour éviter l'échec de l'authentification Kerberos en raison de l'inclinaison du temps.
+
+* Résolution des noms de domaine (DNS)
++
+Chaque client UNIX et chaque LIF de SVM doivent avoir un enregistrement de service (SRV) correct enregistré auprès du KDC dans des zones de recherche avant et arrière. Tous les participants doivent être résolus correctement via DNS.
+
+* Comptes d'utilisateur
++
+Chaque client doit disposer d'un compte utilisateur dans le domaine Kerberos. Les serveurs NFS doivent utiliser « nfs » comme composant principal de leur machine principale.
+
+
+
+
+
+== Exigences du client NFS
+
+* NFS
++
+Chaque client doit être correctement configuré pour communiquer sur le réseau en utilisant NFSv3 ou NFSv4.
+
++
+Les clients doivent prendre en charge les RFC1964 et RFC2203.
+
+* Kerberos
++
+Chaque client doit être correctement configuré pour utiliser l'authentification Kerberos, avec les informations suivantes :
+
++
+** Le chiffrement pour les communications TGS est activé.
++
+AES-256 pour une sécurité optimale.
+
+** Le type de cryptage le plus sécurisé pour les communications TGT est activé.
+** Le domaine et le domaine Kerberos sont configurés correctement.
+** GSS est activé.
++
+Lors de l'utilisation des informations d'identification de la machine
+
+** Ne pas exécuter `gssd` avec le `-n` paramètre.
+** Ne pas exécuter `kinit` en tant qu'utilisateur root.
+
+
+* Chaque client doit utiliser la version la plus récente et la plus récente du système d'exploitation.
++
+Cela offre la meilleure compatibilité et fiabilité pour le chiffrement AES avec Kerberos.
+
+* DNS
++
+Chaque client doit être correctement configuré pour utiliser DNS pour la résolution correcte du nom.
+
+* NTP
++
+Chaque client doit être en cours de synchronisation avec le serveur NTP.
+
+* Informations sur l'hôte et le domaine
++
+Chaque client `/etc/hosts` et `/etc/resolv.conf` Les fichiers doivent contenir le nom d'hôte et les informations DNS correctes, respectivement.
+
+* Fichiers keytab
++
+Chaque client doit avoir un fichier keytab du KDC. Le Royaume doit être en majuscules. Le type de chiffrement doit être AES-256 pour une sécurité optimale.
+
+* Facultatif : pour des performances optimales, les clients bénéficient d'au moins deux interfaces réseau : l'une pour communiquer avec le réseau local et l'autre pour communiquer avec le réseau de stockage.
+
+
+
+
+== Configuration requise pour le système de stockage
+
+* Licence NFS
++
+Une licence NFS valide doit être installée sur le système de stockage.
+
+* Licence CIFS
++
+La licence CIFS est facultative. Il n'est nécessaire de vérifier les informations d'identification Windows que lors de l'utilisation du mappage de noms multiprotocole. Elle n'est pas requise dans un environnement UNIX strict.
+
+* SVM
++
+Au moins un SVM doit être configuré sur le système.
+
+* DNS sur le SVM
++
+On doit avoir configuré DNS sur chaque SVM.
+
+* Serveur NFS
++
+Vous devez avoir configuré NFS sur le SVM.
+
+* Cryptage AES
++
+Pour une sécurité optimale, vous devez configurer le serveur NFS de sorte qu'il n'autorise que le chiffrement AES-256 pour Kerberos.
+
+* Serveur SMB
++
+Si vous exécutez un environnement multiprotocole, vous devez avoir configuré SMB sur le SVM. Le serveur SMB est requis pour le mappage de noms multiprotocole.
+
+* Volumes
++
+On doit disposer d'un volume root et d'au moins un volume de données configuré pour une utilisation par la SVM.
+
+* Volume racine
++
+Le volume root du SVM doit avoir la configuration suivante :
+
++
+[cols="2*"]
+|===
+| Nom | Réglage 
+
+
+ a| 
+Style de sécurité
+ a| 
+UNIX
+
+
+
+ a| 
+UID
+ a| 
+Racine ou ID 0
+
+
+
+ a| 
+GIDS
+ a| 
+Racine ou ID 0
+
+
+
+ a| 
+Autorisations UNIX
+ a| 
+776
+
+|===
++
+Contrairement au volume racine, les volumes de données peuvent avoir n'importe quel style de sécurité.
+
+* Groupes UNIX
++
+La SVM doit avoir les groupes UNIX suivants configurés :
+
++
+[cols="2*"]
+|===
+| Nom du groupe | ID de groupe 
+
+
+ a| 
+démon
+ a| 
+1
+
+
+
+ a| 
+racine
+ a| 
+0
+
+
+
+ a| 
+pcuser
+ a| 
+65534 (créé automatiquement par ONTAP lors de la création du SVM)
+
+|===
+* Utilisateurs UNIX
++
+Le SVM doit avoir les utilisateurs UNIX suivants configurés :
+
++
+[cols="4*"]
+|===
+| Nom d'utilisateur | ID d'utilisateur | ID de groupe principal | Commentaire 
+
+
+ a| 
+nfs
+ a| 
+500
+ a| 
+0
+ a| 
+Requis pour la phase D'INITIALISATION GSS le premier composant de l'utilisateur client NFS SPN est utilisé comme utilisateur.
+
+
+
+ a| 
+pcuser
+ a| 
+65534
+ a| 
+65534
+ a| 
+Nécessaire pour l'utilisation multiprotocole NFS et CIFS créé et ajouté automatiquement au groupe pcuser par ONTAP lors de la création du SVM.
+
+
+
+ a| 
+racine
+ a| 
+0
+ a| 
+0
+ a| 
+Nécessaire pour le montage
+
+|===
++
+L'utilisateur nfs n'est pas requis si un mappage de nom Kerberos-UNIX existe pour le SPN de l'utilisateur client NFS.
+
+* Export-policies et rules
++
+Vous devez avoir configuré des export policy avec les règles d'exportation nécessaires pour les volumes root et de données et les qtrees. Si tous les volumes du SVM sont accessibles via Kerberos, vous pouvez définir les options des règles d'exportation `-rorule`, `-rwrule`, et `-superuser` pour le volume racine à `krb5` , `krb5i`, ou `krb5p`.
+
+* Mapping de noms Kerberos-UNIX
++
+Si vous souhaitez que l'utilisateur identifié par l'utilisateur client NFS SPN dispose d'autorisations root, vous devez créer un mappage de nom à la racine.
+
+
+
+http://www.netapp.com/us/media/tr-4073.pdf["Rapport technique NetApp 4073 : authentification unifiée sécurisée"]
+
+https://mysupport.netapp.com/matrix["Matrice d'interopérabilité NetApp"^]
+
+link:../system-admin/index.html["Administration du système"]
+
+link:../volumes/index.html["Gestion du stockage logique"]

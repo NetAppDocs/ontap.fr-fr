@@ -1,0 +1,64 @@
+---
+permalink: nfs-admin/improve-performance-ldap-directory-searches-task.html 
+sidebar: sidebar 
+keywords: improve, performance, ldap, directory, netgroup, host, search, ptr, forward, reverse, rfc 5952, export rule, 
+summary: 'Si votre environnement LDAP est configuré pour permettre des recherches netgroup-par-hôte, vous pouvez configurer ONTAP pour en tirer parti et effectuer des recherches netgroup-par-hôte. Cela permet d"accélérer considérablement les recherches sur les groupes réseau et de réduire les problèmes d"accès aux clients NFS possibles en raison de la latence lors des recherches sur les groupes réseau.' 
+---
+= Améliorez les performances des recherches LDAP netgroup-par-hôte
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si votre environnement LDAP est configuré pour permettre des recherches netgroup-par-hôte, vous pouvez configurer ONTAP pour en tirer parti et effectuer des recherches netgroup-par-hôte. Cela permet d'accélérer considérablement les recherches sur les groupes réseau et de réduire les problèmes d'accès aux clients NFS possibles en raison de la latence lors des recherches sur les groupes réseau.
+
+Votre annuaire LDAP doit contenir un `netgroup.byhost` carte.
+
+Vos serveurs DNS doivent contenir des enregistrements de recherche avant (A) et arrière (PTR) pour les clients NFS.
+
+Lorsque vous spécifiez des adresses IPv6 dans les groupes réseau, vous devez toujours raccourcir et compresser chaque adresse comme spécifié dans RFC 5952.
+
+Les serveurs NIS stockent les informations de groupe réseau sous trois cartes distinctes appelées `netgroup`, `netgroup.byuser`, et `netgroup.byhost`. Le but du `netgroup.byuser` et `netgroup.byhost` les cartes permettent d'accélérer la recherche de groupes réseau. ONTAP peut effectuer des recherches netgroup par hôte sur les serveurs NIS pour améliorer les temps de réponse de montage.
+
+Par défaut, les répertoires LDAP ne possèdent pas ce type de `netgroup.byhost` Effectuez des mappes comme les serveurs NIS. Il est cependant possible, avec l'aide d'outils tiers, d'importer un NIS `netgroup.byhost` Effectuez un mappage vers des répertoires LDAP pour permettre des recherches réseau par hôte rapides. Si vous avez configuré votre environnement LDAP pour autoriser des recherches netgroup-par-hôte, vous pouvez configurer le client LDAP ONTAP avec le système `netgroup.byhost` Nom de mappage, DN et étendue de recherche pour des recherches plus rapides avec netgroup par hôte.
+
+La réception plus rapide des résultats de recherches netgroup par hôte permet à ONTAP de traiter les règles d'exportation plus rapidement lorsque les clients NFS demandent un accès aux exportations. Cela permet de réduire les risques de retard d'accès en raison des problèmes de latence de recherche de groupe réseau.
+
+.Étapes
+. Obtenir le nom distinctif complet exact du NIS `netgroup.byhost` Mapper que vous avez importé dans votre répertoire LDAP.
++
+Le NA de carte peut varier en fonction de l'outil tiers utilisé pour l'importation. Pour des performances optimales, vous devez spécifier le NA correspondant exact.
+
+. Définissez le niveau de privilège sur avancé : `set -privilege advanced`
+. Activer les recherches netgroup-by-host dans la configuration client LDAP de la machine virtuelle de stockage (SVM) : `vserver services name-service ldap client modify -vserver vserver_name -client-config config_name -is-netgroup-byhost-enabled true -netgroup-byhost-dn netgroup-by-host_map_distinguished_name -netgroup-byhost-scope netgroup-by-host_search_scope`
++
+`-is-netgroup-byhost-enabled` {`true` `false`} Active ou désactive la recherche netgroup-par-hôte pour les répertoires LDAP. La valeur par défaut est `false`.
+
++
+`-netgroup-byhost-dn` `netgroup-by-host_map_distinguished_name` spécifie le nom distinctif du `netgroup.byhost` Mapper dans le répertoire LDAP. Il remplace le DN de base pour les recherches netgroup-par-hôte. Si vous ne spécifiez pas ce paramètre, ONTAP utilise plutôt le DN de base.
+
++
+`-netgroup-byhost-scope` {`base`|`onelevel` `subtree`} spécifie l'étendue de recherche pour les recherches netgroup-par-hôte. Si vous ne spécifiez pas ce paramètre, le paramètre par défaut est `subtree`.
+
++
+Si la configuration client LDAP n'existe pas encore, vous pouvez activer les recherches netgroup-par-hôte en spécifiant ces paramètres lors de la création d'une nouvelle configuration client LDAP à l'aide de l' `vserver services name-service ldap client create` commande.
+
++
+[NOTE]
+====
+À partir de ONTAP 9.2, le champ `-ldap-servers` remplace le champ `-servers`. Ce nouveau champ peut prendre un nom d'hôte ou une adresse IP pour le serveur LDAP.
+
+====
+. Retour au niveau de privilège admin : `set -privilege admin`
+
+
+La commande suivante modifie la configuration du client LDAP existante nommée « ldap_corp » pour activer les recherches netgroup par hôte à l'aide de l' `netgroup.byhost` Carte nommée ""nisMapName="netgroup.byhost",dc=corp,dc=example,dc=com" et champ de recherche par défaut `subtree`:
+
+[listing]
+----
+cluster1::*> vserver services name-service ldap client modify -vserver vs1 -client-config ldap_corp -is-netgroup-byhost-enabled true -netgroup-byhost-dn nisMapName="netgroup.byhost",dc=corp,dc=example,dc=com
+----
+Le `netgroup.byhost` et `netgroup` les cartes du répertoire doivent être synchronisées en permanence pour éviter tout problème d'accès client.
+
+https://datatracker.ietf.org/doc/html/rfc5952["IETF RFC 5952 : une recommandation pour la représentation texte de l'adresse IPv6"]

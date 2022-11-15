@@ -1,0 +1,67 @@
+---
+permalink: smb-config/create-volume-task.html 
+sidebar: sidebar 
+keywords: create, volume, junction, point, properties, property, command, create a volume 
+summary: 'Vous pouvez créer un volume et spécifier son point de jonction et d"autres propriétés à l"aide de la commande volume create.' 
+---
+= Créer un volume
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez créer un volume et spécifier son point de jonction et d'autres propriétés en utilisant le `volume create` commande.
+
+Le style de sécurité du SVM doit être NTFS et SMB doit être configuré et en cours d'exécution.
+
+Un volume doit inclure une _Junction path_ pour que ses données soient mises à disposition des clients. Vous pouvez spécifier le chemin de jonction lorsque vous créez un nouveau volume. Si vous créez un volume sans spécifier un chemin de jonction, vous devez _mount_ le volume du namespace du SVM à l'aide de `volume mount` commande.
+
+.Étapes
+. Créer le volume avec un point de jonction : `volume create -vserver vserver_name -volume volume_name -aggregate aggregate_name -size {integer[KB|MB|GB|TB|PB]} -security-style ntfs -junction-path junction_path]`
++
+Les choix pour `-junction-path` sont les suivants :
+
++
+** Directement sous la racine, par exemple, `/new_vol`
++
+Vous pouvez créer un nouveau volume et préciser qu'il peut être monté directement sur le volume root du SVM.
+
+** Sous un répertoire existant, par exemple, `/existing_dir/new_vol`
++
+Vous pouvez créer un nouveau volume et spécifier qu'il doit être monté sur un volume existant (dans une hiérarchie existante), exprimé en tant que répertoire.
+
+
+
++
+Si vous souhaitez créer un volume dans un nouveau répertoire (dans une nouvelle hiérarchie sous un nouveau volume), par exemple, `/new_dir/new_vol`, Ensuite, vous devez d'abord créer un nouveau volume parent qui est relié par une jonction au volume racine de la SVM. Vous devez ensuite créer le nouveau volume enfant dans la Junction path du nouveau volume parent (nouveau répertoire).
+
+. Vérifier que le volume a été créé avec le point de jonction souhaité : `volume show -vserver vserver_name -volume volume_name -junction`
+
+
+La commande suivante crée un nouveau volume nommé users1 sur le SVM vs1.example.com et l'agrégat aggr1. Le nouveau volume est disponible sur le site `/users`. Le volume a une taille de 750 Go et sa garantie de volume est de type volume (par défaut).
+
+[listing]
+----
+cluster1::> volume create -vserver vs1.example.com -volume users -aggregate aggr1 -size 750g -junction-path /users
+[Job 1642] Job succeeded: Successful
+
+cluster1::> volume show -vserver vs1.example.com -volume users -junction
+                          Junction                 Junction
+Vserver           Volume  Active   Junction Path   Path Source
+----------------- ------- -------- --------------- -----------
+vs1.example.com   users1  true     /users          RW_volume
+----
+La commande suivante crée un nouveau volume nommé « maison 4 » sur la SVM « vs1.example.com`" » et l'agrégat « aggr1 ». Le répertoire `/eng/` Existe déjà dans l'espace de nommage de la SVM vs1, et le nouveau volume est mis à disposition à `/eng/home`, qui devient le répertoire de base de l' `/eng/` espace de noms. Le volume a une taille de 750 Go et sa garantie de volume est de type `volume` (par défaut).
+
+[listing]
+----
+cluster1::> volume create -vserver vs1.example.com -volume home4 -aggregate aggr1 -size 750g -junction-path /eng/home
+[Job 1642] Job succeeded: Successful
+
+cluster1::> volume show -vserver vs1.example.com -volume home4 -junction
+                         Junction                 Junction
+Vserver          Volume  Active   Junction Path   Path Source
+---------------- ------- -------- --------------- -----------
+vs1.example.com  home4   true     /eng/home       RW_volume
+----

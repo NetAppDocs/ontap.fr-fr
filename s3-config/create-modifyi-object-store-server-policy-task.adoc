@@ -1,0 +1,120 @@
+---
+permalink: s3-config/create-modifyi-object-store-server-policy-task.html 
+sidebar: sidebar 
+keywords: create, modify, object, store, server, policy 
+summary: 'Vous pouvez créer des règles qui s"appliquent à un ou plusieurs compartiments dans un magasin d"objets. Les stratégies de serveur de magasin d"objets peuvent être associées à des groupes d"utilisateurs, ce qui simplifie la gestion de l"accès aux ressources dans plusieurs compartiments.' 
+---
+= Créer ou modifier une stratégie de serveur de magasin d'objets
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez créer des règles qui s'appliquent à un ou plusieurs compartiments dans un magasin d'objets. Les stratégies de serveur de magasin d'objets peuvent être associées à des groupes d'utilisateurs, ce qui simplifie la gestion de l'accès aux ressources dans plusieurs compartiments.
+
+Un SVM compatible S3 contenant un serveur S3 et un compartiment doivent déjà exister.
+
+Vous pouvez activer les politiques d'accès au niveau du SVM en spécifiant une règle par défaut ou personnalisée dans un groupe de serveurs de stockage objet. Les stratégies ne prennent effet qu'après avoir été spécifiées dans la définition de groupe.
+
+
+NOTE: Lorsque vous utilisez des stratégies de serveur de stockage objet, vous spécifiez les entités (c'est-à-dire les utilisateurs et les groupes) dans la définition de groupe, et non dans la stratégie elle-même.
+
+Il existe trois règles par défaut en lecture seule pour l'accès aux ressources ONTAP S3 :
+
+* Accès complet
+* Aucun accès
+* ReadOnlyAccess
+
+
+Vous pouvez également créer de nouvelles stratégies personnalisées, ajouter de nouvelles instructions pour les nouveaux utilisateurs et groupes, ou modifier les attributs des instructions existantes. Pour plus d'options, reportez-vous à la section `vserver object-store-server policy` link:https://docs.netapp.com/us-en/ontap-cli-9121/index.html["référence de commande"^].
+
+Depuis ONTAP 9.9.1 et les versions ultérieures, si vous prévoyez de prendre en charge la fonctionnalité de balisage d'objets client AWS avec le serveur ONTAP S3, les actions sont nécessaires `GetObjectTagging`, `PutObjectTagging`, et `DeleteObjectTagging` doivent être autorisées à l'aide des règles de compartiment ou de groupe.
+
+La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Utilisez System Manager pour créer ou modifier une stratégie de serveur de magasin d'objets*
+
+.Étapes
+. Modifiez la VM de stockage : cliquez sur *stockage > machines virtuelles de stockage*, cliquez sur la VM de stockage, puis sur *Paramètres* et enfin sur image:icon_pencil.gif["icône crayon"] Sous S3.
+. Ajouter un utilisateur : cliquez sur *Policies*, puis sur *Ajouter*.
++
+.. Entrez un nom de stratégie et sélectionnez-le dans une liste de groupes.
+.. Sélectionnez une stratégie par défaut existante ou ajoutez-en une nouvelle.
++
+Lors de l'ajout ou de la modification d'une stratégie de groupe, vous pouvez spécifier les paramètres suivants :
+
++
+*** Groupe : groupes auxquels l'accès est accordé.
+*** Effet : autorise ou refuse l'accès à un ou plusieurs groupes.
+*** Actions : actions autorisées dans un ou plusieurs compartiments pour un groupe donné.
+*** Ressources : chemins et noms d'objets dans un ou plusieurs compartiments pour lesquels l'accès est accordé ou refusé. Par exemple :
++
+**** *** Permet l'accès à tous les compartiments de la machine virtuelle de stockage.
+**** *bucketname* et *bucketname/** permettent d'accéder à tous les objets d'un compartiment spécifique.
+**** *bucketname/readme.txt* donne accès à un objet dans un compartiment spécifique.
+
+
+
+
+.. Si vous le souhaitez, ajoutez des instructions aux stratégies existantes.
+
+
+
+
+--
+.CLI
+--
+*Utilisez l'interface de ligne de commande pour créer ou modifier une stratégie de serveur de stockage d'objets*
+
+.Étapes
+. Créer une stratégie de serveur de stockage objet :
++
+`vserver object-store-server policy create -vserver _svm_name_ -policy _policy_name_ [-comment _text_]`
+
+. Créer une instruction pour la règle :
++
+`vserver object-store-server policy statement create -vserver _svm_name_ -policy _policy_name_ -effect {allow|deny} -action _object_store_actions_ -resource _object_store_resources_ [-sid text]`
+
++
+Les paramètres suivants définissent les autorisations d'accès :
+
++
+[cols="2*"]
+|===
+
+
+ a| 
+`-effect`
+ a| 
+La déclaration peut autoriser ou refuser l'accès
+
+
+
+ a| 
+`-action`
+ a| 
+Vous pouvez spécifier `*` pour faire référence à toutes les actions ou à une liste d'une ou plusieurs des actions suivantes : `GetObject, PutObject, DeleteObject, ListBucket,GetBucketAcl, GetObjectAcl, ListAllMyBuckets, ListBucketMultipartUploads,` et `ListMultipartUploadParts`.
+
+
+
+ a| 
+`-resource`
+ a| 
+Le compartiment et tout objet qu'il contient. Les caractères génériques `*` et `?` peut être utilisé pour former une expression régulière pour spécifier une ressource.
+
+|===
++
+Vous pouvez éventuellement spécifier une chaîne de texte sous forme de commentaire avec l' `-sid` option.
+
++
+Par défaut, de nouvelles instructions sont ajoutées à la fin de la liste des instructions, qui sont traitées dans l'ordre. Lorsque vous ajoutez ou modifiez des instructions ultérieurement, vous avez la possibilité de modifier les instructions `-index` paramètre permettant de modifier l'ordre de traitement.
+
+
+
+--
+====

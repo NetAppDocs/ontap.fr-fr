@@ -1,0 +1,32 @@
+---
+permalink: s3-multiprotocol/nas-data-requirements-client-access-reference.html 
+sidebar: sidebar 
+keywords: s3, mapping, directory, access, configuration, object, nas, bucket 
+summary: 'Il est important de comprendre que le mappage de fichiers NAS et de répertoires pour l"accès S3 modifie un certain comportement NAS standard.' 
+---
+= Exigences de données NAS pour l'accès des clients S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Il est important de comprendre qu'il existe des incompatibilités inhérentes lors du mappage des fichiers NAS et des répertoires pour l'accès S3. Il peut être nécessaire d'ajuster la hiérarchie des fichiers NAS avant de les transférer à l'aide de compartiments NAS S3.
+
+Un compartiment NAS S3 fournit un accès S3 à un répertoire NAS en effectuant le mappage de ce répertoire à l'aide de la syntaxe du compartiment S3, et les fichiers de l'arborescence sont considérés comme des objets. Les noms d'objet sont les chemins d'accès délimités par des barres obliques des fichiers par rapport au répertoire spécifié dans la configuration du compartiment S3.
+
+Ce mappage impose une certaine exigence lorsque les fichiers et les répertoires sont gérés à l'aide de compartiments NAS S3 :
+
+* Les noms S3 sont limités à 1024 octets. Les fichiers dont les chemins d'accès sont plus longs ne sont donc pas accessibles via S3.
+* Les noms de fichiers et de répertoires sont limités à 255 caractères, de sorte qu'un nom d'objet ne peut pas comporter plus de 255 caractères consécutifs non-slash ('/')
+* Un chemin SMB délimité par des caractères de barre oblique inverse («\') apparaîtra à s3 comme un nom d'objet contenant des caractères de barre oblique («/ »).
+* Certaines paires de noms d'objets S3 légaux ne peuvent pas coexister dans l'arborescence de répertoires NAS mappée. Par exemple, les noms d’objet S3 légal “part1/part2” et “part1/part2/part3” correspondent à des fichiers qui ne peuvent pas exister simultanément dans l’arborescence du répertoire NAS, “part1/part2” étant un fichier du premier nom et un répertoire de l’autre.
++
+** Si “part1/part2” est un fichier existant, la création S3 de “part1/part2/part3” échouera.
+** Si “part1/part2/part3” est un fichier existant, la création ou la suppression S3 de “part1/part2” échouera.
+** La création d'objet S3 correspondant au nom d'un objet existant remplace l'objet existant (dans des compartiments sans version). La gestion est assurée dans le NAS, mais la correspondance est obligatoire. Les exemples ci-dessus ne peuvent pas entraîner la suppression de l'objet existant car les noms entrent en collision et ne correspondent pas.
+
+
+
+
+Alors qu'un magasin d'objets est conçu pour prendre en charge un grand nombre de noms arbitraires, une structure d'annuaire NAS peut rencontrer des problèmes de performance si un très grand nombre de noms sont placés dans un répertoire. En particulier, les noms sans barre oblique ('/') dans ces caractères seront tous placés dans le répertoire racine du mappage NAS. Les applications qui utilisent de manière intensive les noms qui ne sont pas « compatibles avec le NAS » seraient mieux hébergées dans un compartiment de magasin d'objets réel plutôt que dans un mappage NAS.

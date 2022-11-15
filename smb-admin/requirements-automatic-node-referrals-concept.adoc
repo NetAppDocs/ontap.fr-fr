@@ -1,0 +1,98 @@
+---
+permalink: smb-admin/requirements-automatic-node-referrals-concept.html 
+sidebar: sidebar 
+keywords: smb, automatic, node, referral, autolocation, aware, requirement, version, ontap, feature, support, guideline, requirement, requirements and guidelines for using automatic node referrals 
+summary: 'Avant de pouvoir utiliser les référencements de nœuds automatiques SMB, également appelés autolocalisation, vous devez connaître certaines exigences, y compris les versions de ONTAP qui prennent en charge la fonctionnalité. Vous devez également connaître les versions du protocole SMB prises en charge et d"autres directives spéciales.' 
+---
+= Exigences et directives pour l'utilisation de référencements de nœuds automatiques
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de pouvoir utiliser les référencements de nœud automatiques SMB, également appelés _autolocalisation_, vous devez connaître certaines exigences, y compris les versions de ONTAP qui prennent en charge la fonctionnalité. Vous devez également connaître les versions du protocole SMB prises en charge et d'autres directives spéciales.
+
+
+
+== Version ONTAP et conditions requises pour les licences
+
+* Tous les nœuds du cluster doivent exécuter une version de ONTAP qui prend en charge les référencements de nœuds automatiques.
+* Les Widelinks doivent être activés sur un partage SMB pour utiliser l'autolocalisation.
+* CIFS doit être sous licence et un serveur SMB doit exister sur les SVM.
+
+
+
+
+== Version requise du protocole SMB
+
+* Pour les SVM, ONTAP prend en charge les référencements de nœuds automatiques sur toutes les versions de SMB.
+
+
+
+
+== Exigences des clients PME
+
+Tous les clients Microsoft pris en charge par ONTAP prennent en charge les référencements automatiques des nœuds SMB.
+
+La matrice d'interopérabilité contient les dernières informations sur les clients Windows pris en charge par ONTAP.
+
+link:http://mysupport.netapp.com/matrix["Matrice d'interopérabilité NetApp"^]
+
+
+
+== Configuration requise pour Data LIF
+
+Si vous souhaitez utiliser une LIF de données comme référence potentielle pour les clients SMB, vous devez créer des LIF de données avec NFS et CIFS activés.
+
+Les référencements de nœuds automatiques peuvent ne fonctionner que si le nœud cible contient des LIFs de données qui sont activées uniquement pour le protocole NFS ou uniquement pour le protocole SMB.
+
+Si cette exigence n'est pas respectée, l'accès aux données n'est pas affecté. Le client SMB mappe le partage à l'aide de la LIF d'origine que le client a utilisée pour se connecter à la SVM.
+
+
+
+== Exigences d'authentification NTLM lors de la connexion SMB référencée
+
+L'authentification NTLM doit être autorisée sur le domaine contenant le serveur CIFS et sur les domaines contenant des clients qui souhaitent utiliser des référencements de nœud automatiques.
+
+Lors d'une recommandation, le serveur SMB renvoie une adresse IP au client Windows. Étant donné que l'authentification NTLM est utilisée lors de la connexion à l'aide d'une adresse IP, l'authentification Kerberos n'est pas réalisée pour les connexions mentionnées.
+
+Cela se produit car le client Windows ne peut pas créer le nom principal de service utilisé par Kerberos (qui est de la forme `service/NetBIOS name` et `service/FQDN`), ce qui signifie que le client ne peut pas demander un ticket Kerberos au service.
+
+
+
+== Instructions pour l'utilisation de renvois de nœuds automatiques avec la fonction home Directory
+
+Lorsque les partages sont configurés avec la propriété de partage de répertoire personnel activée, il peut y avoir un ou plusieurs chemins de recherche de répertoire racine configurés pour une configuration de répertoire personnel. Les chemins de recherche peuvent pointer vers les volumes contenus dans chaque nœud contenant des volumes du SVM. Les clients reçoivent une recommandation et, si une LIF de données locale active est disponible, connectez-vous via une LIF référencée qui est locale au home Directory de l'utilisateur.
+
+Il existe des directives lorsque les clients SMB 1.0 accèdent aux home directories dynamiques avec l'activation automatique des référencements de nœuds. En effet, les clients SMB 1.0 nécessitent le renvoi automatique de nœud avant d'avoir été authentifiés, c'est-à-dire avant que le serveur SMB ait le nom de l'utilisateur. Cependant, l'accès au répertoire local SMB fonctionne correctement pour les clients SMB 1.0 si les instructions suivantes sont vraies :
+
+* Les répertoires locaux SMB sont configurés pour utiliser des noms simples, tels que "`%W`" (nom d'utilisateur Windows) ou "`%u`" (nom d'utilisateur UNIX mappé), et non des noms de style de nom de domaine, tels que "`%d\%W `" (nom-domaine\nom-utilisateur).
+* Lors de la création de partages de répertoires locaux CIFS, les noms de partages de répertoire racine CIFS sont configurés avec des variables ("`%W'" ou "`%u'"), et non avec des noms statiques, tels que ""HOME"".
+
+
+Pour les clients SMB 2.x et SMB 3.0, il n'y a pas de directives spéciales lors de l'accès aux répertoires locaux en utilisant des référencements de nœuds automatiques.
+
+
+
+== Instructions relatives à la désactivation des référencements de nœuds automatiques sur les serveurs CIFS avec les connexions existantes désignées
+
+Si vous désactivez les référencements de nœuds automatiques après l'activation de l'option, les clients actuellement connectés à une LIF référencée conservent la connexion référencée. Étant donné que ONTAP utilise les référencements DFS comme mécanisme pour les référencements automatiques des nœuds SMB, les clients peuvent même se reconnecter au LIF référencé après que vous avez désactivé l'option jusqu'à ce que le renvoi DFS mis en cache du client pour les connexions mentionnées soit trop court. Cela est vrai même dans le cas d'une restauration vers une version de ONTAP qui ne prend pas en charge les référencements de nœuds automatiques. Les clients continuent d'utiliser les référencements jusqu'à ce que la référence DFS soit hors du cache du client.
+
+La géolocalisation automatique utilise les référencements automatiques des nœuds SMB pour augmenter les performances des clients SMB en orientant les clients vers la LIF sur le nœud qui possède le volume de données d'un SVM. Lorsqu'un client SMB se connecte à un partage SMB hébergé sur un SVM, il peut se connecter à l'aide d'une LIF sur un nœud qui ne détient pas les données demandées et utilise un réseau d'interconnexion de cluster pour récupérer les données. Le client peut bénéficier de temps de réponse plus rapides si la connexion SMB utilise une LIF située sur le nœud contenant les données demandées.
+
+ONTAP fournit cette fonctionnalité à l'aide des référencements DFS (système de fichiers distribués Microsoft) pour informer les clients SMB qu'un fichier ou dossier demandé dans l'espace de noms est hébergé quelque part. Un nœud fait une recommandation lorsqu'il détermine qu'il existe une LIF de SVM sur le nœud qui contient les données. Les renvois sont effectués en fonction de l'emplacement de la racine du partage auquel le client est connecté.
+
+Le renvoi se produit pendant la négociation avec les PME. Le renvoi est effectué avant l'établissement de la connexion. Après que ONTAP désigne le client SMB au nœud cible, la connexion est établie et le client accède aux données via le chemin LIF référencé à partir de ce point. Les clients accèdent ainsi plus rapidement aux données et évitent toute communication supplémentaire avec le cluster.
+
+
+
+== Instructions pour l'utilisation de renvois de nœuds automatiques avec des clients Mac OS
+
+Les clients Mac OS X ne prennent pas en charge les renvois de nœuds automatiques SMB, même si le système d'exploitation Mac prend en charge le système de fichiers distribué (DFS, Distributed File System) de Microsoft. Les clients Windows effectuent une demande de recommandation DFS avant de se connecter à un partage SMB. ONTAP fournit une référence à une LIF de données située sur le même nœud qui héberge les données requises, ce qui entraîne une amélioration des temps de réponse du client. Bien que le système d'exploitation Mac prend en charge DFS, les clients Mac OS ne se comportent pas exactement comme les clients Windows dans cette zone.
+
+xref:dynamic-home-directories-concept.html[Comment ONTAP rend possible les répertoires locaux dynamiques]
+
+link:../networking/index.html["Gestion du réseau"]
+
+https://mysupport.netapp.com/NOW/products/interoperability["Matrice d'interopérabilité NetApp"^]

@@ -1,0 +1,38 @@
+---
+permalink: revert/task_reverting_the_physical_block_sharing_in_split_flexclone_volumes.html 
+sidebar: sidebar 
+keywords: ontap, revert, reverting, reversion, reverse, reversing, physical, block sharing, split, flexclone, volumes 
+summary: 'Si vous avez séparé un volume FlexClone de son volume parent, vous devez annuler le partage d"un bloc physique entre le clone et son volume parent avant de restaurer ONTAP 9.4 ou version ultérieure vers une version antérieure de ONTAP.' 
+---
+= Partage de blocs physiques inverse dans les volumes FlexClone fractionnés
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous avez séparé un volume FlexClone de son volume parent, vous devez annuler le partage d'un bloc physique entre le clone et son volume parent avant de restaurer ONTAP 9.4 ou version ultérieure vers une version antérieure de ONTAP.
+
+Cette tâche n'est applicable que sur les systèmes AFF lorsque le fractionnement a été exécuté sur l'un des volumes FlexClone.
+
+. Connectez-vous au niveau de privilège avancé : `set -privilege advanced`
+. Identifiez les volumes FlexClone fractionnés avec des blocs physiques partagés : `volume clone sharing-by-split show`
++
+[listing]
+----
+cluster1::> volume clone sharing-by-split show
+Node            Vserver   Volume        Aggregate
+--------------- --------- ------------- -------------
+node1           vs1       vol_clone1    aggr1
+node2           vs2       vol_clone2    aggr2
+2 entries were displayed.
+----
+. Annulez le partage de bloc physique dans tous les volumes FlexClone fractionnés sur le cluster : `volume clone sharing-by-split undo start-all`
+. Vérifier qu'il n'y a pas de volumes FlexClone fractionnés avec des blocs physiques partagés : `volume clone sharing-by-split show`
++
+[listing]
+----
+cluster1::> volume clone sharing-by-split show
+This table is currently empty.
+----
+

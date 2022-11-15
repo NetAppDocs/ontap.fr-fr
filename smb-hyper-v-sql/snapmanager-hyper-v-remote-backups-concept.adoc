@@ -1,0 +1,60 @@
+---
+permalink: smb-hyper-v-sql/snapmanager-hyper-v-remote-backups-concept.html 
+sidebar: sidebar 
+keywords: snapmanager, hyper, v, remote, manage, vss, backup, smb 
+summary: Vous pouvez utiliser SnapManager for Hyper-V pour gérer les services de sauvegarde VSS distants. Les avantages du service géré de sauvegarde SnapManager for Hyper-V sont nombreux, car il permet de créer des ensembles de sauvegarde peu gourmands en espace. 
+---
+= Comment SnapManager for Hyper-V gère les sauvegardes VSS distantes pour Hyper-V sur SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser SnapManager for Hyper-V pour gérer les services de sauvegarde VSS distants. Les avantages du service géré de sauvegarde SnapManager for Hyper-V sont nombreux, car il permet de créer des ensembles de sauvegarde peu gourmands en espace.
+
+Les optimisations vers SnapManager pour les sauvegardes gérées Hyper-V sont les suivantes :
+
+* L'intégration de SnapDrive avec ONTAP permet d'optimiser les performances lors de la détection de l'emplacement de partage SMB.
++
+ONTAP fournit à SnapDrive le nom du volume où réside le partage.
+
+* SnapManager for Hyper-V spécifie la liste des fichiers de machine virtuelle dans les partages SMB que le service Shadow Copy doit copier.
++
+En fournissant une liste ciblée de fichiers de machine virtuelle, le service de clichés instantanés n'a pas besoin de créer de clichés instantanés de tous les fichiers du partage.
+
+* Le serveur virtuel de stockage (SVM) conserve les copies Snapshot pour SnapManager pour Hyper-V utilisées pour les restaurations.
++
+Il n'y a pas de phase de sauvegarde. La sauvegarde est la copie Snapshot compacte.
+
+
+
+SnapManager for Hyper-V fournit des fonctionnalités de sauvegarde et de restauration pour HyperV sur SMB, en utilisant le processus suivant :
+
+. Préparation de l'opération de copie en double
++
+Le client VSS de l'application SnapManager pour Hyper-V configure le jeu de clichés instantanés. Le client VSS collecte des informations sur les partages à inclure dans le jeu de clichés instantanés et fournit ces informations à ONTAP. Un ensemble peut contenir une ou plusieurs clichés instantanés et une copie en double correspond à un partage.
+
+. Création du jeu de clichés instantanés (si la restauration automatique est utilisée)
++
+Pour chaque partage inclus dans le jeu de clichés instantanés, ONTAP crée une copie « shadow » et rend la copie « shadow Copy » accessible en écriture.
+
+. Exposition du jeu de clichés instantanés
++
+Une fois que ONTAP a créé les clichés instantanés, ils sont exposés à SnapManager for Hyper-V de sorte que les enregistreurs VSS de l'application peuvent effectuer une restauration automatique.
+
+. Restauration automatique du jeu de clichés instantanés
++
+Au cours de la création du jeu de clichés instantanés, il y a une période pendant laquelle des modifications actives sont apportées aux fichiers inclus dans le jeu de sauvegardes. Les VSS writer de l'application doivent mettre à jour les clichés instantanés pour s'assurer qu'ils sont dans un état complètement cohérent avant la sauvegarde.
+
++
+[NOTE]
+====
+La méthode d'exécution de la restauration automatique est spécifique à l'application. VSS distant n'est pas impliqué dans cette phase.
+
+====
+. Finalisation et nettoyage du jeu de clichés instantanés
++
+Le client VSS informe ONTAP après la fin de la restauration automatique. Le jeu de copies « shadow » est en lecture seule, puis prêt pour la sauvegarde. Lorsque vous utilisez SnapManager pour Hyper-V pour la sauvegarde, les fichiers d'une copie Snapshot deviennent la sauvegarde. Ainsi, pour la phase de sauvegarde, une copie Snapshot est créée pour chaque volume contenant des partages du jeu de sauvegarde. Une fois la sauvegarde terminée, le jeu de clichés instantanés est supprimé du serveur CIFS.
+
+

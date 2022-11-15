@@ -1,0 +1,33 @@
+---
+permalink: smb-admin/disable-reenable-branchcache-server-concept.html 
+sidebar: sidebar 
+keywords: previous, configure, branchcache, branch, office, client, cache, content, disable, what happens when you disable or reenable branchcache on the cifs server 
+summary: Si vous avez déjà configuré BranchCache, mais que vous ne souhaitez pas que les clients des succursales utilisent le contenu en cache, vous pouvez désactiver la mise en cache sur le serveur CIFS. Vous devez savoir ce qui se passe lorsque vous désactivez BranchCache. 
+---
+= Que se passe-t-il lorsque vous désactivez ou réactivez BranchCache sur le serveur CIFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous avez déjà configuré BranchCache, mais que vous ne souhaitez pas que les clients des succursales utilisent le contenu en cache, vous pouvez désactiver la mise en cache sur le serveur CIFS. Vous devez savoir ce qui se passe lorsque vous désactivez BranchCache.
+
+Lorsque vous désactivez BranchCache, ONTAP ne calcule plus de hachages et n'envoie plus les métadonnées au client qui demande. Toutefois, l'accès aux fichiers n'est pas interrompu. Par la suite, lorsque des clients compatibles avec BranchCache demandent des informations de métadonnées pour le contenu auquel ils doivent accéder, ONTAP répond par une erreur définie par Microsoft, ce qui entraîne l'envoi d'une seconde demande par le client, demandant le contenu réel. En réponse à la demande de contenu, le serveur CIFS envoie le contenu réel stocké sur la machine virtuelle de stockage (SVM).
+
+Une fois que BranchCache est désactivé sur le serveur CIFS, les partages SMB n'annoncent pas les fonctionnalités de BranchCache. Pour accéder aux données lors de nouvelles connexions SMB, les clients font des requêtes SMB en lecture standard.
+
+Vous pouvez réactiver BranchCache sur le serveur CIFS à tout moment.
+
+* Comme le magasin de hachage n'est pas supprimé lorsque vous désactivez BranchCache, ONTAP peut utiliser les hachages stockés pour répondre aux demandes de hachage après la réactivation de BranchCache, à condition que le hachage demandé soit toujours valide.
+* Tout client qui a établi des connexions SMB vers des partages compatibles avec BranchCache au cours de la désactivation de BranchCache n'est pas pris en charge si BranchCache est ensuite réactivé.
++
+En effet, ONTAP annonce la prise en charge de BranchCache pour un partage au moment de la configuration de la session SMB. Les clients qui ont établi des sessions vers des partages compatibles BranchCache alors que ce dernier était désactivé doivent se déconnecter et se reconnecter pour utiliser le contenu en cache pour ce partage.
+
+
+
+[NOTE]
+====
+Si vous ne souhaitez pas enregistrer le magasin de hachage après avoir désactivé BranchCache sur un serveur CIFS, vous pouvez le supprimer manuellement. Si vous réactivez BranchCache, vous devez vous assurer que le répertoire du magasin de hachage existe. Une fois que BranchCache est activé à nouveau, les partages compatibles avec BranchCache publicité des fonctionnalités de BranchCache. ONTAP crée de nouvelles hachages lorsque de nouvelles demandes sont faites par des clients compatibles avec BranchCache.
+
+====

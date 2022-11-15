@@ -1,0 +1,147 @@
+---
+sidebar: sidebar 
+permalink: task_metrocluster_switchover_switchback.html 
+keywords: system manager, switchover, switchback, switch over, switch back, metrocluster, maintenance, nvram mirroring, synchronize, mediator, healing, recover 
+summary: 'Vous pouvez basculer d"un site MetroCluster à l"autre pour effectuer des opérations de maintenance et de restauration suite à un problème.' 
+---
+= Réalisez le basculement et le rétablissement IP MetroCluster
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+Vous pouvez basculer le contrôle d'un site IP MetroCluster à un autre pour effectuer des opérations de maintenance ou de restauration suite à un problème.
+
+
+NOTE: Les procédures de basculement et de rétablissement ne sont prises en charge que pour les configurations IP MetroCluster.
+
+
+
+== Présentation du basculement et du rétablissement
+
+Un basculement peut se produire dans deux cas :
+
+* *Un basculement planifié*
++
+Le basculement est initié par un administrateur système qui utilise System Manager. Le basculement planifié permet à l'administrateur système d'un cluster local de contrôler par commutation afin que les services de données du cluster distant soient gérés par le cluster local. Ensuite, un administrateur système sur le site distant du cluster peut réaliser des opérations de maintenance sur le cluster distant.
+
+* *Un basculement non planifié*
++
+Dans certains cas, lorsqu'un cluster MetroCluster tombe en panne ou que les connexions entre les clusters sont en panne, ONTAP lance automatiquement une procédure de basculement, de sorte que le cluster toujours en cours d'exécution gère les responsabilités de gestion des données du cluster en panne.
+
++
+Lorsque ONTAP ne peut pas déterminer l'état de l'un des clusters, l'administrateur système du site qui travaille lance la procédure de basculement pour prendre le contrôle des responsabilités de gestion des données de l'autre site.
+
+
+
+Pour tout type de procédure de basculement, la fonctionnalité de service de données est renvoyée au cluster au moyen d'un processus _rétablissement_.
+
+Plusieurs processus de basculement et de rétablissement sont exécutés pour ONTAP 9.7 et 9.8 :
+
+* ,Utilisez System Manager dans ONTAP 9.7 pour le basculement et le rétablissement
+* ,Utilisez System Manager dans ONTAP 9.8 pour le basculement et le rétablissement
+
+
+
+
+== Utilisez System Manager dans ONTAP 9.7 pour le basculement et le rétablissement
+
+.Étapes
+. Connectez-vous à System Manager dans ONTAP 9.7.
+. Cliquez sur * (revenir à la version classique)*.
+. Cliquez sur *Configuration > MetroCluster*.
++
+System Manager vérifie si un basculement négocié est possible.
+
+. Effectuez l'une des opérations suivantes lorsque le processus de validation est terminé :
++
+.. Si la validation échoue, mais que le site B est en cours, une erreur s'est produite. Par exemple, il peut y avoir un problème avec un sous-système, ou la mise en miroir NVRAM peut ne pas être synchronisée.
++
+... Corrigez le problème à l'origine de l'erreur, cliquez sur *Fermer*, puis recommencez à l'étape 2.
+... Arrêtez les nœuds du site B, cliquez sur *Fermer*, puis effectuez les étapes de la section link:https://docs.netapp.com/us-en/ontap-sm-classic/online-help-96-97/task_performing_unplanned_switchover.html["Effectuer un basculement non planifié"^].
+
+
+.. Si la validation échoue et que le site B est en panne, il est fort probable qu'il y ait un problème de connexion. Vérifiez que le site B est en panne, puis effectuez les étapes de la section link:https://docs.netapp.com/us-en/ontap-sm-classic/online-help-96-97/task_performing_unplanned_switchover.html["Effectuer un basculement non planifié"^].
+
+
+. Cliquez sur *basculer du site B vers le site A* pour lancer le processus de basculement.
+. Cliquez sur *basculer vers la nouvelle expérience*.
+
+
+
+
+== Utilisez System Manager dans ONTAP 9.8 pour le basculement et le rétablissement
+
+
+
+=== Exécution d'un basculement planifié (ONTAP 9.8)
+
+.Étapes
+. Connectez-vous à System Manager dans ONTAP 9.8.
+. Sélectionnez *Tableau de bord*. Dans la section *MetroCluster*, les deux clusters sont affichés avec une connexion.
+. Dans le cluster local (affiché à gauche), cliquez sur image:icon_kabob.gif["icône kebab"], Et sélectionnez *prendre le contrôle du site distant*.
++
+Une fois la demande de basculement validée, le contrôle est transféré du site distant vers le site local, qui effectue les demandes de service de données pour les deux clusters.
+
++
+Le cluster distant redémarre, mais les composants de stockage ne sont pas actifs et le cluster ne répond pas aux demandes de données. Elle est maintenant disponible pour la maintenance planifiée.
+
+
+
+
+NOTE: Le cluster distant ne doit pas être utilisé pour la maintenance des données tant que vous n'avez pas effectué de rétablissement.
+
+
+
+=== Exécution d'un basculement non planifié (ONTAP 9.8)
+
+Un basculement non planifié peut être initié automatiquement par ONTAP. Si ONTAP ne peut pas déterminer s'il est nécessaire de procéder au rétablissement, l'administrateur système du site MetroCluster en cours d'exécution lance le basculement. Pour ce faire, procédez comme suit :
+
+.Étapes
+. Connectez-vous à System Manager dans ONTAP 9.8.
+. Sélectionnez *Tableau de bord*.
++
+Dans la section *MetroCluster*, la connexion entre les deux clusters est indiquée par un « X », ce qui signifie qu'une connexion ne peut pas être détectée. Les connexions ou le cluster sont arrêtés.
+
+. Dans le cluster local (affiché à gauche), cliquez sur image:icon_kabob.gif["icône kebab"], Et sélectionnez *prendre le contrôle du site distant*.
++
+Une fois la demande de basculement validée, le contrôle est transféré du site distant vers le site local, qui effectue les demandes de service de données pour les deux clusters.
+
++
+Le cluster doit être réparé avant de pouvoir être remis en ligne.
+
+
+
+
+NOTE: Une fois le cluster distant mis en ligne à nouveau, il ne doit pas être utilisé pour le service des données tant que vous n'avez pas effectué de rétablissement.
+
+
+
+=== Exécution d'un rétablissement (ONTAP 9.8)
+
+Si le cluster distant était indisponible pour la maintenance planifiée ou en raison d'un incident, il devrait être à présent opérationnel et en attente du rétablissement.
+
+.Étapes
+. Sur le cluster local, connectez-vous à System Manager dans ONTAP 9.8.
+. Sélectionnez *Tableau de bord*.
++
+Dans la section *MetroCluster*, les deux clusters sont affichés.
+
+. Dans le cluster local (affiché à gauche), cliquez sur image:icon_kabob.gif["icône kebab"], Et sélectionnez *reprendre le contrôle*.
++
+Les données sont _guéri_ en premier, pour garantir que les données sont synchronisées et mises en miroir entre les deux clusters.
+
+. Une fois la correction des données terminée, cliquez sur image:icon_kabob.gif["icône kebab"], Et sélectionnez *lancer le rétablissement*.
++
+Lorsque le rétablissement est terminé, les deux clusters sont actifs et le service des requêtes de données. De plus, les données sont en miroir et synchronisées entre les clusters.
+
+

@@ -1,0 +1,109 @@
+---
+sidebar: sidebar 
+permalink: networking/modify_a_lif.html 
+keywords: lif attributes, fc lifs, ip lifs, change lifs, change, changing, logical, interface, lif, modify a lif, modify a lif by changing its attributes 
+summary: Modifier une LIF en modifiant ses attributs 
+---
+= Modifier une LIF
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Vous pouvez modifier une LIF en modifiant les attributs, tels que le nœud de rattachement ou le nœud actuel, l'état administratif, l'adresse IP, le masque de réseau, la règle de basculement, la politique de pare-feu et la politique de service. Vous pouvez également modifier la famille d'adresses d'une LIF d'IPv4 à IPv6.
+
+.Description de la tâche
+* Lorsque vous modifiez le statut administratif d'une LIF en cas de panne, tout verrouillage NFSv4 en attente est conservé jusqu'à ce que le statut administratif de la LIF soit renvoyé à une date supérieure.
++
+Pour éviter les conflits de verrouillage pouvant survenir lorsque d'autres LIFs tentent d'accéder aux fichiers verrouillés, vous devez déplacer les clients NFSv4 vers une autre LIF avant de définir le statut administratif sur down.
+
+* Vous ne pouvez pas modifier les protocoles de données utilisés par une LIF FC. Toutefois, vous pouvez modifier les services affectés à une politique de service ou modifier la politique de service attribuée à une LIF IP.
++
+Pour modifier les protocoles de données utilisés par une LIF FC, il faut supprimer cette LIF, puis la recréer. Pour modifier la stratégie de service à une LIF IP, une brève interruption se produit lors des mises à jour.
+
+* Vous ne pouvez pas modifier le nœud de rattachement ou le nœud actuel d'un LIF de management scoped node-scoped.
+* Lors de l'utilisation d'un sous-réseau pour modifier l'adresse IP et la valeur du masque réseau d'une LIF, une adresse IP est allouée à partir du sous-réseau spécifié ; si l'adresse IP précédente de la LIF provient d'un autre sous-réseau, l'adresse IP est renvoyée à ce sous-réseau.
+* Pour modifier la famille d'adresses d'une LIF d'IPv4 vers IPv6, vous devez utiliser la notation des deux-points pour l'adresse IPv6 et ajouter une nouvelle valeur pour le `-netmask-length` paramètre.
+* Vous ne pouvez pas modifier les adresses IPv6 lien-local configurées automatiquement.
+* La modification d'une LIF entraînant l'absence de cible de basculement valide entraîne un message d'avertissement.
++
+Si une LIF ne disposant pas de tentatives de basculement cible valides, une panne peut se produire.
+
+* Depuis ONTAP 9.5, vous pouvez modifier la politique de service associée à une LIF.
++
+Dans ONTAP 9.5, les stratégies de service sont prises en charge uniquement pour les services de pairs intercluster et BGP. Dans ONTAP 9.6, vous pouvez créer des stratégies de service pour plusieurs services de données et de gestion.
+
+* Depuis ONTAP 9.11.1, la fonctionnalité de basculement LIF iSCSI est disponible sur toutes les plateformes de baies SAN (ASA).
++
+Pour les LIF iSCSI préexistantes, c'est-à-dire les LIF créées avant la mise à niveau vers la version 9.11.1 ou ultérieure, vous pouvez modifier la règle de basculement pour activer la fonction de basculement LIF iSCSI.
+
++
+link:../san-admin/asa-iscsi-lif-fo-task.html["Basculement de LIF iSCSI pour les plateformes ASA"]
+
+
+
+La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*À partir de ONTAP 9.12.0, vous pouvez utiliser System Manager pour modifier une interface réseau*
+
+.Étapes
+. Sélectionnez *réseau > Présentation > interfaces réseau*.
+. Sélectionnez image:icon_kabob.gif["icône de kebob"] *> Modifier* en regard de l'interface réseau que vous souhaitez modifier.
+. Modifiez un ou plusieurs paramètres de l'interface réseau. Pour plus de détails, voir link:https://docs.netapp.com/us-en/ontap/networking/create_a_lif.html["Créer une LIF"].
+. Enregistrez les modifications.
+
+
+--
+.CLI
+--
+*Utilisez l'interface de ligne de commande pour modifier une LIF*
+
+.Étapes
+. Modifier les attributs d'une LIF à l'aide de `network interface modify` commande.
++
+L'exemple suivant montre comment modifier l'adresse IP et le masque de réseau de LIF datalif2 en utilisant une adresse IP et la valeur du masque de réseau de subnet client1_sub :
+
++
+....
+network interface modify -vserver vs1 -lif datalif2 -subnet-name client1_sub
+....
++
+L'exemple suivant montre comment modifier la politique de service d'une LIF.
+
++
+....
+network interface modify -vserver siteA -lif node1_inter1 -service-policy example
+....
+. Vérifiez que les adresses IP sont accessibles.
++
+|===
+
+
+| Si vous utilisez... | Puis utilisez... 
+
+
+ a| 
+Adresses IPv4
+ a| 
+`network ping`
+
+
+
+ a| 
+Adresses IPv6
+ a| 
+`network ping6`
+
+|===
+
+
+--
+====

@@ -1,0 +1,90 @@
+---
+permalink: san-admin/improve-vmware-vaai-performance-esx-hosts-concept.html 
+sidebar: sidebar 
+keywords: improve, vmware, vaai, performance, esx, hosts 
+summary: 'ONTAP prend en charge certaines API VMware vStorage pour l"intégration de baies (VAAI) lorsque l"hôte ESX exécute ESX 4.1 ou une version ultérieure. Ces fonctionnalités permettent de décharger l"hôte ESX vers le système de stockage et d"augmenter le débit du réseau. L"hôte ESX active ces fonctionnalités automatiquement dans l"environnement adéquat.' 
+---
+= Améliorer les performances VMware VAAI pour les hôtes ESX
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP prend en charge certaines API VMware vStorage pour l'intégration de baies (VAAI) lorsque l'hôte ESX exécute ESX 4.1 ou une version ultérieure. Ces fonctionnalités permettent de décharger l'hôte ESX vers le système de stockage et d'augmenter le débit du réseau. L'hôte ESX active ces fonctionnalités automatiquement dans l'environnement adéquat.
+
+La fonctionnalité VAAI prend en charge les commandes SCSI suivantes :
+
+* `EXTENDED_COPY`
++
+Cette fonctionnalité permet à l'hôte de lancer le transfert de données entre les LUN ou au sein d'une LUN sans impliquer l'hôte dans le transfert de données. Résultat : des économies sur les cycles de CPU ESX et une augmentation du débit réseau. La fonctionnalité de copie étendue, également appelée « copie auxiliaire », est utilisée dans les scénarios tels que le clonage d'une machine virtuelle. Lorsqu'elle est invoquée par l'hôte ESX, la fonctionnalité d'allègement de la charge de copie copie copie copie copie copie copie copie copie les données du système de stockage plutôt que de passer par le réseau hôte. L'allègement de la charge des copies transfère les données de l'une des manières suivantes :
+
++
+** Dans une LUN
+** Entre les LUN d'un volume
+** Entre des LUN sur des volumes différents au sein d'une machine virtuelle de stockage (SVM)
+** Entre des LUN situés sur des SVM différents dans un cluster si cette fonctionnalité ne peut pas être invoquée, l'hôte ESX utilise automatiquement les commandes de LECTURE et D'ÉCRITURE standard pour l'opération de copie.
+
+
+* `WRITE_SAME`
++
+Cette fonctionnalité décharge le travail d'écriture d'un modèle répété, tel que tous les zéros, vers une baie de stockage. L'hôte ESX utilise cette fonctionnalité lors d'opérations telles que le remplissage sans fichier.
+
+* `COMPARE_AND_WRITE`
++
+Cette fonctionnalité contourne certaines limites de simultanéité d'accès aux fichiers, ce qui accélère les opérations comme le démarrage des machines virtuelles.
+
+
+
+
+
+== Conditions d'utilisation de l'environnement VAAI
+
+Les fonctionnalités VAAI font partie du système d'exploitation ESX et sont automatiquement appelées par l'hôte ESX lors de la configuration de l'environnement approprié.
+
+Les exigences environnementales sont les suivantes :
+
+* L'hôte ESX doit exécuter ESX 4.1 ou version ultérieure.
+* Le système de stockage NetApp hébergeant le datastore VMware doit exécuter ONTAP.
+* (Copie auxiliaire uniquement) la source et la destination de l'opération de copie VMware doivent être hébergées sur le même système de stockage au sein du même cluster.
++
+[NOTE]
+====
+La fonctionnalité d'allègement de la charge des copies ne prend actuellement pas en charge la copie des données entre datastores VMware hébergés sur des systèmes de stockage différents.
+
+====
+
+
+
+
+== Déterminez si les fonctions VAAI sont prises en charge par ESX
+
+Pour vérifier si le système d'exploitation ESX prend en charge les fonctionnalités VAAI, vous pouvez vérifier le client vSphere ou utiliser tout autre moyen d'accéder à l'hôte. ONTAP prend en charge les commandes SCSI par défaut.
+
+Vous pouvez vérifier les paramètres avancés de votre hôte ESX pour déterminer si les fonctionnalités VAAI sont activées. Le tableau indique quelles commandes SCSI correspondent aux noms de contrôle ESX.
+
+[cols="2*"]
+|===
+| Commande SCSI | Nom du contrôle ESX (fonctionnalité VAAI) 
+
+
+ a| 
+COPIE ÉTENDUE
+ a| 
+`HardwareAcceleratedMove`
+
+
+
+ a| 
+WRITE_SAME
+ a| 
+`HardwareAcceleratedInit`
+
+
+
+ a| 
+COMPARER_ET_ÉCRIRE
+ a| 
+`HardwareAcceleratedLocking`
+
+|===

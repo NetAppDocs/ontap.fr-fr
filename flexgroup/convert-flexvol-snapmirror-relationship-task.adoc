@@ -1,0 +1,102 @@
+---
+permalink: flexgroup/convert-flexvol-snapmirror-relationship-task.html 
+sidebar: sidebar 
+keywords: convert, flexvol, volume, snapmirror, relation, flexgroup 
+summary: 'Pour convertir une relation SnapMirror volume FlexVol en une relation SnapMirror volume FlexGroup dans ONTAP, vous devez d"abord convertir le volume FlexVol de destination suivi du volume FlexVol source.' 
+---
+= Conversion d'une relation SnapMirror volume FlexVol en une relation SnapMirror volume FlexGroup
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour convertir une relation SnapMirror volume FlexVol en une relation SnapMirror volume FlexGroup dans ONTAP, vous devez d'abord convertir le volume FlexVol de destination suivi du volume FlexVol source.
+
+.Ce dont vous avez besoin, 8217;ll
+* Le volume FlexVol en cours de conversion doit être en ligne.
+* Le volume FlexVol source dans la relation SnapMirror ne doit pas être le volume source pour plusieurs relations SnapMirror.
++
+Les relations SnapMirror « Fan-Out » ne sont pas prises en charge pour les volumes FlexGroup.
+
+* Les opérations et les configurations du volume FlexVol doivent être compatibles avec le processus de conversion.
++
+Un message d'erreur est généré si le volume FlexVol présente une incompatibilité et que la conversion de volume est abandonnée. Vous pouvez effectuer des actions correctives et recommencer la conversion.
+
+
+
+La conversion FlexGroup est prise en charge uniquement pour les relations SnapMirror asynchrones.
+
+.Étapes
+. Vérifier que la relation SnapMirror est saine : `snapmirror show`
++
+Seules les relations miroir de type XDP peuvent être converties.
+
++
+[listing]
+----
+cluster2::> snapmirror show
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+vs0:src_dpv DP   vs2:dst_dpv  Snapmirrored
+                                      Idle           -         true    -
+vs0:src_xdp XDP  vs2:dst_xdp  Snapmirrored
+                                      Idle           -         true    -
+----
+. Vérifiez si le volume source est compatible pour la conversion :
++
+.. Connectez-vous au mode de privilège avancé : `set -privilege advanced`
+.. Vérifiez le processus de conversion : `volume conversion start -vserver vs1 -volume src_vol -check-only true`
++
+Vous devez corriger toutes les erreurs avant de convertir le volume.
+
+
+
+. Conversion du volume FlexVol de destination en volume FlexGroup
++
+.. Suspendre la relation FlexVol SnapMirror : `snapmirror quiesce -destination-path dest_svm:dest_volume`
++
+[listing]
+----
+cluster2::> snapmirror quiesce -destination-path vs2:dst_xdp
+----
+.. Lancer la conversion : `volume conversion start -vserver dest_svm -volume dest_volume`
++
+[listing]
+----
+cluster-1::> volume conversion start -vserver vs2 -volume dst_xdp
+
+Warning: After the volume is converted to a FlexGroup, it will not be possible
+to change it back to a flexible volume.
+Do you want to continue? {y|n}: y
+
+[Job 510] Job succeeded: SnapMirror destination volume "dst_xdp" has been successfully converted to a FlexGroup volume.
+You must now convert the relationship's source volume, "vs0:src_xdp", to a FlexGroup.
+Then, re-establish the SnapMirror relationship using the "snapmirror resync" command.
+----
+
+
+. Conversion du volume FlexVol source en volume FlexGroup : `volume conversion start -vserver src_svm_name -volume src_vol_name`
++
+[listing]
+----
+cluster-1::> volume conversion start -vserver vs0 -volume src_xdp
+
+Warning: Converting flexible volume "src_xdp" in Vserver "vs0" to a FlexGroup
+         will cause the state of all Snapshot copies from the volume to be set
+         to "pre-conversion". Pre-conversion Snapshot copies cannot be
+         restored.
+Do you want to continue? {y|n}: y
+[Job 57] Job succeeded: success
+----
+. Resynchroniser la relation : `snapmirror resync -destination-path dest_svm_name:dest_volume`
++
+[listing]
+----
+cluster2::> snapmirror resync -destination-path vs2:dst_xdp
+----
+
+
+Lorsque le volume FlexGroup source est étendu de manière à inclure davantage de composants, le volume de destination doit également être étendu.

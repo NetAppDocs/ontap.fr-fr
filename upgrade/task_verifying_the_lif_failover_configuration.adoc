@@ -1,0 +1,80 @@
+---
+permalink: upgrade/task_verifying_the_lif_failover_configuration.html 
+sidebar: sidebar 
+keywords: ontap, upgrade, verifying, verify, lif, failover, configuration 
+summary: 'Avant d"effectuer une mise à niveau, vous devez vérifier que les stratégies de basculement et les groupes de basculement sont correctement configurés.' 
+---
+= Vérification de la configuration du basculement de LIF
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant d'effectuer une mise à niveau, vous devez vérifier que les stratégies de basculement et les groupes de basculement sont correctement configurés.
+
+
+NOTE: Lors du processus de mise à niveau, les LIF sont migrées selon la méthode de mise à niveau. Selon la méthode de mise à niveau, la règle de basculement de LIF peut ou non être utilisée.
+
+Si le cluster contient au moins 8 nœuds, la mise à niveau automatisée est effectuée à l'aide de la méthode par lot. La méthode de mise à niveau par lot consiste à diviser le cluster en plusieurs lots, à mettre à niveau les nœuds du premier lot, à mettre à niveau leurs partenaires haute disponibilité (HA), puis à répéter le processus pour les autres lots. Dans ONTAP 9.7 et version antérieure, si la méthode de traitement par lots est utilisée, les LIF sont migrées vers le partenaire de haute disponibilité du nœud mis à niveau. Dans ONTAP 9.8 et version ultérieure, si la méthode de traitement par lots est utilisée, les LIF sont migrées vers l'autre groupe de batchs.
+
+Si votre cluster compte moins de 8 nœuds, la mise à niveau automatisée est effectuée à l'aide de la méthode de déploiement. La méthode de mise à niveau propagée implique de lancer une opération de basculement sur chaque nœud d'une paire HA, de mettre à jour le nœud en panne, de lancer un rétablissement, puis de répéter le processus pour chaque paire HA du cluster. Si la méthode de reprise est utilisée, les LIF sont migrées vers le nœud cible du basculement, tel que défini par la politique de basculement de LIF.
+
+. Afficher la politique de basculement pour chaque LIF de données :
++
+[cols="2*"]
+|===
+| Si votre version ONTAP est... | Utilisez cette commande 
+
+
+| 9.6 ou ultérieure  a| 
+`network interface show -service-policy data -failover`
+
+
+
+| 9.5 ou antérieure  a| 
+`network interface show -role data -failover`
+
+|===
++
+Cet exemple montre la configuration de basculement par défaut d'un cluster à deux nœuds avec deux LIF de données :
+
++
+[listing]
+----
+cluster1::> network interface show -role data -failover
+         Logical         Home                  Failover        Failover
+Vserver  Interface       Node:Port             Policy          Group
+-------- --------------- --------------------- --------------- ---------------
+vs0
+         lif0            node0:e0b             nextavail       system-defined
+                         Failover Targets: node0:e0b, node0:e0c,
+                                           node0:e0d, node0:e0e,
+                                           node0:e0f, node1:e0b,
+                                           node1:e0c, node1:e0d,
+                                           node1:e0e, node1:e0f
+vs1
+         lif1            node1:e0b             nextavail       system-defined
+                         Failover Targets: node1:e0b, node1:e0c,
+                                           node1:e0d, node1:e0e,
+                                           node1:e0f, node0:e0b,
+                                           node0:e0c, node0:e0d,
+                                           node0:e0e, node0:e0f
+----
++
+Le champ *Failover Targets* affiche une liste hiérarchisée de cibles de basculement pour chaque LIF. Par exemple, si lide0 bascule depuis son port domestique (e0b sur le nœud 0), il essaie d'abord de basculer vers le port e0c sur le nœud 0. Si lide0 ne peut pas basculer vers e0c, il tente ensuite de basculer vers le port e0d du noeud 0, etc.
+
+. Si la stratégie de basculement est définie sur désactivée pour toutes les LIF, autres que celles du SAN, utilisez la commande network interface modify pour activer le basculement.
+. Pour chaque LIF, vérifiez que le champ *Failover target* inclut des ports de données d'un nœud différent qui resteront actifs pendant la mise à niveau du nœud de rattachement de la LIF.
++
+Vous pouvez utiliser le `network interface failover-groups modify` commande permettant d'ajouter une cible de basculement au groupe de basculement.
+
++
+.Exemple
+[listing]
+----
+network interface failover-groups modify -vserver vs0 -failover-group fg1 -targets sti8-vsim-ucs572q:e0d,sti8-vsim-ucs572r:e0d
+----
+
+
+link:../networking/networking_reference.html["Gestion du réseau et des LIF"]

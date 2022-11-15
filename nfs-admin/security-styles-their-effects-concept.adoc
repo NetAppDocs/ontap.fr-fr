@@ -1,0 +1,61 @@
+---
+permalink: nfs-admin/security-styles-their-effects-concept.html 
+sidebar: sidebar 
+keywords: security, style, effect, unix, ntfs, mixed, unified 
+summary: 'Il existe quatre styles de sécurité différents : UNIX, NTFS, mixte et unifié. Chaque style de sécurité a un effet différent sur la façon dont les autorisations sont traitées pour les données. Vous devez comprendre les différents effets pour vous assurer que vous sélectionnez le style de sécurité approprié à vos fins.' 
+---
+= Quels sont les styles de sécurité et leurs effets
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Il existe quatre styles de sécurité différents : UNIX, NTFS, mixte et unifié. Chaque style de sécurité a un effet différent sur la façon dont les autorisations sont traitées pour les données. Vous devez comprendre les différents effets pour vous assurer que vous sélectionnez le style de sécurité approprié à vos fins.
+
+Il est important de comprendre que les styles de sécurité ne déterminent pas quels types de clients peuvent ou ne peuvent pas accéder aux données. Les styles de sécurité déterminent uniquement le type d'autorisations que ONTAP utilise pour contrôler l'accès aux données et le type de client pouvant modifier ces autorisations.
+
+Par exemple, si un volume utilise le style de sécurité UNIX, les clients SMB peuvent toujours accéder aux données (à condition qu'ils s'authentifient et autorisent correctement) en raison de la nature multiprotocole de ONTAP. Toutefois, ONTAP utilise des autorisations UNIX que seuls les clients UNIX peuvent modifier à l'aide d'outils natifs.
+
+[cols="5*"]
+|===
+| Style de sécurité | Clients pouvant modifier des autorisations | Autorisations que les clients peuvent utiliser | Un style de sécurité efficace | Clients pouvant accéder aux fichiers 
+
+
+.2+| UNIX .2+| NFS | Bits de mode NFSv3 .2+| UNIX .9+| NFS et SMB 
+
+
+| Listes de contrôle d'accès NFSv4.x 
+
+
+| NTFS | PME | ALC NTFS | NTFS 
+
+
+.3+| Mixte .3+| NFS ou SMB | Bits de mode NFSv3 .2+| UNIX 
+
+
+| ACL.NFSv4 
+
+
+| ALC NTFS | NTFS 
+
+
+.3+| Unifié (pour des volumes infinis uniquement, dans ONTAP 9.4 et les versions antérieures) .3+| NFS ou SMB | Bits de mode NFSv3 .2+| UNIX 
+
+
+| Listes de contrôle d'accès NFSv4.1 
+
+
+| ALC NTFS | NTFS 
+|===
+Les volumes FlexVol prennent en charge les styles de sécurité UNIX, NTFS et mixte. Lorsque le style de sécurité est mixte ou unifié, les autorisations effectives dépendent du type de client qui a modifié les autorisations pour la dernière fois, car les utilisateurs définissent le style de sécurité sur une base individuelle. Si le dernier client ayant modifié des autorisations était un client NFSv3, les autorisations sont des bits en mode UNIX NFSv3. Si le dernier client était un client NFSv4, les autorisations sont définies comme listes de contrôle d'accès NFSv4. Si le dernier client était un client SMB, les autorisations sont des listes de contrôle d'accès Windows NTFS.
+
+La méthode de sécurité unifiée est uniquement disponible avec des volumes infinis, qui ne sont plus pris en charge dans ONTAP 9.5 et versions ultérieures. Pour plus d'informations, voir xref:../flexgroup/index.html[Présentation de la gestion des volumes FlexGroup].
+
+Avec ONTAP 9.2, le `show-effective-permissions` paramètre au `vserver security file-directory` La commande vous permet d'afficher les autorisations effectives accordées à un utilisateur Windows ou UNIX sur le chemin d'accès au fichier ou au dossier spécifié. De plus, le paramètre facultatif `-share-name` vous permet d'afficher l'autorisation de partage effective.
+
+[NOTE]
+====
+ONTAP définit au départ certaines autorisations de fichier par défaut. Par défaut, le style de sécurité effectif sur toutes les données des volumes de style de sécurité UNIX, mixte et unifié est UNIX et le type d'autorisation effectif est bits de mode UNIX (0755 sauf indication contraire) jusqu'à ce qu'un client soit configuré comme autorisé par le style de sécurité par défaut. Par défaut, le style de sécurité effectif sur toutes les données des volumes de style de sécurité NTFS est NTFS et dispose d'une liste de contrôle d'accès permettant un contrôle total à tous.
+
+====

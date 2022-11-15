@@ -1,0 +1,489 @@
+---
+permalink: san-config/set-queue-depth-task.html 
+sidebar: sidebar 
+keywords: calculate, queue depth 
+summary: 'Vous devrez peut-être ajuster la profondeur de votre file d"attente FC sur l"hôte pour obtenir le maximum de valeurs pour les ITN par nœud et le « Fan-In » du port FC. Le nombre maximal de LUN et le nombre de HBA pouvant se connecter à un port FC sont limités par la profondeur de file d"attente disponible sur les ports FC target.' 
+---
+= Définissez la profondeur de file d'attente sur les hôtes SAN
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devrez peut-être modifier la profondeur des files d'attente sur votre hôte pour atteindre les valeurs maximales pour les ITN par nœud et le Fan-In du port FC.
+
+
+
+== Hôtes AIX
+
+Vous pouvez modifier la profondeur de la file d'attente sur les hôtes AIX à l'aide de l' `chdev` commande. Modifications effectuées à l'aide du `chdev` la commande persiste entre les redémarrages.
+
+Exemples :
+
+* Pour modifier la profondeur de la file d'attente pour le périphérique hdisk7, utilisez la commande suivante :
++
+`chdev -l hdisk7 -a queue_depth=32`
+
+* Pour modifier la profondeur de la file d'attente pour l'adaptateur HBA fcs0, utilisez la commande suivante :
++
+`chdev -l fcs0 -a num_cmd_elems=128`
+
++
+Valeur par défaut pour `num_cmd_elems` est 200. La valeur maximale est 2,048.
+
++
+[NOTE]
+====
+Il peut être nécessaire de mettre l'adaptateur HBA hors ligne pour le modifier `num_cmd_elems` puis le remettre en ligne à l'aide de `rmdev -l fcs0 -R` et `makdev -l fcs0 -P` commandes.
+
+====
+
+
+
+
+== Hôtes HP-UX
+
+Vous pouvez modifier la profondeur de la file d'attente des LUN ou des périphériques sur les hôtes HP-UX à l'aide du paramètre noyau `scsi_max_qdepth`. Vous pouvez modifier la profondeur de la file d'attente HBA à l'aide du paramètre du noyau `max_fcp_reqs`.
+
+* Valeur par défaut pour `scsi_max_qdepth` est 8. La valeur maximale est 255.
++
+`scsi_max_qdepth` peut être modifié de manière dynamique sur un système en cours d'exécution à l'aide du `-u` sur le `kmtune` commande. Ce changement sera effectif pour tous les périphériques du système. Par exemple, utilisez la commande suivante pour augmenter la profondeur de la file d'attente de LUN à 64 :
+
++
+`kmtune -u -s scsi_max_qdepth=64`
+
++
+Il est possible de modifier la profondeur de la file d'attente pour les fichiers de périphériques individuels à l'aide de l' `scsictl` commande. Modifications à l'aide du `scsictl` les commandes ne sont pas conservées d'un redémarrage système à l'autre. Pour afficher et modifier la profondeur de la file d'attente d'un fichier de périphérique particulier, exécutez la commande suivante :
+
++
+`scsictl -a /dev/rdsk/c2t2d0`
+
++
+`scsictl -m queue_depth=16 /dev/rdsk/c2t2d0`
+
+* Valeur par défaut pour `max_fcp_reqs` est 512. La valeur maximale est 1024.
++
+Le noyau doit être reconstruit et le système doit être redémarré pour que les modifications soient apportées à `max_fcp_reqs` pour prendre effet. Pour modifier la profondeur de la file d'attente HBA sur 256, par exemple, utilisez la commande suivante :
+
++
+`kmtune -u -s max_fcp_reqs=256`
+
+
+
+
+
+== Hôtes Solaris
+
+Vous pouvez définir la profondeur de la file d'attente des LUN et HBA pour vos hôtes Solaris.
+
+* Pour la profondeur de la file d'attente de LUN : le nombre de LUN utilisées sur un hôte multiplié par le papillon par LUN (lun-queue-depth) doit être inférieur ou égal à la valeur tgt-queue-depth sur l'hôte.
+* Pour la profondeur de file d'attente dans une pile Sun : les pilotes natifs ne permettent pas pour chaque LUN ou par cible `max_throttle` Paramètres au niveau de la carte HBA. La méthode recommandée pour le réglage du `max_throttle` La valeur pour les pilotes natifs est sur un niveau par type de périphérique (VID_PID) dans l' `/kernel/drv/sd.conf` et `/kernel/drv/ssd.conf` fichiers. L'utilitaire hôte définit cette valeur sur 64 pour les configurations MPxIO et sur 8 pour les configurations Veritas DMP.
+
+
+.Étapes
+. `# cd/kernel/drv`
+. `# vi lpfc.conf`
+. Recherchez `/tft-queue (/tgt-queue)`
++
+`tgt-queue-depth=32`
+
++
+[NOTE]
+====
+La valeur par défaut est 32 lors de l'installation.
+
+====
+. Définissez la valeur souhaitée en fonction de la configuration de votre environnement.
+. Enregistrez le fichier.
+. Redémarrez l'hôte à l'aide de `+sync; sync; sync; reboot -- -r+` commande.
+
+
+
+
+== Hôtes VMware pour un HBA QLogic
+
+Utilisez le `esxcfg-module` Commande permettant de modifier les paramètres de délai d'expiration de l'adaptateur HBA. Mise à jour manuelle du `esx.conf` le fichier n'est pas recommandé.
+
+.Étapes
+. Connectez-vous à la console de service en tant qu'utilisateur root.
+. Utilisez le `#vmkload_mod -l` Commande pour vérifier quel module HBA Qlogic est actuellement chargé.
+. Pour une seule instance d'un HBA Qlogic, exécutez la commande suivante :
++
+`#esxcfg-module -s ql2xmaxqdepth=64 qla2300_707`
+
++
+[NOTE]
+====
+Cet exemple utilise le module qla2300_707. Utilisez le module approprié en fonction de la sortie de `vmkload_mod -l`.
+
+====
+. Enregistrez vos modifications à l'aide de la commande suivante :
++
+`#/usr/sbin/esxcfg-boot -b`
+
+. Redémarrez le serveur à l'aide de la commande suivante :
++
+`#reboot`
+
+. Vérifiez les modifications à l'aide des commandes suivantes :
++
+.. `#esxcfg-module -g qla2300_707`
+.. `qla2300_707 enabled = 1 options = 'ql2xmaxqdepth=64'`
+
+
+
+
+
+
+== Hôtes VMware pour une carte HBA Emulex
+
+Utilisez le `esxcfg-module` Commande permettant de modifier les paramètres de délai d'expiration de l'adaptateur HBA. Mise à jour manuelle du `esx.conf` le fichier n'est pas recommandé.
+
+.Étapes
+. Connectez-vous à la console de service en tant qu'utilisateur root.
+. Utilisez le `#vmkload_mod -l grep lpfc` Commande pour vérifier quelle carte HBA Emulex est actuellement chargée.
+. Pour une seule instance d'un HBA Emulex, entrez la commande suivante :
++
+`#esxcfg-module -s lpfc0_lun_queue_depth=16 lpfcdd_7xx`
+
++
+[NOTE]
+====
+Selon le modèle de l'adaptateur HBA, le module peut être lpfcdd_7xx ou lpfcdd_732. La commande ci-dessus utilise le module lpfcdd_7xx. Vous devez utiliser le module approprié en fonction des résultats de `vmkload_mod -l`.
+
+====
++
+L'exécution de cette commande permet de définir la profondeur de la file d'attente de LUN sur 16 pour l'adaptateur HBA représenté par lpfc0.
+
+. Pour plusieurs instances d'un HBA Emulex, exécutez la commande suivante :
++
+`a esxcfg-module -s "lpfc0_lun_queue_depth=16 lpfc1_lun_queue_depth=16" lpfcdd_7xx`
+
++
+La profondeur de la file d'attente LUN pour lpfc0 et la profondeur de la file d'attente LUN pour lpfc1 est définie sur 16.
+
+. Saisissez la commande suivante :
++
+`#esxcfg-boot -b`
+
+. Redémarrez avec `#reboot`.
+
+
+
+
+== Hôtes Windows pour une carte HBA Emulex
+
+Sur les hôtes Windows, vous pouvez utiliser `LPUTILNT` Utilitaire de mise à jour de la profondeur de la file d'attente pour les HBA Emulex.
+
+.Étapes
+. Exécutez le `LPUTILNT` utilitaire situé dans le `C:\WINNT\system32` répertoire.
+. Sélectionnez *Paramètres de conduite* dans le menu à droite.
+. Faites défiler vers le bas et double-cliquez sur *QueueDepth*.
++
+[NOTE]
+====
+Si vous définissez *QueueDepth* supérieur à 150, la valeur suivante du Registre Windows doit également être augmentée de façon appropriée :
+
+`HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\lpxnds\Parameters\Device\NumberOfRequests`
+
+====
+
+
+
+
+== Hôtes Windows pour un HBA Qlogic
+
+Sur les hôtes Windows, vous pouvez utiliser l' et l' `SANsurfer` Utilitaire HBA Manager pour mettre à jour les profondeurs de file d'attente pour les HBA Qlogic.
+
+.Étapes
+. Exécutez le `SANsurfer` Utilitaire HBA Manager.
+. Cliquez sur *Port HBA* > *Paramètres*.
+. Cliquez sur *Paramètres avancés du port HBA* dans la zone de liste.
+. Mettez à jour le `Execution Throttle` paramètre.
+
+
+
+
+== Hôtes Linux pour HBA Emulex
+
+Vous pouvez mettre à jour les profondeurs de file d'attente d'une carte HBA Emulex sur un hôte Linux. Pour que les mises à jour soient conservées entre les redémarrages, vous devez ensuite créer une nouvelle image de disque RAM et redémarrer l'hôte.
+
+.Étapes
+. Identifiez les paramètres de profondeur de file d'attente à modifier :
++
+`modinfo lpfc|grep queue_depth`
+
++
+La liste des paramètres de profondeur de file d'attente avec leur description s'affiche. Selon la version de votre système d'exploitation, vous pouvez modifier un ou plusieurs des paramètres de profondeur de file d'attente suivants :
+
++
+** `lpfc_lun_queue_depth`: Nombre maximal de commandes FC pouvant être mises en file d'attente vers une LUN spécifique (uint)
+** `lpfc_hba_queue_depth`: Nombre maximal de commandes FC pouvant être mises en file d'attente dans un adaptateur Lpfc HBA (uint)
+** `lpfc_tgt_queue_depth`: Nombre maximal de commandes FC pouvant être mises en file d'attente sur un port cible spécifique (uint)
++
+Le `lpfc_tgt_queue_depth` Ce paramètre est uniquement applicable aux systèmes Red Hat Enterprise Linux 7.x, SUSE Linux Enterprise Server 11 SP4 et 12.x.
+
+
+
+. Mettez à jour les profondeurs de file d'attente en ajoutant les paramètres de profondeur de file d'attente au `/etc/modprobe.conf` Fichier pour un système Red Hat Enterprise Linux 5.x et vers `/etc/modprobe.d/scsi.conf` Fichier pour un système Red Hat Enterprise Linux 6.x ou 7.x, ou un système SUSE Linux Enterprise Server 11.x ou 12.x.
++
+Selon la version de votre système d'exploitation, vous pouvez ajouter une ou plusieurs des commandes suivantes :
+
++
+** `options lpfc lpfc_hba_queue_depth=new_queue_depth`
+** `options lpfc lpfc_lun_queue_depth=new_queue_depth`
+** `options lpfc_tgt_queue_depth=new_queue_depth`
+
+
+. Créez une nouvelle image de disque RAM, puis redémarrez l'hôte pour que les mises à jour soient conservées entre les redémarrages.
++
+Pour plus d'informations, reportez-vous à la section link:../system-admin/index.html["Administration du système"] Pour votre version du système d'exploitation Linux.
+
+. Vérifiez que les valeurs de profondeur de file d'attente sont mises à jour pour chaque paramètre de profondeur de file d'attente modifié :
++
+
+
++
+[listing]
+----
+root@localhost ~]#cat /sys/class/scsi_host/host5/lpfc_lun_queue_depth
+      30
+----
++
+La valeur actuelle de la profondeur de la file d'attente s'affiche.
+
+
+
+
+
+== Hôtes Linux pour QLogic HBA
+
+Vous pouvez mettre à jour la longueur de la file d'attente d'un pilote QLogic sur un hôte Linux. Pour que les mises à jour soient conservées entre les redémarrages, vous devez ensuite créer une nouvelle image de disque RAM et redémarrer l'hôte. Vous pouvez utiliser l'interface graphique de gestion du HBA QLogic ou l'interface de ligne de commande pour modifier la profondeur de la file d'attente HBA QLogic.
+
+Cette tâche montre comment utiliser la CLI QLogic HBA pour modifier la profondeur de la file d'attente HBA QLogic
+
+.Étapes
+. Identifiez le paramètre de profondeur de file d'attente de périphérique à modifier :
++
+`modinfo qla2xxx | grep ql2xmaxqdepth`
+
++
+Vous pouvez modifier uniquement le `ql2xmaxqdepth` Paramètre de profondeur de file d'attente, qui indique la profondeur maximale de file d'attente pouvant être définie pour chaque LUN. La valeur par défaut est 64 pour RHEL 7.5 et versions ultérieures. La valeur par défaut est 32 pour RHEL 7.4 et les versions antérieures.
+
++
+[listing]
+----
+root@localhost ~]# modinfo qla2xxx|grep ql2xmaxqdepth
+parm:       ql2xmaxqdepth:Maximum queue depth to set for each LUN. Default is 64. (int)
+----
+. Mettre à jour la valeur de profondeur de la file d'attente du périphérique :
++
+** Pour que les modifications persistent, procédez comme suit :
++
+... Mettez à jour les profondeurs de file d'attente en ajoutant le paramètre de profondeur de file d'attente au `/etc/modprobe.conf` Fichier pour un système Red Hat Enterprise Linux 5.x et vers `/etc/modprobe.d/scsi.conf` Fichier pour un système Red Hat Enterprise Linux 6.x ou 7.x, ou un système SUSE Linux Enterprise Server 11.x ou 12.x : `options qla2xxx ql2xmaxqdepth=new_queue_depth`
+... Créez une nouvelle image de disque RAM, puis redémarrez l'hôte pour que les mises à jour soient conservées entre les redémarrages.
++
+Pour plus d'informations, reportez-vous à la section link:../system-admin/index.html["Administration du système"] Pour votre version du système d'exploitation Linux.
+
+
+
+** Si vous souhaitez modifier le paramètre uniquement pour la session en cours, exécutez la commande suivante :
++
+`echo new_queue_depth > /sys/module/qla2xxx/parameters/ql2xmaxqdepth`
+
++
+Dans l'exemple suivant, la profondeur de la file d'attente est définie sur 128.
+
++
+[listing]
+----
+echo 128 > /sys/module/qla2xxx/parameters/ql2xmaxqdepth
+----
+
+
+. Vérifiez que les valeurs de profondeur de la file d'attente sont mises à jour :
++
+`cat /sys/module/qla2xxx/parameters/ql2xmaxqdepth`
+
++
+La valeur actuelle de la profondeur de la file d'attente s'affiche.
+
+. Modifiez la profondeur de la file d'attente HBA QLogic en mettant à jour le paramètre de micrologiciel `Execution Throttle` Du BIOS HBA QLogic.
++
+.. Connectez-vous à l'interface de ligne de commande de gestion QLogic HBA :
++
+`/opt/QLogic_Corporation/QConvergeConsoleCLI/qaucli`
+
+.. Dans le menu principal, sélectionnez `Adapter Configuration` option.
++
+[listing]
+----
+[root@localhost ~]# /opt/QLogic_Corporation/QConvergeConsoleCLI/qaucli
+Using config file: /opt/QLogic_Corporation/QConvergeConsoleCLI/qaucli.cfg
+Installation directory: /opt/QLogic_Corporation/QConvergeConsoleCLI
+Working dir: /root
+
+QConvergeConsole
+
+        CLI - Version 2.2.0 (Build 15)
+
+    Main Menu
+
+    1:  Adapter Information
+    **2:  Adapter Configuration**
+    3:  Adapter Updates
+    4:  Adapter Diagnostics
+    5:  Monitoring
+    6:  FabricCache CLI
+    7:  Refresh
+    8:  Help
+    9:  Exit
+
+
+        Please Enter Selection: 2
+----
+.. Dans la liste des paramètres de configuration de l'adaptateur, sélectionner le `HBA Parameters` option.
++
+[listing]
+----
+1:  Adapter Alias
+    2:  Adapter Port Alias
+    **3:  HBA Parameters**
+    4:  Persistent Names (udev)
+    5:  Boot Devices Configuration
+    6:  Virtual Ports (NPIV)
+    7:  Target Link Speed (iiDMA)
+    8:  Export (Save) Configuration
+    9:  Generate Reports
+   10:  Personality
+   11:  FEC
+(p or 0: Previous Menu; m or 98: Main Menu; ex or 99: Quit)
+        Please Enter Selection: 3
+----
+.. Dans la liste des ports HBA, sélectionnez le port HBA requis.
++
+[listing]
+----
+Fibre Channel Adapter Configuration
+
+    HBA Model QLE2562 SN: BFD1524C78510
+      1: Port   1: WWPN: 21-00-00-24-FF-8D-98-E0 Online
+      2: Port   2: WWPN: 21-00-00-24-FF-8D-98-E1 Online
+    HBA Model QLE2672 SN: RFE1241G81915
+      3: Port   1: WWPN: 21-00-00-0E-1E-09-B7-62 Online
+      4: Port   2: WWPN: 21-00-00-0E-1E-09-B7-63 Online
+
+
+        (p or 0: Previous Menu; m or 98: Main Menu; ex or 99: Quit)
+        Please Enter Selection: 1
+----
++
+Les détails du port HBA s'affichent.
+
+.. Dans le menu Paramètres HBA, sélectionner `Display HBA Parameters` option permettant d'afficher la valeur actuelle de l' `Execution Throttle` option.
++
+La valeur par défaut du `Execution Throttle` option 65535.
+
++
+[listing]
+----
+HBA Parameters Menu
+
+=======================================================
+HBA           : 2 Port: 1
+SN            : BFD1524C78510
+HBA Model     : QLE2562
+HBA Desc.     : QLE2562 PCI Express to 8Gb FC Dual Channel
+FW Version    : 8.01.02
+WWPN          : 21-00-00-24-FF-8D-98-E0
+WWNN          : 20-00-00-24-FF-8D-98-E0
+Link          : Online
+=======================================================
+
+    1:  Display HBA Parameters
+    2:  Configure HBA Parameters
+    3:  Restore Defaults
+
+
+        (p or 0: Previous Menu; m or 98: Main Menu; x or 99: Quit)
+        Please Enter Selection: 1
+--------------------------------------------------------------------------------
+HBA Instance 2: QLE2562 Port 1 WWPN 21-00-00-24-FF-8D-98-E0 PortID 03-07-00
+Link: Online
+--------------------------------------------------------------------------------
+Connection Options             : 2 - Loop Preferred, Otherwise Point-to-Point
+Data Rate                      : Auto
+Frame Size                     : 2048
+Hard Loop ID                   : 0
+Loop Reset Delay (seconds)     : 5
+Enable Host HBA BIOS           : Enabled
+Enable Hard Loop ID            : Disabled
+Enable FC Tape Support         : Enabled
+Operation Mode                 : 0 - Interrupt for every I/O completion
+Interrupt Delay Timer (100us)  : 0
+**Execution Throttle             : 65535**
+Login Retry Count              : 8
+Port Down Retry Count          : 30
+Enable LIP Full Login          : Enabled
+Link Down Timeout (seconds)    : 30
+Enable Target Reset            : Enabled
+LUNs Per Target                : 128
+Out Of Order Frame Assembly    : Disabled
+Enable LR Ext. Credits         : Disabled
+Enable Fabric Assigned WWN     : N/A
+
+Press <Enter> to continue:
+----
+.. Appuyez sur *entrée* pour continuer.
+.. Dans le menu Paramètres HBA, sélectionner `Configure HBA Parameters` Option permettant de modifier les paramètres HBA.
+.. Dans le menu configurer les paramètres, sélectionner `Execute Throttle` et mettez à jour la valeur de ce paramètre.
++
+[listing]
+----
+Configure Parameters Menu
+
+=======================================================
+HBA           : 2 Port: 1
+SN            : BFD1524C78510
+HBA Model     : QLE2562
+HBA Desc.     : QLE2562 PCI Express to 8Gb FC Dual Channel
+FW Version    : 8.01.02
+WWPN          : 21-00-00-24-FF-8D-98-E0
+WWNN          : 20-00-00-24-FF-8D-98-E0
+Link          : Online
+=======================================================
+
+    1:  Connection Options
+    2:  Data Rate
+    3:  Frame Size
+    4:  Enable HBA Hard Loop ID
+    5:  Hard Loop ID
+    6:  Loop Reset Delay (seconds)
+    7:  Enable BIOS
+    8:  Enable Fibre Channel Tape Support
+    9:  Operation Mode
+   10:  Interrupt Delay Timer (100 microseconds)
+   11:  Execution Throttle
+   12:  Login Retry Count
+   13:  Port Down Retry Count
+   14:  Enable LIP Full Login
+   15:  Link Down Timeout (seconds)
+   16:  Enable Target Reset
+   17:  LUNs per Target
+   18:  Enable Receive Out Of Order Frame
+   19:  Enable LR Ext. Credits
+   20:  Commit Changes
+   21:  Abort Changes
+
+
+        (p or 0: Previous Menu; m or 98: Main Menu; x or 99: Quit)
+        Please Enter Selection: 11
+Enter Execution Throttle [1-65535] [65535]: 65500
+----
+.. Appuyez sur *entrée* pour continuer.
+.. Dans le menu configurer les paramètres, sélectionner `Commit Changes` option pour enregistrer les modifications.
+.. Quitter le menu.
+
+
+

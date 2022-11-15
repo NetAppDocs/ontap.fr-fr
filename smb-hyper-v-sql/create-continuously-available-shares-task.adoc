@@ -1,0 +1,68 @@
+---
+permalink: smb-hyper-v-sql/create-continuously-available-shares-task.html 
+sidebar: sidebar 
+keywords: create, continuous, smb, available, share, sql, database, file, server, hyper, v, virtual, machine 
+summary: 'Une fois les volumes de données créés, vous pouvez créer les partages disponibles en continu que les serveurs d"applications utilisent pour accéder aux fichiers de la machine virtuelle et de configuration Hyper-V ainsi qu"aux fichiers de la base de données SQL Server. Vous devez utiliser la fiche de configuration du partage lors de la création des partages SMB.' 
+---
+= Créer des partages SMB disponibles en permanence
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une fois les volumes de données créés, vous pouvez créer les partages disponibles en continu que les serveurs d'applications utilisent pour accéder aux fichiers de la machine virtuelle et de configuration Hyper-V ainsi qu'aux fichiers de la base de données SQL Server. Vous devez utiliser la fiche de configuration du partage lors de la création des partages SMB.
+
+.Étapes
+. Afficher des informations sur les volumes de données existants et leurs Junction paths :
++
+`*volume show -vserver _vserver_name_ -junction*`
+
+. Créer un partage SMB disponible en continu :
++
+`*vserver cifs share create -vserver _vserver_name_ -share-name _share_name_ -path _path_ -share-properties oplocks,continuously-available -symlink "" [-comment text]*`
+
++
+** Vous pouvez éventuellement ajouter un commentaire à la configuration du partage.
+** Par défaut, la propriété de partage de fichiers hors ligne est configurée sur le partage et est définie sur `manual`.
+** ONTAP crée le partage avec l'autorisation de partage par défaut Windows de `Everyone` / `Full Control`.
+
+
+. Répétez l'étape précédente pour tous les partages de la fiche de configuration du partage.
+. Vérifiez que votre configuration est correcte à l'aide du `vserver cifs share show` commande.
+. Configurez les autorisations de fichiers NTFS sur les partages disponibles en permanence en mappant un lecteur sur chaque partage et en configurant les autorisations de fichiers à l'aide de la fenêtre *Propriétés Windows*.
+
+
+Les commandes suivantes créent un partage disponible en continu nommé « data2 » sur la machine virtuelle de stockage (SVM, précédemment appelé vServer) vs1. Les symlinks sont désactivés en définissant l' `-symlink` paramètre à `""`:
+
+[listing]
+----
+cluster1::> volume show -vserver vs1 -junction
+                      Junction                  Junction
+Vserver   Volume      Active   Junction Path    Path Source
+--------- ----------- -------- ---------------- ------------
+vs1       data        true     /data            RW_volume
+vs1       data1       true     /data/data1      RW_volume
+vs1       data2       true     /data/data2      RW_volume
+vs1       vs1_root    -        /                -
+
+cluster1::> vserver cifs share create -vserver vs1 -share-name data2 -path /data/data2 -share-properties oplocks,continuously-available -symlink ""
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data2
+
+                      Vserver: vs1
+                        Share: data2
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data/data2
+             Share Properties: oplocks
+                               continuously-available
+           Symlink Properties: -
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----

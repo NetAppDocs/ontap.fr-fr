@@ -1,0 +1,66 @@
+---
+permalink: smb-admin/grant-null-users-access-file-system-shares-task.html 
+sidebar: sidebar 
+keywords: access, storage, system, resource, null, session, client, assign, group, ip, adress, null, session, grant, grant null users access to file system shares 
+summary: 'Vous pouvez autoriser l"accès aux ressources de votre système de stockage par les clients de session null en attribuant un groupe à utiliser par les clients de session null et en enregistrant les adresses IP des clients de session null à ajouter à la liste des clients autorisés à accéder aux données à l"aide de sessions null du système de stockage.' 
+---
+= Accorder aux utilisateurs nuls l'accès aux partages de système de fichiers
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez autoriser l'accès aux ressources de votre système de stockage par les clients de session null en attribuant un groupe à utiliser par les clients de session null et en enregistrant les adresses IP des clients de session null à ajouter à la liste des clients autorisés à accéder aux données à l'aide de sessions null du système de stockage.
+
+.Étapes
+. Utilisez le `vserver name-mapping create` Commande permettant de mapper l'utilisateur null à un utilisateur Windows valide, avec un qualificateur IP.
++
+La commande suivante mappe l'utilisateur null à user1 avec un nom d'hôte valide google.com :
+
++
+[listing]
+----
+vserver name-mapping create –direction win-unix  -position 1 –pattern “ANONYMOUS LOGON” –replacement user1 – hostname google.com
+----
++
+La commande suivante mappe l'utilisateur null à utilisateur1 avec une adresse IP valide 10.238.2.54/32 :
+
++
+[listing]
+----
+vserver name-mapping create –direction win-unix  -position 2 –pattern “ANONYMOUS LOGON” –replacement user1 –address 10.238.2.54/32
+----
+. Utilisez le `vserver name-mapping show` commande pour confirmer le mappage de nom.
++
+[listing]
+----
+vserver name-mapping show
+
+Vserver:   vs1
+Direction: win-unix
+Position Hostname         IP Address/Mask
+-------- --------         ----------------
+1       -                 10.72.40.83/32      Pattern: anonymous logon
+                                          Replacement: user1
+----
+. Utilisez le `vserver cifs options modify –win-name-for-null-user` Commande permettant d'attribuer l'appartenance à Windows à l'utilisateur nul.
++
+Cette option est applicable uniquement lorsqu'il existe un mappage de nom valide pour l'utilisateur nul.
+
++
+[listing]
+----
+vserver cifs options modify -win-name-for-null-user user1
+----
+. Utilisez le `vserver cifs options show` Commande pour confirmer le mappage de l'utilisateur null à l'utilisateur ou au groupe Windows.
++
+[listing]
+----
+vserver cifs options show
+
+Vserver :vs1
+
+Map Null User to Windows User of Group: user1
+----
+

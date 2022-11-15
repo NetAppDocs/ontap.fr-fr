@@ -1,0 +1,45 @@
+---
+permalink: smb-admin/case-sensitivity-file-directory-multiprotocol-concept.html 
+sidebar: sidebar 
+keywords: file, directory, name, case-sensitive, nfs, client, case-preserving, preserve, implication, multiprotocol, environment, action, case-sensitivity of file and directory names in a multiprotocol environment 
+summary: 'Les noms de fichiers et de répertoires sont sensibles à la casse pour les clients NFS et non sensibles à la casse, mais ils préservent la casse pour les clients SMB. Vous devez comprendre les implications dans un environnement multiprotocole et les actions nécessaires lorsque vous spécifiez le chemin lors de la création des partages SMB et lors de l"accès aux données au sein des partages.' 
+---
+= Sensibilité à la casse des noms de fichiers et de répertoires dans un environnement multiprotocole
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les noms de fichiers et de répertoires sont sensibles à la casse pour les clients NFS et non sensibles à la casse, mais ils préservent la casse pour les clients SMB. Vous devez comprendre les implications dans un environnement multiprotocole et les actions nécessaires lorsque vous spécifiez le chemin lors de la création des partages SMB et lors de l'accès aux données au sein des partages.
+
+Si un client SMB crée un répertoire nommé `testdir`, Les clients SMB et NFS affichent le nom de fichier comme `testdir`. Toutefois, si un utilisateur SMB tente par la suite de créer un nom de répertoire `TESTDIR`, Le nom n'est pas autorisé car, pour le client SMB, ce nom existe actuellement. Si un utilisateur NFS crée par la suite un répertoire nommé `TESTDIR`, Les clients NFS et SMB affichent le nom du répertoire différemment, comme suit :
+
+* Sur les clients NFS, vous voyez les deux noms de répertoire tels qu'ils ont été créés, par exemple `testdir` et `TESTDIR`, car les noms de répertoire sont sensibles à la casse.
+* Les clients SMB utilisent les 8.3 noms pour faire la distinction entre les deux répertoires. Un répertoire porte le nom du fichier de base. Un nom de fichier 8.3 est attribué aux répertoires supplémentaires.
++
+** Sur les clients SMB, vous voyez `testdir` et `TESTDI~1`.
+** ONTAP crée le `TESTDI~1` nom du répertoire pour différencier les deux répertoires.
++
+Dans ce cas, vous devez utiliser le nom 8.3 lorsque vous spécifiez un chemin de partage lors de la création ou de la modification d'un partage sur un SVM (Storage Virtual machine).
+
+
+
+
+
+De la même manière pour les fichiers, si un client SMB crée `test.txt`, Les clients SMB et NFS affichent le nom de fichier comme `text.txt`. Toutefois, si un utilisateur SMB tente par la suite de le créer `Test.txt`, Le nom n'est pas autorisé car, pour le client SMB, ce nom existe actuellement. Si un utilisateur NFS crée par la suite un fichier nommé `Test.txt`, Les clients NFS et SMB affichent le nom de fichier différemment, comme suit :
+
+* Sur les clients NFS, les deux noms de fichiers sont ceux qu'ils ont créés, `test.txt` et `Test.txt`, car les noms de fichiers sont sensibles à la casse.
+* Les clients SMB utilisent les 8.3 noms pour distinguer les deux fichiers. Un fichier porte le nom du fichier de base. Un nom de fichier 8.3 est attribué aux fichiers supplémentaires.
++
+** Sur les clients SMB, vous voyez `test.txt` et `TEST~1.TXT`.
+** ONTAP crée le `TEST~1.TXT` nom de fichier pour différencier les deux fichiers.
+
+
+
+
+[NOTE]
+====
+Si vous avez activé ou modifié le mappage de caractères à l'aide des commandes Vserver CIFS Character-mapping, une recherche Windows sensible à la casse devient normalement sensible à la casse.
+
+====

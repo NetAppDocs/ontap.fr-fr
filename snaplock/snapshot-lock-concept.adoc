@@ -1,0 +1,68 @@
+---
+permalink: snaplock/snapshot-lock-concept.html 
+sidebar: sidebar 
+keywords: snaplock, snapshot copy, lock, tamperproof 
+summary: Depuis ONTAP 9.12.1, vous pouvez verrouiller une copie Snapshot sur un volume non SnapLock pour vous protéger des attaques par ransomware. Le verrouillage des copies Snapshot permet de ne pas être supprimé accidentellement ou accidentellement. 
+---
+= Présentation du verrouillage de copie Snapshot inviolable
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.12.1, vous pouvez verrouiller une copie Snapshot sur un volume non SnapLock pour vous protéger des attaques par ransomware. Le verrouillage des copies Snapshot permet de ne pas les supprimer accidentellement ou accidentellement.
+
+La fonction horloge de conformité de SnapLock vous permet de verrouiller les copies Snapshot pendant une période spécifiée, de sorte qu'elles ne puissent pas être supprimées tant que l'heure d'expiration n'est pas atteinte. Le verrouillage des copies Snapshot est inviolable, ce qui les protège contre les menaces de ransomware. Vous pouvez utiliser des copies Snapshot verrouillées pour récupérer des données si un volume est compromis par une attaque par ransomware.
+
+
+
+== Exigences et considérations relatives à la non-conformité des copies Snapshot
+
+* Tous les nœuds du cluster doivent exécuter ONTAP 9.12.1 ou une version ultérieure.
+* La licence SnapLock doit être installée sur le cluster.
++
+Pour plus de détails, voir link:https://docs.netapp.com/us-en/ontap/snaplock/install-license-task.html["Installation de la licence SnapLock"]
+
+* L'horloge de conformité sur le cluster doit être initialisée.
++
+Pour plus de détails, voir link:https://docs.netapp.com/us-en/ontap/snaplock/initialize-complianceclock-task.html["Initialiser l'horloge de conformité"]
+
+* Lorsque le verrouillage Snapshot est activé sur un volume, vous pouvez mettre à niveau les clusters vers une version d'ONTAP ultérieure à ONTAP 9.12.1 ; Cependant, vous ne pouvez pas revenir à une version antérieure de ONTAP tant que toutes les copies Snapshot verrouillées n'ont pas atteint leur date d'expiration. Elles sont supprimées et le verrouillage des copies Snapshot est désactivé.
+* Lorsqu'un snapshot est verrouillé, la durée d'expiration du volume est définie sur la date d'expiration de la copie Snapshot. Si plusieurs copies Snapshot sont verrouillées, la durée d'expiration du volume correspond au délai d'expiration le plus important de toutes les copies Snapshot.
+* La période de conservation des copies Snapshot verrouillées est prioritaire sur le nombre de copies Snapshot conservées. En d'autres termes, la limite de conservation des copies Snapshot n'est pas respectée si la période de conservation des copies Snapshot verrouillées n'a pas expiré.
+* Dans une relation SnapMirror, vous pouvez définir une période de conservation sur une règle de stratégie de copie en miroir et la période de conservation est appliquée aux copies Snapshot répliquées vers la destination si le volume de destination est activé pour le verrouillage des copies Snapshot. La période de conservation est prioritaire sur le nombre de copies. Par exemple, les copies Snapshot qui n'ont pas dépassé leur expiration seront conservées même si le nombre de copies à conserver est dépassé.
+* Vous pouvez renommer une copie Snapshot sur un volume non SnapLock. Les opérations de renommage de snapshot sur le volume principal d'une relation SnapMirror sont reflétées sur le volume secondaire uniquement si la règle est MirrorAllsnapshots. Pour les autres types de règles, la copie Snapshot renommée n'est pas propagée lors des mises à jour.
+* Vous pouvez restaurer une copie Snapshot verrouillée avec le `volume snapshot restore` Commande uniquement si la copie Snapshot verrouillée est la plus récente. Si des copies Snapshot non expirées sont présentes dans la suite de la restauration, l'opération de restauration de copie Snapshot échoue.
+
+
+
+
+== Fonctionnalités prises en charge par les copies Snapshot inviolables
+
+* Volumes FlexGroup
++
+Le verrouillage des copies Snapshot est pris en charge sur les volumes FlexGroup. Le verrouillage des snapshots n'a lieu que sur la copie Snapshot du composant racine. La suppression du volume FlexGroup n'est autorisée que si la durée d'expiration du composant racine est passée.
+
+* Conversion FlexVol en FlexGroup
++
+Vous pouvez convertir un volume FlexVol avec des copies Snapshot verrouillées en un volume FlexGroup. Les copies Snapshot restent verrouillées après la conversion.
+
+* FabricPool
++
+Le verrouillage des copies Snapshot est pris en charge sur les volumes FabricPool uniquement si les blocs non placés dans le Tier cloud et que la règle de Tiering est définie sur « none ». Lorsque la fonction de verrouillage des copies Snapshot est activée, la définition de la stratégie de hiérarchisation sur le volume sur une règle autre que « none » n'est pas autorisée.
+
+
+
+
+
+== Fonctions non prises en charge
+
+Les fonctionnalités suivantes ne sont actuellement pas prises en charge par les copies Snapshot inviolables :
+
+* Groupes de cohérence
+* Volumes FlexCache
+* Bande SMtape
+* Continuité de l'activité SnapMirror (SM-BC)
+* SnapMirror synchrone
+

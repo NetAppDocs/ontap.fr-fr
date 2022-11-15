@@ -1,0 +1,60 @@
+---
+permalink: encryption-at-rest/assign-authentication-keys-seds-onboard-task.html 
+sidebar: sidebar 
+keywords: assign, data, authentication, key, fips, drive, sed, onboard, key, management 
+summary: 'Vous pouvez utiliser la commande Storage Encryption disk modify pour attribuer une clé d"authentification de données à un lecteur FIPS ou SED. Les nœuds de cluster utilisent cette clé pour accéder aux données du disque.' 
+---
+= Attribution d'une clé d'authentification des données à un lecteur FIPS ou SED (gestion des clés intégrée)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser le `storage encryption disk modify` Commande permettant d'attribuer une clé d'authentification de données à un lecteur FIPS ou SED. Les nœuds de cluster utilisent cette clé pour accéder aux données du disque.
+
+Vous devez être un administrateur de cluster pour effectuer cette tâche.
+
+Un disque à chiffrement automatique est protégé contre tout accès non autorisé uniquement si son ID de clé d'authentification est défini sur une valeur autre que celle par défaut. L'ID sécurisé du fabricant (MSID), qui possède l'ID de clé 0x0, est la valeur par défaut standard des lecteurs SAS. Pour les disques NVMe, la valeur standard par défaut est une clé nulle, représentée sous forme d'ID de clé vierge. Lorsque vous attribuez l'ID de clé à un disque auto-crypté, le système remplace son ID de clé d'authentification par une valeur autre que celle par défaut.
+
+.Étapes
+. Attribuez une clé d'authentification de données à un lecteur FIPS ou SED :
++
+`storage encryption disk modify -disk _disk_ID_ -data-key-id _key_ID_`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+[NOTE]
+====
+Vous pouvez utiliser le `security key-manager key query -key-type NSE-AK` Commande permettant d'afficher les ID de clés.
+
+====
++
+[listing]
+----
+cluster1::> storage encryption disk modify -disk 0.10.* -data-key-id 0000000000000000020000000000010019215b9738bc7b43d4698c80246db1f4
+
+Info: Starting modify on 14 disks.
+      View the status of the operation by using the
+      storage encryption disk show-status command.
+----
+. Vérifiez que les clés d'authentification ont été attribuées :
++
+`storage encryption disk show`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+[listing]
+----
+cluster1::> storage encryption disk show
+Disk    Mode Data Key ID
+-----   ---- ----------------------------------------------------------------
+0.0.0   data 0000000000000000020000000000010019215b9738bc7b43d4698c80246db1f4
+0.0.1   data 0000000000000000020000000000010059851742AF2703FC91369B7DB47C4722
+[...]
+----
+

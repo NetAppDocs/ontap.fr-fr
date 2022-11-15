@@ -1,0 +1,99 @@
+---
+permalink: smb-admin/statistics-monitor-automatic-node-referral-task.html 
+sidebar: sidebar 
+keywords: smb, connection, refer, monitor, automatic, node, referral, extent, locating, locate, host, redistribute, lif, local, access, cifs, use statistics to monitor automatic node referral activity 
+summary: 'Pour déterminer le nombre de connexions SMB mentionnées, vous pouvez surveiller l"activité de renvoi automatique des nœuds à l"aide de la commande statistics. En surveillant les référencements, vous pouvez déterminer dans quelle mesure les référencements automatiques localise des connexions sur des nœuds hébergeant les partages et si vous devez redistribuer vos LIFs de données pour fournir un meilleur accès local aux partages sur le serveur CIFS.' 
+---
+= Utilisez les statistiques pour surveiller l'activité de renvoi automatique des nœuds
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour déterminer le nombre de connexions SMB mentionnées, vous pouvez surveiller l'activité de renvoi automatique des nœuds à l'aide du `statistics` commande. En surveillant les référencements, vous pouvez déterminer dans quelle mesure les référencements automatiques localise des connexions sur des nœuds hébergeant les partages et si vous devez redistribuer vos LIFs de données pour fournir un meilleur accès local aux partages sur le serveur CIFS.
+
+Le `cifs` Objet fournit plusieurs compteurs au niveau de privilèges avancés qui sont utiles lors du suivi des référencements automatiques des nœuds SMB :
+
+* `node_referral_issued`
++
+Nombre de clients ayant été aiguillage vers le nœud racine du partage après que le client ait connecté via une LIF hébergée par un nœud différent du nœud racine du partage.
+
+* `node_referral_local`
++
+Nombre de clients connectés via une LIF hébergée par le même nœud qui héberge la racine du partage. L'accès local offre généralement des performances optimales.
+
+* `node_referral_not_possible`
++
+Nombre de clients qui n'ont pas été aiguillage vers le nœud hébergeant la racine du partage après connexion à une LIF hébergée par un nœud différent du nœud racine du partage. En effet, une LIF de données actives pour le nœud racine du partage n'a pas été trouvée.
+
+* `node_referral_remote`
++
+Nombre de clients connectés via une LIF hébergée par un nœud différent du nœud qui héberge la racine du partage. L'accès à distance peut affecter les performances.
+
+
+
+Vous pouvez surveiller les statistiques de référence automatique des nœuds sur votre SVM en collectant et en affichant les données d'une période donnée (échantillon). Vous pouvez afficher les données de l'échantillon si vous n'arrêtez pas la collecte de données. L'arrêt de la collecte de données vous donne un échantillon fixe. L'option ne pas arrêter la collecte de données vous permet d'obtenir des données mises à jour que vous pouvez utiliser pour comparer à des requêtes précédentes. La comparaison peut vous aider à identifier les tendances en matière de performances.
+
+[NOTE]
+====
+Pour évaluer et utiliser les informations que vous recueillez à partir du `statistics` command, vous devez comprendre la distribution des clients dans vos environnements.
+
+====
+.Étapes
+. Définissez le niveau de privilège sur avancé : `set -privilege advanced`
+. Afficher les statistiques de référence de nœud automatique à l'aide du `statistics` commande.
++
+Cet exemple affiche les statistiques d'aiguillage automatique des nœuds en recueillant et en visualisant les données d'une période d'échantillonnage :
+
++
+.. Lancez la collection : `statistics start -object cifs -instance vs1 -sample-id sample1`
++
+[listing]
+----
+Statistics collection is being started for Sample-id: sample1
+----
+.. Attendez que le délai de collecte souhaité s'écoule.
+.. Arrêter la collection : `statistics stop -sample-id sample1`
++
+[listing]
+----
+Statistics collection is being stopped for Sample-id: sample1
+----
+.. Afficher les statistiques de référence automatique des nœuds : `statistics show -sample-id sample1 -counter *node*`
++
+[listing]
+----
+Object: cifs
+Instance: vs1
+Start-time: 2/4/2013 19:27:02
+End-time: 2/4/2013 19:30:11
+Cluster: cluster1
+
+    Counter                                             Value
+    ----------------------------- ---------------------------
+    node_name                                          node1
+    node_referral_issued                                    0
+    node_referral_local                                     1
+    node_referral_not_possible                              2
+    node_referral_remote                                    2
+    ...
+
+    node_name                                          node2
+    node_referral_issued                                    2
+    node_referral_local                                     1
+    node_referral_not_possible                              0
+    node_referral_remote                                    2
+    ...
+----
++
+Le résultat affiche des compteurs pour tous les nœuds participant au SVM vs1. Pour plus de clarté, seuls les champs de sortie liés aux statistiques de renvoi automatique de nœud sont fournis dans l'exemple.
+
+
+
+. Retour au niveau de privilège admin : `set -privilege admin`
+
+
+xref:display-statistics-task.adoc[Affichage des statistiques]
+
+link:../performance-config/index.html["Configuration du contrôle des performances"]

@@ -1,0 +1,69 @@
+---
+permalink: s3-audit/index.html 
+sidebar: sidebar 
+keywords: S3, audit, management events 
+summary: Cet article explique comment auditer les événements de gestion et de données dans des environnements ONTAP S3. 
+---
+= Audit des événements S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.10.1, vous pouvez auditer les événements de gestion et de données dans des environnements ONTAP S3. La fonctionnalité d'audit S3 est similaire aux fonctionnalités d'audit NAS existantes, et l'audit S3 et NAS peut coexister dans un cluster.
+
+Lorsque vous créez et activez une configuration d'audit S3 sur un SVM, les événements S3 sont enregistrés dans un fichier journal. Vous pouvez spécifier les événements suivants à enregistrer :
+
+* Événements d'accès aux objets (données)
++
+GetObject, PutObject et DeleteObject
+
+* Les événements de gestion
++
+PutBucket et DeleteBucket
+
+
+
+Le format du journal est JavaScript Object notation (JSON).
+
+La limite combinée des configurations d'audit S3 et NFS est de 50 SVM par cluster.
+
+Le pack de licences suivant est requis :
+
+* Bundle de base pour le protocole et le stockage ONTAP S3
+
+
+Pour plus d'informations, voir link:../nas-audit/auditing-process-concept.html["Fonctionnement du processus d'audit ONTAP"].
+
+
+
+== Audit garanti
+
+Par défaut, l'audit S3 et NAS est garanti. ONTAP garantit l'enregistrement de tous les événements d'accès au compartiment vérifiables, même si un nœud est indisponible. Une opération de compartiment demandée ne peut être effectuée qu'une fois l'enregistrement d'audit pour cette opération enregistré dans le volume intermédiaire du stockage persistant. Si les enregistrements d'audit ne peuvent pas être archivés dans les fichiers de transfert, soit en raison d'un espace insuffisant, soit en raison d'autres problèmes, les opérations du client sont refusées.
+
+
+
+== Besoins en espace pour l'audit
+
+Dans le système d'audit ONTAP, les enregistrements d'audit sont initialement stockés dans des fichiers intermédiaires binaires sur des nœuds individuels. Ils sont régulièrement consolidés et convertis en journaux d'événements lisibles par l'utilisateur, qui sont stockés dans le répertoire du journal des événements d'audit de la SVM.
+
+Les fichiers de sauvegarde sont stockés dans un volume de sauvegarde dédié, qui est créé par ONTAP lors de la création de la configuration d'audit. Il existe un volume intermédiaire par agrégat.
+
+Vous devez prévoir suffisamment d'espace disponible dans la configuration d'audit :
+
+* Pour les volumes intermédiaires dans des agrégats contenant des compartiments audités.
+* Pour le volume contenant le répertoire dans lequel les journaux d'événements convertis sont stockés.
+
+
+Vous pouvez contrôler le nombre de journaux d'événements et donc l'espace disponible dans le volume à l'aide de l'une des deux méthodes suivantes lors de la création de la configuration d'audit S3 :
+
+* Une limite numérique ; le `-rotate-limit` paramètre contrôle le nombre minimal de fichiers d'audit qui doivent être conservés.
+* Une limite de temps ; le `-retention-duration` paramètre contrôle la période maximale pendant laquelle les fichiers peuvent être conservés.
+
+
+Dans les deux paramètres, une fois que la configuration est dépassée, les fichiers d'audit plus anciens peuvent être supprimés afin de faire place à des fichiers plus récents. Pour les deux paramètres, la valeur est 0, ce qui indique que tous les fichiers doivent être conservés. Afin de garantir un espace suffisant, il est donc recommandé de définir un des paramètres sur une valeur non nulle.
+
+En raison de l'audit garanti, si l'espace disponible pour les données d'audit s'exécute avant la limite de rotation, des données d'audit plus récentes ne peuvent pas être créées, ce qui entraîne une incapacité des clients à accéder aux données. Par conséquent, le choix de cette valeur et de l'espace alloué à l'audit doit être soigneusement choisi, et vous devez répondre aux avertissements concernant l'espace disponible du système d'audit.
+
+Pour plus d'informations, voir link:../nas-audit/basic-auditing-concept.html["Concepts d'audit de base"].

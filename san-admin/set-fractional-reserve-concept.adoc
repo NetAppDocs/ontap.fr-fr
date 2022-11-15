@@ -1,0 +1,66 @@
+---
+permalink: san-admin/set-fractional-reserve-concept.html 
+sidebar: sidebar 
+keywords: considerations, setting, fractional, reserve 
+summary: 'La réserve fractionnaire de remplacement, également appelée « réserve de remplacement de LUN », permet de désactiver la réserve de remplacements pour les LUN et les fichiers réservés aux espaces dans un volume FlexVol. Cela peut vous aider à optimiser l"utilisation du stockage, mais si votre environnement est affecté par des opérations d"écriture qui échouent à cause du manque d"espace, vous devez comprendre les exigences de cette configuration.' 
+---
+= Considérations relatives à la définition de la réserve fractionnaire
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La réserve fractionnaire de remplacement, également appelée _LUN Overwrite Reserve_, permet de désactiver la réserve de remplacements pour les LUN et les fichiers réservés à l'espace dans un volume FlexVol. Cela peut vous aider à optimiser l'utilisation du stockage, mais si votre environnement est affecté par des opérations d'écriture qui échouent à cause du manque d'espace, vous devez comprendre les exigences de cette configuration.
+
+Le paramètre de réserve fractionnaire est exprimé sous forme de pourcentage ; les seules valeurs valides sont `0` et `100` pour cent. Le paramètre de réserve fractionnaire est un attribut du volume.
+
+Définition de la réserve fractionnaire sur `0` meilleure exploitation du stockage. Cependant, une application qui accède aux données d'un volume peut subir une interruption de service des données si son espace est insuffisant, même avec la garantie du volume définie sur `volume`. Toutefois, grâce à une configuration et à une utilisation appropriées du volume, vous pouvez réduire les risques d'échec des écritures. ONTAP propose une garantie d'écriture « meilleur effort » pour les volumes dont la réserve fractionnaire est définie sur `0` lorsque _tous_ des conditions suivantes sont remplies :
+
+* La déduplication n'est pas utilisée
+* La compression n'est pas utilisée
+* Les sous-fichiers FlexClone ne sont pas utilisés
+* Tous les fichiers FlexClone et les LUN FlexClone sont activés pour la suppression automatique
++
+Ce n'est pas le paramètre par défaut. Vous devez explicitement activer la suppression automatique lors de sa création ou en modifiant le fichier FlexClone ou la LUN après sa création.
+
+* ODX et l'allègement de la charge des copies FlexClone ne sont pas utilisés
+* La garantie du volume est définie sur `volume`
+* La réservation d'espace fichier ou LUN est `enabled`
+* La réserve Snapshot du volume est définie sur `0`
+* La suppression automatique de la copie Snapshot du volume est `enabled` avec un niveau d'engagement de `destroy`, une liste de destruction de `lun_clone,vol_clone,cifs_share,file_clone,sfsr`, et un déclencheur de `volume`
++
+Ce paramètre permet également de s'assurer que les fichiers FlexClone et les LUN FlexClone sont supprimés lorsque nécessaire.
+
+
+
+Notez que si le taux de modification est élevé, dans de rares cas, la suppression automatique de la copie Snapshot peut se situer derrière et que l'espace du volume est insuffisant, même si tous les paramètres de configuration ci-dessus sont utilisés.
+
+Vous avez également la possibilité d'utiliser la fonctionnalité de croissance automatique de volumes pour réduire la probabilité de suppression automatique des copies Snapshot de volumes. Si vous activez la capacité de croissance automatique, vous devez surveiller l'espace libre dans l'agrégat associé. Si l'agrégat devient suffisamment complet que le volume n'a pas pu croître, la quantité de copies Snapshot sera probablement supprimée lorsque l'espace libre dans le volume est épuisé.
+
+Si vous ne pouvez pas remplir l'ensemble des conditions ci-dessus et que vous devez vous assurer que l'espace du volume est insuffisant, vous devez définir le paramètre de réserve fractionnaire du volume sur `100`. Cela nécessite davantage d'espace disponible à l'avance, mais garantit que les opérations de modification des données réussiront même si les technologies répertoriées ci-dessus sont en cours d'utilisation.
+
+La valeur par défaut et les valeurs autorisées pour le paramètre de réserve fractionnaire dépendent de la garantie du volume :
+
+[cols="3*"]
+|===
+| Garantie de volume | Réserve fractionnaire par défaut | Valeurs autorisées 
+
+
+ a| 
+Volumétrie
+ a| 
+100
+ a| 
+0, 100
+
+
+
+ a| 
+Aucune
+ a| 
+0
+ a| 
+0, 100
+
+|===

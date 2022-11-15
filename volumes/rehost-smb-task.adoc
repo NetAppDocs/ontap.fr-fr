@@ -1,0 +1,83 @@
+---
+permalink: volumes/rehost-smb-task.html 
+sidebar: sidebar 
+keywords: rehost, cifs volumes 
+summary: Vous pouvez réhébergement de volumes qui traitent des données via le protocole SMB. Après avoir réhébergement du volume CIFS, pour continuer à accéder aux données sur le protocole SMB, vous devez configurer manuellement les règles et les règles associées. 
+---
+= Réhébergement de volumes CIFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez réhébergement de volumes qui traitent des données via le protocole SMB. Après avoir réhébergement du volume CIFS, pour continuer à accéder aux données sur le protocole SMB, vous devez configurer manuellement les règles et les règles associées.
+
+.Ce dont vous avez besoin, 8217;ll
+* Le volume doit être en ligne.
+* Les opérations de gestion de volumes, telles que le déplacement de volumes ou de LUN, ne doivent pas être en cours d'exécution.
+* L'accès aux données au volume qui est réhébergé doit être arrêté.
+* La configuration des services de nom et de commutateur ns-switch du SVM cible doit être configurée pour prendre en charge l'accès aux données du volume de réhébergement.
+* Le SVM source et le SVM de destination doivent avoir le même domaine Active Directory et realmDNS.
+* L'ID utilisateur et l'ID groupe du volume doivent être disponibles dans le SVM cible ou modifiés sur le volume d'hébergement.
++
+[NOTE]
+====
+Si des utilisateurs et des groupes locaux sont configurés et si des fichiers et des répertoires sont présents sur ce volume avec des autorisations définies pour ces utilisateurs ou groupes, ces autorisations ne sont plus effectives.
+
+====
+
+
+.Description de la tâche
+* Le réhébergement représente aussi une opération disruptive.
+* En cas d'échec de l'opération de réhébergement, vous devrez peut-être reconfigurer les stratégies de volume et les règles associées sur le volume source.
+* Si les domaines Active Directory du SVM source et du SVM cible sont différents, il est possible que l'accès aux objets du volume soit perdu.
+* Lorsque le SVM source possède des utilisateurs et des groupes locaux, les autorisations pour les fichiers et répertoires (ACL) définis ne sont plus effectives après l'opération de réhébergement de volume.
++
+Il en va de même pour les listes de contrôle d'accès d'audit (CLS)
+
+* Une fois le réhébergement, les règles, règles et configurations de volume suivantes perdues du volume source et doivent être reconfigurées manuellement sur le volume rehébergé :
++
+** Règles d'exportation de volumes et de qtrees
+** Politiques antivirus
+** Règle d'efficacité du volume
+** Règles de qualité de services
+** Règles relatives aux snapshots
+** Règles de quotas
+** règle et règles d'exportation de la configuration des services de noms et de commutateur ns
+** ID d'utilisateur et de groupe
+
+
+
+
+.Étapes
+. Enregistrez des informations sur les partages CIFS pour éviter de perdre des informations sur les partages CIFS en cas d'échec de l'opération de réhébergement de volume.
+. Démontez le volume du volume parent :
++
+`volume unmount`
+
+. Basculer vers le niveau de privilège avancé :
++
+`set -privilege advanced`
+
+. Réhébergement « volume » sur le SVM de destination :
++
+`volume rehost -vserver source_svm -volume vol_name -destination-vserver destination_svm`
+
+. Monter le volume sous la Junction path appropriée dans le SVM de destination :
++
+`volume mount`
+
+. Créer des partages CIFS pour le volume réhébergé :
++
+`vserver cifs share create`
+
+. Si les domaines DNS diffèrent entre le SVM source et le SVM de destination, créer de nouveaux utilisateurs et groupes.
+. Mettre à jour le client CIFS avec les nouvelles LIFs du SVM de destination et Junction path vers le volume rehébergé.
+
+
+Vous devez reconfigurer manuellement les stratégies et les règles associées sur le volume réhébergé.
+
+https://docs.netapp.com/us-en/ontap-sm-classic/smb-config/index.html["Configuration SMB"]
+
+https://docs.netapp.com/us-en/ontap-sm-classic/nas-multiprotocol-config/index.html["Configuration multiprotocole SMB et NFS"]

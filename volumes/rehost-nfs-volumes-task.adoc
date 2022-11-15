@@ -1,0 +1,80 @@
+---
+permalink: volumes/rehost-nfs-volumes-task.html 
+sidebar: sidebar 
+keywords: rehost, nfs, volumes 
+summary: Vous pouvez réhébergement de volumes qui fournissent des données sur le protocole NFS. Après avoir réhébergement les volumes NFS, pour continuer à accéder aux données sur le protocole NFS, vous devez associer le volume à la export policy du SVM hôte et configurer manuellement les règles et les règles associées. 
+---
+= Réhébergement de volumes NFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez réhébergement de volumes qui fournissent des données sur le protocole NFS. Après avoir réhébergement les volumes NFS, pour continuer à accéder aux données sur le protocole NFS, vous devez associer le volume à la export policy du SVM hôte et configurer manuellement les règles et les règles associées.
+
+.Ce dont vous avez besoin, 8217;ll
+* Le volume doit être en ligne.
+* Les opérations de gestion de volumes, telles que les déplacements de volumes ou de LUN, ne doivent pas être en cours d'exécution.
+* L'accès aux données au volume qui est réhébergé doit être arrêté.
+* La configuration des services de nom et de commutateur ns-switch du SVM cible doit être configurée pour prendre en charge l'accès aux données du volume de réhébergement.
+* L'ID utilisateur et l'ID groupe du volume doivent être disponibles dans le SVM cible ou modifiés sur le volume d'hébergement.
+
+
+.Description de la tâche
+* Le réhébergement représente aussi une opération disruptive.
+* En cas d'échec de l'opération de réhébergement, vous devrez peut-être reconfigurer les stratégies de volume et les règles associées sur le volume source.
+* Une fois le réhébergement, les règles, règles et configurations de volume suivantes perdues du volume source et doivent être reconfigurées manuellement sur le volume rehébergé :
++
+** Règles d'exportation de volumes et de qtrees
+** Politiques antivirus
+** Règle d'efficacité du volume
+** Règles de qualité de services
+** Règles relatives aux snapshots
+** Règles de quotas
+** règle et règles d'exportation de la configuration des services de noms et de commutateur ns
+** ID d'utilisateur et de groupe
+
+
+
+
+.Étapes
+. Enregistrez des informations sur les règles d'exportation NFS pour éviter de perdre des informations sur les règles NFS en cas d'échec de l'opération de réhébergement de volume.
+. Démontez le volume du volume parent :
++
+`volume unmount`
+
+. Basculer vers le niveau de privilège avancé :
++
+`set -privilege advanced`
+
+. Réhébergement « volume » sur le SVM de destination :
++
+`volume rehost -vserver source_svm -volume vol_name -destination-vserver destination_svm`
+
++
+La export policy par défaut du SVM de destination est appliquée au volume réhébergé.
+
+. Création de la export policy :
++
+`vserver export-policy create`
+
+. Mettre à jour les export policy du volume réhébergé vers une export policy définie par l'utilisateur :
++
+`volume modify`
+
+. Monter le volume sous la Junction path appropriée dans le SVM de destination :
++
+`volume mount`
+
+. Vérifier que le service NFS s'exécute sur le SVM de destination.
+. Reprenez l'accès NFS au volume hébergé.
+. Mettre à jour les identifiants du client NFS et les configurations LIF pour refléter les LIFs du SVM de destination.
++
+En effet, les chemins d'accès aux volumes (LIF et Junction path) ont subi des changements.
+
+
+
+Vous devez reconfigurer manuellement les stratégies et les règles associées sur le volume réhébergé.
+
+https://docs.netapp.com/us-en/ontap-sm-classic/nfs-config/index.html["Configuration NFS"]

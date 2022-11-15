@@ -1,0 +1,58 @@
+---
+permalink: system-admin/sp-bmc-network-config-concept.html 
+sidebar: sidebar 
+keywords: consideration, sp, bmc, network, configuration, cluster, level, disable, configuration 
+summary: 'Vous pouvez activer une configuration réseau automatique au niveau du cluster pour le processeur de service (recommandé). Vous pouvez également désactiver la configuration réseau automatique du processeur de service (par défaut) et gérer manuellement la configuration réseau du processeur de service au niveau du nœud. Il existe quelques considérations pour chaque cas.' 
+---
+= Considérations relatives à la configuration réseau SP/BMC
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez activer une configuration réseau automatique au niveau du cluster pour le processeur de service (recommandé). Vous pouvez également désactiver la configuration réseau automatique du processeur de service (par défaut) et gérer manuellement la configuration réseau du processeur de service au niveau du nœud. Il existe quelques considérations pour chaque cas.
+
+[NOTE]
+====
+Cette rubrique s'applique à la fois au processeur de service et au contrôleur BMC.
+
+====
+La configuration réseau automatique du processeur de service permet au processeur de service d'utiliser les ressources d'adresse (y compris l'adresse IP, le masque de sous-réseau et l'adresse de passerelle) du sous-réseau spécifié pour configurer automatiquement son réseau. Grâce à la configuration réseau automatique du processeur de service, vous n'avez pas besoin d'attribuer manuellement des adresses IP au processeur de service de chaque nœud. Par défaut, la configuration réseau automatique du processeur de service est désactivée, car l'activation de la configuration nécessite que le sous-réseau soit d'abord défini dans le cluster.
+
+Si vous activez la configuration réseau automatique du processeur de service, les scénarios et considérations suivants s'appliquent :
+
+* Si le processeur de service n'a jamais été configuré, le réseau du processeur de service est configuré automatiquement en fonction du sous-réseau spécifié pour la configuration réseau automatique du processeur de service.
+* Si le processeur de service a déjà été configuré manuellement, ou si la configuration réseau du processeur de service existante est basée sur un autre sous-réseau, le réseau SP de tous les nœuds du cluster est reconfiguré en fonction du sous-réseau que vous spécifiez dans la configuration réseau automatique du processeur de service.
++
+La reconfiguration peut affecter une autre adresse au processeur de service, ce qui peut avoir un impact sur votre configuration DNS et sa capacité à résoudre les noms d'hôtes du processeur de service. Par conséquent, vous devrez peut-être mettre à jour votre configuration DNS.
+
+* Un nœud qui rejoint le cluster utilise le sous-réseau spécifié pour configurer automatiquement son réseau SP.
+* Le `system service-processor network modify` La commande ne vous permet pas de modifier l'adresse IP du processeur de service.
++
+Lorsque la configuration réseau automatique du processeur de service est activée, la commande ne vous permet que d'activer ou de désactiver l'interface réseau du processeur de service.
+
++
+** Si la configuration réseau automatique du processeur de service était auparavant activée, la désactivation de l'interface réseau du processeur de service entraîne la libération de la ressource d'adresse attribuée et son renvoi au sous-réseau.
+** Si vous désactivez l'interface réseau du processeur de service, puis le réactivez, il est possible que le processeur de service soit reconfiguré à une adresse différente.
+
+
+
+
+Si la configuration réseau automatique du processeur de service est désactivée (par défaut), les scénarios et considérations suivants s'appliquent :
+
+* Si le processeur de service n'a jamais été configuré, la configuration réseau IPv4 du processeur de service utilise par défaut DHCP IPv4 et IPv6 est désactivé.
++
+Un nœud qui rejoint le cluster utilise également le DHCP IPv4 pour sa configuration réseau du processeur de service par défaut.
+
+* Le `system service-processor network modify` Commande vous permet de configurer l'adresse IP du processeur de service d'un nœud.
++
+Un message d'avertissement apparaît lorsque vous tentez de configurer manuellement le réseau du processeur de service avec des adresses allouées à un sous-réseau. Si vous ignorez l'avertissement et que vous procédez à l'attribution manuelle d'adresse, vous risquez d'entraîner un scénario avec des adresses en double.
+
+
+
+Si la configuration réseau automatique du processeur de service est désactivée après avoir été activée précédemment, les scénarios et considérations suivants s'appliquent :
+
+* Si la configuration réseau automatique du processeur de service possède la famille d'adresses IPv4 désactivée, le réseau IPv4 du processeur de service utilise par défaut DHCP, et le `system service-processor network modify` La commande vous permet de modifier la configuration IPv4 du processeur de service pour les nœuds individuels.
+* Si la famille d'adresses IPv6 est désactivée dans la configuration réseau automatique du processeur de service, le réseau IPv6 du processeur de service est également désactivé et le `system service-processor network modify` Vous permet d'activer et de modifier la configuration IPv6 du processeur de service pour les nœuds individuels.
+

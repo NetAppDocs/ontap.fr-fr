@@ -1,0 +1,107 @@
+---
+sidebar: sidebar 
+permalink: networking/migrate_a_lif.html 
+keywords: move the lif, change lif port, migrate a lif, migrate a LIF to a different port on the same node or a different node within the cluster 
+summary: Migrer une LIF vers un autre port sur le même nœud ou vers un autre nœud du cluster 
+---
+= Migrer un LIF
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Vous pouvez avoir à migrer une LIF vers un autre port du même nœud ou d'un autre nœud du cluster, si le port est défectueux ou nécessite une maintenance. La migration d'une LIF est similaire au basculement de LIF, mais la migration de LIF est une opération manuelle, tandis que le basculement de LIF est la migration automatique d'une LIF en réponse à une défaillance de liaison sur le port réseau actuel du LIF.
+
+.Avant de commencer
+* Un failover group doit avoir été configuré pour les LIFs.
+* Le nœud et les ports de destination doivent être opérationnels et doivent pouvoir accéder au même réseau que le port source.
+
+
+.Description de la tâche
+* Les LIF BGP résident sur le port de rattachement et ne peuvent pas être migrées vers un autre nœud ou port.
+* Vous devez migrer les LIFs hébergées sur les ports appartenant à une carte réseau vers d'autres ports du cluster, avant de retirer la carte réseau du nœud.
+* Vous devez exécuter la commande pour migrer une LIF de cluster à partir du nœud sur lequel la LIF de cluster est hébergée.
+* Un LIF node-scoped, tel qu'une LIF node-scoped management, cluster LIF, intercluster LIF, ne peut pas être migré vers un nœud distant.
+* Lorsqu'une LIF NFSv4 est migrée entre les nœuds, un délai de 45 secondes peut atteindre les résultats avant que la LIF ne soit disponible sur un nouveau port.
++
+Pour contourner ce problème, utilisez NFSv4.1 en cas de retard.
+
+* Vous pouvez migrer des LIF iSCSI sur toutes les plateformes ASA (SAN Array) qui exécutent ONTAP 9.11.1 ou une version ultérieure.
++
+La migration des LIF iSCSI est limitée aux ports du nœud de rattachement ou du partenaire de haute disponibilité.
+
++
+Vous pouvez également utiliser System Manager pour migrer les LIF iSCSI.link:../san-admin/asa-iscsi-lif-fo-task.html["Basculement de LIF iSCSI pour les plateformes ASA"]
+
+* Si votre plate-forme n'est pas une plate-forme ASA (All SAN Array) exécutant ONTAP version 9.11.1 ou ultérieure, vous ne pouvez pas migrer les LIF iSCSI d'un nœud vers un autre.
++
+Pour contourner cette restriction, vous devez créer une LIF iSCSI sur le nœud de destination. Pour plus d'informations sur les instructions de création d'une LIF iSCSI, reportez-vous à link:../san-admin/index.html["Administration SAN"^].
+
+* Si vous souhaitez migrer une LIF (interface réseau) pour NFS sur RDMA, vous devez vous assurer que le port de destination est compatible RoCE. Vous devez exécuter ONTAP 9.10.1 ou version ultérieure pour migrer une LIF avec l'interface de ligne de commandes ou ONTAP 9.12.1 pour effectuer la migration à l'aide de System Manager. Dans System Manager, une fois que vous avez sélectionné votre port de destination compatible RoCE, vous devez cocher la case en regard de *utiliser les ports RoCE* pour terminer la migration. Pour plus d'informations, reportez-vous à la section xref:../nfs-rdma/configure-lifs-task.html[Configuration des LIF pour NFS sur RDMA].
+* Les opérations de déchargement des copies VMware VAAI échouent lors de la migration du LIF source ou de destination. Pour plus d'informations sur VMware VAAI, voir http://docs.netapp.com/ontap-9/topic/com.netapp.doc.cdot-famg-nfs/GUID-39C8E616-EAE8-46A4-881A-87C4B8421281.html["Référence NFS"^] ou http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-sanag/GUID-D97EE182-9068-4BD8-A3BF-F5C458303740.html["Administration SAN"^].
+
+
+La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Utilisez System Manager pour migrer une interface réseau*
+
+.Étapes
+. Sélectionnez *réseau > Présentation > interfaces réseau*.
+. Sélectionnez image:icon_kabob.gif["icône de kebob"] *> migration* en regard de l'interface réseau que vous souhaitez modifier.
+. Enregistrez les modifications.
+
+
+--
+.CLI
+--
+*Utilisez l'interface de ligne de commande pour migrer une LIF*
+
+Selon que vous souhaitez migrer une LIF ou toutes les LIF, effectuez l'action appropriée :
+
+[cols="30,70"]
+|===
+
+
+| Pour migrer... | Saisissez la commande suivante... 
+
+
+ a| 
+Une LIF spécifique
+ a| 
+`network interface migrate`
+
+
+
+ a| 
+Toutes les LIF de gestion des données et du cluster sur un nœud
+ a| 
+`network interface migrate-all`
+
+
+
+ a| 
+Toutes les LIFs hors d'un port
+ a| 
+`network interface migrate-all -node <node> -port <port>`
+
+|===
+L'exemple suivant montre comment migrer une LIF nommée `datalif1` Sur le SVM `vs0` vers le port `e0d` marche `node0b`:
+
+....
+network interface migrate -vserver vs0 -lif datalif1 -dest-node node0b -dest-port e0d
+....
+L'exemple suivant montre comment migrer toutes les LIFs de données et cluster-management depuis le nœud actuel (local) :
+
+....
+network interface migrate-all -node local
+....
+--
+====

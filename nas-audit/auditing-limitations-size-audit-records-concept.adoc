@@ -1,0 +1,54 @@
+---
+permalink: nas-audit/auditing-limitations-size-audit-records-concept.html 
+sidebar: sidebar 
+keywords: limitations, size, audit records, stage files 
+summary: 'La taille d"un enregistrement d"audit sur un fichier temporaire ne peut pas être supérieure à 32 Ko.' 
+---
+= Restrictions quant à la taille des enregistrements d'audit sur les fichiers intermédiaires
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La taille d'un enregistrement d'audit sur un fichier temporaire ne peut pas être supérieure à 32 Ko.
+
+
+
+== Lorsque de grands enregistrements d'audit peuvent se produire
+
+De grands enregistrements d'audit peuvent se produire lors de l'audit de gestion dans l'un des scénarios suivants :
+
+* Ajout ou suppression d'utilisateurs à ou à partir de groupes comportant un grand nombre d'utilisateurs.
+* Ajout ou suppression d'une liste de contrôle d'accès de partage de fichiers (ACL) sur un partage de fichiers avec un grand nombre d'utilisateurs de partage de fichiers.
+* Autres scénarios.
+
+
+Désactivez l'audit de gestion pour éviter ce problème. Pour ce faire, modifiez la configuration de l'audit et supprimez ce qui suit de la liste des types d'événements d'audit :
+
+* partage de fichiers
+* compte utilisateur
+* groupe-de-sécurité
+* autorisation-stratégie-modification
++
+Après suppression, ils ne seront pas audités par le sous-système d'audit des services de fichiers.
+
+
+
+
+
+== Les effets des enregistrements d'audit trop importants
+
+* Si la taille d'un enregistrement d'audit est trop importante (plus de 32 Ko), l'enregistrement d'audit n'est pas créé et le sous-système d'audit génère un message de système de gestion des événements (EMS) similaire à ce qui suit :
++
+`File Services Auditing subsystem failed the operation or truncated an audit record because it was greater than max_audit_record_size value. Vserver UUID=%s, event_id=%u, size=%u`
+
++
+Si l'audit est garanti, l'opération de fichier échoue car son enregistrement d'audit ne peut pas être créé.
+
+* Si la taille de l'enregistrement d'audit est supérieure à 9,999 octets, le même message EMS est affiché. Un enregistrement d'audit partiel est créé avec une valeur de clé plus élevée manquante.
+* Si l'enregistrement d'audit dépasse 2,000 caractères, le message d'erreur suivant s'affiche au lieu de la valeur réelle :
++
+`The value of this field was too long to display.`
+
+

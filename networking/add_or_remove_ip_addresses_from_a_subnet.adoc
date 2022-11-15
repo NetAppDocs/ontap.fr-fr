@@ -1,0 +1,89 @@
+---
+sidebar: sidebar 
+permalink: networking/add_or_remove_ip_addresses_from_a_subnet.html 
+keywords: adding, add, create, creating, remove, removing, delete, deleting, ip, internet, protocol, address, addresses, subnet, add or remove ip addresses from a subnet, force update lif associations, network subnet add ranges, network subnet remove ranges 
+summary: 'Ajoutez des adresses IP lors de la création d"un sous-réseau ou ajoutez ou supprimez des adresses IP dans un sous-réseau sortant' 
+---
+= Ajoutez ou supprimez des adresses IP d'un sous-réseau
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Vous pouvez ajouter des adresses IP lors de la création initiale d'un sous-réseau ou ajouter des adresses IP à un sous-réseau existant déjà. Vous pouvez également supprimer les adresses IP d'un sous-réseau existant. Cela vous permet d'allouer uniquement les adresses IP requises pour les SVM.
+
+La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*À partir de ONTAP 9.12.0, vous pouvez utiliser System Manager pour ajouter ou supprimer des adresses IP vers ou depuis un sous-réseau*
+
+.Étapes
+. Sélectionnez *réseau > Présentation > sous-réseaux*.
+. Sélectionnez image:icon_kabob.gif["icône de kebob"] *> Modifier* en regard du sous-réseau que vous souhaitez modifier.
+. Ajoutez ou supprimez des adresses IP.
+. Enregistrez les modifications.
++
+.. Si l'adresse IP ou la plage saisie est déjà utilisée par une interface, le message suivant s'affiche :
+`An IP address in this range is already in use by a LIF. Associate the LIF with this subnet?`
+.. Lorsque vous cliquez sur *OK*, la LIF existante est associée au sous-réseau.
+
+
+
+
+--
+.CLI
+--
+*Utilisez l'interface de ligne de commande pour ajouter ou supprimer des adresses IP vers ou depuis un sous-réseau*
+
+Lors de l'ajout d'adresses IP, une erreur se produit si un processeur de service ou une interface réseau utilise les adresses IP de la plage ajoutée. Si vous souhaitez associer des interfaces adressées manuellement au sous-réseau actuel, vous pouvez définir le `-force-update-lif-associations` option à `true`.
+
+Lors de la suppression d'adresses IP, une erreur s'affiche si un processeur de service ou une interface réseau utilise les adresses IP en cours de suppression. Si vous souhaitez que les interfaces continuent à utiliser les adresses IP après leur suppression du sous-réseau, vous pouvez définir le `-force-update-lif-associations` option à `true`.
+
+Ajout ou suppression d'adresses IP d'un sous-réseau :
+
+[cols="30,70"]
+|===
+
+
+| Les fonctions que vous recherchez... | Utilisez cette commande... 
+
+
+ a| 
+Ajoutez des adresses IP à un sous-réseau
+ a| 
+plages d'extension de sous-réseau
+
+
+
+ a| 
+Supprimez les adresses IP d'un sous-réseau
+ a| 
+plages de suppression du sous-réseau
+
+|===
+Pour plus d'informations sur ces commandes, consultez les pages de manuels.
+
+La commande suivante ajoute les adresses IP 192.0.2.82 à 192.0.2.85 au sous-réseau 1 :
+
+....
+network subnet add-ranges -subnet-name <sub1> -ip-ranges <192.0.2.82-192.0.2.85>
+....
+La commande suivante supprime l'adresse IP 198.51.100.9 du sous-réseau 3 :
+
+....
+network subnet remove-ranges -subnet-name <sub3> -ip-ranges <198.51.100.9>
+....
+Si la plage actuelle comprend 1 à 10 et 20 à 40 et que vous voulez ajouter 11 à 19 et 41 à 50 (en autorisant 1 à 50), vous pouvez chevaucher la plage d'adresses existante à l'aide de la commande suivante. Cette commande ajoute uniquement les nouvelles adresses, sans affecter les adresses existantes :
+
+....
+network subnet add-ranges -subnet-name <sub3> -ip-ranges <198.51.10.1-198.51.10.50>
+....
+--
+====

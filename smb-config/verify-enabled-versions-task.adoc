@@ -1,0 +1,65 @@
+---
+permalink: smb-config/verify-enabled-versions-task.html 
+sidebar: sidebar 
+keywords: ontap, release, smb, version, enable, default, connection, client, domain, controller, controller, verify, support, functionality, environment, verify enabled smb versions 
+summary: Votre version de ONTAP 9 détermine quelles versions de SMB sont activées par défaut pour les connexions avec les clients et les contrôleurs de domaine. Vérifiez que le serveur SMB prend en charge les clients et les fonctionnalités requis dans votre environnement. 
+---
+= Vérifiez les versions SMB activées
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Votre version de ONTAP 9 détermine quelles versions de SMB sont activées par défaut pour les connexions avec les clients et les contrôleurs de domaine. Vérifiez que le serveur SMB prend en charge les clients et les fonctionnalités requis dans votre environnement.
+
+Pour les connexions avec les clients et les contrôleurs de domaine, vous devez activer SMB 2.0 et versions ultérieures autant que possible. Pour des raisons de sécurité, évitez d'utiliser SMB 1.0 et désactivez-le si vous avez vérifié qu'il n'est pas nécessaire dans votre environnement.
+
+Dans ONTAP 9, SMB version 2.0 et ultérieure est activé par défaut pour les connexions client, mais la version de SMB 1.0 activée par défaut dépend de votre version de ONTAP.
+
+* Depuis la version ONTAP 9.1 P8, SMB 1.0 peut être désactivé sur les SVM.
++
+Le `-smb1-enabled` à la `vserver cifs options modify` La commande active ou désactive SMB 1.0.
+
+* Depuis ONTAP 9.3, il est désactivé par défaut sur les nouveaux SVM.
+
+
+Si votre serveur SMB se trouve dans un domaine Active Directory (AD), vous pouvez activer SMB 2.0 pour vous connecter à un contrôleur de domaine (DC), à partir de ONTAP 9.1. Cela est nécessaire si vous avez désactivé SMB 1.0 sur DCS. Depuis ONTAP 9.2, SMB 2.0 est activé par défaut pour les connexions CC.
+
+[NOTE]
+====
+Si `-smb1-enabled-for-dc-connections` est défini sur `false` pendant `-smb1-enabled` est défini sur `true`, ONTAP refuse les connexions SMB 1.0 en tant que client, mais continue à accepter les connexions SMB 1.0 entrantes en tant que serveur.
+
+====
+link:../smb-admin/index.html["Gestion SMB"] Le contient des détails sur les versions et fonctionnalités SMB prises en charge.
+
+.Étapes
+. Définissez le niveau de privilège sur avancé : `set -privilege advanced`
+. Vérifiez les versions SMB activées : `vserver cifs options show`
++
+Vous pouvez faire défiler la liste pour afficher les versions SMB activées pour les connexions client et si vous configurez un serveur SMB dans un domaine AD, pour les connexions de domaine AD.
+
+. Activez ou désactivez le protocole SMB pour les connexions client si nécessaire :
++
+** Pour activer une version SMB : `vserver cifs options modify -vserver vserver_name smb_version true`
+** Pour désactiver une version SMB : `vserver cifs options modify -vserver vserver_name smb_version false`Valeurs possibles pour `smb_version`:
+** `-smb1-enabled`
+** `-smb2-enabled`
+** `-smb3-enabled`
+** `-smb31-enabled`La commande suivante active SMB 3.1 sur le SVM vs1.example.com :
+
+
++
+[listing]
+----
+
+cluster1::*> vserver cifs options modify -vserver vs1.example.com -smb31-enabled true
+----
+. Si votre serveur SMB se trouve dans un domaine Active Directory, activez ou désactivez le protocole SMB pour les connexions DC selon les besoins :
++
+** Pour activer une version SMB : `vserver cifs security modify -vserver vserver_name -smb2-enabled-for-dc-connections true`
+** Pour désactiver une version SMB : `vserver cifs security modify -vserver vserver_name -smb2-enabled-for-dc-connections false`
+
+
+. Retour au niveau de privilège admin : `set -privilege admin`
+

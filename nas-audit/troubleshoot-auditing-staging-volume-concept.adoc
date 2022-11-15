@@ -1,0 +1,83 @@
+---
+permalink: nas-audit/troubleshoot-auditing-staging-volume-concept.html 
+sidebar: sidebar 
+keywords: troubleshoot, audit, stage, volume space, issues 
+summary: 'Des problèmes peuvent survenir lorsqu"il n"y a pas suffisamment d"espace sur les volumes d"activation ou sur le volume contenant les journaux d"événements d"audit. Si l"espace est insuffisant, les nouveaux enregistrements d"audit ne peuvent pas être créés, ce qui empêche les clients d"accéder aux données et les demandes d"accès échouent. Vous devez savoir comment résoudre ces problèmes d"espace de volume.' 
+---
+= Dépanner les problèmes d'espace des volumes liés à l'audit et au staging
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Des problèmes peuvent survenir lorsqu'il n'y a pas suffisamment d'espace sur les volumes d'activation ou sur le volume contenant les journaux d'événements d'audit. Si l'espace est insuffisant, les nouveaux enregistrements d'audit ne peuvent pas être créés, ce qui empêche les clients d'accéder aux données et les demandes d'accès échouent. Vous devez savoir comment résoudre ces problèmes d'espace de volume.
+
+
+
+== Résolution des problèmes d'espace liés aux volumes du journal des événements
+
+Si les volumes contenant des fichiers journaux d'événements sont à court d'espace, l'audit ne peut pas convertir les enregistrements de journal en fichiers journaux. Cela entraîne des échecs d'accès client. Vous devez savoir comment résoudre les problèmes d'espace liés aux volumes des journaux d'événements.
+
+* Les administrateurs des SVM et du cluster peuvent déterminer l'espace de volume insuffisant en affichant des informations sur l'utilisation et la configuration des volumes et des agrégats.
+* En cas de manque d'espace dans les volumes contenant les journaux d'événements, les administrateurs du SVM et du cluster peuvent résoudre ces problèmes d'espace en supprimant certains fichiers journaux d'événements ou en augmentant la taille du volume.
++
+[NOTE]
+====
+Si l'agrégat contenant le volume du journal des événements est plein, la taille de l'agrégat doit être augmentée avant que vous puissiez augmenter la taille du volume. Seul un administrateur de cluster peut augmenter la taille d'un agrégat.
+
+====
+* Le chemin de destination des fichiers journaux d'événements peut être modifié en répertoire sur un autre volume en modifiant la configuration d'audit.
++
+[NOTE]
+====
+L'accès aux données est refusé dans les cas suivants :
+
+** Si le répertoire de destination est supprimé.
+** Si la limite du fichier sur un volume, qui héberge le répertoire de destination, atteint son niveau maximal.
+
+
+====
+
+
+Pour plus d'informations sur l'affichage d'informations sur les volumes et l'augmentation de la taille du volume, reportez-vous au link:../volumes/index.html["Gestion du stockage logique"]
+
+Pour plus d'informations sur l'affichage d'informations sur les agrégats et la gestion des agrégats, reportez-vous à la section link:../disks-aggregates/index.html["Gestion des disques et des agrégats"].
+
+
+
+== Résoudre les problèmes d'espace liés aux volumes de transfert
+
+Si l'un des volumes contenant des fichiers de transfert de votre machine virtuelle de stockage (SVM) manque d'espace, l'audit ne peut pas écrire les enregistrements des journaux dans les fichiers intermédiaires. Cela entraîne des échecs d'accès client. Pour résoudre ce problème, vous devez déterminer si certains volumes de transit utilisés dans le SVM sont pleins en affichant des informations sur l'utilisation du volume.
+
+Si le volume contenant les fichiers journaux d'événements consolidés dispose de suffisamment d'espace, mais que l'espace occupé par les clients est insuffisant, les volumes intermédiaires risquent de manquer d'espace. L'administrateur du SVM doit vous contacter pour déterminer si l'espace des volumes intermédiaires contenant des fichiers de transfert pour la SVM est insuffisant. Le sous-système d'audit génère un événement EMS si les événements d'audit ne peuvent pas être générés en raison d'un espace insuffisant dans un volume de staging. Le message suivant s'affiche : `No space left on device`. Seul vous pouvez afficher les informations relatives aux volumes de transfert ; les administrateurs du SVM ne le peuvent pas.
+
+Tous les noms de volumes de staging commencent par `MDV_aud_` Suivi par l'UUID de l'agrégat contenant ce volume intermédiaire. L'exemple suivant montre quatre volumes système sur le SVM admin, qui ont été automatiquement créés lors de la création d'une configuration d'audit des services de fichiers pour un SVM de données dans le cluster :
+
+[listing]
+----
+cluster1::> volume show -vserver cluster1
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+--------- ------------ ------------ ---------- ---- ---------- ---------- -----
+cluster1  MDV_aud_1d0131843d4811e296fc123478563412
+                       aggr0        online     RW          2GB     1.90GB    5%
+cluster1  MDV_aud_8be27f813d7311e296fc123478563412
+                       root_vs0     online     RW          2GB     1.90GB    5%
+cluster1  MDV_aud_9dc4ad503d7311e296fc123478563412
+                       aggr1        online     RW          2GB     1.90GB    5%
+cluster1  MDV_aud_a4b887ac3d7311e296fc123478563412
+                       aggr2        online     RW          2GB     1.90GB    5%
+4 entries were displayed.
+----
+Si l'espace disponible dans les volumes de transfert est insuffisant, vous pouvez résoudre les problèmes d'espace en augmentant la taille du volume.
+
+[NOTE]
+====
+Si l'agrégat contenant le volume intermédiaire est saturé, vous devez augmenter la taille de l'agrégat avant de pouvoir augmenter la taille du volume. Seul vous pouvez augmenter la taille d'un agrégat. Les administrateurs du SVM ne le peuvent pas.
+
+====
+Si un ou plusieurs agrégats disposent d'un espace disponible inférieur à 2 Go, la création de l'audit du SVM échoue. Lorsque la création d'un audit SVM échoue, les volumes de transit qui ont été créés sont supprimés.
+
+link:../concepts/index.html["Concepts relatifs à ONTAP"]
+link:../volumes/index.html["Gestion du stockage logique"]
+link:../disks-aggregates/index.html["Gestion des disques et des agrégats"]

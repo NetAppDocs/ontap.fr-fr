@@ -1,0 +1,45 @@
+---
+sidebar: sidebar 
+permalink: high-availability/index.html 
+keywords: high availability, ha, overview 
+summary: Le basculement est le processus utilisé par un nœud qui assume le contrôle du stockage de son partenaire. Giveback est le processus de retour du stockage au partenaire. 
+---
+= Présentation de la gestion des paires HAUTE DISPONIBILITÉ
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Les nœuds de cluster sont configurés en paires haute disponibilité pour la tolérance aux pannes et la continuité de l'activité. Si un nœud tombe en panne ou si vous devez mettre un nœud hors service pour des opérations de maintenance de routine, son partenaire peut prendre le contrôle de son stockage tout en continuant de transmettre les données de celui-ci. Le partenaire fournit du stockage de retour lorsque le nœud est revenu en ligne.
+
+La configuration de contrôleurs de paires haute disponibilité consiste à faire correspondre une paire de contrôleurs de stockage FAS/AFF (nœud local et nœud partenaire). Chacun de ces nœuds est connecté aux tiroirs disques de l'autre. Lorsqu'un nœud d'une paire HA rencontre une erreur et arrête le traitement des données, son partenaire détecte l'état en panne du partenaire et prend en charge l'ensemble du traitement de données à partir de ce contrôleur.
+
+_Takeover_ est le processus où un nœud assume le contrôle du stockage de son partenaire.
+
+_Giveback_ est le processus dans lequel le stockage est retourné au partenaire.
+
+Par défaut, les prises de contrôle se produisent automatiquement dans l'une des situations suivantes :
+
+* Une défaillance logicielle ou système se produit sur un nœud qui entraîne un incident de type « panic ». Les contrôleurs de paire haute disponibilité basculent automatiquement vers le nœud partenaire. Une fois que le partenaire a récupéré son incident et démarré, le nœud exécute automatiquement un retour et fonctionne normalement.
+* Une panne système se produit sur un nœud et ce dernier ne peut pas redémarrer. Par exemple, lorsqu'un nœud tombe en panne en raison d'une panne de courant, les contrôleurs de paire haute disponibilité basculent automatiquement vers le nœud partenaire et font passer les données du contrôleur de stockage restant.
+
+
+
+NOTE: Si le stockage d'un nœud perd également de l'alimentation en même temps, un basculement standard n'est pas possible.
+
+* Les messages de pulsation ne sont pas reçus du partenaire du nœud. Cela peut se produire si le partenaire a subi une défaillance matérielle ou logicielle (par exemple, une défaillance d'interconnexion) qui n'a pas produit de panique, mais qui l'a toujours empêchée de fonctionner correctement.
+* Vous arrêtez l'un des nœuds sans utiliser le `-f` ou `-inhibit-takeover true` paramètre.
+
+
+
+NOTE: Dans un cluster à deux nœuds avec haute disponibilité de cluster activée, arrêt ou redémarrage d'un nœud à l'aide du système `‑inhibit‑takeover true` Provoque l'arrêt du service des données sur les deux nœuds, sauf si vous désactivez d'abord le cluster HA, puis affectez epsilon au nœud que vous souhaitez rester en ligne.
+
+* Vous redémarrez l'un des nœuds sans utiliser le `‑inhibit‑takeover true` paramètre. (Le `‑onboot` paramètre du `storage failover` la commande est activée par défaut.)
+* Le périphérique de gestion à distance (processeur de service) détecte une panne du nœud partenaire. Ceci n'est pas applicable si vous désactivez le basculement assisté par matériel.
+
+
+Vous pouvez également lancer des prises de contrôle manuellement avec le `storage failover takeover` commande.

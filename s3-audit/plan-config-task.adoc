@@ -1,0 +1,161 @@
+---
+permalink: s3-audit/plan-config-task.html 
+sidebar: sidebar 
+keywords: s3, audit, create, configure s3 audit 
+summary: 'Cette tâche décrit les paramètres utilisés lors de l"audit s3.' 
+---
+= Planification d'une configuration d'audit S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devez spécifier un certain nombre de paramètres pour la configuration d'audit S3 ou accepter les valeurs par défaut. En particulier, vous devez tenir compte des paramètres de rotation du journal qui vous aideront à garantir un espace libre adéquat.
+
+Voir la *`vserver object-store-server audit create`* page man pour les détails de syntaxe.
+
+
+
+== Paramètres généraux
+
+Vous devez spécifier deux paramètres requis lors de la création de la configuration d'audit. Vous pouvez également spécifier trois paramètres facultatifs.
+
+[cols="4,2,1"]
+|===
+
+
+| Type d'information | Option | Obligatoire 
+
+
+ a| 
+_Nom du SVM_
+
+Nom du SVM sur lequel créer la configuration d'audit.
+
+Le SVM doit déjà exister et être activé pour S3.
+ a| 
+`-verserver _svm_name_`
+ a| 
+Oui.
+
+
+
+ a| 
+_Chemin de destination du journal_
+
+Spécifie l'emplacement de stockage des journaux d'audit convertis. Le chemin doit déjà exister sur le SVM.
+
+Le chemin d'accès peut comporter jusqu'à 864 caractères et doit avoir des autorisations de lecture/écriture.
+
+Si le chemin n'est pas valide, la commande audit de configuration échoue.
+ a| 
+`-destination _text_`
+ a| 
+Oui.
+
+
+
+ a| 
+_Catégories d'événements à auditer_
+
+Les catégories d'événements suivantes peuvent être auditées :
+
+* Événements GetObject, PutObject et DeleteObject de données
+* Gestion des événements PutBucket et DeleteBucket
+
+
+La valeur par défaut est d'auditer uniquement les événements de données.
+ a| 
+`-events {data{vbar}management}, ...`
+ a| 
+Non
+
+|===
+Vous pouvez entrer l'un des paramètres suivants pour contrôler le nombre de fichiers journaux d'audit. Si aucune valeur n'est saisie, tous les fichiers journaux sont conservés.
+
+[cols="4,2,1"]
+|===
+
+
+| Type d'information | Option | Obligatoire 
+
+
+ a| 
+_Limite de rotation des fichiers journaux_
+
+Détermine le nombre de fichiers journaux d'audit à conserver avant de faire pivoter le fichier journal le plus ancien vers l'extérieur. Par exemple, si vous saisissez une valeur de 5, les cinq derniers fichiers journaux sont conservés.
+
+Une valeur de 0 indique que tous les fichiers journaux sont conservés. La valeur par défaut est 0.
+ a| 
+`-rotate-limit _integer_`
+ a| 
+Non
+
+
+
+ a| 
+_Limite de durée des fichiers journaux_
+
+Détermine la durée pendant laquelle un fichier journal peut être conservé avant d'être supprimé. Par exemple, si vous entrez une valeur de 5 portes 0h0m, les journaux de plus de 5 jours sont supprimés.
+
+Une valeur de 0 indique que tous les fichiers journaux sont conservés. La valeur par défaut est 0.
+ a| 
+`-retention duration _integer_time_`
+ a| 
+Non
+
+|===
+
+
+== Paramètres de rotation du journal d'audit
+
+Vous pouvez faire pivoter les journaux d'audit en fonction de la taille ou de la planification. La valeur par défaut consiste à faire pivoter les journaux d'audit en fonction de la taille.
+
+
+
+=== Rotation des journaux en fonction de la taille du journal
+
+Si vous souhaitez utiliser la méthode de rotation du journal par défaut et la taille du journal par défaut, vous n'avez pas besoin de configurer de paramètres spécifiques pour la rotation du journal. La taille du journal par défaut est de 100 Mo.
+
+Si vous ne souhaitez pas utiliser la taille de journal par défaut, vous pouvez configurer le `-rotate-size` paramètre pour spécifier une taille de journal personnalisée.
+
+Si vous souhaitez réinitialiser la rotation en fonction d'une taille de journal seule, utilisez la commande suivante pour annuler la sélection `-rotate-schedule-minute` paramètre :
+
+`vserver audit modify -vserver _svm_name_ -destination / -rotate-schedule-minute -`
+
+
+
+=== Rotation des journaux en fonction d'un planning
+
+Si vous choisissez de faire pivoter les journaux d'audit en fonction d'un planning, vous pouvez programmer la rotation du journal en utilisant les paramètres de rotation basés sur le temps dans n'importe quelle combinaison.
+
+* Si vous utilisez une rotation basée sur le temps, le `-rotate-schedule-minute` paramètre obligatoire.
+* Tous les autres paramètres de rotation basés sur le temps sont facultatifs.
++
+** `-rotate-schedule-month`
+** `-rotate-schedule-dayofweek`
+** `-rotate-schedule-day`
+** `-rotate-schedule-hour`
+
+
+* Le planning de rotation est calculé en utilisant toutes les valeurs liées au temps. Par exemple, si vous spécifiez uniquement le `-rotate-schedule-minute` paramètre, les fichiers journaux d'audit sont pivotés en fonction des minutes spécifiées pour tous les jours de la semaine, pendant toutes les heures sur tous les mois de l'année.
+* Si vous spécifiez uniquement un ou deux paramètres de rotation basés sur le temps (par exemple, `-rotate-schedule-month` et `-rotate-schedule-minutes`), les fichiers journaux pivotent en fonction des valeurs de minutes que vous avez spécifiées tous les jours de la semaine, pendant toutes les heures, mais seulement pendant les mois spécifiés.
++
+Par exemple, vous pouvez préciser que le journal d'audit doit être tourné pendant les mois janvier, mars et août tous les lundis, mercredis et samedis à 10 h 30
+
+* Si vous spécifiez des valeurs pour les deux `-rotate-schedule-dayofweek` et `-rotate-schedule-day`, ils sont considérés indépendamment.
++
+Par exemple, si vous spécifiez `-rotate-schedule-dayofweek` Comme vendredi et `-rotate-schedule-day` Comme 13, les registres de vérification seront ensuite tournés tous les vendredis et les 13ème jours du mois spécifié, pas seulement tous les vendredis du 13ème.
+
+* Si vous souhaitez réinitialiser la rotation en fonction d'une planification seule, utilisez la commande suivante pour annuler la définition du `-rotate-size parameter`:
++
+`vserver audit modify -vserver _svm_name_ -destination / -rotate-size -`
+
+
+
+
+
+=== Rotation des journaux en fonction de la taille du journal et de la planification
+
+Vous pouvez choisir de faire pivoter les fichiers journaux en fonction de la taille du journal et d'une planification en définissant à la fois le paramètre -rotation-taille et les paramètres de rotation basés sur le temps dans n'importe quelle combinaison. Par exemple : si `-rotate-size` Est défini sur 10 Mo et `-rotate-schedule-minute` Est défini sur 15, les fichiers journaux pivotent lorsque la taille du fichier journal atteint 10 Mo ou la 15e minute de chaque heure (selon la première éventualité).

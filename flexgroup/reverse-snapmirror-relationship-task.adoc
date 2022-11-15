@@ -1,0 +1,80 @@
+---
+permalink: flexgroup/reverse-snapmirror-relationship-task.html 
+sidebar: sidebar 
+keywords: reverse, snapmirror, relation, flexgroup, volume, disaster, recovery 
+summary: 'Lorsqu"un incident désactive le volume FlexGroup source d"une relation SnapMirror, vous pouvez utiliser le volume FlexGroup de destination pour transmettre des données pendant que vous réparez ou remplacez le volume FlexGroup source. Une fois le volume FlexGroup source en ligne, vous pouvez faire du volume FlexGroup source d"origine une destination en lecture seule et inverser la relation SnapMirror.' 
+---
+= Inverser une relation SnapMirror entre des volumes FlexGroup pendant la reprise d'activité
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Lorsqu'un incident désactive le volume FlexGroup source d'une relation SnapMirror, vous pouvez utiliser le volume FlexGroup de destination pour transmettre des données pendant que vous réparez ou remplacez le volume FlexGroup source. Une fois le volume FlexGroup source en ligne, vous pouvez faire du volume FlexGroup source d'origine une destination en lecture seule et inverser la relation SnapMirror.
+
+Toutes les règles de quota actives sur le volume de destination sont désactivées et les règles de quota sont supprimées avant d'effectuer une resynchronisation.
+
+Vous pouvez utiliser le `volume quota policy rule create` et `volume quota modify` commandes permettant de créer et de réactiver des règles de quota une fois l'opération de resynchronisation terminée.
+
+.Étapes
+. Sur le volume FlexGroup de destination d'origine, supprimez la relation miroir de protection des données entre le volume FlexGroup source et le volume FlexGroup de destination : `snapmirror delete -destination-path svm_name:volume_name`
++
+[listing]
+----
+cluster2::> snapmirror delete -destination-path vsd:dst
+----
+. Sur le volume FlexGroup source d'origine, supprimez les informations de relation du volume FlexGroup source : `snapmirror release -destination-path svm_name:volume_name -relationship-info-only`
++
+Après la suppression d'une relation SnapMirror, vous devez supprimer les informations de relation du volume FlexGroup source avant de tenter une opération de resynchronisation.
+
++
+[listing]
+----
+cluster1::> snapmirror release -destination-path vsd:dst -relationship-info-only true
+----
+. Sur le nouveau volume FlexGroup de destination, créez la relation miroir : `snapmirror create -source-path src_svm_name:volume_name -destination-path dst_svm_name:volume_name -type XDP -policy MirrorAllSnapshots`
++
+[listing]
+----
+cluster1::> snapmirror create -source-path vsd:dst -destination-path vss:src -type XDP -policy MirrorAllSnapshots
+----
+. Sur le nouveau volume FlexGroup de destination, resynchroniser la FlexGroup source : `snapmirror resync -source-path svm_name:volume_name`
++
+[listing]
+----
+cluster1::> snapmirror resync -source-path vsd:dst
+----
+. Surveiller les transferts SnapMirror : `snapmirror show -expand`
++
+[listing]
+----
+cluster2::> snapmirror show -expand
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+vsd:dst       XDP  vss:src        Snapmirrored
+                                      Idle           -         true    -
+vss:dst__0001 XDP  vss:src__0001  Snapmirrored
+                                      Idle           -         true    -
+vsd:dst__0002 XDP  vss:src__0002  Snapmirrored
+                                      Idle           -         true    -
+vsd:dst__0003 XDP  vss:src__0003  Snapmirrored
+                                      Idle           -         true    -
+vsd:dst__0004 XDP  vss:src__0004  Snapmirrored
+                                      Idle           -         true    -
+vsd:dst__0005 XDP  vss:src__0005  Snapmirrored
+                                      Idle           -         true    -
+vsd:dst__0006 XDP  vss:src__0006  Snapmirrored
+                                      Idle           -         true    -
+vsd:dst__0007 XDP  vss:src__0007  Snapmirrored
+                                      Idle           -         true    -
+vsd:dst__0008 XDP  vss:src__0008  Snapmirrored
+                                      Idle           -         true    -
+...
+----
++
+L'état de la relation SnapMirror de chaque composant apparaît comme `Snapmirrored` cela indique que la resynchronisation a réussi.
+
+

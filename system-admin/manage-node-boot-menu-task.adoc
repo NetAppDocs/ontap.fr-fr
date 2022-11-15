@@ -1,0 +1,143 @@
+---
+permalink: system-admin/manage-node-boot-menu-task.html 
+sidebar: sidebar 
+keywords: system, manager, manage, node, boot, menu, configuration, problems, password, reset, initialize, disks, restore, device 
+summary: 'Vous pouvez utiliser le menu de démarrage pour corriger les problèmes de configuration sur un nœud, réinitialiser le mot de passe d"administration, initialiser les disques, réinitialiser la configuration du nœud et restaurer les informations de configuration du nœud sur le périphérique d"amorçage.' 
+---
+= Gérer un nœud à l'aide du menu de démarrage
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser le menu de démarrage pour corriger les problèmes de configuration sur un nœud, réinitialiser le mot de passe d'administration, initialiser les disques, réinitialiser la configuration du nœud et restaurer les informations de configuration du nœud sur le périphérique d'amorçage.
+
+
+NOTE: Si une paire haute disponibilité est utilisée link:https://docs.netapp.com/us-en/ontap/encryption-at-rest/support-storage-encryption-concept.html["Cryptage SAS ou disques NVMe (SED, NSE, FIPS)"], vous devez suivre les instructions de la rubrique link:https://docs.netapp.com/us-en/ontap/encryption-at-rest/return-seds-unprotected-mode-task.html["Retour d'un lecteur FIPS ou SED en mode non protégé"] Pour tous les disques de la paire HA avant d'initialiser le système (options de démarrage 4 ou 9). Si vous ne le faites pas, vous risquez de subir des pertes de données si les disques sont requalifiés.
+
+.Étapes
+. Redémarrez le nœud pour accéder au menu de démarrage à l'aide de `system node reboot` commande à l'invite du système.
++
+Le processus de redémarrage du nœud démarre.
+
+. Pendant le processus de redémarrage, appuyez sur Ctrl-C pour afficher le menu de démarrage lorsque vous y êtes invité.
++
+Le nœud affiche les options suivantes pour le menu de démarrage :
+
++
+[listing]
+----
+(1) Normal Boot.
+(2) Boot without /etc/rc.
+(3) Change password.
+(4) Clean configuration and initialize all disks.
+(5) Maintenance mode boot.
+(6) Update flash from backup config.
+(7) Install new software first.
+(8) Reboot node.
+(9) Configure Advanced Drive Partitioning
+Selection (1-9)?
+----
++
+[NOTE]
+====
+Option de menu d'amorçage (2) l'amorçage sans /etc/rc est obsolète et n'a aucun effet sur le système.
+
+====
+. Sélectionnez l'une des options suivantes en saisissant le numéro correspondant :
++
+[cols="35,65"]
+|===
+| Pour... | Sélectionner... 
+
+
+ a| 
+Continuer à démarrer le nœud en mode normal
+ a| 
+1) démarrage normal
+
+
+
+ a| 
+Modifier le mot de passe du noeud, qui est aussi le mot de passe du compte ""admin""
+ a| 
+3) modification du mot de passe
+
+
+
+ a| 
+Initialiser les disques du nœud et créer un volume racine pour le nœud
+ a| 
+4) nettoyer la configuration et initialiser tous les disques
+
+[NOTE]
+====
+Cette option de menu efface toutes les données sur les disques du nœud et réinitialise la configuration par défaut de votre nœud.
+
+====
+Sélectionnez cette option de menu uniquement après que le nœud a été supprimé d'un cluster (non joint) et qu'il n'est pas joint à un autre cluster.
+
+Dans le cas d'un nœud avec des tiroirs disques internes ou externes, le volume racine des disques internes est initialisé. S'il n'y a pas de tiroirs disques internes, le volume root sur les disques externes est initialisé.
+
+Dans le cas d'un système exécutant la virtualisation FlexArray avec des tiroirs disques internes ou externes, les LUN de baie ne sont pas initialisées. Tout disque natif sur des tiroirs internes ou externes est initialisé.
+
+Dans le cas d'un système exécutant la virtualisation FlexArray avec uniquement DES LUN de baie et aucun tiroir disque interne ou externe, le volume racine DES LUN de la baie de stockage est initialisé, voir link:https://docs.netapp.com/us-en/ontap-flexarray/pdfs/sidebar/Installing_FlexArray.pdf["Installation de FlexArray"].
+
+Si le nœud que vous souhaitez initialiser contient des disques qui sont partitionnés pour le partitionnement données-racines, les disques doivent être départitionnés avant que le nœud puisse être initialisé, voir *9) configurer le partitionnement de disque avancé* et link:../disks-aggregates/index.html["Gestion des disques et des agrégats"].
+
+
+
+ a| 
+Opérations de maintenance des agrégats et des disques pour obtenir des informations détaillées sur les agrégats et les disques
+ a| 
+5) démarrage du mode maintenance
+
+Pour quitter le mode Maintenance, utilisez le `halt` commande.
+
+
+
+ a| 
+Restaurez les informations de configuration à partir du volume racine du nœud vers le périphérique d'amorçage, par exemple une carte CompactFlash pour PC
+ a| 
+6) mettre à jour la mémoire flash à partir de la configuration de sauvegarde
+
+ONTAP stocke des informations de configuration des nœuds sur le périphérique de démarrage. Au redémarrage du nœud, les informations du périphérique de démarrage sont automatiquement sauvegardées sur le volume racine du nœud. Si le périphérique d'amorçage est corrompu ou doit être remplacé, vous devez utiliser cette option de menu pour restaurer les informations de configuration du volume racine du nœud vers le périphérique d'amorçage.
+
+
+
+ a| 
+Installez le nouveau logiciel sur le nœud
+ a| 
+7) installer le nouveau logiciel en premier
+
+Si le logiciel ONTAP du périphérique d'amorçage n'inclut pas la prise en charge de la matrice de stockage que vous souhaitez utiliser pour le volume racine, vous pouvez utiliser cette option de menu pour obtenir une version du logiciel qui prend en charge votre matrice de stockage et l'installer sur le nœud.
+
+Cette option de menu permet uniquement d'installer une version plus récente du logiciel ONTAP sur un nœud sur lequel aucun volume racine n'est installé. Do _NOT_ utilisez cette option de menu pour mettre à niveau ONTAP.
+
+
+
+ a| 
+Redémarrez le nœud
+ a| 
+8) redémarrez le nœud
+
+
+
+ a| 
+Départitionner tous les disques et supprimer leurs informations de propriété ou nettoyer la configuration et initialiser le système avec des disques entiers ou partitionnés
+ a| 
+9) Configuration du partitionnement de disque avancé
+
+Depuis ONTAP 9.2, l'option de partitionnement de disque avancé fournit des fonctionnalités de gestion supplémentaires pour les disques configurés pour le partitionnement données-racines ou données-racines. Les options suivantes sont disponibles à partir de l'option de démarrage 9 :
+
+[listing]
+----
+(9a) Unpartition all disks and remove their ownership information.
+(9b) Clean configuration and initialize system with partitioned disks.
+(9c) Clean configuration and initialize system with whole disks.
+(9d) Reboot the node.
+(9e) Return to main boot menu.
+----
+|===
+

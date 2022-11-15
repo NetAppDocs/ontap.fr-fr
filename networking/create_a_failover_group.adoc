@@ -1,0 +1,48 @@
+---
+sidebar: sidebar 
+permalink: networking/create_a_failover_group.html 
+keywords: create, creation, creating, add, adding, failover, fail, over, group, create a failover group, failover group of network ports automatically migrate a lif to a different port when a link failure occurs, failover-groups create, ifgrps 
+summary: 'Créer un failover group de ports réseau migrer automatiquement une LIF vers un autre port lorsqu"une liaison défaillant' 
+---
+= Créer un groupe de basculement
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Vous créez un failover group de ports réseau de sorte qu'une LIF peut automatiquement migrer vers un autre port en cas de défaillance de liaison sur le port actuel du LIF. Cela permet au système de rediriger le trafic réseau vers d'autres ports disponibles dans le cluster.
+
+Vous utilisez le `network interface failover-groups create` commande pour créer le groupe et ajouter des ports au groupe.
+
+* Les ports ajoutés à un failover group peuvent être des ports réseau, des VLAN ou des groupes d'interfaces (ifgrps).
+* Tous les ports ajoutés au failover group doivent appartenir au même broadcast domain.
+* Un seul port peut résider dans plusieurs groupes de basculement.
+* Si vous avez des LIF dans différents VLAN ou domaines de diffusion, vous devez configurer des groupes de basculement pour chaque VLAN ou domaine de diffusion.
+* Les groupes de basculement ne s'appliquent pas aux environnements SAN iSCSI ou FC.
+
+
+Création d'un groupe de basculement :
+
+`network interface failover-groups create -vserver _vserver_name_ -failover-group _failover_group_name_ -targets _ports_list_`
+
+* `_vserver_name_` Est le nom du SVM pouvant utiliser le failover group.
+* `_failover_group_name_` est le nom du groupe de basculement que vous souhaitez créer.
+* `_ports_list_` est la liste des ports qui seront ajoutés au failover group. Les ports sont ajoutés au format _node_name>:<port_number>_, par exemple, node1:e0c.
+
+
+La commande suivante crée le failover group fg3 pour SVM vs3 et ajoute deux ports :
+
+....
+network interface failover-groups create -vserver vs3 -failover-group fg3 -targets cluster1-01:e0e,cluster1-02:e0e
+....
+.Une fois que vous avez terminé
+* Vous devez appliquer le groupe de basculement à une LIF maintenant que le groupe de basculement a été créé.
+* L'application d'un groupe de basculement qui ne fournit pas de cible de basculement valide pour une LIF entraîne un message d'avertissement.
++
+Si une LIF ne disposant pas de tentatives de basculement cible valides, une panne peut se produire.
+
+

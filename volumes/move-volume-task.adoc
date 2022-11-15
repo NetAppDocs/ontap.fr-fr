@@ -1,0 +1,70 @@
+---
+permalink: volumes/move-volume-task.html 
+sidebar: sidebar 
+keywords: move, volume 
+summary: 'Vous pouvez déplacer un volume FlexVol vers un autre agrégat, nœud ou les deux au sein d"un même SVM afin d"équilibrer la capacité de stockage après avoir déterminé qu"il existe un déséquilibre de la capacité de stockage.' 
+---
+= Déplacer un volume
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez déplacer un volume FlexVol vers un autre agrégat, nœud ou les deux au sein d'un même SVM afin d'équilibrer la capacité de stockage après avoir déterminé qu'il existe un déséquilibre de la capacité de stockage.
+
+Par défaut, si l'opération de mise en service ne s'effectue pas dans les 30 secondes, il est à nouveau possible de procéder à une nouvelle tentative. Vous pouvez régler le comportement par défaut à l'aide du `-cutover-window` et `-cutover-action` paramètres qui nécessitent tous deux un accès au niveau de privilège avancé. Pour plus d'informations, reportez-vous à la `volume move start` page de manuel.
+
+.Étapes
+. Si vous déplacez un miroir de protection des données et que vous n'avez pas initialisé la relation miroir, initialisez la relation miroir à l'aide de `snapmirror initialize` commande.
++
+Les relations de miroir de protection des données doivent être initialisées avant de déplacer l'un des volumes.
+
+. Déterminer un agrégat dans lequel vous pouvez déplacer le volume à l'aide de `volume move target-aggr show` commande.
++
+L'agrégat que vous sélectionnez doit avoir suffisamment d'espace pour le volume, c'est-à-dire que la taille disponible est supérieure au volume que vous déplacez.
+
++
+L'exemple suivant montre que le volume vs2 peut être déplacé vers l'un des agrégats répertoriés :
+
++
+[listing]
+----
+cluster1::> volume move target-aggr show -vserver vs2 -volume user_max
+Aggregate Name   Available Size   Storage Type
+--------------   --------------   ------------
+aggr2            467.9GB          hdd
+node12a_aggr3    10.34GB          hdd
+node12a_aggr2    10.36GB          hdd
+node12a_aggr1    10.36GB          hdd
+node12a_aggr4    10.36GB          hdd
+5 entries were displayed.
+----
+. Vérifier que le volume peut être déplacé vers l'agrégat prévu à l'aide de la `volume move start -perform-validation-only` commande permettant d'exécuter une vérification de validation.
+. Déplacez le volume à l'aide de `volume move start` commande.
++
+La commande suivante déplace le volume user_max du SVM vs2 vers l'agrégat node 12a_aggr3. Le déplacement s'exécute en arrière-plan.
+
++
+[listing]
+----
+cluster1::> volume move start -vserver vs2 -volume user_max
+-destination-aggregate node12a_aggr3
+----
+. Déterminez l'état de l'opération de déplacement de volume à l'aide du `volume move show` commande.
++
+L'exemple suivant montre l'état du déplacement d'un volume qui a terminé la phase de réplication et qui est en phase de mise en service :
+
++
+[listing]
+----
+
+cluster1::> volume move show
+Vserver   Volume     State    Move Phase  Percent-Complete Time-To-Complete
+--------- ---------- -------- ----------  ---------------- ----------------
+vs2       user_max   healthy  cutover     -                -
+----
++
+Le déplacement de volume est terminé lorsqu'il n'apparaît plus dans le `volume move show` sortie de la commande.
+
+

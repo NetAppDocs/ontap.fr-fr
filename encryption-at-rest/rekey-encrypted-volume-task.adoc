@@ -1,0 +1,76 @@
+---
+permalink: encryption-at-rest/rekey-encrypted-volume-task.html 
+sidebar: sidebar 
+keywords: changing, encryption key, volume encryption rekey start, command 
+summary: 'Il est recommandé de modifier régulièrement la clé de chiffrement d"un volume. Depuis ONTAP 9.3, vous pouvez utiliser la commande volume Encryption rekey start pour changer la clé de chiffrement.' 
+---
+= Modifiez la clé de chiffrement d'un volume à l'aide de la commande Volume Encryption rekey start
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Il est recommandé de modifier régulièrement la clé de chiffrement d'un volume. Vous pouvez utiliser ONTAP 9.3 à partir de `volume encryption rekey start` commande pour changer la clé de chiffrement.
+
+Une fois que vous avez démarré une opération de recontact, elle doit être terminée. Il n'y a pas de retour à l'ancienne clé. Si vous rencontrez un problème de performances pendant l'opération, vous pouvez exécuter le `volume encryption rekey pause` commande pour mettre l'opération en pause, et le `volume encryption rekey resume` commande pour reprendre l'opération.
+
+Jusqu'à la fin de l'opération de renouvellement de clé, le volume est composé de deux touches. Les nouvelles écritures et les lectures correspondantes utiliseront la nouvelle clé. Sinon, les lectures utilisent l'ancienne clé.
+
+[NOTE]
+====
+Vous ne pouvez pas utiliser `volume encryption rekey start` Pour rétablir un volume SnapLock.
+
+====
+.Étapes
+. Modifier une clé de chiffrement :
++
+`volume encryption rekey start -vserver SVM_name -volume volume_name`
+
++
+La commande suivante modifie la clé de chiffrement pour `vol1` Sur SVM``vs1``:
+
++
+[listing]
+----
+cluster1::> volume encryption rekey start -vserver vs1 -volume vol1
+----
+. Vérifier l'état de l'opération de renouvellement de clé :
++
+`volume encryption rekey show`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+La commande suivante affiche l'état de l'opération de renouvellement de clés :
+
++
+[listing]
+----
+cluster1::> volume encryption rekey show
+
+Vserver   Volume   Start Time           Status
+-------   ------   ------------------   ---------------------------
+vs1       vol1     9/18/2017 17:51:41   Phase 2 of 2 is in progress.
+----
+. Une fois l'opération de renouvellement de clés terminée, vérifiez que le volume est activé pour le chiffrement :
++
+`volume show -is-encrypted true`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+La commande suivante affiche les volumes chiffrés sur `cluster1`:
+
++
+[listing]
+----
+cluster1::> volume show -is-encrypted true
+
+Vserver  Volume  Aggregate  State  Type  Size  Available  Used
+-------  ------  ---------  -----  ----  -----  --------- ----
+vs1      vol1    aggr2     online    RW  200GB    160.0GB  20%
+----
+

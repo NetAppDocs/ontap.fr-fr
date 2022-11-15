@@ -1,0 +1,62 @@
+---
+permalink: system-admin/restore-node-config-backup-file-task.html 
+sidebar: sidebar 
+keywords: restore, node, configuration, backup, file, recovering 
+summary: 'Vous restaurez la configuration du nœud à l"aide du fichier de sauvegarde de configuration que vous avez identifié et mis à la disposition du nœud de récupération.' 
+---
+= Restaurez la configuration du nœud à l'aide d'un fichier de sauvegarde de configuration
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous restaurez la configuration du nœud à l'aide du fichier de sauvegarde de configuration que vous avez identifié et mis à la disposition du nœud de récupération.
+
+Vous ne devez effectuer cette tâche que pour effectuer une restauration suite à un incident entraînant la perte des fichiers de configuration locale du nœud.
+
+.Étapes
+. Changement au niveau de privilège avancé :
++
+`set -privilege advanced`
+
+. Si le nœud fonctionne correctement, utilisez le au niveau de privilège avancé d'un autre nœud `cluster modify` commande avec `-node` et `-eligibility` paramètres pour le signaler non éligible et l'isoler du cluster.
++
+Si le nœud n'est pas sain, ignorez cette étape.
+
++
+Dans cet exemple, le nœud 2 est modifié pour ne pas participer au cluster afin que sa configuration puisse être restaurée :
+
++
+[listing]
+----
+cluster1::*> cluster modify -node node2 -eligibility false
+----
+. Utilisez le `system configuration recovery node restore` commande au niveau de privilège avancé pour restaurer la configuration du nœud à partir d'un fichier de sauvegarde de configuration.
++
+Si le nœud a perdu son identité, y compris son nom, vous devez utiliser le `-nodename-in-backup` paramètre pour spécifier le nom du nœud dans le fichier de sauvegarde de configuration.
+
++
+Cet exemple restaure la configuration du nœud à l'aide de l'un des fichiers de sauvegarde de configuration stockés sur le nœud :
+
++
+[listing]
+----
+cluster1::*> system configuration recovery node restore -backup cluster1.8hour.2011-02-22.18_15_00.7z
+
+Warning: This command overwrites local configuration files with
+         files contained in the specified backup file. Use this
+         command only to recover from a disaster that resulted
+         in the loss of the local configuration files.
+         The node will reboot after restoring the local configuration.
+Do you want to continue? {y|n}: y
+----
++
+La configuration est restaurée et le nœud redémarre.
+
+. Si vous avez indiqué que le nœud n'est pas éligible, utilisez le `system configuration recovery cluster sync` commande pour marquer le nœud comme éligible et le synchroniser avec le cluster.
+. Si vous travaillez dans un environnement SAN, utilisez le `system node reboot` Commande permettant de redémarrer le nœud et de rétablir le quorum SAN.
+
+
+Si vous avez précédemment recréés le cluster, et si vous restaurez la configuration du nœud à l'aide d'un fichier de sauvegarde de configuration créé avant la recréation du cluster, vous devez recréer le cluster.

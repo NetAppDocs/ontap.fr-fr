@@ -1,0 +1,85 @@
+---
+sidebar: sidebar 
+permalink: networking/monitor_the_health_of_network_ports.html 
+keywords: monitor, monitoring, manage, managing, automatic, health, port, monitor the health of network ports, automatic health monitoring and a set of health monitors help you identify network ports that might not be suitable for hosting lifs, network options port-health-monitor modify 
+summary: 'Le contrôle automatique de l"état et les moniteurs d"état vous permettent d"identifier les ports réseau qui risquent de ne pas être adaptés à l"hébergement de LIF' 
+---
+= Contrôle de l'état de santé des ports réseau
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+La gestion ONTAP des ports réseau inclut un contrôle automatique de l'état de santé et un ensemble de moniteurs pour vous aider à identifier les ports réseau qui ne conviennent pas à l'hébergement des LIF.
+
+Si un contrôle de l'état détermine qu'un port réseau est défectueux, il avertit les administrateurs via un message EMS ou indique que le port est dégradé. ONTAP évite d'héberger les LIF sur des ports réseau dégradés si d'autres cibles de basculement sont présentes pour cette LIF. Un port peut se dégrader en raison d'un événement de panne logicielle, tel que le fait de sauter des liaisons (rebondissement rapide des liaisons entre le haut et le bas) ou le partitionnement réseau :
+
+* Les ports réseaux du cluster IPspace sont marqués comme détériorées lorsqu'ils connaissent une liaison flipatent ou une perte de la capacité de couche 2 (L2) à d'autres ports réseau du domaine de diffusion.
+* Les ports réseau des IPspaces sans cluster sont marqués comme dégradés lorsqu'ils réalisent des liaisons téléphoniques.
+
+
+Vous devez connaître les comportements suivants d'un port dégradé :
+
+* Un port dégradé ne peut pas être inclus dans un VLAN ou dans un groupe d'interfaces.
++
+Si un port membre d'un groupe d'interface est marqué comme dégradé, mais que le groupe d'interfaces est toujours marqué comme défectueux, les LIF peuvent être hébergées sur ce groupe d'interface.
+
+* Les LIF sont automatiquement migrées depuis les ports dégradés vers les ports sains.
+* Lors d'un événement de basculement, un port dégradé n'est pas considéré comme la cible de basculement. Si aucun port défectueux n'est disponible, les ports LIF hôtes sont dégradés conformément à la politique de basculement normale.
+* Vous ne pouvez ni créer, ni migrer, ni restaurer une LIF vers un port dégradé.
++
+Vous pouvez modifier le `ignore-health-status` définition du port réseau sur `true`. Vous pouvez ensuite héberger une LIF sur les ports sains.
+
+
+
+.Étapes
+. Connectez-vous au mode de privilège avancé :
++
+....
+set -privilege advanced
+....
+. Vérifiez les moniteurs d'intégrité qui sont activés pour surveiller l'intégrité des ports du réseau :
++
+....
+network options port-health-monitor show
+....
++
+L'état de santé d'un port est déterminé par la valeur des moniteurs d'intégrité.
+
++
+Les contrôles d'état suivants sont disponibles et activés par défaut dans ONTAP :
+
++
+** Surveillance de l'état du cerclage : surveille le cerclage de liaison
++
+Si la liaison d'un port est plus d'une fois dans cinq minutes, ce port est marqué comme dégradé.
+
+** Moniteur d'intégrité de la capacité d'accessibilité L2 : surveille si tous les ports configurés dans le même domaine de diffusion ont une capacité d'accessibilité L2 entre eux
++
+Ce contrôle de l'état signale les problèmes de réabilité L2 dans tous les IPspaces, mais il marque uniquement les ports du cluster IPspace comme étant dégradés.
+
+** Contrôle CRC : surveille les statistiques CRC sur les ports
++
+Ce contrôle de l'état ne marque pas un port comme dégradé mais génère un message EMS lorsqu'un taux de défaillance CRC très élevé est observé.
+
+
+
+. Activez ou désactivez tous les moniteurs de santé pour un IPspace comme vous le souhaitez en utilisant le `network options port-health-monitor modify` commande.
+. Pour afficher l'état de santé détaillé d'un port :
++
+....
+network port show -health
+....
+
+
+Le résultat de la commande affiche le statut d'état de santé du port, `ignore health status` paramètre et liste des raisons pour lesquelles le port est marqué comme dégradé.
+
+Un état de santé du port peut être `healthy` ou `degraded`.
+
+Si le `ignore health status` le paramètre est `true`, il indique que le statut de l'état de santé du port a été modifié de `degraded` à `healthy` par l'administrateur.
+
+Si le `ignore health status` le paramètre est `false`, l'état d'intégrité du port est déterminé automatiquement par le système.

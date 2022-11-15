@@ -1,0 +1,67 @@
+---
+permalink: smb-admin/determine-snapshot-copies-available-task.html 
+sidebar: sidebar 
+keywords: view, snapshot, copies, copy, previous, version, enable, policy, applied, apply, contain, share, previous, version, access, determine whether snapshot copies are available for previous versions use 
+summary: 'Vous pouvez afficher les copies Snapshot depuis l"onglet versions précédentes uniquement si une règle Snapshot activée est appliquée au volume contenant le partage et si la configuration de volume permet d"accéder aux copies Snapshot. Il est utile de déterminer la disponibilité des copies Snapshot pour aider un utilisateur à accéder aux versions précédentes.' 
+---
+= Déterminez si des copies Snapshot sont disponibles pour les versions précédentes
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez afficher les copies Snapshot depuis l'onglet versions précédentes uniquement si une règle Snapshot activée est appliquée au volume contenant le partage et si la configuration de volume permet d'accéder aux copies Snapshot. Il est utile de déterminer la disponibilité des copies Snapshot pour aider un utilisateur à accéder aux versions précédentes.
+
+.Étapes
+. Déterminez si le volume sur lequel résident les données du partage est activé pour les copies Snapshot automatiques et si les clients ont accès aux répertoires Snapshot : `volume show -vserver vserver-name -volume volume-name -fields vserver,volume,snapdir-access,snapshot-policy,snapshot-count`
++
+Le résultat de cette commande affiche la règle Snapshot associée au volume, l'activation ou non de l'accès au répertoire Snapshot client et le nombre de copies Snapshot disponibles.
+
+. Déterminez si la règle Snapshot associée est activée : `volume snapshot policy show -policy policy-name`
+. Lister les copies Snapshot disponibles : `volume snapshot show -volume volume_name`
++
+Pour plus d'informations sur la configuration et la gestion des règles Snapshot et des planifications Snapshot, reportez-vous à la section link:../data-protection/index.html["La protection des données"].
+
+
+
+L'exemple suivant présente des informations sur les politiques Snapshot associées au volume nommé « data1 » qui contient les données partagées et les copies Snapshot disponibles sur « data1 ».
+
+[listing]
+----
+cluster1::> volume show -vserver vs1 -volume data1 -fields vserver,volume,snapshot-policy,snapdir-access,snapshot-count
+vserver  volume snapdir-access snapshot-policy snapshot-count
+-------- ------ -------------- --------------- --------------
+vs1      data1  true           default         10
+
+cluster1::> volume snapshot policy show -policy default
+Vserver: cluster1
+                   Number of Is
+Policy Name        Schedules Enabled Comment
+------------------ --------- ------- ----------------------------------
+default                    3 true    Default policy with hourly, daily & weekly schedules.
+    Schedule         Count     Prefix                 SnapMirror Label
+    ---------------- -----     ---------------------- -------------------
+    hourly               6     hourly                 -
+    daily                2     daily                  daily
+    weekly               2     weekly                 weekly
+
+cluster1::> volume snapshot show -volume data1
+                                                             ---Blocks---
+Vserver  Volume  Snapshot                  State        Size Total% Used%
+-------- ------- ------------------------- -------- -------- ------ -----
+vs1      data1
+                 weekly.2012-12-16_0015    valid       408KB     0%    1%
+                 daily.2012-12-22_0010     valid       420KB     0%    1%
+                 daily.2012-12-23_0010     valid       192KB     0%    0%
+                 weekly.2012-12-23_0015    valid       360KB     0%    1%
+                 hourly.2012-12-23_1405    valid       196KB     0%    0%
+                 hourly.2012-12-23_1505    valid       196KB     0%    0%
+                 hourly.2012-12-23_1605    valid       212KB     0%    0%
+                 hourly.2012-12-23_1705    valid       136KB     0%    0%
+                 hourly.2012-12-23_1805    valid       200KB     0%    0%
+                 hourly.2012-12-23_1905    valid       184KB     0%    0%
+----
+xref:create-snapshot-config-previous-versions-access-task.adoc[Création d'une configuration de snapshot pour activer l'accès aux versions précédentes]
+
+link:../data-protection/index.html["Protection des données"]

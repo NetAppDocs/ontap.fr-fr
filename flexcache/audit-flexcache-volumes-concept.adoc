@@ -1,0 +1,33 @@
+---
+permalink: flexcache/audit-flexcache-volumes-concept.html 
+sidebar: sidebar 
+keywords: considerations, auditing, flexcache, volumes 
+summary: 'Depuis ONTAP 9.7, vous pouvez auditer les événements d"accès aux fichiers NFS dans les relations FlexCache à l"aide de l"audit natif du ONTAP et de la gestion des règles de fichiers avec FPolicy. FPolicy n"est pas pris en charge pour les volumes FlexCache avec SMB. Les opérations d"audit natives et FPolicy sont configurées et gérées avec les mêmes commandes d"interface de ligne de commande utilisées pour les volumes FlexVol. Il existe cependant un comportement différent avec les volumes FlexCache.' 
+---
+= Considérations relatives à l'audit des volumes FlexCache
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.7, vous pouvez auditer les événements d'accès aux fichiers NFS dans les relations FlexCache à l'aide de l'audit natif du ONTAP et de la gestion des règles de fichiers avec FPolicy. FPolicy n'est pas pris en charge pour les volumes FlexCache avec SMB. Les opérations d'audit natives et FPolicy sont configurées et gérées avec les mêmes commandes d'interface de ligne de commande utilisées pour les volumes FlexVol. Il existe cependant un comportement différent avec les volumes FlexCache.
+
+* *Audit natif*
++
+** Un volume FlexCache ne peut pas être utilisé comme destination pour les journaux d'audit.
+** Si vous souhaitez auditer les lectures et écritures sur les volumes FlexCache, vous devez configurer l'audit sur le SVM cache ainsi que sur le SVM d'origine.
++
+En effet, les opérations du système de fichiers sont vérifiées à l'endroit où elles sont traitées. En d'autres lieu, les lectures sont auditées sur la SVM cache et les écritures sont vérifiées sur la SVM d'origine.
+
+** Pour suivre l'origine des opérations d'écriture, l'UUID et le MSID du SVM sont ajoutés dans le journal d'audit afin d'identifier le volume FlexCache à partir duquel l'écriture est créée.
+** Bien que les listes de contrôle d'accès système (CLS) puissent être définies sur un fichier en utilisant les protocoles NFSv4 ou SMB, les volumes FlexCache ne prennent en charge que NFSv3. Par conséquent, les CLS ne peuvent être définies que sur le volume d'origine.
+
+
+* *FPolicy*
++
+** Bien que les écritures sur un volume FlexCache soient effectuées sur le volume d'origine, les configurations FPolicy surveillent les écritures sur le volume du cache. Ce n'est pas le cas des audits natifs, dans lesquels les écritures sont auditées sur le volume d'origine.
+** Même si ONTAP ne nécessite pas la même configuration FPolicy sur le cache et les SVM d'origine, il est recommandé de déployer deux configurations similaires. Pour ce faire, il est possible de créer une nouvelle politique FPolicy pour le cache, configurée comme celle de la SVM d'origine, mais avec le périmètre de la nouvelle règle limitée au SVM cache.
+
+
+

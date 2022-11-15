@@ -1,0 +1,67 @@
+---
+permalink: disks-aggregates/remove-ownership-disk-task.html 
+sidebar: sidebar 
+keywords: remove, ownership, disk 
+summary: 'ONTAP écrit les informations de propriété du disque sur le disque. Avant de retirer un disque de spare ou son tiroir d"un nœud, vous devez supprimer ses informations de propriété de sorte qu"elles puissent être correctement intégrées à un autre nœud.' 
+---
+= Supprimer la propriété d'un disque
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP écrit les informations de propriété du disque sur le disque. Avant de retirer un disque de spare ou son tiroir d'un nœud, vous devez supprimer ses informations de propriété de sorte qu'elles puissent être correctement intégrées à un autre nœud.
+
+Le disque dont vous souhaitez supprimer la propriété doit respecter les exigences suivantes :
+
+* Il doit être un disque de spare.
++
+Vous ne pouvez pas supprimer la propriété d'un disque utilisé dans un niveau local (agrégat).
+
+* Il ne peut pas être dans le centre de maintenance.
+* Il ne peut pas être en cours de nettoyage.
+* Elle ne peut pas avoir échoué.
++
+Il n'est pas nécessaire de supprimer la propriété d'un disque défectueux.
+
+
+
+Si l'affectation automatique de disque est activée, ONTAP peut réaffecter automatiquement la propriété avant de supprimer le disque du nœud. C'est pour cette raison que vous désactivez l'affectation de propriété automatique jusqu'à ce que le disque soit supprimé, puis vous le réactivez.
+
+.Étapes
+. Si l'affectation automatique de la propriété de disque est activée, utilisez l'interface de ligne de commandes pour la désactiver :
++
+`storage disk option modify -node _node_name_ -autoassign off`
+
+. Si nécessaire, répétez l'étape précédente pour le partenaire HA du nœud.
+. Supprimez les informations de propriété logicielle du disque :
++
+`storage disk removeowner _disk_name_`
+
++
+Pour supprimer les informations de propriété de plusieurs disques, utilisez une liste séparée par des virgules.
+
++
+Exemple :
+
++
+....
+storage disk removeowner sys1:0a.23,sys1:0a.24,sys1:0a.25
+....
+. Si le disque est partitionné pour le partitionnement données-racines, supprimez la propriété des partitions en entrant les deux commandes suivantes :
++
+`storage disk removeowner -disk _disk_name_ -root true`
+
++
+`storage disk removeowner -disk _disk_name_ -data true`
+
++
+Les deux partitions ne sont plus la propriété d'aucun nœud.
+
+. Si vous avez précédemment désactivé l'affectation automatique de la propriété de disque, activez-la une fois que le disque a été supprimé ou réaffecté :
++
+`storage disk option modify -node _node_name_ -autoassign on`
+
+. Si nécessaire, répétez l'étape précédente pour le partenaire HA du nœud.
+

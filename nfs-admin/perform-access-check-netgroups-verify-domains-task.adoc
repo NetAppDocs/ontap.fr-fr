@@ -1,0 +1,53 @@
+---
+permalink: nfs-admin/perform-access-check-netgroups-verify-domains-task.html 
+sidebar: sidebar 
+keywords: perform, strict, access, check, netgroup, verify, domain 
+summary: 'Par défaut, ONTAP effectue une vérification supplémentaire lors de l"évaluation de l"accès client pour un groupe réseau. Le contrôle supplémentaire garantit que le domaine du client correspond à la configuration de domaine de la machine virtuelle de stockage (SVM). Sinon, ONTAP refuse l"accès client.' 
+---
+= Effectuer des contrôles d'accès plus stricts pour les groupes réseau en vérifiant les domaines
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Par défaut, ONTAP effectue une vérification supplémentaire lors de l'évaluation de l'accès client pour un groupe réseau. Cette vérification supplémentaire garantit que le domaine du client correspond à la configuration de domaine de la machine virtuelle de stockage (SVM). Sinon, ONTAP refuse l'accès client.
+
+Lorsque ONTAP évalue les règles d'export policy pour l'accès client et qu'une règle d'export policy contient un netgroup, ONTAP doit déterminer si l'adresse IP d'un client appartient au netgroup. Pour ce faire, ONTAP convertit l'adresse IP du client en un nom d'hôte à l'aide du DNS et obtient un nom de domaine complet (FQDN).
+
+Si le fichier netgroup répertorie uniquement un nom court pour l'hôte et que le nom court de l'hôte existe dans plusieurs domaines, il est possible qu'un client d'un domaine différent obtienne un accès sans cette vérification.
+
+Pour empêcher cela, ONTAP compare le domaine renvoyé par DNS pour l'hôte avec la liste des noms de domaine DNS configurés pour le SVM. Si la correspondance correspond, l'accès est autorisé. Si ce n'est pas le cas, l'accès est refusé.
+
+Cette vérification est activée par défaut. Vous pouvez le gérer en modifiant le `-netgroup-dns-domain-search` paramètre, disponible au niveau de privilège avancé.
+
+.Étapes
+. Définissez le niveau de privilège sur avancé :
++
+`set -privilege advanced`
+
+. Effectuez l'action souhaitée :
++
+[cols="2*"]
+|===
+| Si vous voulez que la vérification de domaine pour les groupes réseau soit... | Entrer... 
+
+
+ a| 
+Activé
+ a| 
+`vserver nfs modify -vserver vserver_name -netgroup-dns-domain-search enabled`
+
+
+
+ a| 
+Désactivé
+ a| 
+`vserver nfs modify -vserver vserver_name -netgroup-dns-domain-search disabled`
+
+|===
+. Définissez le niveau de privilège sur admin :
++
+`set -privilege admin`
+
+

@@ -1,0 +1,121 @@
+---
+permalink: encryption-at-rest/enable-external-key-management-96-later-nve-task.html 
+sidebar: sidebar 
+keywords: enabling, external key management, ontap 9.6, later, nve 
+summary: 'Vous pouvez utiliser un ou plusieurs serveurs KMIP pour sécuriser les clés que le cluster utilise pour accéder aux données chiffrées. Depuis ONTAP 9.6, vous pouvez utiliser un ou plusieurs serveurs KMIP pour sécuriser les clés qui permettent à une SVM d"accéder aux données chiffrées.' 
+---
+= Gestion externe des clés dans ONTAP 9.6 et versions ultérieures (NVE)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser un ou plusieurs serveurs KMIP pour sécuriser les clés que le cluster utilise pour accéder aux données chiffrées. Depuis ONTAP 9.6, vous pouvez utiliser un ou plusieurs serveurs KMIP pour sécuriser les clés qui permettent à une SVM d'accéder aux données chiffrées.
+
+À partir de ONTAP 9.11.1, vous pouvez ajouter jusqu'à 3 serveurs de clés secondaires par serveur de clés principal pour créer un serveur de clés en cluster. Pour plus d'informations, voir xref:configure-cluster-key-server-task.html[Configurez les serveurs de clés externes en cluster].
+
+.Avant de commencer
+* Les certificats client SSL KMIP et serveur doivent avoir été installés.
+* Pour effectuer cette tâche, vous devez être un administrateur de cluster ou de SVM.
+* Si vous souhaitez activer la gestion externe des clés dans un environnement MetroCluster, MetroCluster doit être entièrement configuré avant d'activer la gestion externe des clés.
+
+
+Vous pouvez connecter jusqu'à quatre serveurs KMIP à un cluster ou un SVM. Un minimum de deux serveurs est recommandé pour la redondance et la reprise après sinistre.
+
+Le périmètre de la gestion externe des clés détermine si les serveurs de gestion des clés sécurisent tous les SVM dans le cluster ou bien uniquement les SVM sélectionnés :
+
+* Vous pouvez utiliser une _cluster scope_ pour configurer la gestion des clés externe pour tous les SVM du cluster. L'administrateur du cluster a accès à chaque clé stockée sur les serveurs.
+* Depuis ONTAP 9.6, vous pouvez utiliser une _SVM scope_ pour configurer la gestion externe des clés pour une SVM de données dans le cluster. C'est le mieux adapté aux environnements mutualisés dans lesquels chaque locataire utilise un autre SVM (ou ensemble de SVM) pour transmettre les données. Seul l'administrateur du SVM pour un locataire donné peut accéder aux clés pour ce locataire.
+* Pour les environnements mutualisés, installez une licence pour _MT_EK_MGMT_ à l'aide de la commande suivante :
++
+`system license add -license-code <MT_EK_MGMT license code>`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
+
+
+Vous pouvez utiliser les deux étendues du même cluster. Si les serveurs de gestion des clés ont été configurés pour un SVM, ONTAP utilise uniquement ces serveurs pour sécuriser les clés. Sinon, ONTAP sécurise les clés avec les serveurs de gestion des clés configurés pour le cluster.
+
+Vous pouvez configurer la gestion intégrée des clés au niveau du cluster et la gestion externe des clés au niveau de SVM. Vous pouvez utiliser le `security key-manager key migrate` Commande pour migrer les clés de la gestion intégrée des clés au périmètre du cluster vers des gestionnaires de clés externes au périmètre des SVM
+
+.Étapes
+. Configurer la connectivité du gestionnaire de clés pour le cluster :
++
+`security key-manager external enable -vserver admin_SVM -key-servers host_name|IP_address:port,... -client-cert client_certificate -server-ca-cert server_CA_certificates`
+
++
+[NOTE]
+====
+Le `security key-manager external enable` la commande remplace le `security key-manager setup` commande. Si vous exécutez la commande à l'invite de connexion du cluster, `_admin_SVM_` Par défaut au SVM admin du cluster actuel. Vous devez être l'administrateur du cluster pour configurer le périmètre du cluster. Vous pouvez exécuter le `security key-manager external modify` commande pour modifier la configuration de la gestion externe des clés.
+
+====
++
+La commande suivante active la gestion externe des clés pour `cluster1` avec trois serveurs de clés externes. Le premier serveur de clés est spécifié à l'aide de son nom d'hôte et de son port, le second est spécifié à l'aide d'une adresse IP et du port par défaut, et le troisième est spécifié à l'aide d'une adresse et d'un port IPv6 :
+
++
+[listing]
+----
+clusterl::> security key-manager external enable -vserver cluster1 -key-servers ks1.local:15696,10.0.0.10,[fd20:8b1e:b255:814e:32bd:f35c:832c:5a09]:1234 -client-cert AdminVserverClientCert -server-ca-certs AdminVserverServerCaCert
+----
+. Configurer un SVM gestionnaire de clés :
++
+`security key-manager external enable -vserver SVM -key-servers host_name|IP_address:port,... -client-cert client_certificate -server-ca-cert server_CA_certificates`
+
++
+[NOTE]
+====
+Si vous exécutez la commande à l'invite de connexion du SVM, `SVM` Par défaut au SVM actuel On doit être un administrateur de cluster ou de SVM pour configurer le cadre de la SVM. Vous pouvez exécuter le `security key-manager external modify` commande pour modifier la configuration de la gestion externe des clés.
+
+====
++
+La commande suivante active la gestion externe des clés pour `svm1` avec un serveur à une seule clé qui écoute le port par défaut 5696 :
+
++
+[listing]
+----
+svm1l::> security key-manager external enable -vserver svm1 -key-servers keyserver.svm1.com -client-cert SVM1ClientCert -server-ca-certs SVM1ServerCaCert
+----
+. Répétez la dernière étape pour tout SVM supplémentaire.
++
+[NOTE]
+====
+Vous pouvez également utiliser le `security key-manager external add-servers` Commande permettant de configurer des SVM supplémentaires Le `security key-manager external add-servers` la commande remplace le `security key-manager add` commande. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
+====
+. Vérifiez que tous les serveurs KMIP configurés sont connectés :
++
+`security key-manager external show-status -node node_name`
+
++
+[NOTE]
+====
+Le `security key-manager external show-status` la commande remplace le `security key-manager show -status` commande. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
+====
++
+[listing]
+----
+cluster1::> security key-manager external show-status
+
+Node  Vserver  Key Server                                     Status
+----  -------  ---------------------------------------        -------------
+node1
+      svm1
+               keyserver.svm1.com:5696                        available
+      cluster1
+               10.0.0.10:5696                                 available
+               fd20:8b1e:b255:814e:32bd:f35c:832c:5a09:1234   available
+               ks1.local:15696                                available
+node2
+      svm1
+               keyserver.svm1.com:5696                        available
+      cluster1
+               10.0.0.10:5696                                 available
+               fd20:8b1e:b255:814e:32bd:f35c:832c:5a09:1234   available
+               ks1.local:15696                                available
+
+8 entries were displayed.
+----
+

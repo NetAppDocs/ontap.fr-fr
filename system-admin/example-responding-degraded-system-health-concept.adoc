@@ -1,0 +1,97 @@
+---
+permalink: system-admin/example-responding-degraded-system-health-concept.html 
+sidebar: sidebar 
+keywords: respond, degraded, system, health, node, cli 
+summary: 'En examinant un exemple spécifique de l"état du système dégradé après un tiroir qui manque deux chemins d"accès à un nœud, vous pouvez voir ce que l"interface de ligne de commandes affiche lorsque vous répondez à une alerte.' 
+---
+= Exemple de réponse à une dégradation de l'état du système
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+En examinant un exemple spécifique de l'état du système dégradé après un tiroir qui manque deux chemins d'accès à un nœud, vous pouvez voir ce que l'interface de ligne de commandes affiche lorsque vous répondez à une alerte.
+
+Après avoir démarré ONTAP, vous vérifiez l'état du système et vous découvrez que son état est dégradé :
+
+[listing]
+----
+
+      cluster1::>system health status show
+        Status
+        ---------------
+        degraded
+----
+Vous affichez les alertes pour déterminer l'emplacement du problème et vous voyez que le tiroir 2 n'a pas deux chemins d'accès au nœud 1 :
+
+[listing]
+----
+
+      cluster1::>system health alert show
+               Node: node1
+           Resource: Shelf ID 2
+           Severity: Major
+	   Indication Time: Mon Nov 10 16:48:12 2013
+     Probable Cause: Disk shelf 2 does not have two paths to controller
+                     node1.
+    Possible Effect: Access to disk shelf 2 via controller node1 will be
+                     lost with a single hardware component failure (e.g.
+                     cable, HBA, or IOM failure).
+ Corrective Actions: 1. Halt controller node1 and all controllers attached to disk shelf 2.
+                     2. Connect disk shelf 2 to controller node1 via two paths following the rules in the Universal SAS and ACP Cabling Guide.
+                     3. Reboot the halted controllers.
+                     4. Contact support personnel if the alert persists.
+----
+Vous affichez des informations détaillées sur l'alerte pour obtenir plus d'informations, notamment l'ID d'alerte :
+
+[listing]
+----
+
+      cluster1::>system health alert show -monitor node-connect -alert-id DualPathToDiskShelf_Alert -instance
+                  Node: node1
+               Monitor: node-connect
+              Alert ID: DualPathToDiskShelf_Alert
+     Alerting Resource: 50:05:0c:c1:02:00:0f:02
+             Subsystem: SAS-connect
+       Indication Time: Mon Mar 21 10:26:38 2011
+    Perceived Severity: Major
+        Probable Cause: Connection_establishment_error
+           Description: Disk shelf 2 does not have two paths to controller node1.
+    Corrective Actions: 1. Halt controller node1 and all controllers attached to disk shelf 2.
+                        2. Connect disk shelf 2 to controller node1 via two paths following the rules in the Universal SAS and ACP Cabling Guide.
+                        3. Reboot the halted controllers.
+                        4. Contact support personnel if the alert persists.
+       Possible Effect: Access to disk shelf 2 via controller node1 will be lost with a single
+ hardware component failure (e.g. cable, HBA, or IOM failure).
+           Acknowledge: false
+              Suppress: false
+                Policy: DualPathToDiskShelf_Policy
+          Acknowledger: -
+            Suppressor: -
+Additional Information: Shelf uuid: 50:05:0c:c1:02:00:0f:02
+                        Shelf id: 2
+                        Shelf Name: 4d.shelf2
+                        Number of Paths: 1
+                        Number of Disks: 6
+                        Adapter connected to IOMA:
+                        Adapter connected to IOMB: 4d
+Alerting Resource Name: Shelf ID 2
+----
+Vous reconnaissez l'alerte pour indiquer que vous y travaillez.
+
+[listing]
+----
+
+      cluster1::>system health alert modify -node node1 -alert-id DualPathToDiskShelf_Alert -acknowledge true
+----
+Vous avez résolu le câblage entre le tiroir 2 et le nœud 1, puis redémarré le système. Ensuite, vous vérifiez de nouveau l'état du système et voyez que son état est `OK`:
+
+[listing]
+----
+
+      cluster1::>system health status show
+        Status
+        ---------------
+        OK
+----

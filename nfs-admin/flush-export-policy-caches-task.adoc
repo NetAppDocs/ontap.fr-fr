@@ -1,0 +1,100 @@
+---
+permalink: nfs-admin/flush-export-policy-caches-task.html 
+sidebar: sidebar 
+keywords: flush, export, policy, cache 
+summary: 'Le vidage manuel des caches d"export policy (vserver export-policy cache flush) supprime les informations potentiellement obsolètes et force ONTAP à extraire les informations actuelles de ressources externes appropriées. Cela peut aider à résoudre de nombreux problèmes liés à l"accès client aux exportations NFS.' 
+---
+= Vider les caches des règles d'exportation
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP utilise plusieurs caches de règles d'exportation pour stocker les informations relatives aux règles d'exportation afin d'accélérer les accès. Vidage manuel des caches des règles d'exportation (`vserver export-policy cache flush`) Supprime les informations potentiellement obsolètes et force ONTAP à extraire les informations actuelles des ressources externes appropriées. Cela peut aider à résoudre de nombreux problèmes liés à l'accès client aux exportations NFS.
+
+Les informations du cache de la politique d'exportation peuvent être obsolètes pour les raisons suivantes :
+
+* Modification récente des règles d'export-policy
+* Modification récente des enregistrements de nom d'hôte dans les serveurs de noms
+* Modification récente des entrées de groupe réseau dans les serveurs de noms
+* Récupération suite à une panne réseau qui a empêché le chargement complet des groupes réseau
+
+
+.Étapes
+. Si le cache du service de noms n'est pas activé, effectuez l'une des opérations suivantes en mode privilèges avancés :
++
+[cols="2*"]
+|===
+| Si vous voulez rincer... | Entrez la commande... 
+
+
+ a| 
+Tous les caches des règles d'exportation (sauf showmount)
+ a| 
+`vserver export-policy cache flush -vserver vserver_name`
+
+
+
+ a| 
+Cache d'accès aux règles export-policy
+ a| 
+`vserver export-policy cache flush -vserver vserver_name -cache access` Vous pouvez inclure l'option `-node` paramètre pour spécifier le nœud sur lequel vous souhaitez vider le cache d'accès.
+
+
+
+ a| 
+Cache de nom d'hôte
+ a| 
+`vserver export-policy cache flush -vserver vserver_name -cache host`
+
+
+
+ a| 
+Le cache netgroup
+ a| 
+`vserver export-policy cache flush -vserver vserver_name -cache netgroup` Le traitement des groupes réseau est intensif en ressources. Vous ne devez vider le cache netgroup que si vous essayez de résoudre un problème d'accès client causé par un groupe réseau obsolète.
+
+
+
+ a| 
+Le cache showmount
+ a| 
+`vserver export-policy cache flush -vserver vserver_name -cache showmount`
+
+|===
+. Si le cache du service de nom est activé, effectuez l'une des opérations suivantes :
++
+[cols="2*"]
+|===
+| Si vous voulez rincer... | Entrez la commande... 
+
+
+ a| 
+Cache d'accès aux règles export-policy
+ a| 
+`vserver export-policy cache flush -vserver vserver_name -cache access` Vous pouvez inclure l'option `-node` paramètre pour spécifier le nœud sur lequel vous souhaitez vider le cache d'accès.
+
+
+
+ a| 
+Cache de nom d'hôte
+ a| 
+`vserver services name-service cache hosts forward-lookup delete-all`
+
+
+
+ a| 
+Le cache netgroup
+ a| 
+`vserver services name-service cache netgroups ip-to-netgroup delete-all` `vserver services name-service cache netgroups members delete-all` Le traitement des groupes réseau est intensif en ressources. Vous ne devez vider le cache netgroup que si vous essayez de résoudre un problème d'accès client causé par un groupe réseau obsolète.
+
+
+
+ a| 
+Le cache showmount
+ a| 
+`vserver export-policy cache flush -vserver vserver_name -cache showmount`
+
+|===
+

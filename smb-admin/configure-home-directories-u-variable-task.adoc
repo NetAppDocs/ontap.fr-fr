@@ -1,0 +1,137 @@
+---
+permalink: smb-admin/configure-home-directories-u-variable-task.html 
+sidebar: sidebar 
+keywords: 'create, home, directory, configuration, designate, share, name, variable, user, windows, dynamic, configure, configure home directories using the %u variable' 
+summary: 'Vous pouvez créer une configuration de répertoire personnel dans laquelle vous désignez le nom du partage à l"aide de la variable %w, mais vous utilisez la variable %u pour désigner le chemin relatif au partage de répertoire racine. Les utilisateurs peuvent ensuite se connecter à leur partage d"origine à l"aide de partages dynamiques créés à l"aide de leur nom d"utilisateur Windows sans connaître le nom ou le chemin réel du répertoire d"accueil.' 
+---
+= Configurez les répertoires d'accueil à l'aide de la variable %u
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez créer une configuration de répertoire personnel dans laquelle vous désignez le nom du partage à l'aide de l' `%w` variable mais vous utilisez `%u` variable pour désigner le chemin relatif vers le partage du répertoire racine. Les utilisateurs peuvent ensuite se connecter à leur partage d'origine à l'aide de partages dynamiques créés à l'aide de leur nom d'utilisateur Windows sans connaître le nom ou le chemin réel du répertoire d'accueil.
+
+.Étapes
+. Créer un qtree pour contenir les home directories de l'utilisateur : `volume qtree create -vserver vserver_name -qtree-path qtree_path`
+. Vérifier que le qtree utilise le style de sécurité approprié : `volume qtree show`
+. Si le qtree n'utilise pas le style de sécurité souhaité, modifiez le style de sécurité à l'aide de `volume qtree security` commande.
+. Ajouter un partage de répertoire de base : `+vserver cifs share create -vserver vserver -share-name %w -path %u -share-properties homedirectory ,...]+`
++
+`-vserver` `vserver` Spécifie la machine virtuelle de stockage (SVM) compatible CIFS sur laquelle ajouter le chemin de recherche.
+
++
+`-share-name` `%w` spécifie le nom de partage du répertoire racine. Le nom du partage est créé dynamiquement lorsque chaque utilisateur se connecte à son répertoire de départ et se présente sous la forme _Windows_user_name_.
+
++
+[NOTE]
+====
+Vous pouvez également utiliser le `%u` variable pour le `-share-name` option. Cela crée un chemin de partage relatif qui utilise le nom d'utilisateur UNIX mappé.
+
+====
++
+`-path` `%u` spécifie le chemin relatif vers le répertoire de base. Le chemin relatif est créé dynamiquement au fur et à mesure que chaque utilisateur se connecte à son répertoire de départ et se présente sous la forme _mappé_UNIX_user_name_.
+
++
+[NOTE]
+====
+La valeur de cette option peut également contenir des éléments statiques. Par exemple : `eng/%u`.
+
+====
++
+`-share-properties` `+homedirectory\[,...\]+` spécifie les propriétés de partage pour ce partage. Vous devez spécifier le `homedirectory` valeur. Vous pouvez spécifier d'autres propriétés de partage à l'aide d'une liste délimitée par des virgules.
+
+. Vérifiez que le partage dispose de la configuration souhaitée à l'aide du `vserver cifs share show` commande.
+. Ajouter un chemin de recherche de répertoire de base : `vserver cifs home-directory search-path add -vserver vserver -path path`
++
+`-vserver` `vserver` Spécifie le SVM activé sur CIFS sur lequel ajouter le chemin de recherche.
+
++
+`-path` `path` spécifie le chemin absolu du répertoire vers le chemin de recherche.
+
+. Vérifiez que vous avez correctement ajouté le chemin de recherche à l'aide de l' `vserver cifs home-directory search-path show` commande.
+. Si l'utilisateur UNIX n'existe pas, créez l'utilisateur UNIX à l'aide de `vserver services unix-user create` commande.
++
+[NOTE]
+====
+Le nom d'utilisateur UNIX auquel vous associez le nom d'utilisateur Windows doit exister avant le mappage de l'utilisateur.
+
+====
+. Créer un mappage de nom pour l'utilisateur Windows auprès de l'utilisateur UNIX à l'aide de la commande suivante : `vserver name-mapping create -vserver vserver_name -direction win-unix -priority integer -pattern windows_user_name -replacement unix_user_name`
++
+[NOTE]
+====
+Si des mappages de noms existent déjà et mappent des utilisateurs Windows aux utilisateurs UNIX, vous n'avez pas besoin d'effectuer l'étape de mappage.
+
+====
++
+Le nom d'utilisateur Windows est mappé sur le nom d'utilisateur UNIX correspondant. Lorsque l'utilisateur Windows se connecte à son partage de répertoire personnel, il se connecte à un répertoire personnel créé dynamiquement avec un nom de partage qui correspond à son nom d'utilisateur Windows sans avoir à savoir que le nom de répertoire correspond au nom d'utilisateur UNIX.
+
+. Pour les utilisateurs disposant d'un home Directory, créez un répertoire correspondant dans le qtree ou le volume désigné pour contenir des home directories.
++
+Par exemple, si vous avez créé un qtree avec le chemin d'accès du groupe `/vol/vol1/users` Et le nom d'utilisateur UNIX mappé de l'utilisateur dont vous souhaitez créer le répertoire est « unixuser1 », vous devez créer un répertoire avec le chemin suivant : `/vol/vol1/users/unixuser1`.
+
++
+Si vous avez créé un volume nommé « home1 » monté à `/home1`, vous créeriez un répertoire avec le chemin suivant : `/home1/unixuser1`.
+
+. Vérifiez qu'un utilisateur peut se connecter avec succès au partage d'accueil en mappant un lecteur ou en vous connectant à l'aide du chemin UNC.
++
+Par exemple, si l'utilisateur mydomain\user1 est mappé sur l'utilisateur UNIX unixuser1 et souhaite se connecter au répertoire créé à l'étape 10 situé sur le SVM vs1, l'utilisateur 1 se connecte à l'aide du chemin UNC `\\vs1\user1`.
+
+
+
+Dans l'exemple suivant, les commandes permettent de créer une configuration de home Directory avec les paramètres suivants :
+
+* Le nom du partage est %w.
+* Le chemin relatif du répertoire d'accueil est %U.
+* Le chemin de recherche utilisé pour contenir les répertoires locaux, `/home1`, Est un volume configuré avec le style de sécurité UNIX.
+* La configuration est créée sur le SVM vs1.
+
+
+Vous pouvez utiliser ce type de configuration de répertoire personnel lorsque les utilisateurs accèdent à leurs répertoires personnels à partir des hôtes Windows ou Windows et UNIX et que l'administrateur de système de fichiers utilise des utilisateurs et des groupes UNIX pour contrôler l'accès au système de fichiers.
+
+[listing]
+----
+cluster::> vserver cifs share create -vserver vs1 -share-name %w -path %u ‑share-properties oplocks,browsable,changenotify,homedirectory
+
+cluster::> vserver cifs share show -vserver vs1 -share-name %u
+
+                      Vserver: vs1
+                        Share: %w
+     CIFS Server NetBIOS Name: VS1
+                         Path: %u
+             Share Properties: oplocks
+                               browsable
+                               changenotify
+                               homedirectory
+           Symlink Properties: enable
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+
+cluster::> vserver cifs home-directory search-path add -vserver vs1 ‑path /home1
+
+cluster::> vserver cifs home-directory search-path show -vserver vs1
+Vserver     Position Path
+----------- -------- -----------------
+vs1         1        /home1
+
+cluster::> vserver name-mapping create -vserver vs1 -direction win-unix ‑position 5 -pattern user1 -replacement unixuser1
+
+cluster::> vserver name-mapping show -pattern user1
+Vserver        Direction Position
+-------------- --------- --------
+vs1            win-unix  5        Pattern: user1
+                              Replacement: unixuser1
+----
+xref:create-home-directory-config-w-d-variables-task.adoc[Création d'une configuration de répertoire personnel à l'aide des variables %w et %d]
+
+xref:home-directory-config-concept.adoc[Configurations supplémentaires des home Directory]
+
+xref:display-user-home-directory-path-task.adoc[Affichage des informations sur le chemin du répertoire local d'un utilisateur SMB]

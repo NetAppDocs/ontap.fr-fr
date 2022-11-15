@@ -1,0 +1,35 @@
+---
+permalink: smb-config/create-keytab-files-authentication-concept.html 
+sidebar: sidebar 
+keywords: begin, ontap, support, svm, authentication, active, directory, ad, server, keytab, file, administrator, generate, uniform, resource, identifier, uri, supplied, supply, vserver, cifs, command, kerberos, create keytab files for smb authentication 
+summary: 'Depuis ONTAP 9.7, ONTAP prend en charge l"authentification des SVM avec des serveurs Active Directory (AD) utilisant des fichiers keytab. Les administrateurs AD génèrent un fichier keytab et le rendent accessible aux administrateurs ONTAP sous la forme d"un URI (identifiant de ressource uniforme), fourni lorsque les commandes cifs du Vserver requièrent une authentification Kerberos avec le domaine AD.' 
+---
+= Créez des fichiers keytab pour l'authentification SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.7, ONTAP prend en charge l'authentification des SVM avec des serveurs Active Directory (AD) utilisant des fichiers keytab. Les administrateurs AD génèrent un fichier keytab et le rendent disponible aux administrateurs ONTAP sous la forme d'un URI (Uniform Resource identifier), qui est fourni lorsque `vserver cifs` Les commandes exigent une authentification Kerberos avec le domaine AD.
+
+Les administrateurs D'AD peuvent créer les fichiers keytab à l'aide du serveur Windows standard `ktpass` commande. La commande doit être exécutée sur le domaine principal où une authentification est requise. Le `ktpass` la commande peut être utilisée pour générer des fichiers keytab uniquement pour les utilisateurs du domaine principal ; les clés générées à l'aide d'utilisateurs du domaine approuvé ne sont pas prises en charge.
+
+Les fichiers keytab sont générés pour des utilisateurs ONTAP admin spécifiques. Tant que le mot de passe de l'utilisateur administrateur ne change pas, les clés générées pour le type de cryptage et le domaine spécifiques ne changent pas. Par conséquent, un nouveau fichier keytab est requis chaque fois que le mot de passe de l'utilisateur admin est modifié.
+
+Les types de cryptage suivants sont pris en charge :
+
+* AES256-SHA1
+* DES-CBC-MD5
++
+[NOTE]
+====
+ONTAP ne prend pas en charge le type de cryptage DES-CBC-CRC.
+
+====
+* RC4-HMAC
+
+
+AES256 est le type de cryptage le plus élevé et doit être utilisé si activé sur le système ONTAP.
+
+Les fichiers keytab peuvent être générés en spécifiant le mot de passe admin ou en utilisant un mot de passe généré de manière aléatoire. Toutefois, une seule option de mot de passe peut être utilisée à un moment donné, car une clé privée spécifique à l'utilisateur admin est nécessaire au serveur AD pour déchiffrer les clés à l'intérieur du fichier keytab. Toute modification de la clé privée d'un administrateur spécifique invalidera le fichier keytab.

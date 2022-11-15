@@ -1,0 +1,225 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_automatic_giveback_commands.html 
+keywords: ontap, high, availability, ha, pair, automatic, giveback, commands 
+summary: Commandes de rétablissement automatique 
+---
+= Commandes de rétablissement automatique
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Par défaut, le nœud partenaire de reprise renvoie automatiquement le stockage lorsque le nœud hors ligne est rétabli en ligne, ce qui permet de restaurer la relation de paire haute disponibilité. Dans la plupart des cas, il s'agit du comportement souhaité. Si vous devez désactiver le retour automatique, par exemple pour rechercher la cause du basculement avant de le renvoyer, vous devez connaître l'interaction avec des paramètres non par défaut.
+
+|===
+
+
+| Les fonctions que vous recherchez... | Utilisez cette commande... 
+
+
+ a| 
+Activez le rétablissement automatique afin que le rétablissement se produise dès le démarrage du nœud de basculement, atteint l'état en attente de rétablissement et le délai avant que la période de rétablissement automatique ait expiré.
+
+Le paramètre par défaut est vrai.
+ a| 
+`storage failover modify ‑node _nodename_ ‑auto‑giveback true`
+
+
+
+ a| 
+Désactiver le rétablissement automatique. Le paramètre par défaut est vrai.
+
+*Note:* le fait de définir ce paramètre sur false ne désactive pas le retour automatique après basculement sur incident panic ; le retour automatique après basculement sur incident ("panic") doit être désactivé en définissant le `‑auto‑giveback‑after‑panic` paramètre sur faux.
+ a| 
+`storage failover modify ‑node _nodename_ ‑auto‑giveback false`
+
+
+
+ a| 
+Désactiver le retour automatique après le basculement sur incident « panic » (ce paramètre est activé par défaut).
+ a| 
+`storage failover modify ‑node _nodename_ ‑auto‑giveback‑after‑panic false`
+
+
+
+ a| 
+Retarder le rétablissement automatique pendant un nombre spécifié de secondes (la valeur par défaut est 600). Cette option détermine la durée minimale pendant laquelle un nœud reste en basculement avant d'effectuer un retour automatique.
+ a| 
+`storage failover modify ‑node _nodename_ ‑delay‑seconds _seconds_`
+
+|===
+
+
+== Le mode d'incidence des variations de la commande Storage failover modify sur le giveback automatique
+
+Le fonctionnement du retour automatique dépend de la façon dont vous configurez les paramètres de la commande Storage failover modify.
+
+Le tableau suivant répertorie les paramètres par défaut du `storage failover modify` les paramètres de commande qui s'appliquent aux événements de basculement n'ont pas été causés par un problème.
+
+|===
+
+
+| Paramètre | Paramètre par défaut 
+
+
+ a| 
+`-auto-giveback _true_ | _false_`
+ a| 
+`_true_`
+
+
+
+ a| 
+`-delay-seconds _integer_ (seconds)`
+ a| 
+600
+
+
+
+ a| 
+`-onreboot _true_ | _false_`
+ a| 
+`_true_`
+
+|===
+Le tableau suivant décrit comment les combinaisons de l' `-onreboot` et `-auto-giveback` les paramètres affectent le rétablissement automatique pour des événements de basculement non provoqués par un incident de type panique.
+
+|===
+
+
+| `storage failover modify` paramètres utilisés | Cause du basculement | Le rétablissement automatique s'effectue-t-il ? 
+
+
+ a| 
+`-onreboot _true_`
+
+`-auto-giveback _true_`
+| commande reboot | Oui. 
+
+
+| Commande arrêtez ou opération de cycle d'alimentation exécutée depuis le processeur de service | Oui. 
+
+
+ a| 
+`-onreboot _true_`
+
+`-auto-giveback _false_`
+| commande reboot | Oui. 
+
+
+| Commande arrêtez ou opération de cycle d'alimentation exécutée depuis le processeur de service | Non 
+
+
+ a| 
+`-onreboot _false_`
+
+`-auto-giveback _true_`
+| commande reboot | N/A dans ce cas, le basculement n'a pas lieu 
+
+
+| Commande arrêtez ou opération de cycle d'alimentation exécutée depuis le processeur de service | Oui. 
+
+
+ a| 
+`-onreboot _false_`
+
+`-auto-giveback _false_`
+| commande reboot | Non 
+
+
+| Commande arrêtez ou opération de cycle d'alimentation exécutée depuis le processeur de service | Non 
+|===
+Le `-auto-giveback` les paramètres contrôlent le rétablissement après panique et tous les autres takovers automatiques. Si le `-onreboot` le paramètre est défini sur `true` de plus, un basculement a lieu suite à un redémarrage, puis un retour automatique est toujours effectué, que le soit `-auto-giveback` le paramètre est défini sur `true`.
+
+Le `-onreboot` Le paramètre s'applique aux redémarrages et aux commandes d'arrêt générées par ONTAP. Lorsque le `-onreboot` le paramètre est défini sur false, un basculement ne se produit pas dans le cas d'un redémarrage de nœud. Par conséquent, le rétablissement automatique ne peut pas avoir lieu, que le ait ou non `-auto-giveback` le paramètre est défini sur vrai. Une interruption du client se produit.
+
+
+
+== Les effets des combinaisons de paramètres de rétablissement automatique qui s'appliquent aux situations extrêmes.
+
+Le tableau suivant répertorie la `storage failover modify` paramètres de commande qui s'appliquent aux situations d'urgence :
+
+|===
+
+
+| Paramètre | Paramètre par défaut 
+
+
+ a| 
+`-onpanic _true | false_`
+ a| 
+`_true_`
+
+
+
+ a| 
+`-auto-giveback-after-panic _true | false_`
+
+(Privilège : avancé)
+ a| 
+`_true_`
+
+
+
+ a| 
+`-auto-giveback _true | false_`
+ a| 
+`_true_`
+
+|===
+Le tableau suivant explique comment les combinaisons de paramètres de l' `storage failover modify` la commande affecte le retour automatique dans les situations de panique.
+
+
+NOTE: Notez que le basculement peut se produire pour d'autres raisons en cas de problème affectant un nœud. Par exemple, si un nœud fonctionne de façon incohérente mais que le paquet panique n'est pas reçu par son partenaire, le partenaire peut effectuer un basculement par perte de signal de détection. Dans ce cas, le rétablissement ne serait pas contrôlé par le `-auto-giveback-after-panic` mais serait contrôlé par le `-onfailure` paramètre.
+
+[cols="60,40"]
+|===
+
+
+| `storage failover` paramètres utilisés | Le rétablissement automatique se produit-il après une panique ? 
+
+
+| `-onpanic true`
+`-auto-giveback true`
+`-auto-giveback-after-panic true` | Oui. 
+
+
+| `-onpanic true`
+`-auto-giveback true`
+`-auto-giveback-after-panic false` | Oui. 
+
+
+| `-onpanic true`
+`-auto-giveback false`
+`-auto-giveback-after-panic true` | Oui. 
+
+
+| `-onpanic true`
+`-auto-giveback false`
+`-auto-giveback-after-panic false` | Non 
+
+
+| `-onpanic false`Si `-onpanic` est défini sur `false`, le basculement/retour ne se produit pas, quelle que soit la valeur définie pour `-auto-giveback` ou `-auto-giveback-after-panic` | Non 
+|===
+[NOTE]
+====
+Si vous modifiez les paramètres par défaut, le `-onpanic` paramètre peut annuler le retour automatique, comme indiqué dans le tableau ci-dessus.
+
+* Si le `-onpanic` le paramètre est défini sur `true`, le retour automatique est toujours effectué si une panique se produit, sauf si vous avez modifié les paramètres par défaut de l' `-auto-giveback` et `-auto-giveback-after-panic` paramètres. Si ces deux paramètres sont modifiés par défaut  `true`) à `false`, alors un retour automatique ne se produira pas après une panique, même si le `-onpanic` le paramètre est défini sur `true`.
+* Si le `-onpanic` le paramètre est défini sur `false`, Aucun basculement ne se produit et les clients subissent une interruption des services de données ONTAP. Par conséquent, le rétablissement automatique ne peut pas se produire, même si le `-auto-giveback-after-panic` le paramètre est défini sur `true`.
+
+
+====
+[NOTE]
+====
+* Le basculement peut avoir lieu pour d'autres raisons pendant le problème du nœud. Dans ce cas, le rétablissement n'est pas contrôlé par le `auto-giveback-after-panic` réglage.
+* Si le `-onpanic` le paramètre est défini sur `true`, le retour automatique est toujours effectué si une panique se produit, sauf si vous avez modifié les paramètres par défaut de l' `-auto-giveback` et `-auto-giveback-after-panic` paramètres. Si ces deux paramètres sont modifiés par défaut  `true`) à `false`, alors un retour automatique ne se produira pas après une panique, même si le `-onpanic` le paramètre est défini sur `true`.
+* Si le `-onpanic` le paramètre est défini sur `false`, le basculement n'a pas lieu. Par conséquent, le rétablissement automatique ne peut pas se produire, même si le `-auto-giveback-after-panic` le paramètre est défini sur `true`. Une interruption du client se produit.
+
+
+====

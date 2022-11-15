@@ -1,0 +1,138 @@
+---
+permalink: smb-hyper-v-sql/smb-share-config-worksheet-reference.html 
+sidebar: sidebar 
+keywords: complete, smb, share, configuration, worksheet, information, settings 
+summary: 'Cette fiche vous permet d"enregistrer les valeurs dont vous avez besoin lors de la création de partages SMB disponibles en continu pour les configurations SQL Server et Hyper-V sur SMB.' 
+---
+= Remplissez la fiche de configuration du partage SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Cette fiche vous permet d'enregistrer les valeurs dont vous avez besoin lors de la création de partages SMB disponibles en continu pour les configurations SQL Server et Hyper-V sur SMB.
+
+
+
+== Informations sur les propriétés des partages SMB et les paramètres de configuration
+
+Pour chaque partage, vous devez spécifier les informations suivantes :
+
+* Nom de la machine virtuelle de stockage (SVM)
++
+Le nom du SVM est identique pour tous les partages
+
+* Nom de partage
+* Chemin
+* Propriétés du partage
++
+Vous devez configurer les deux propriétés de partage suivantes :
+
++
+** `oplocks`
+** `continuously-available`
+
+
+
+
+Les propriétés de partage suivantes ne doivent pas être définies :
+
+* `homedirectory attributecache`
+* `branchcache`
+* `access-based-enumeration`
++
+[NOTE]
+====
+Lorsque la notification des modifications est désactivée, Windows 2012 Server n'actualise pas la fenêtre de l'Explorateur, ce qui provoque une vue incohérente du contenu du répertoire.
+
+====
++
+** Les symlinks doivent être désactivés (la valeur de l' `-symlink-properties` le paramètre doit être nul [""]).
+
+
+
+
+
+
+== Informations sur les chemins de partage
+
+Si vous utilisez VSS distant pour sauvegarder les fichiers Hyper-V, il est important de choisir les chemins de partage à utiliser lors des connexions SMB des serveurs Hyper-V vers les emplacements de stockage dans lesquels sont stockés les fichiers des machines virtuelles. Bien que les partages peuvent être créés à tout moment dans l'espace de noms, les chemins pour les partages utilisés par les serveurs Hyper-V ne doivent pas contenir de volumes reliés. Les opérations de copie en double ne peuvent pas être effectuées sur des chemins de partage qui contiennent des points de jonction.
+
+SQL Server ne peut pas traverser les jonctions lors de la création de la structure du répertoire de la base de données. Vous ne devez pas créer de chemins de partage pour SQL Server contenant des points de jonction.
+
+Par exemple, si vous souhaitez stocker des fichiers de machine virtuelle ou de base de données sur des volumes « vol1 », « vol2 », « vol3 » et « vol4 », vous devez créer des partages pour les serveurs d'applications aux chemins suivants : `/data1/vol1`, `/data1/vol2`, `/data2/vol3`, et `/data2/vol4`.
+
+[listing]
+----
+
+                     Junction                       Junction
+Vserver Volume       Active   Junction Path         Path Source
+------- ------------ -------- -------------------   -----------
+vs1     data1         true     /data1               RW_volume
+vs1     vol1          true     /data1/vol1          RW_volume
+vs1     vol2          true     /data1/vol2          RW_volume
+vs1     data2         true     /data2               RW_volume
+vs1     vol3          true     /data2/vol3          RW_volume
+vs1     vol4          true     /data2/vol4          RW_volume
+----
+[NOTE]
+====
+Bien que vous puissiez créer des partages sur le `/data1` et `/data2` chemins de gestion administrative, vous ne devez pas configurer les serveurs d'applications pour utiliser ces partages pour stocker des données.
+
+====
+
+
+== Fiche de planification
+
+|===
+| Types d'information | Valeurs 
+
+
+ a| 
+_Volume 1 : nom du partage SMB et chemin_
+ a| 
+
+
+
+ a| 
+_Volume 2 : nom du partage SMB et chemin_
+ a| 
+
+
+
+ a| 
+_Volume 3 : nom du partage SMB et chemin_
+ a| 
+
+
+
+ a| 
+_Volume 4 : nom du partage SMB et chemin_
+ a| 
+
+
+
+ a| 
+_Volume 5 : nom du partage SMB et chemin_
+ a| 
+
+
+
+ a| 
+_Volume 6 : nom du partage SMB et chemin_
+ a| 
+
+
+
+ a| 
+_Volume 7 : nom du partage SMB et chemin_
+ a| 
+
+
+
+ a| 
+_Volumes supplémentaires : noms et chemins de partage SMB_
+ a| 
+
+|===

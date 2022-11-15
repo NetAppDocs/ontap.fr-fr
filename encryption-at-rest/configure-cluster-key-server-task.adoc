@@ -1,0 +1,80 @@
+---
+sidebar: sidebar 
+permalink: encryption-at-rest/configure-cluster-key-server-task.html 
+keywords: KMIP, clustered key server, external key server, secondary key server 
+summary: Activez une prise en charge supplémentaire des serveurs de gestion externe des clés en créant un cluster. 
+---
+= Configurez les serveurs de clés externes en cluster
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de ONTAP 9.11.1, il est possible de configurer la connectivité aux serveurs de gestion externe des clés en cluster sur un SVM. Avec des serveurs de clés en cluster, vous pouvez désigner des serveurs de clés principaux et secondaires sur une SVM. Lors de l'enregistrement des clés, ONTAP essaie d'abord d'accéder à un serveur de clés principal avant de tenter d'accéder aux serveurs secondaires de manière séquentielle jusqu'à ce que l'opération s'effectue correctement, ce qui évite la duplication des clés.
+
+Les serveurs de clés externes peuvent être utilisés pour les clés NSE, NVE, NAE et SED. Un SVM peut prendre en charge jusqu'à quatre principaux serveurs KMIP externes. Chaque serveur principal peut prendre en charge jusqu'à trois serveurs de clés secondaires.
+
+
+
+== Avant de commencer
+
+* link:install-ssl-certificates-hardware-task.html["La gestion des clés KMIP est déjà activée pour le SVM"].
+* Ce processus prend uniquement en charge les serveurs de clés qui utilisent KMIP. Pour obtenir la liste des serveurs de clés pris en charge, reportez-vous à la link:http://mysupport.netapp.com/matrix/["Matrice d'interopérabilité NetApp"^].
+* Tous les nœuds du cluster doivent exécuter ONTAP 9.11.1 ou une version ultérieure.
+* L'ordre des serveurs répertorie les arguments dans `-secondary-key-servers` Paramètre correspond à l'ordre d'accès des serveurs de gestion externe des clés (KMIP).
+
+
+
+
+== Créer un serveur de clés mis en cluster
+
+La procédure de configuration varie selon que vous avez configuré ou non un serveur de clés principal.
+
+[role="tabbed-block"]
+====
+.Ajout de serveurs de clés primaires et secondaires à un SVM
+--
+. Vérifier qu'aucune gestion des clés n'a été activée pour le cluster :
+`security key-manager external show -vserver _vserver_name_`Si le SVM possède déjà le maximum de quatre serveurs de clés principaux activés, vous devez supprimer l'un des serveurs de clés principaux existants avant d'en ajouter un nouveau.
+. Activez le gestionnaire de clés principal :
+`security key-manager external enable -vserver _vserver_name_ -key-servers _server_ip_ -client-cert _client_cert_name_ -server-ca-certs _server_ca_cert_names_`
+. Modifiez le serveur de clés principal pour ajouter des serveurs de clés secondaires. Le `-secondary-key-servers` paramètre accepte une liste séparée par des virgules de trois serveurs de clés au maximum.
+`security key-manager external modify-server -vserver _vserver_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
+
+
+--
+.Ajoutez des serveurs de clés secondaires à un serveur de clés principal existant
+--
+. Modifiez le serveur de clés principal pour ajouter des serveurs de clés secondaires. Le `-secondary-key-servers` paramètre accepte une liste séparée par des virgules de trois serveurs de clés au maximum.
+`security key-manager external modify-server -vserver _vserver_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`Pour plus d'informations sur les serveurs de clés secondaires, reportez-vous à la section .
+
+
+--
+====
+
+
+== Modifier les serveurs de clés en cluster
+
+Vous pouvez modifier les clusters de serveurs de clés externes en modifiant l'état (principal ou secondaire) de serveurs de clés spécifiques, en ajoutant et en supprimant des serveurs de clés secondaires ou en modifiant l'ordre d'accès des serveurs de clés secondaires.
+
+
+
+=== Conversion des serveurs de clés principaux et secondaires
+
+Pour convertir un serveur de clés principal en serveur de clés secondaire, vous devez d'abord le supprimer de la SVM avec le `security key-manager external remove-servers` commande.
+
+Pour convertir un serveur de clés secondaire en serveur de clés principal, vous devez d'abord supprimer le serveur de clés secondaire de son serveur de clés principal existant. Voir . Si vous convertissez un serveur de clés secondaire en serveur principal lors de la suppression d'une clé existante, toute tentative d'ajout d'un nouveau serveur avant la suppression et la conversion peut entraîner la duplication des clés.
+
+
+
+=== Modification des serveurs de clés secondaires
+
+Les serveurs de clés secondaires sont gérés à l'aide du `-secondary-key-servers` paramètre du `security key-manager external modify-server` commande. Le `-secondary-key-servers` le paramètre accepte une liste séparée par des virgules. L'ordre spécifié des serveurs de clés secondaires dans la liste détermine la séquence d'accès des serveurs de clés secondaires. L'ordre d'accès peut être modifié en exécutant la commande `security key-manager external modify-server` les serveurs de clés secondaires étant entrés dans une séquence différente.
+
+Pour supprimer un serveur de clés secondaire, le `-secondary-key-servers` les arguments doivent inclure les serveurs clés que vous voulez conserver lors de l'omission de celui à supprimer. Pour supprimer tous les serveurs de clés secondaires, utilisez l'argument `-`, indiquant aucun.
+
+Pour plus d'informations, reportez-vous au `security key-manager external` dans le link:https://docs.netapp.com/us-en/ontap-cli-9121/["Référence de commande ONTAP"^].

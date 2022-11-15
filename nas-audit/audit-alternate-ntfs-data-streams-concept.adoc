@@ -1,0 +1,90 @@
+---
+permalink: nas-audit/audit-alternate-ntfs-data-streams-concept.html 
+sidebar: sidebar 
+keywords: considerations, audit, alternate, ntfs data streams 
+summary: 'Vous devez garder à l"esprit certaines considérations lors de l"audit des fichiers avec les autres flux de données NTFS.' 
+---
+= Points à prendre en compte lors de l'audit des autres flux de données NTFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devez garder à l'esprit certaines considérations lors de l'audit des fichiers avec les autres flux de données NTFS.
+
+L'emplacement d'un objet vérifié est enregistré dans un enregistrement d'événement à l'aide de deux balises, le `ObjectName` tag (le chemin) et le `HandleID` étiquette (la poignée). Pour identifier correctement les demandes de flux en cours de journalisation, vous devez connaître les enregistrements ONTAP dans ces champs pour les flux de données alternatifs NTFS :
+
+* EVTX ID : 4656 événements (ouvrir et créer des événements d'audit)
++
+** Le chemin du flux de données secondaire est enregistré dans le `ObjectName` balise :
+** La poignée du flux de données alternatif est enregistrée dans le `HandleID` balise :
+
+
+* EVTX ID : 4663 événements (tous les autres événements d'audit, tels que lecture, écriture, getattr, etc.)
++
+** Le chemin du fichier de base, et non le flux de données secondaire, est enregistré dans le `ObjectName` balise :
+** La poignée du flux de données alternatif est enregistrée dans le `HandleID` balise :
+
+
+
+
+L'exemple suivant illustre comment identifier EVTX ID : 4663 événements pour d'autres flux de données à l'aide de l' `HandleID` balise : Même si le `ObjectName` la balise (chemin) enregistrée dans l'événement d'audit de lecture correspond au chemin du fichier de base, le `HandleID` la balise peut être utilisée pour identifier l'événement comme enregistrement d'audit pour le flux de données secondaire.
+
+Les noms des fichiers de flux prennent le format `base_file_name:stream_name`. Dans cet exemple, le `dir1` le répertoire contient un fichier de base avec un autre flux de données ayant les chemins suivants :
+
+[listing]
+----
+
+/dir1/file1.txt
+/dir1/file1.txt:stream1
+----
+[NOTE]
+====
+La sortie dans l'exemple d'événement suivant est tronquée comme indiqué ; la sortie n'affiche pas toutes les balises de sortie disponibles pour les événements.
+
+====
+Pour un EVTX ID 4656 (événement d'audit ouvert), la sortie de l'enregistrement d'audit du flux de données secondaire enregistre le nom du flux de données alternatif dans le `ObjectName` tag :
+
+[listing]
+----
+
+- <Event>
+- <System>
+  <Provider Name="Netapp-Security-Auditing" />
+  <EventID>4656</EventID>
+  <EventName>Open Object</EventName>
+  [...]
+  </System>
+- <EventData>
+  [...]
+  **<Data Name="ObjectType"\>Stream</Data\>
+  <Data Name="HandleID"\>00000000000401;00;000001e4;00176767</Data\>
+  <Data Name="ObjectName"\>\(data1\);/dir1/file1.txt:stream1</Data\>          **
+  [...]
+  </EventData>
+  </Event>
+- <Event>
+----
+Pour un EVTX ID 4663 (lecture d'événement d'audit), la sortie de l'enregistrement d'audit du même flux de données alternatif enregistre le nom du fichier de base dans le `ObjectName` marquez, cependant, la poignée dans le `HandleID` tag est la poignée du flux de données alternatif et peut être utilisé pour mettre en corrélation cet événement avec l'autre flux de données :
+
+[listing]
+----
+
+- <Event>
+- <System>
+  <Provider Name="Netapp-Security-Auditing" />
+  <EventID>4663</EventID>
+  <EventName>Read Object</EventName>
+  [...]
+  </System>
+- <EventData>
+  [...]
+  **<Data Name="ObjectType"\>Stream</Data\>
+  <Data Name="HandleID"\>00000000000401;00;000001e4;00176767</Data\>
+  <Data Name="ObjectName"\>\(data1\);/dir1/file1.txt</Data\> **
+  [...]
+  </EventData>
+  </Event>
+- <Event>
+----

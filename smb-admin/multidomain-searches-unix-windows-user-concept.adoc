@@ -1,0 +1,94 @@
+---
+permalink: smb-admin/multidomain-searches-unix-windows-user-concept.html 
+sidebar: sidebar 
+keywords: ontap, support, multidomain, search, map, unix, user, windows, discover, trust, domain, match, replacement, alternative, replacement, prefer, multidomain searches for unix user to windows user name mappings 
+summary: 'ONTAP prend en charge les recherches multidomaine lors du mappage d"utilisateurs UNIX aux utilisateurs Windows. Tous les domaines de confiance découverts sont recherchés pour trouver des correspondances avec le modèle de remplacement jusqu"à ce qu"un résultat correspondant soit renvoyé. Vous pouvez également configurer une liste de domaines de confiance préférés, qui est utilisée à la place de la liste de domaines de confiance découverts et est recherchée dans l"ordre jusqu"à ce qu"un résultat correspondant soit renvoyé.' 
+---
+= Multidomaine recherche les mappages de noms d'utilisateur UNIX vers Windows
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP prend en charge les recherches multidomaine lors du mappage d'utilisateurs UNIX aux utilisateurs Windows. Tous les domaines de confiance découverts sont recherchés pour trouver des correspondances avec le modèle de remplacement jusqu'à ce qu'un résultat correspondant soit renvoyé. Vous pouvez également configurer une liste de domaines de confiance préférés, qui est utilisée à la place de la liste de domaines de confiance découverts et est recherchée dans l'ordre jusqu'à ce qu'un résultat correspondant soit renvoyé.
+
+
+
+== La manière dont les approbations de domaine affectent les recherches de mappage de noms d'utilisateur UNIX à des noms d'utilisateur Windows
+
+Pour comprendre le fonctionnement du mappage de noms d'utilisateur multidomaine, vous devez comprendre comment les approbations de domaine fonctionnent avec ONTAP. Les relations de confiance Active Directory avec le domaine personnel du serveur CIFS peuvent être une confiance bidirectionnelle ou l'un des deux types de fiducies unidirectionnelles, soit une confiance entrante, soit une confiance sortante. Le home domain est le domaine auquel le serveur CIFS du SVM appartient.
+
+* _Confiance bidirectionnelle_
++
+Avec des approbations bidirectionnelles, les deux domaines se font confiance. Si le domaine de base du serveur CIFS possède une confiance bidirectionnelle avec un autre domaine, le domaine de base peut authentifier et autoriser un utilisateur appartenant au domaine de confiance et vice versa.
+
++
+Les recherches de mappage de noms d'utilisateur UNIX à Windows peuvent être effectuées uniquement sur les domaines avec des approbations bidirectionnelles entre le domaine principal et l'autre domaine.
+
+* _Confiance sortante_
++
+Avec une confiance sortante, le domaine d'origine approuve l'autre domaine. Dans ce cas, le domaine home peut authentifier et autoriser un utilisateur appartenant au domaine de confiance sortant.
+
++
+Un domaine avec une confiance sortante avec le domaine d'origine est _NOT_ recherché lors de l'exécution de recherches de mappage entre utilisateurs UNIX et noms d'utilisateur Windows.
+
+* _Confiance entrante_
++
+Avec une confiance entrante, l'autre domaine approuve le domaine personnel du serveur CIFS. Dans ce cas, le domaine personnel ne peut pas authentifier ni autoriser un utilisateur appartenant au domaine de confiance entrant.
+
++
+Un domaine avec une confiance entrante avec le domaine d'origine est _NOT_ recherché lors de l'exécution de recherches de mappage entre utilisateurs UNIX et noms d'utilisateur Windows.
+
+
+
+
+
+== Comment les caractères génériques (*) sont utilisés pour configurer les recherches multidomaines pour le mappage de noms
+
+Les recherches de mappage de noms de domaines multiples sont facilitées par l'utilisation de caractères génériques dans la section domaine du nom d'utilisateur Windows. Le tableau suivant illustre comment utiliser des caractères génériques dans la partie domaine d'une entrée de mappage de nom pour activer les recherches multidomaine :
+
+|===
+| Motif | Remplacement | Résultat 
+
+
+ a| 
+racine
+ a| 
+*\\administrateur
+ a| 
+L'utilisateur UNIX « root » est mappé à l'utilisateur nommé « administrateur ». Tous les domaines approuvés sont recherchés dans l'ordre jusqu'à ce que le premier utilisateur correspondant nommé « administrateur » soit trouvé.
+
+
+
+ a| 
+*
+ a| 
+\*\*
+ a| 
+Les utilisateurs UNIX valides sont mappés aux utilisateurs Windows correspondants. Tous les domaines approuvés sont recherchés dans l'ordre jusqu'à ce que le premier utilisateur correspondant à ce nom soit trouvé.
+
+[NOTE]
+====
+Le schéma \*\\* n'est valide que pour le mappage de noms d'UNIX à Windows, pas l'inverse.
+
+====
+|===
+
+
+== Mode d'exécution des recherches sur plusieurs noms de domaine
+
+Vous pouvez choisir l'une des deux méthodes pour déterminer la liste des domaines approuvés utilisés pour les recherches de noms multidomaines :
+
+* Utilisez la liste d'approbation bidirectionnelle automatiquement découverte compilée par ONTAP
+* Utilisez la liste de domaines approuvés que vous compilez
+
+
+Si un utilisateur UNIX est mappé à un utilisateur Windows avec un caractère générique utilisé pour la section domaine du nom d'utilisateur, l'utilisateur Windows est recherché dans tous les domaines approuvés comme suit :
+
+* Si une liste de domaines de confiance est configurée, l'utilisateur Windows mappé est uniquement recherché dans cette liste de recherche, dans l'ordre.
+* Si une liste préférée de domaines approuvés n'est pas configurée, l'utilisateur Windows est alors recherché dans tous les domaines de confiance bidirectionnels du domaine de départ.
+* S'il n'existe pas de domaines de confiance bidirectionnellement pour le domaine personnel, l'utilisateur est recherché dans le domaine personnel.
+
+
+Si un utilisateur UNIX est mappé à un utilisateur Windows sans section de domaine dans le nom d'utilisateur, l'utilisateur Windows est recherché dans le domaine personnel.

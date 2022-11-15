@@ -1,0 +1,141 @@
+---
+permalink: system-admin/restore-cluster-config-from-existing-task.html 
+sidebar: sidebar 
+keywords: restore, cluster, configuration, existing, configuration, failure, recovering, node, rejoin, cluster 
+summary: 'Pour restaurer une configuration de cluster à partir d"une configuration existante après une défaillance de cluster, vous devez recréer le cluster à l"aide de la configuration de cluster que vous avez choisie et mise à disposition du nœud de récupération, puis vous devez relier chaque nœud supplémentaire au nouveau cluster.' 
+---
+= Restaurer une configuration de cluster à partir d'une configuration existante
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour restaurer une configuration de cluster à partir d'une configuration existante après une défaillance de cluster, vous devez recréer le cluster à l'aide de la configuration de cluster que vous avez choisie et mise à disposition du nœud de récupération, puis vous devez relier chaque nœud supplémentaire au nouveau cluster.
+
+Vous ne devez effectuer cette tâche que pour effectuer une restauration après un incident ayant entraîné la perte de la configuration du cluster.
+
+[NOTE]
+====
+Si vous créez à nouveau le cluster à partir d'un fichier de sauvegarde de configuration, vous devez contacter le support technique pour résoudre tout écart entre le fichier de sauvegarde de configuration et la configuration présente dans le cluster.
+
+Si vous récupérez le cluster à partir d'un fichier de sauvegarde de configuration, toute modification de configuration effectuée depuis la sauvegarde sera perdue. Après la restauration, vous devez résoudre tout écart entre le fichier de sauvegarde de configuration et la configuration actuelle. Consultez l'article de la base de connaissances https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/ONTAP_Configuration_Backup_Resolution_Guide["Guide de résolution des sauvegardes de configuration ONTAP pour des conseils de dépannage"].
+
+====
+.Étapes
+. Désactiver le basculement du stockage pour chaque paire haute disponibilité :
++
+`*storage failover modify -node _node_name_ -enabled false*`
+
++
+Il n'est nécessaire de désactiver qu'une seule fois le basculement du stockage pour chaque paire haute disponibilité. Lorsque vous désactivez le basculement du stockage pour un nœud, le basculement du stockage est également désactivé sur le partenaire du nœud.
+
+. Arrêtez chaque nœud sauf pour le nœud qui récupère :
++
+`*system node halt -node _node_name_ -reason "text"*`
+
++
+[listing]
+----
+cluster1::*> system node halt -node node0 -reason "recovering cluster"
+
+Warning: Are you sure you want to halt the node? {y|n}: y
+----
+. Définissez le niveau de privilège sur avancé :
++
+`*set -privilege advanced*`
+
+. Sur le nœud de récupération, utilisez `*system configuration recovery cluster recreate*` commande pour recréer le cluster.
++
+Cet exemple recréé du cluster à l'aide des informations de configuration stockées sur le nœud lors de la restauration :
+
++
+[listing]
+----
+cluster1::*> configuration recovery cluster recreate -from node
+
+Warning: This command will destroy your existing cluster. It will
+         rebuild a new single-node cluster consisting of this node
+         and its current configuration. This feature should only be
+         used to recover from a disaster. Do not perform any other
+         recovery operations while this operation is in progress.
+Do you want to continue? {y|n}: y
+----
++
+Un nouveau cluster est créé sur le nœud restauré.
+
+. Si vous recréez le cluster à partir d'un fichier de sauvegarde de configuration, vérifiez que le cluster Recovery est toujours en cours :
++
+`*system configuration recovery cluster show*`
+
++
+Il n'est pas nécessaire de vérifier l'état de restauration du cluster si vous recréez le cluster à partir d'un nœud sain.
+
++
+[listing]
+----
+cluster1::*> system configuration recovery cluster show
+ Recovery Status: in-progress
+ Is Recovery Status Persisted: false
+----
+. Démarrez chaque nœud qui doit être rejoint au cluster recréré-créé.
++
+Vous devez redémarrer les nœuds un par un.
+
+. Pour chaque nœud qui doit être joint au cluster recréré-créé, procédez comme suit :
++
+.. A partir d'un nœud sain sur le cluster recréré-créé, rrejoignez le nœud cible :
++
+`*system configuration recovery cluster rejoin -node _node_name_*`
+
++
+Cet exemple rejoint le nœud cible « node2 » au cluster recréré-créé :
+
++
+[listing]
+----
+cluster1::*> system configuration recovery cluster rejoin -node node2
+
+Warning: This command will rejoin node "node2" into the local
+         cluster, potentially overwriting critical cluster
+         configuration files. This command should only be used
+         to recover from a disaster. Do not perform any other
+         recovery operations while this operation is in progress.
+         This command will cause node "node2" to reboot.
+Do you want to continue? {y|n}: y
+----
++
+Le nœud cible redémarre, puis rejoint le cluster.
+
+.. Vérifier que le nœud cible est en bon état et qu'il a formé le quorum avec le reste des nœuds du cluster :
++
+`*cluster show -eligibility true*`
+
++
+Le nœud cible doit rejoindre à nouveau le cluster créé avant de pouvoir rejoindre un autre nœud.
+
++
+[listing]
+----
+cluster1::*> cluster show -eligibility true
+Node                 Health  Eligibility   Epsilon
+-------------------- ------- ------------  ------------
+node0                true    true          false
+node1                true    true          false
+2 entries were displayed.
+----
+
+
+. Si vous avez créé à nouveau le cluster à partir d'un fichier de sauvegarde de configuration, définissez l'état de restauration sur terminé :
++
+`*system configuration recovery cluster modify -recovery-status complete*`
+
+. Retour au niveau de privilège admin :
++
+`*set -privilege admin*`
+
+. Si le cluster comprend seulement deux nœuds, utilisez le `*cluster ha modify*` Commande pour réactiver le cluster HA.
+. Utilisez le `*storage failover modify*` Commande permettant de réactiver le basculement du stockage pour chaque paire haute disponibilité.
+
+
+Si le cluster a des relations de pairs SnapMirror, vous devez également les recréer. Pour plus d'informations, voir link:../data-protection/index.html["La protection des données"].

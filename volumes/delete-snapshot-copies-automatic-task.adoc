@@ -1,0 +1,50 @@
+---
+permalink: volumes/delete-snapshot-copies-automatic-task.html 
+sidebar: sidebar 
+keywords: delete, snapshot, copies, automatically, flexclone luns 
+summary: 'Vous pouvez définir et activer une règle pour la suppression automatique des copies Snapshot et des LUN FlexClone. La suppression automatique des copies Snapshot et des LUN FlexClone vous aide à gérer l"utilisation de l"espace.' 
+---
+= Supprimez les copies Snapshot automatiquement
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez définir et activer une règle pour la suppression automatique des copies Snapshot et des LUN FlexClone. La suppression automatique des copies Snapshot et des LUN FlexClone vous aide à gérer l'utilisation de l'espace.
+
+Vous pouvez supprimer automatiquement les copies Snapshot des volumes en lecture/écriture et des LUN FlexClone des volumes parents en lecture/écriture. Vous ne pouvez pas configurer la suppression automatique des copies Snapshot de volumes en lecture seule, par exemple des volumes de destination SnapMirror.
+
+.Étape
+. Définissez et activez une règle pour la suppression automatique des copies Snapshot à l'aide du `volume snapshot autodelete modify` commande.
++
+Voir la `volume snapshot autodelete modify` page man pour plus d'informations sur les paramètres que vous pouvez utiliser avec cette commande afin de définir une règle qui répond à vos besoins.
+
++
+La commande suivante permet la suppression automatique des copies Snapshot et définit le déclencheur sur `snap_reserve` Pour le volume vol3, qui fait partie de la machine virtuelle de stockage vs0.example.com :
+
++
+[listing]
+----
+cluster1::> volume snapshot autodelete modify -vserver vs0.example.com
+-volume vol3 -enabled true -trigger snap_reserve
+----
++
+La commande suivante permet la suppression automatique des copies Snapshot et des LUN FlexClone marquées pour la suppression automatique du volume vol3, qui fait partie du SVM vs0.example.com :
+
++
+[listing]
+----
+cluster1::> volume snapshot autodelete modify -vserver vs0.example.com
+-volume vol3 -enabled true -trigger volume -commitment try -delete-order
+oldest_first -destroy-list lun_clone,file_clone
+----
++
+[NOTE]
+====
+Les copies Snapshot au niveau de l'agrégat fonctionnent différemment des copies Snapshot au niveau des volumes et sont gérées automatiquement par ONTAP. L'option de suppression des copies Snapshot des agrégats est toujours activée et facilite la gestion de l'utilisation de l'espace.
+
+Si le paramètre de déclenchement est défini sur `snap_reserve` Pour un agrégat, les copies Snapshot sont conservées jusqu'à ce que l'espace réservé franchit le seuil de capacité. Par conséquent, même si le paramètre de déclenchement n'est pas défini sur `snap_reserve`, L'espace utilisé par la copie Snapshot dans la commande sera répertorié comme `0` En effet, ces copies Snapshot sont automatiquement supprimées. De plus, l'espace utilisé par les copies Snapshot d'un agrégat est considéré comme libre et inclus dans le paramètre d'espace disponible de la commande.
+
+====
+

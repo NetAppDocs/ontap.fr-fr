@@ -1,0 +1,83 @@
+---
+permalink: volumes/recommendations-moving-concept.html 
+sidebar: sidebar 
+keywords: considerations, recommendations, when, moving, volumes, flexclone volume, metroCluster configuration 
+summary: 'Le déplacement d"un volume comporte de nombreux facteurs et recommandations en fonction du volume que vous déplacez ou de la configuration du système, tels qu"une configuration MetroCluster. Vous devez comprendre les considérations et les recommandations associées au déplacement de volumes.' 
+---
+= Considérations et recommandations lors du déplacement de volumes
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le déplacement d'un volume comporte de nombreux facteurs et recommandations en fonction du volume que vous déplacez ou de la configuration du système, tels qu'une configuration MetroCluster. Vous devez comprendre les considérations et les recommandations associées au déplacement de volumes.
+
+
+
+== Considérations générales et recommandations
+
+* Si vous mettez à niveau la gamme de versions d'un cluster, ne déplacez aucun volume tant que vous n'avez pas mis à niveau tous les nœuds du cluster.
++
+Cette recommandation vous empêche de tenter par inadvertance de déplacer un volume d'une famille de versions plus récente vers une famille de versions plus ancienne.
+
+* Le volume source doit être cohérent.
+* Si un ou plusieurs agrégats sont affectés à la machine virtuelle de stockage (SVM) associée, l'agrégat de destination doit être l'un des agrégats affectés.
+* Vous ne pouvez pas déplacer un volume vers ou depuis un agrégat CFO de reprise.
+* Si un volume contenant des LUN n'est pas activé NVFAIL avant de le déplacer, le volume sera NVFAIL activé après le déplacement.
+* Vous pouvez déplacer un volume d'un agrégat Flash Pool vers un autre agrégat Flash Pool.
++
+** Les règles de mise en cache de ce volume sont également déplacées.
+** La migration peut affecter les performances des volumes.
+
+
+* Vous pouvez déplacer des volumes entre un agrégat Flash Pool et un agrégat non-Flash Pool.
++
+** Si vous déplacez un volume d'un agrégat Flash Pool vers un agrégat non-Flash Pool, ONTAP affiche un message vous informant que le déplacement risque d'affecter les performances du volume et vous demande si vous voulez continuer.
+** Si vous déplacez un volume d'un agrégat non-Flash Pool vers un agrégat Flash Pool, ONTAP attribue la `auto` règle de mise en cache.
+
+
+* Les volumes bénéficient de la protection des données au repos de l'agrégat sur lequel ils résident. Si vous déplacez un volume d'un agrégat composé de disques NSE vers un volume qui ne le fait pas, celui-ci ne dispose plus de la protection NSE des données au repos.
+
+
+
+
+== Considérations et recommandations relatives aux volumes FlexClone
+
+* Les volumes FlexClone ne peuvent pas être hors ligne lorsqu'ils sont déplacés.
+* Vous pouvez déplacer des volumes FlexClone d'un agrégat vers un autre agrégat du même nœud ou d'un autre nœud du même SVM, sans lancer la `vol clone split start` commande.
++
+En initiant une opération de déplacement de volume sur un volume FlexClone, le volume clone est partagé pendant le processus de déplacement vers un autre agrégat. Une fois la migration de volume effectuée sur le volume clone terminée, le volume déplacé n'apparaît plus comme clone, mais apparaît à la place en tant que volume indépendant sans relation de clonage avec le volume parent précédent.
+
+* Les copies Snapshot de volume FlexClone ne sont pas perdues après le déplacement d'un clone.
+* Vous pouvez déplacer les volumes FlexClone parent d'un agrégat à un autre.
++
+Lorsque vous déplacez un volume parent FlexClone, un volume temporaire est placé derrière celui-ci en tant que volume parent pour tous les volumes FlexClone. Aucune opération n'est autorisée sur le volume temporaire, à l'exception de la mettre hors ligne ou de la supprimer. Une fois tous les volumes FlexClone séparés ou détruits, le volume temporaire est nettoyé automatiquement.
+
+* Une fois le volume enfant FlexClone déplacé, il n'est plus un volume FlexClone.
+* Les opérations de déplacement FlexClone s'excluent mutuellement entre la copie FlexClone et les opérations de séparation.
+* Si une opération de fractionnement du clone est en cours, le déplacement d'un volume peut échouer.
++
+Vous ne devez pas déplacer un volume avant la fin des opérations de fractionnement des clones.
+
+
+
+
+
+== Configuration MetroCluster en considération
+
+* Lors d'un déplacement de volume dans une configuration MetroCluster, lorsqu'un volume temporaire est créé sur l'agrégat de destination du cluster source, un enregistrement du volume temporaire correspondant au volume dans le cluster en miroir, mais non intégré, est également créé sur le cluster survivant.
+* En cas de basculement MetroCluster avant la mise en service, le volume de destination dispose d'un enregistrement et il s'agit d'un volume temporaire (un volume de type TMP).
++
+Le déplacement du travail redémarre sur le cluster survivant (reprise après sinistre), signale une panne et nettoie tous les éléments liés au déplacement, y compris le volume temporaire. Dans tous les cas où le nettoyage ne peut pas être effectué correctement, un EMS est généré pour avertir l'administrateur système d'effectuer le nettoyage nécessaire.
+
+* En cas de basculement MetroCluster après le démarrage de la mise en service, mais avant la fin du déplacement (c'est-à-dire que le déplacement a atteint une étape où il peut mettre à jour le cluster afin qu'il pointe vers l'agrégat de destination), la tâche de déplacement redémarre sur les autres tâches (reprise sur incident). cluster et s'exécute au bout.
++
+Tous les éléments liés au déplacement sont nettoyés, y compris le volume temporaire (source d'origine). Dans tous les cas où le nettoyage ne peut pas être effectué correctement, un EMS est généré pour avertir l'administrateur système d'effectuer le nettoyage nécessaire.
+
+* Les backs MetroCluster forcés et non forcés ne sont pas autorisés en cas de déplacement de volumes en cours pour les volumes appartenant au site commuté.
++
+Les dispositifs de commutation ne sont pas bloqués lorsque des opérations de déplacement de volume sont en cours pour les volumes locaux vers le site survivant.
+
+* Les mélangeurs MetroCluster non forcés sont bloqués, mais les mélangeurs MetroCluster forcés ne sont pas bloqués si des opérations de déplacement de volume sont en cours.
+

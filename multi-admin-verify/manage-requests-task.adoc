@@ -1,0 +1,169 @@
+---
+sidebar: sidebar 
+permalink: multi-admin-verify/manage-requests-task.html 
+keywords: ontap, mav, multi, admin, verification, administrator, protected, operation, rules, request, cluster, approve, rbac, manage, cli, system, manager 
+summary: 'Lorsque les administrateurs d"un groupe d"approbation MAV (administrateurs MAV) sont avertis d"une demande d"exécution d"opération en attente, ils doivent répondre par un message d"approbation ou de veto dans un délai fixe (expiration de l"approbation).' 
+---
+= Gérer les demandes d'opérations protégées
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Lorsque les administrateurs d'un groupe d'approbation MAV (administrateurs MAV) sont avertis d'une demande d'exécution d'opération en attente, ils doivent répondre par un message d'approbation ou de veto dans un délai fixe (expiration de l'approbation). Si un nombre suffisant d'approbations n'est pas reçu, le demandeur doit supprimer la demande et en faire une autre.
+
+Les demandes d'approbation sont identifiées par des numéros d'index, qui sont inclus dans les e-mails et sont affichées dans la file d'attente des demandes.
+
+Les informations suivantes de la file d'attente de demandes peuvent être affichées :
+
+Fonctionnement:: Opération protégée pour laquelle la demande est créée.
+Requête:: Objet (ou objets) sur lequel l'utilisateur souhaite appliquer l'opération.
+État:: État actuel de la demande ; en attente, approuvé, rejeté, expiré, exécuté. Si une demande est rejetée par un approbateur, aucune autre action n'est possible.
+Approbateurs requis:: Nombre d'administrateurs MAV requis pour approuver la demande. Un utilisateur peut définir le paramètre approbateurs requis pour la règle d'opération. Si un utilisateur ne définit pas les approbateurs requis sur la règle, les approbateurs requis du paramètre global sont appliqués.
+Approbateurs en attente:: Nombre d'administrateurs MAV toujours requis pour approuver la demande pour que la demande soit marquée comme approuvée.
+Expiration de l'approbation:: Période pendant laquelle un administrateur MAV doit répondre à une demande d'approbation. Tout utilisateur autorisé peut définir la règle d'approbation-expiration d'une opération. Si l'approbation-expiration n'est pas définie pour la règle, l'approbation-expiration du paramètre global est appliquée.
+Expiration de l'exécution:: Période pendant laquelle l'administrateur requérant doit terminer l'opération. Tout utilisateur autorisé peut définir une règle d'exécution-expiration pour une opération. Si exécution-expiration n'est pas définie pour la règle, l'exécution-expiration du paramètre global est appliquée.
+Utilisateurs approuvés:: Les administrateurs MAV qui ont approuvé la demande.
+L'utilisateur a refusé son droit d'veto:: Les administrateurs MAV qui ont opposé leur veto à la demande.
+VM de stockage (vServer):: SVM avec lequel la requête est associée. Seule le SVM d'administration est pris en charge dans cette version.
+Utilisateur demandé:: Nom d'utilisateur de l'utilisateur qui a créé la demande.
+Heure de création:: Heure de création de la demande.
+Heure d'approbation:: Heure à laquelle l'état de la demande passe à approuvé.
+Commentaire:: Tout commentaire associé à la demande.
+Utilisateurs autorisés:: Liste des utilisateurs autorisés à effectuer l'opération protégée pour laquelle la demande est approuvée. Si `users-permitted` est vide, alors tout utilisateur disposant des autorisations appropriées peut effectuer l'opération.
+
+
+Toutes les demandes expirées ou exécutées sont supprimées lorsqu'une limite de 1000 demandes est atteinte ou lorsque la durée d'expiration est supérieure à 8 heures pour les demandes expirées. Les demandes de veto sont supprimées dès qu'elles sont marquées comme expirées.
+
+
+
+== Procédure de System Manager
+
+Les administrateurs MAV reçoivent des e-mails contenant les détails de la demande d'approbation, la période d'expiration de la demande et un lien pour approuver ou rejeter la demande. Ils peuvent accéder à une boîte de dialogue d'approbation en cliquant sur le lien dans l'e-mail ou accédez à *Events & Jobs> requêtes* dans System Manager.
+
+La fenêtre *requêtes* est disponible lorsque la vérification multi-administrateur est activée, affichant les demandes en attente basées sur l'ID de connexion de l'utilisateur et le rôle MAV (approbateur ou non).
+
+* Fonctionnement
+* Index (nombre)
+* État (en attente, approuvé, rejeté, exécuté ou expiré)
++
+Si une demande est rejetée par un approbateur, aucune autre action n'est possible.
+
+* Requête (tous les paramètres ou valeurs de l'opération demandée)
+* Utilisateur demandeur
+* La demande expire le
+* (Nombre de) approbateurs en attente
+* (Nombre de) approbateurs potentiels
+
+
+Les administrateurs MAV disposent de contrôles supplémentaires dans cette fenêtre ; ils peuvent approuver, rejeter ou supprimer des opérations individuelles ou des groupes d'opérations sélectionnés. Toutefois, si l'administrateur MAV est l'utilisateur qui demande, il ne peut approuver, rejeter ou supprimer ses propres demandes.
+
+
+
+== Procédure CLI
+
+. Lorsqu'une demande est signalée par courrier électronique en attente, notez le numéro d'index de la demande et la période d'expiration de l'approbation. Le numéro d'index peut également être affiché à l'aide des options *show* ou *show-Pending* mentionnées ci-dessous.
+. Approuver ou opposer un veto à la demande.
++
+[cols="50,50"]
+|===
+| Si vous voulez… | Saisissez cette commande 
+
+
+ a| 
+Approuver une demande
+ a| 
+`security multi-admin-verify request approve _nn_`
+
+
+
+ a| 
+Veto sur une demande
+ a| 
+`security multi-admin-verify request veto _nn_`
+
+
+
+ a| 
+Affiche toutes les demandes, les demandes en attente ou une seule demande
+ a| 
+`security multi-admin-verify request { show | show-pending } [_nn_]
+{ -fields _field1_[,_field2_...] |  [-instance ]  }`
+
+Vous pouvez afficher toutes les demandes dans la file d'attente ou uniquement les demandes en attente. Si vous saisissez le numéro d'index, seules les informations pour ce numéro sont affichées. Vous pouvez afficher des informations sur des champs spécifiques (en utilisant le `-fields` paramètre) ou à propos de tous les champs (en utilisant le `-instance` paramètre).
+
+
+
+ a| 
+Supprimer une demande
+ a| 
+`security multi-admin-verify request delete _nn_`
+
+|===
+
+
+La séquence suivante approuve une demande après que l'administrateur MAV ait reçu l'e-mail de demande avec l'index numéro 3, qui a déjà une approbation.
+
+[listing]
+----
+          cluster1::> security multi-admin-verify request show-pending
+                                   Pending
+Index Operation      Query State   Approvers Requestor
+----- -------------- ----- ------- --------- ---------
+    3 volume delete  -     pending 1         julia
+
+
+cluster-1::> security multi-admin-verify request approve 3
+
+cluster-1::> security multi-admin-verify request show 3
+
+     Request Index: 3
+         Operation: volume delete
+             Query: -
+             State: approved
+Required Approvers: 2
+ Pending Approvers: 0
+   Approval Expiry: 2/25/2022 14:32:03
+  Execution Expiry: 2/25/2022 14:35:36
+         Approvals: mav-admin2
+       User Vetoed: -
+           Vserver: cluster-1
+    User Requested: julia
+      Time Created: 2/25/2022 13:32:03
+     Time Approved: 2/25/2022 13:35:36
+           Comment: -
+   Users Permitted: -
+----
+La séquence suivante affiche une demande après que l'administrateur MAV ait reçu l'e-mail de demande avec l'index numéro 3, qui a déjà une approbation.
+
+[listing]
+----
+      cluster1::> security multi-admin-verify request show-pending
+                                   Pending
+Index Operation      Query State   Approvers Requestor
+----- -------------- ----- ------- --------- ---------
+    3 volume delete  -     pending 1         pavan
+
+
+cluster-1::> security multi-admin-verify request veto 3
+
+cluster-1::> security multi-admin-verify request show 3
+
+     Request Index: 3
+         Operation: volume delete
+             Query: -
+             State: vetoed
+Required Approvers: 2
+ Pending Approvers: 0
+   Approval Expiry: 2/25/2022 14:32:03
+  Execution Expiry: 2/25/2022 14:35:36
+         Approvals: mav-admin1
+       User Vetoed: mav-admin2
+           Vserver: cluster-1
+    User Requested: pavan
+      Time Created: 2/25/2022 13:32:03
+     Time Approved: 2/25/2022 13:35:36
+           Comment: -
+   Users Permitted: -
+----

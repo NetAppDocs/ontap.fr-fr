@@ -1,0 +1,49 @@
+---
+permalink: revert/remove-nas-bucket-task.html 
+sidebar: sidebar 
+keywords: s3, svm, bucket, object, server, filesystems, nas, directories, revert 
+summary: 'Si vous avez configuré l"accès client S3 pour les données NAS et que vous restaurez la ONTAP version 9.12.1 ou ultérieure à ONTAP 9.11.1 ou version antérieure, vous devez supprimer la configuration du compartiment NAS. Vous devez également supprimer tous les utilisateurs S3 des mappages de noms d"utilisateur Windows/Unix avant de restaurer.' 
+---
+= Supprimez la configuration des compartiments NAS S3 avant la restauration de ONTAP 9.12.1 ou version ultérieure
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous avez configuré l'accès client S3 pour les données NAS et que vous restaurez la ONTAP version 9.12.1 ou ultérieure à ONTAP 9.11.1 ou version antérieure, vous devez supprimer la configuration du compartiment NAS. Vous devez également supprimer les mappages de noms (utilisateurs S3 vers des utilisateurs Windows ou Unix) avant de restaurer.
+
+Les tâches suivantes sont effectuées en arrière-plan pendant le processus de restauration.
+
+* Supprimez toutes les créations d'objets singleton partiellement terminées (c'est-à-dire toutes les entrées des répertoires masqués).
+* Supprimez tous les répertoires masqués : il peut y en avoir un pour chaque volume accessible à partir de la racine de l'exportation mappée depuis le compartiment NAS S3.
+* Supprimez la table de chargement.
+* Supprimez toutes les valeurs par défaut utilisateur-unix et utilisateur-Windows-par défaut de tous les serveurs S3 configurés.
+
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Supprimez une configuration de compartiment NAS S3. + cliquez sur *stockage > compartiments*, puis sur image:../media/icon_kabob.gif["icône kebab"] Pour chaque compartiment NAS S3 configuré, cliquez sur *Supprimer*.
+. Supprimez les mappages de noms locaux pour les clients UNIX ou Windows (ou les deux).
++
+.. Cliquez sur *stockage > compartiments*, puis sélectionnez la machine virtuelle de stockage compatible S3/NAS.
+.. Sélectionnez *Paramètres*, puis cliquez sur image:../media/icon_arrow.gif["flèche droite"] Dans *Name Mapping* (sous *Host Users and Groups*).
+.. Dans les mosaïques *S3 à Windows* ou *S3 à UNIX* (ou les deux), cliquez sur image:../media/icon_kabob.gif["icône kebab"] Pour chaque mappage configuré, cliquez sur *Supprimer*.
+
+
+
+
+--
+.CLI
+--
+. Supprimez la configuration des compartiments NAS S3. +
+`vserver object-store-server bucket delete -vserver _svm_name_ -bucket _s3_nas_bucket_name_`
+. Supprimez les mappages de noms. +
+`vserver name-mapping delete -vserver _svm_name_ -direction s3-unix` +
+`vserver name-mapping delete -vserver _svm_name_ -direction s3-win`
+
+
+--
+====

@@ -1,0 +1,103 @@
+---
+permalink: disks-aggregates/create-flash-pool-aggregate-ssd-storage-task.html 
+sidebar: sidebar 
+keywords: create, flash pool, aggregate, local tier, ssd, storage pool, allocation units 
+summary: 'Vous pouvez configurer un niveau local Flash Pool (agrégat) en ajoutant une ou plusieurs unités d"allocation d"un pool de stockage SSD à un niveau local HDD existant.' 
+---
+= Créez un niveau local Flash Pool (agrégat) en utilisant des unités d'allocation de pools de stockage SSD
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez configurer un niveau local Flash Pool (agrégat) en ajoutant une ou plusieurs unités d'allocation d'un pool de stockage SSD à un niveau local HDD existant.
+
+À partir de ONTAP 9.12.1, vous pouvez utiliser System Manager redessiné pour créer un niveau local Flash Pool à partir d'unités d'allocation de pool de stockage.
+
+.Ce dont vous avez besoin, 8217;ll
+* Vous devez avoir identifié un niveau local valide composé de disques durs à convertir en niveau local Flash Pool.
+* Vous devez avoir déterminé l'éligibilité à la mise en cache en écriture des volumes associés au niveau local et avoir effectué toutes les étapes requises pour résoudre les problèmes d'éligibilité.
+* Vous devez avoir créé un pool de stockage SSD afin de fournir le cache SSD à ce niveau local Flash Pool.
++
+Toute unité d'allocation du pool de stockage que vous souhaitez utiliser doit appartenir au même nœud qui possède le niveau local Flash Pool.
+
+* Vous devez avoir déterminé la quantité de cache que vous souhaitez ajouter au niveau local.
++
+Vous ajoutez de la mémoire cache au niveau local par unités d'allocation. Si de l'espace est nécessaire, vous pouvez augmenter la taille des unités d'allocation en ajoutant des disques SSD au pool de stockage.
+
+* Vous devez avoir déterminé le type de RAID que vous souhaitez utiliser pour le cache SSD.
++
+Une fois que vous avez ajouté un cache au niveau local à partir des pools de stockage SSD, vous ne pouvez pas modifier le type RAID des groupes RAID de cache.
+
+* Vous devez avoir déterminé la taille maximale du cache de votre système et déterminé que l'ajout de cache SSD au niveau local ne vous fera pas dépasser.
++
+Vous pouvez voir la quantité de cache qui sera ajoutée à la taille totale du cache en utilisant le `storage pool show` commande.
+
+* Vous devez vous familiariser avec les conditions de configuration requises pour le niveau local Flash Pool.
+
+
+Si vous souhaitez que le type RAID du cache soit différent de celui des groupes RAID de disques durs, vous devez spécifier le type RAID du cache lors de l'ajout de la capacité SSD. Une fois la capacité SSD ajoutée au niveau local, vous ne pouvez plus modifier le type RAID du cache.
+
+Après avoir ajouté un cache SSD à un niveau local pour créer un niveau local Flash Pool, vous ne pouvez pas supprimer le cache SSD afin de reconvertir le niveau local en sa configuration d'origine.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Depuis ONTAP 9.12.1, vous pouvez utiliser System Manager pour ajouter des disques SSD à un pool de stockage SSD.
+
+.Étapes
+. Cliquez sur *stockage > niveaux* et sélectionnez un niveau de stockage de disque dur local existant.
+. Cliquez sur image:icon_kabob.gif["icône kabob"] Et sélectionnez *Add Flash Pool cache*.
+. Sélectionnez *utiliser les pools de stockage*.
+. Sélectionnez un pool de stockage.
+. Sélectionnez une taille de cache et une configuration RAID.
+. Cliquez sur *Enregistrer*.
+. Localisez à nouveau le niveau de stockage et cliquez sur image:icon_kabob.gif["icône kabob"].
+. Sélectionnez *plus de détails* et vérifiez que Flash Pool indique *activé*.
+
+
+--
+.CLI
+--
+.Étapes
+. Marquer l'agrégat comme éligible pour devenir un agrégat Flash Pool :
++
+`storage aggregate modify -aggregate _aggr_name_ -hybrid-enabled true`
+
++
+Si cette étape ne réussisse pas, déterminez l'éligibilité à la mise en cache des écritures pour l'agrégat cible.
+
+. Afficher les unités d'allocation de pool de stockage SSD disponibles :
++
+`storage pool show-available-capacity`
+
+. Ajout de la capacité SSD à l'agrégat :
++
+`storage aggregate add _aggr_name_ -storage-pool _sp_name_ -allocation-units _number_of_units_`
+
++
+Si vous souhaitez que le type RAID du cache soit différent de celui des groupes RAID de disques durs, vous devez le modifier lorsque vous saisissez cette commande en utilisant le `raidtype` paramètre.
+
++
+Il n'est pas nécessaire de spécifier un nouveau groupe RAID ; ONTAP place automatiquement le cache SSD dans des groupes RAID distincts des groupes RAID de disques durs.
+
++
+Vous ne pouvez pas définir la taille du groupe RAID du cache ; elle est déterminée par le nombre de disques SSD du pool de stockage.
+
++
+Le cache est ajouté à l'agrégat et l'agrégat est désormais un agrégat Flash Pool. Chaque unité d'allocation ajoutée à l'agrégat devient son propre groupe RAID.
+
+. Confirmer la présence et la taille du cache SSD :
++
+`storage aggregate show _aggregate_name_`
+
++
+La taille du cache est indiquée sous `Total Hybrid Cache Size`.
+
+
+
+--
+====
+http://www.netapp.com/us/media/tr-4070.pdf["Rapport technique NetApp 4070 : Guide de la conception et de l'implémentation Flash Pool"^]

@@ -1,0 +1,76 @@
+---
+permalink: smb-admin/enable-disable-aes-encryption-kerberos-task.html 
+sidebar: sidebar 
+keywords: advantage, security, kerberos-based, communication, aes-256, aes-128, aes, encryption, active, directory, ad, kdc, cifs, smb 
+summary: 'Pour bénéficier de la sécurité la plus forte avec la communication Kerberos, vous pouvez activer le chiffrement AES-256 et AES-128 sur le serveur SMB. Si vous ne souhaitez pas que le serveur SMB sélectionne les types de cryptage AES pour les communications basées sur Kerberos avec le KDC Active Directory (AD), vous pouvez désactiver le cryptage AES. Le chiffrement AES est désactivé par défaut.' 
+---
+= Activez ou désactivez le chiffrement AES pour les communications basées sur Kerberos
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour bénéficier de la sécurité la plus forte avec la communication Kerberos, vous pouvez activer le chiffrement AES-256 et AES-128 sur le serveur SMB. Si vous ne souhaitez pas que le serveur SMB sélectionne les types de cryptage AES pour les communications basées sur Kerberos avec le KDC Active Directory (AD), vous pouvez désactiver le cryptage AES. Le chiffrement AES est désactivé par défaut.
+
+Pour renforcer la sécurité, la machine virtuelle de stockage (SVM) modifie le mot de passe de son compte machine dans l'AD à chaque modification de l'option de sécurité AES. La modification du mot de passe peut nécessiter des informations d'identification AD administratives pour l'unité organisationnelle qui contient le compte de la machine.
+
+Si un SVM est configuré en tant que destination de reprise sur incident où l'identité n'est pas conservée (le `-identity-preserve` l'option est définie sur `false` Dans la configuration SnapMirror), les paramètres de sécurité du serveur SMB non par défaut ne sont pas répliqués sur la destination. Si vous avez activé le chiffrement AES sur le SVM source, vous devez l'activer manuellement sur le SVM de destination une fois que la destination est devenue lecture-écriture (après une interruption de la relation SnapMirror).
+
+.Étapes
+. Effectuez l'une des opérations suivantes :
++
+|===
+| Si vous souhaitez que les types de cryptage AES soient utilisés pour les communications Kerberos... | Entrez la commande... 
+
+
+ a| 
+Activé
+ a| 
+`vserver cifs security modify -vserver vserver_name -is-aes-encryption-enabled true`
+
+
+
+ a| 
+Désactivé
+ a| 
+`vserver cifs security modify -vserver vserver_name -is-aes-encryption-enabled false`
+
+|===
+. Vérifiez que le chiffrement AES est activé ou désactivé selon les besoins : `vserver cifs security show -vserver vserver_name -fields is-aes-encryption-enabled`
++
+Le `is-aes-encryption-enabled` s'affiche `true` Si le cryptage AES est activé et `false` s'il est désactivé.
+
+
+
+L'exemple suivant active les types de cryptage AES pour le serveur CIFS sur le SVM vs1 :
+
+[listing]
+----
+cluster1::> vserver cifs security modify -vserver vs1 -is-aes-encryption-enabled true
+
+cluster1::> vserver cifs security show -vserver vs1 -fields is-aes-encryption-enabled
+vserver  is-aes-encryption-enabled
+-------- -------------------------
+vs1      true
+----
+L'exemple suivant active les types de cryptage AES pour le serveur SMB sur le SVM vs2. L'administrateur est invité à saisir les informations d'identification AD d'administration pour l'UO contenant le serveur SMB.
+
+[listing]
+----
+cluster1::> vserver cifs security modify -vserver vs2 -is-aes-encryption-enabled true
+
+Info: In order to enable SMB AES encryption, the password for the SMB server
+machine account must be reset. Enter the username and password for the
+SMB domain "EXAMPLE.COM".
+
+Enter your user ID: administrator
+
+Enter your password:
+
+
+cluster1::> vserver cifs security show -vserver vs2 -fields is-aes-encryption-enabled
+vserver  is-aes-encryption-enabled
+-------- -------------------------
+vs2      true
+----

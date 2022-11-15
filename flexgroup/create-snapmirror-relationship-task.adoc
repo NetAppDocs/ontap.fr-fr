@@ -1,0 +1,133 @@
+---
+permalink: flexgroup/create-snapmirror-relationship-task.html 
+sidebar: sidebar 
+keywords: create, snapmirror, relationship, flexgroup, volume, snap mirror, flex group, peered svm, replicate, replicating, disaster 
+summary: 'Vous pouvez créer une relation SnapMirror entre le volume FlexGroup source et le volume FlexGroup de destination sur un SVM peering pour la réplication des données en vue de la reprise sur incident. Vous pouvez utiliser les copies en miroir du volume FlexGroup pour restaurer des données en cas d"incident.' 
+---
+= Créer une relation SnapMirror pour les volumes FlexGroup
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez créer une relation SnapMirror entre le volume FlexGroup source et le volume FlexGroup de destination sur un SVM peering pour la réplication des données en vue de la reprise sur incident. Vous pouvez utiliser les copies en miroir du volume FlexGroup pour restaurer des données en cas d'incident.
+
+Vous devez avoir créé la relation de peering de cluster et la relation de SVM peering.
+
+link:../peering/index.html["Cluster et SVM peering"]
+
+.Description de la tâche
+* Vous pouvez créer à la fois des relations SnapMirror intercluster et des relations SnapMirror intracluster pour les volumes FlexGroup.
+* Depuis ONTAP 9.3, vous pouvez étendre les volumes FlexGroup faisant partie d'une relation SnapMirror.
++
+Si vous utilisez une version d'ONTAP antérieure à ONTAP 9.3, vous ne devez pas étendre les volumes FlexGroup après l'établissement d'une relation SnapMirror. Toutefois, vous pouvez augmenter la capacité des volumes FlexGroup après avoir établi une relation SnapMirror. Si vous développez le volume FlexGroup source après avoir rompant la relation SnapMirror dans des versions antérieures à ONTAP 9.3, vous devez effectuer un transfert de base vers le volume FlexGroup de destination.
+
+
+
+.Étapes
+. Créer un volume FlexGroup de type destination `DP` Avec le même nombre de composants que celui du volume FlexGroup source :
++
+.. Depuis le cluster source, déterminer le nombre de composants du volume FlexGroup source : `volume show -volume volume_name* -is-constituent true`
++
+[listing]
+----
+cluster1::> volume show  -volume srcFG* -is-constituent true
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+--------- ------------ ------------ ---------- ---- ---------- ---------- -----
+vss       srcFG          -            online     RW         400TB   172.86GB  56%
+vss       srcFG__0001    Aggr_cmode   online     RW         25GB    10.86TB   56%
+vss       srcFG__0002    aggr1        online     RW         25TB    10.86TB   56%
+vss       srcFG__0003    Aggr_cmode   online     RW         25TB    10.72TB   57%
+vss       srcFG__0004    aggr1        online     RW         25TB    10.73TB   57%
+vss       srcFG__0005    Aggr_cmode   online     RW         25TB    10.67TB   57%
+vss       srcFG__0006    aggr1        online     RW         25TB    10.64TB   57%
+vss       srcFG__0007    Aggr_cmode   online     RW         25TB    10.63TB   57%
+...
+----
+.. Depuis le cluster de destination, créez un volume FlexGroup de type destination `DP` Avec le même nombre de composants que celui du volume FlexGroup source.
++
+[listing]
+----
+cluster2::> volume create -vserver vsd -aggr-list aggr1,aggr2 -aggr-list-multiplier 8 -size 400TB -type DP dstFG
+
+Warning: The FlexGroup volume "dstFG" will be created with the following number of constituents of size 25TB: 16.
+Do you want to continue? {y|n}: y
+[Job 766] Job succeeded: Successful
+----
+.. Depuis le cluster de destination, vérifiez le nombre de composants du volume FlexGroup de destination : `volume show -volume volume_name* -is-constituent true`
++
+[listing]
+----
+cluster2::> volume show  -volume dstFG* -is-constituent true
+Vserver   Volume        Aggregate    State      Type       Size  Available  Used%
+--------- ------------  ------------ ---------- ---- ----------  ---------- -----
+vsd       dstFG          -            online     DP         400TB   172.86GB  56%
+vsd       dstFG__0001    Aggr_cmode   online     DP         25GB    10.86TB   56%
+vsd       dstFG__0002    aggr1        online     DP         25TB    10.86TB   56%
+vsd       dstFG__0003    Aggr_cmode   online     DP         25TB    10.72TB   57%
+vsd       dstFG__0004    aggr1        online     DP         25TB    10.73TB   57%
+vsd       dstFG__0005    Aggr_cmode   online     DP         25TB    10.67TB   57%
+vsd       dstFG__0006    aggr1        online     DP         25TB    10.64TB   57%
+vsd       dstFG__0007    Aggr_cmode   online     DP         25TB    10.63TB   57%
+...
+----
+
+
+. Création d'un programme de travail : `job schedule cron create -name job_name -month month -dayofweek day_of_week -day day_of_month -hour hour -minute minute`
++
+Pour le `-month`, `-dayofweek`, et `-hour` vous pouvez spécifier des options `all` pour exécuter le travail tous les mois, tous les jours de la semaine et toutes les heures, respectivement.
+
++
+L'exemple suivant crée un programme de travail nommé `my_weekly` Le samedi à 3:00 :
+
++
+[listing]
+----
+cluster1::> job schedule cron create -name my_weekly -dayofweek "Saturday" -hour 3 -minute 0
+----
+. Création d'une règle de type personnalisée `async-mirror` Pour la relation SnapMirror : `snapmirror policy create -vserver SVM -policy snapmirror_policy -type async-mirror`
++
+Si vous ne créez pas de stratégie personnalisée, vous devez spécifier le `MirrorAllSnapshots` Règle pour les relations SnapMirror.
+
+. Depuis le cluster de destination, créer une relation SnapMirror entre le volume FlexGroup source et le volume FlexGroup de destination : `snapmirror create -source-path src_svm:src_flexgroup -destination-path dest_svm:dest_flexgroup -type XDP -policy snapmirror_policy -schedule sched_name`
++
+Les relations SnapMirror pour les volumes FlexGroup doivent être de type `XDP`.
+
++
+Si vous spécifiez une valeur de papillon pour la relation SnapMirror pour le volume FlexGroup, chaque composant utilise la même valeur de papillon. La valeur de l'accélérateur n'est pas divisée entre les constituants.
+
++
+[NOTE]
+====
+Vous ne pouvez pas utiliser les étiquettes SnapMirror des copies Snapshot pour les volumes FlexGroup.
+
+====
++
+Dans ONTAP 9.4 et versions antérieures, si la politique n'est pas spécifiée avec le `snapmirror create` commande, le `MirrorAllSnapshots` la règle est utilisée par défaut. Dans ONTAP 9.5, si la politique n'est pas spécifiée avec le `snapmirror create` commande, le `MirrorAndVault` la règle est utilisée par défaut.
+
++
+[listing]
+----
+cluster2::> snapmirror create -source-path vss:srcFG -destination-path vsd:dstFG -type XDP -policy MirrorAllSnapshots -schedule hourly
+Operation succeeded: snapmirror create for the relationship with destination "vsd:dstFG".
+----
+. Depuis le cluster destination, initialiser la relation SnapMirror en effectuant un transfert de base : `snapmirror initialize -destination-path dest_svm:dest_flexgroup`
++
+Une fois le transfert de base terminé, le volume FlexGroup de destination est mis à jour régulièrement en fonction du calendrier de la relation SnapMirror.
+
++
+[listing]
+----
+cluster2::> snapmirror initialize -destination-path vsd:dstFG
+Operation is queued: snapmirror initialize of destination "vsd:dstFG".
+----
++
+[NOTE]
+====
+Si vous avez créé une relation SnapMirror entre des volumes FlexGroup avec le cluster source exécutant ONTAP 9.3 et le cluster de destination exécutant ONTAP 9.2 ou version antérieure, et si vous créez des qtrees sur le volume FlexGroup source, la mise à jour de SnapMirror échoue. Pour effectuer une restauration à partir de cette situation, vous devez supprimer tous les qtrees non par défaut du volume FlexGroup, désactiver la fonctionnalité qtree sur le volume FlexGroup, puis supprimer toutes les copies Snapshot activées avec la fonctionnalité qtree. Vous devez également effectuer ces étapes avant de restaurer de ONTAP 9.3 vers une version antérieure de ONTAP, si la fonctionnalité qtree est activée sur les volumes FlexGroup.  https://docs.netapp.com/us-en/ontap/revert/task_disabling_qtrees_in_flexgroup_volumes_before_reverting.html["Désactivez la fonctionnalité qtree dans les volumes FlexGroup avant de procéder au rétablissement"]
+
+====
+
+
+Il est important de configurer le SVM de destination pour l'accès aux données en configurant les configurations requises telles que les LIF et les export policy.

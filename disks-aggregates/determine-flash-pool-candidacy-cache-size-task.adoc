@@ -1,0 +1,69 @@
+---
+permalink: disks-aggregates/determine-flash-pool-candidacy-cache-size-task.html 
+sidebar: sidebar 
+keywords: flash pool, candidacy, optimal cache size, local tier, aggregate 
+summary: 'Avant de convertir un niveau local (agrégat) en niveau local Flash Pool, vous pouvez déterminer si le niveau local est limité aux E/S et la taille de cache Flash Pool la plus adaptée à votre charge de travail et à votre budget. Vous pouvez également vérifier si le cache d"un niveau local Flash Pool existant est correctement dimensionné.' 
+---
+= Déterminer la candidature de Flash Pool et la taille optimale du cache
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de convertir un niveau local (agrégat) en niveau local Flash Pool, vous pouvez déterminer si le niveau local est limité aux E/S et la taille de cache Flash Pool la plus adaptée à votre charge de travail et à votre budget. Vous pouvez également vérifier si le cache d'un niveau local Flash Pool existant est correctement dimensionné.
+
+Vous devez savoir approximativement quand le niveau local que vous analysez subit son pic de charge.
+
+.Étapes
+. Entrer en mode avancé :
++
+`set advanced`
+
+. Si vous avez besoin de déterminer si un niveau local (agrégat) existant serait un bon candidat pour la conversion en un agrégat Flash Pool, déterminez quelle est la occupation des disques de l'agrégat pendant une période de pics de charge et comment cela affecte la latence :
++
+`statistics show-periodic -object disk:raid_group -instance _raid_group_name_ -counter disk_busy|user_read_latency -interval 1 -iterations 60`
+
++
+Vous pouvez décider si la réduction de la latence via l'ajout de cache Flash Pool convient à cet agrégat.
+
++
+La commande suivante présente les statistiques du premier groupe RAID de l'agrégat « aggr1 » :
+
++
+`statistics show-periodic -object disk:raid_group -instance /aggr1/plex0/rg0 -counter disk_busy|user_read_latency -interval 1 -iterations 60`
+
+. Démarrer l'analyseur de charge de travail automatisé (AWA) :
++
+`storage automated-working-set-analyzer start -node _node_name_ -aggregate _aggr_name_`
+
++
+AWA commence à collecter les données de charge de travail pour les volumes associés à l'agrégat spécifié.
+
+. Quitter le mode avancé :
++
+`set admin`
+
++
+Laisser l'AWA tourner jusqu'à ce qu'un ou plusieurs intervalles de charge de crête aient eu lieu. AWA collecte les statistiques de charge de travail pour les volumes associés à l'agrégat spécifié et analyse les données pour une durée d'une semaine de roulement maximum. L'utilisation de l'AWA pendant plus d'une semaine ne fera rapport que sur les données collectées au cours de la semaine la plus récente. Les estimations de la taille du cache sont basées sur les charges les plus élevées observées pendant la période de collecte des données ; la charge n'a pas besoin d'être élevée pendant toute la période de collecte des données.
+
+. Entrer en mode avancé :
++
+`set advanced`
+
+. Afficher l'analyse des charges de travail :
++
+`storage automated-working-set-analyzer show -node _node_name_ -instance`
+
+. Arrêt AWA :
++
+`storage automated-working-set-analyzer stop _node_name_`
+
++
+Toutes les données des charges de travail sont transférées et ne sont plus disponibles pour l'analyse.
+
+. Quitter le mode avancé :
++
+`set admin`
+
+

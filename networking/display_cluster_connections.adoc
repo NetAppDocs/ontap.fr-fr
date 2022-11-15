@@ -1,0 +1,249 @@
+---
+sidebar: sidebar 
+permalink: networking/display_cluster_connections.html 
+keywords: 'display, view, show, cluster, connections, active, client, listening, lif, protocol, service, display cluster connections, view all the active or listening connections in the cluster or a count of active connections on the node by client, lif, protocol, or service, display active connections by client (cluster administrators only), network connections active show-clients, display active connections by protocol (cluster administrators only), network connections active show-protocols, display active connections by service (cluster administrators only), network connections active show-services, display active connections by lif on a node and svm, network connections active show-lifs, display active connections in a cluster, network connections active show, display listening connections in a cluster, network connections listening show' 
+summary: Afficher toutes les connexions actives ou Listening du cluster, ou un certain nombre de connexions actives sur le nœud par client, LIF, protocole ou service 
+---
+= Afficher les connexions du cluster
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Vous pouvez afficher toutes les connexions actives du cluster ou un nombre de connexions actives sur le nœud par client, interface logique, protocole ou service. Vous pouvez également afficher toutes les connexions d'écoute dans le cluster.
+
+
+
+== Affichage des connexions actives par le client (administrateurs du cluster uniquement)
+
+Vous pouvez afficher les connexions actives par client pour vérifier le nœud qu'un client spécifique utilise et pour afficher les écarts possibles entre le nombre de clients par nœud.
+
+Le nombre de connexions actives par client est utile dans les scénarios suivants :
+
+* Recherche d'un nœud occupé ou surchargé.
+* Déterminer pourquoi l'accès d'un client à un volume est lent.
++
+Vous pouvez afficher des informations sur le nœud auquel le client accède, puis les comparer avec le nœud sur lequel réside le volume. Si l'accès au volume nécessite la gestion du réseau en cluster, les performances des clients peuvent être réduites en raison de l'accès à distance au volume sur un nœud distant sursouscrit.
+
+* Vérification de l'utilisation de tous les nœuds identique pour l'accès aux données.
+* Détection des clients disposant d'un nombre de connexions élevé de manière inattendue.
+* Vérifier si certains clients ont des connexions à un nœud.
+
+
+Affiche le nombre de connexions actives par client sur un nœud à l'aide du `network connections active show-clients` commande.
+
+Pour plus d'informations sur cette commande, consultez la page man : http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes ONTAP 9"^]
+
+....
+network connections active show-clients
+Node    Vserver Name    Client IP Address     Count
+------  --------------  -----------------     ------
+node0   vs0             192.0.2.253                1
+        vs0             192.0.2.252                2
+        Cluster         192.10.2.124               5
+node1   vs0             192.0.2.250                1
+        vs0             192.0.2.252                3
+        Cluster         192.10.2.123               4
+node2   vs1             customer.example.com       1
+        vs1             192.0.2.245                3
+        Cluster         192.10.2.122               4
+node3   vs1             customer.example.org       1
+        vs1             customer.example.net       3
+        Cluster         192.10.2.121               4
+....
+
+
+== Affichage des connexions actives par protocole (administrateurs du cluster uniquement)
+
+Vous pouvez afficher un nombre de connexions actives par protocole (TCP ou UDP) sur un nœud afin de comparer l'utilisation des protocoles au sein du cluster.
+
+Le nombre de connexions actives par protocole est utile dans les scénarios suivants :
+
+* Recherche des clients UDP qui perdent leur connexion.
++
+Si un nœud se trouve à proximité de sa limite de connexion, les clients UDP sont les premiers à être abandonnés.
+
+* Vérification qu'aucun autre protocole n'est utilisé
+
+
+Affiche le nombre de connexions actives par protocole sur un nœud à l'aide de `network connections active show-protocols` commande.
+
+Pour plus d'informations sur cette commande, consultez la page man.
+
+....
+network connections active show-protocols
+Node     Vserver Name  Protocol   Count
+-------  ------------  ---------  ------
+node0
+         vs0           UDP            19
+         Cluster       TCP            11
+node1
+         vs0           UDP            17
+         Cluster       TCP             8
+node2
+         vs1           UDP            14
+         Cluster       TCP            10
+node3
+         vs1           UDP            18
+         Cluster       TCP             4
+....
+
+
+== Affichage des connexions actives par service (administrateurs du cluster uniquement)
+
+Vous pouvez afficher un nombre de connexions actives par type de service (par exemple, par NFS, SMB, montage, etc.) pour chaque nœud d'un cluster. Cette fonction est utile pour comparer l'utilisation des services au sein du cluster, ce qui permet de déterminer la charge de travail principale d'un nœud.
+
+Le nombre de connexions actives par service est utile dans les scénarios suivants :
+
+* Vérifier que tous les nœuds sont utilisés pour les services appropriés et que l'équilibrage de la charge pour ce service fonctionne.
+* Vérifier qu'aucun autre service n'est utilisé. Affiche le nombre de connexions actives par service sur un nœud à l'aide du `network connections active show-services` commande.
+
+
+Pour plus d'informations sur cette commande, consultez la page man : http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes ONTAP 9"^]
+
+....
+network connections active show-services
+Node       Vserver Name    Service    Count
+---------  --------------  ---------  ------
+node0
+           vs0             mount           3
+           vs0             nfs            14
+           vs0             nlm_v4          4
+           vs0             cifs_srv        3
+           vs0             port_map       18
+           vs0             rclopcp        27
+           Cluster         ctlopcp        60
+node1
+           vs0             cifs_srv        3
+           vs0             rclopcp        16
+           Cluster         ctlopcp        60
+node2
+           vs1             rclopcp        13
+           Cluster         ctlopcp        60
+node3
+           vs1             cifs_srv        1
+           vs1             rclopcp        17
+           Cluster         ctlopcp        60
+....
+
+
+== Afficher les connexions actives par LIF sur un nœud et un SVM
+
+Vous pouvez afficher un nombre de connexions actives pour chaque LIF, par nœud et SVM (Storage Virtual machine), afin d'afficher les déséquilibres de connexion entre les LIF au sein du cluster.
+
+Le nombre de connexions actives par LIF est utile dans les scénarios suivants :
+
+* Trouver une LIF surchargée en comparant le nombre de connexions sur chaque LIF.
+* Vérification du fonctionnement de l'équilibrage de la charge DNS pour toutes les LIFs de données.
+* Comparaison du nombre de connexions aux différents SVM pour trouver les SVM les plus utilisés.
+
+
+Afficher le nombre de connexions actives pour chaque LIF par SVM et nœud en utilisant le `network connections active show-lifs` commande.
+
+Pour plus d'informations sur cette commande, consultez la page man : http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes ONTAP 9"^]
+
+....
+network connections active show-lifs
+Node      Vserver Name  Interface Name  Count
+--------  ------------  --------------- ------
+node0
+          vs0           datalif1             3
+          Cluster       node0_clus_1         6
+          Cluster       node0_clus_2         5
+node1
+          vs0           datalif2             3
+          Cluster       node1_clus_1         3
+          Cluster       node1_clus_2         5
+node2
+          vs1           datalif2             1
+          Cluster       node2_clus_1         5
+          Cluster       node2_clus_2         3
+node3
+          vs1           datalif1             1
+          Cluster       node3_clus_1         2
+          Cluster       node3_clus_2         2
+....
+
+
+== Affiche les connexions actives dans un cluster
+
+Vous pouvez afficher des informations sur les connexions actives dans un cluster pour afficher les LIF, le port, l'hôte distant, le service, les SVM (Storage Virtual machines) et le protocole utilisé par des connexions individuelles.
+
+L'affichage des connexions actives dans un cluster est utile dans les scénarios suivants :
+
+* Vérifier que chaque client utilise le protocole et le service appropriés sur le nœud.
+* Si un client rencontre des difficultés pour accéder aux données à l'aide d'une certaine combinaison de nœud, de protocole et de service, vous pouvez utiliser cette commande pour trouver un client similaire pour la comparaison de la configuration ou de la trace des paquets.
+
+
+Afficher les connexions actives dans un cluster à l'aide du `network connections active show` commande.
+
+Pour plus d'informations sur cette commande, consultez la page man : http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes ONTAP 9"^]
+
+La commande suivante affiche les connexions actives sur le nœud node1 :
+
+....
+network connections active show -node node1
+Vserver  Interface           Remote
+Name     Name:Local Port     Host:Port           Protocol/Service
+-------  ------------------  ------------------  ----------------
+Node: node1
+Cluster  node1_clus_1:50297  192.0.2.253:7700    TCP/ctlopcp
+Cluster  node1_clus_1:13387  192.0.2.253:7700    TCP/ctlopcp
+Cluster  node1_clus_1:8340   192.0.2.252:7700    TCP/ctlopcp
+Cluster  node1_clus_1:42766  192.0.2.252:7700    TCP/ctlopcp
+Cluster  node1_clus_1:36119  192.0.2.250:7700    TCP/ctlopcp
+vs1      data1:111           host1.aa.com:10741  UDP/port-map
+vs3      data2:111           host1.aa.com:10741  UDP/port-map
+vs1      data1:111           host1.aa.com:12017  UDP/port-map
+vs3      data2:111           host1.aa.com:12017  UDP/port-map
+....
+La commande suivante montre les connexions actives sur le SVM vs1 :
+
+....
+network connections active show -vserver vs1
+Vserver  Interface           Remote
+Name     Name:Local Port     Host:Port           Protocol/Service
+-------  ------------------  ------------------  ----------------
+Node: node1
+vs1      data1:111           host1.aa.com:10741  UDP/port-map
+vs1      data1:111           host1.aa.com:12017  UDP/port-map
+....
+
+
+== Affiche les connexions d'écoute dans un cluster
+
+Vous pouvez afficher les informations relatives aux connexions d'écoute dans un cluster pour afficher les LIFs et les ports qui acceptent les connexions pour un protocole et un service donnés.
+
+L'affichage des connexions d'écoute dans un cluster est utile dans les scénarios suivants :
+
+* Vérifier que le protocole ou le service désiré est à l'écoute d'une LIF si les connexions client à cette LIF échouent de manière cohérente.
+* Vérification de l'ouverture d'un écouteur UDP/rclopcp au niveau de chaque LIF du cluster si l'accès des données à distance à un volume sur un nœud via une LIF sur un autre nœud échoue.
+* Vérifier qu'un écouteur UDP/rclopcp est ouvert au niveau de chaque LIF du cluster si le transfert SnapMirror entre deux nœuds du même cluster échoue.
+* Vérifier qu'un écouteur TCP/ctlopcp est ouvert sur chaque LIF intercluster si les transferts SnapMirror entre deux nœuds de différents clusters échouent.
+
+
+Affichez les connexions d'écoute par nœud à l'aide du `network connections listening show` commande.
+
+....
+network connections listening show
+Vserver Name     Interface Name:Local Port        Protocol/Service
+---------------- -------------------------------  ----------------
+Node: node0
+Cluster          node0_clus_1:7700                TCP/ctlopcp
+vs1              data1:4049                       UDP/unknown
+vs1              data1:111                        TCP/port-map
+vs1              data1:111                        UDP/port-map
+vs1              data1:4046                       TCP/sm
+vs1              data1:4046                       UDP/sm
+vs1              data1:4045                       TCP/nlm-v4
+vs1              data1:4045                       UDP/nlm-v4
+vs1              data1:2049                       TCP/nfs
+vs1              data1:2049                       UDP/nfs
+vs1              data1:635                        TCP/mount
+vs1              data1:635                        UDP/mount
+Cluster          node0_clus_2:7700                TCP/ctlopcp
+....

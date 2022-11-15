@@ -1,0 +1,77 @@
+---
+permalink: smb-hyper-v-sql/verify-continuously-available-share-config-task.html 
+sidebar: sidebar 
+keywords: verify, continuously, available, smb, share, configuration, hyper, v, sql, server, nondisruptive, application 
+summary: 'Pour prendre en charge la continuité de l"activité, les partages SMB Hyper-V et SQL Server doivent être configurés en tant que partages disponibles en continu. En outre, vous devez vérifier certains autres paramètres de partage. Vérifiez que les partages sont correctement configurés pour assurer la continuité de l"activité des serveurs applicatifs en cas d"événements planifiés ou non.' 
+---
+= Vérifiez la configuration du partage SMB disponible en continu
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour prendre en charge la continuité de l'activité, les partages SMB Hyper-V et SQL Server doivent être configurés en tant que partages disponibles en continu. En outre, vous devez vérifier certains autres paramètres de partage. Vérifiez que les partages sont correctement configurés pour assurer la continuité de l'activité des serveurs applicatifs en cas d'événements planifiés ou non.
+
+Vous devez vérifier que les deux paramètres de partage suivants sont correctement définis :
+
+* Le `-offline-files` le paramètre est défini sur l'un ou l'autre `manual` (valeur par défaut) ou `none`.
+* Les symlinks doivent être désactivés.
+
+
+Pour garantir la continuité de l'activité, les propriétés de partage suivantes doivent être définies :
+
+* `continuously-available`
+* `oplocks`
+
+
+Les propriétés de partage suivantes ne doivent pas être définies :
+
+* `homedirectory`
+* `attributecache`
+* `branchcache`
+* `access-based-enumeration`
+
+
+.Étapes
+. Vérifiez que les fichiers hors ligne sont définis sur `manual` ou `disabled` et que les symlinks sont désactivés :
++
+`*vserver cifs shares show -vserver _vserver_name_*`
+
+. Vérifiez que les partages SMB sont configurés pour une disponibilité continue :
++
+`*vserver cifs shares properties show -vserver _vserver_name_*`
+
+
+
+L'exemple suivant présente le paramètre de partage d'un partage nommé « `sunre1' » sur la machine virtuelle de stockage (SVM, anciennement appelée Vserver) vs1. Les fichiers hors ligne sont définis sur `manual` et les symlinks sont désactivés (désignés par un tiret dans le `Symlink Properties` sortie de champ) :
+
+[listing]
+----
+cluster1::> vserver cifs share show -vserver vs1 -share-name share1
+                      Vserver: vs1
+                        Share: share1
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data/share1
+             Share Properties: oplocks
+                               continuously-available
+           Symlink Properties: -
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----
+L'exemple suivant affiche les propriétés de partage d'un partage nommé «`sunre1'» sur la SVM vs1 :
+
+[listing]
+----
+cluster1::> vserver cifs share properties show -vserver vs1 -share-name share1
+Vserver    Share   Properties
+---------  ------  ----------
+vs1        share1  oplocks
+                   continuously-available
+----

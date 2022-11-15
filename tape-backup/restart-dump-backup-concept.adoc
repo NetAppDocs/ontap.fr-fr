@@ -1,0 +1,57 @@
+---
+permalink: tape-backup/restart-dump-backup-concept.html 
+sidebar: sidebar 
+keywords: restart, dump, backup, internal, external, tape, write, errors, power, outages, accidental, user, interruptions, internal, inconsistency 
+summary: 'Une sauvegarde de dump ne se termine parfois pas en raison d"erreurs internes ou externes, telles que les erreurs d"écriture sur les bandes, les pannes d"alimentation, les interruptions accidentelles des utilisateurs ou les incohérences internes du système de stockage. Si votre sauvegarde échoue pour l"une de ces raisons, vous pouvez la redémarrer.' 
+---
+= Quand redémarrer une sauvegarde de vidage
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une sauvegarde de dump ne se termine parfois pas en raison d'erreurs internes ou externes, telles que les erreurs d'écriture sur les bandes, les pannes d'alimentation, les interruptions accidentelles des utilisateurs ou les incohérences internes du système de stockage. Si votre sauvegarde échoue pour l'une de ces raisons, vous pouvez la redémarrer.
+
+Vous pouvez choisir d'interrompre et de redémarrer une sauvegarde pour éviter les pics de trafic sur le système de stockage ou d'éviter la concurrence pour d'autres ressources limitées sur le système de stockage, comme les lecteurs de bandes. Vous pouvez interrompre une sauvegarde longue et la redémarrer ultérieurement si une restauration (ou une sauvegarde) plus urgente nécessite le même lecteur de bande. Les sauvegardes redémarrables sont conservées entre les redémarrages. Vous ne pouvez redémarrer une sauvegarde abandonnée sur bande que si les conditions suivantes sont vraies :
+
+* La sauvegarde abandonnée est en phase IV
+* Toutes les copies Snapshot associées qui ont été verrouillées par la commande dump sont disponibles.
+* L'historique du fichier doit être activé.
+
+
+Lorsqu'une telle opération de vidage est abandonnée et reste à l'état redémarrable, les copies Snapshot associées sont verrouillées. Ces copies Snapshot sont libérées une fois ces contextes supprimés. Vous pouvez afficher la liste des contextes de sauvegarde à l'aide du `vserver services ndmp restartable backup show` commande.
+
+[listing]
+----
+cluster::> vserver services ndmpd restartable-backup show
+Vserver     Context Identifier                   Is Cleanup Pending?
+----------- ------------------------------------ -------------------
+vserver1 330e6739-0179-11e6-a299-005056bb4bc9 false
+vserver1 481025c1-0179-11e6-a299-005056bb4bc9 false
+vserver2 5cf10132-0179-11e6-a299-005056bb4bc9 false
+3 entries were displayed.
+
+cluster::> vserver services ndmpd restartable-backup show -vserver vserver1 -context-id 330e6739-0179-11e6-a299-005056bb4bc9
+
+                       Vserver: vserver1
+            Context Identifier: 330e6739-0179-11e6-a299-005056bb4bc9
+                   Volume Name: /vserver1/vol1
+           Is Cleanup Pending?: false
+            Backup Engine Type: dump
+Is Snapshot Copy Auto-created?: true
+                     Dump Path: /vol/vol1
+   Incremental Backup Level ID: 0
+                     Dump Name: /vserver1/vol1
+     Context Last Updated Time: 1460624875
+               Has Offset Map?: true
+                 Offset Verify: true
+       Is Context Restartable?: true
+              Is Context Busy?: false
+                  Restart Pass: 4
+              Status of Backup: 2
+            Snapshot Copy Name: snapshot_for_backup.1
+          State of the Context: 7
+
+cluster::>"
+----

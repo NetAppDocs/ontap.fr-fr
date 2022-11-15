@@ -1,0 +1,52 @@
+---
+sidebar: sidebar 
+permalink: smbc/smbc_troubleshoot_aufo_not_triggered_on_site_b.html 
+keywords: SM-BC, SMBC, troubleshooting, automatic unplanned failover, aufo, failover, Mediator, quorum 
+summary: Une défaillance sur le site A ne déclenche pas de basculement non planifié sur le site B. 
+---
+= Basculement non planifié automatique non déclenché sur le site B
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une défaillance sur le site A ne déclenche pas de basculement non planifié sur le site B.
+
+Médiateur n'est pas configuré. Pour déterminer si c'est la cause, lancez le `snapmirror mediator show` Commande sur le cluster site B.
+
+....
+Cluster2::*> snapmirror mediator show
+This table is currently empty.
+....
+Cet exemple indique que le médiateur n'est pas configuré sur le site B.
+
+Assurez-vous que Mediator est configuré sur les deux clusters, que l'état est connecté et que le quorum est défini sur vrai.
+
+Le groupe de cohérence SnapMirror est désynchronisé. Pour déterminer s'il en est ainsi, consultez le journal des événements pour savoir si le groupe de cohérence était en cours de synchronisation au moment où le site A défaillant.
+
+....
+cluster::*> event log show -event *out.of.sync*
+
+Time                Node             Severity      Event
+------------------- ---------------- ------------- ---------------------------
+10/1/2020 23:26:12  sti42-vsim-ucs511w ERROR       sms.status.out.of.sync: Source volume "vs0:zrto_cg_556844_511u_RW1" and destination volume "vs1:zrto_cg_556881_511w_DP1" with relationship UUID "55ab7942-03e5-11eb-ba5a-005056a7dc14" is in "out-of-sync" status due to the following reason: "Transfer failed."
+....
+Procédez comme suit pour effectuer un basculement forcé sur le site B.
+
+. Annulez le mappage de toutes les LUN appartenant au groupe de cohérence à partir du site B.
+. Supprimez la relation de groupe de cohérence SnapMirror à l'aide du `force` option.
+. Entrez le `snapmirror break` Commande sur les volumes constitutifs du groupe de cohérence pour convertir les volumes DP en R/W, afin d'activer les E/S à partir du site B.
+. Démarrez les nœuds du site A pour créer une relation RTO zéro du site B au site A.
+. Libérez le groupe de cohérence avec `relationship-info-only` Sur le site A pour conserver la copie Snapshot commune et annuler le mappage des LUN appartenant au groupe de cohérence.
+. Convertissez les volumes du site A de la lecture/écriture en DP en configurant une relation de niveau volume en utilisant la règle de synchronisation ou la stratégie asynchrone.
+. Émettez le `snapmirror resync` pour synchroniser les relations.
+. Supprimez les relations SnapMirror avec la règle de synchronisation sur le site A.
+. Libérer les relations SnapMirror avec la règle de synchronisation à l'aide de `relationship-info-only true` Sur le site B.
+. Créer une relation de groupe de cohérence entre le site B et le site A.
+. Effectuez une resynchronisation de groupe de cohérence à partir du site A, puis vérifiez que le groupe de cohérence est en cours de synchronisation.
+. Relancez les chemins d'E/S de la LUN hôte pour restaurer tous les chemins d'accès aux LUN.
+

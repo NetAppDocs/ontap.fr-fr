@@ -1,0 +1,161 @@
+---
+sidebar: sidebar 
+permalink: smbc/considerations-limits.html 
+keywords: SM-BC, SMBC, restrictions, consistency group, endpoint limits, solaris, aix 
+summary: 'La solution de continuité de l"activité SnapMirror comporte plusieurs restrictions et limitations supplémentaires.' 
+---
+= Considérations et limites
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+La solution de continuité de l'activité SnapMirror comporte plusieurs facteurs, restrictions et limitations à prendre en compte.
+
+
+
+== Limites d'objets
+
+
+
+=== Groupes de cohérence dans un cluster
+
+Les limites de groupes de cohérence d'un cluster avec SM-BC sont calculées en fonction des relations et dépendent de la version de ONTAP utilisée. Les limites sont indépendantes de la plateforme.
+
+|===
+| Version ONTAP | Nombre maximal de relations 
+
+
+| ONTAP 9.8-9.9.1 | 5 
+
+
+| ONTAP 9.10.1 | 20 
+
+
+| ONTAP 9.11.1 | 50 
+|===
+
+
+=== Volumes par groupe de cohérence
+
+De ONTAP 9.8 à 9.9.1, le nombre maximal de volumes pris en charge par une relation de groupe de cohérence SM-BC est de douze, une limite qui est indépendante de la plateforme. Depuis ONTAP 9.10.1, le nombre maximal de volumes pris en charge par relation SM-BC est de 16.
+
+
+
+=== Volumes
+
+Les limites de SM-BC sont calculées en fonction du nombre de noeuds finaux, et non du nombre de relations. Un groupe de cohérence avec 12 volumes contribue à 12 terminaux sur la source et la destination. Les relations SM-BC et SnapMirror synchrone contribuent au nombre total de terminaux.
+
+Le nombre maximum de terminaux par plateforme est inclus dans le tableau suivant.
+
+|===
+| S. Non | Plateforme 3+| Terminaux par HA pour SM-BC 3+| Synchronisation globale et terminaux SM-BC par haute disponibilité 
+
+
+|  |  | ONTAP 9.8-9.9.1 | ONTAP 9.10.1 | ONTAP 9.11.1 | ONTAP 9.8-9.9.1 | ONTAP 9.10.1 | ONTAP 9.11.1 
+
+
+| 1 | AFF | 60 | 200 | 400 | 80 | 200 | 400 
+
+
+| 2 | ASA | 60 | 200 | 400 | 80 | 200 | 400 
+|===
+
+
+=== Limites D'objets SAN
+
+Les limites d'objets SAN suivantes sont incluses dans le tableau ci-dessous, quelle que soit la plateforme.
+
+|===
+| Limites des objets dans une relation SM-BC | Nombre 
+
+
+| LUN par volume | 256 
+
+
+| Mappages de LUN par nœud | 2048 
+
+
+| Mappages de LUN par cluster | 4096 
+
+
+| LIF par VServer (avec au moins un volume dans une relation SM-BC) | 256 
+
+
+| LIF inter-cluster par nœud | 4 
+
+
+| LIF inter-cluster par cluster | 8 
+|===
+
+
+== Fonctionnalités et configurations prises en charge
+
+
+
+=== Restauration partielle des fichiers
+
+Depuis ONTAP 9.12.1, la restauration partielle de LUN est prise en charge pour les volumes SM-BC. Pour plus d'informations sur ce processus, reportez-vous à la section link:../data-protection/restore-part-file-snapshot-task.html["Restaurez une partie d'un fichier à partir d'une copie Snapshot"].
+
+
+
+=== Configurations « Fan-Out »
+
+Supports SM-BC xref:../data-protection/supported-deployment-config-concept.html[configurations « fan-out »] avec le `MirrorAllSnapshots` Et, à partir de ONTAP 9.11.1, le `MirrorAndVault` politique. Les configurations « fan-out » ne sont pas prises en charge dans les modèles SM-BC avec `XDPDefault` politique.
+
+Si vous rencontrez un basculement sur la destination SM-BC dans une configuration de « Fan-Out », vous devrez effectuer manuellement un basculement xref:resume-protection-fan-out-configuration.html[reprendre la protection dans la configuration du « fan-out »].
+
+
+
+=== AIX
+
+Depuis ONTAP 9.11.1, AIX est pris en charge par SM-BC. Dans le cas d'une configuration AIX, le cluster principal est le cluster « actif ».
+
+Dans une configuration AIX, les basculements sont disruptifs. Chaque basculement nécessite une nouvelle analyse de l'hôte pour que les opérations d'E/S reprennent.
+
+Pour configurer un hôte AIX avec SM-BC, reportez-vous à l'article de la base de connaissances link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_configure_an_AIX_host_for_SnapMirror_Business_Continuity_(SM-BC)["Comment configurer un hôte AIX pour SnapMirror Business Continuity (SM-BC)"].
+
+
+
+=== Recommandation de configuration de l'hôte Solaris pour la configuration SM-BC
+
+À partir de ONTAP 9.10.1, SM-BC prend en charge Solaris 11.4. Pour garantir la continuité des applications client Solaris lors d'un basculement de site non planifié dans un environnement SM-BC, vous devez configurer l'hôte Solaris 11.4 avec le système `f_tpgs` paramètre.
+
+Procédez comme suit pour configurer le paramètre de substitution :
+
+. Créer un fichier de configuration `/etc/driver/drv/scsi_vhci.conf` Avec une entrée similaire à ce qui suit pour le type de stockage NetApp connecté à l'hôte :
++
+[listing]
+----
+scsi-vhci-failover-override =
+"NETAPP  LUN","f_tpgs"
+----
+. Utiliser `devprop` et `mdb` les commandes pour vérifier que la neutralisation a bien été appliquée :
++
+[listing]
+----
+root@host-A:~# devprop -v -n /scsi_vhci scsi-vhci-failover-override scsi-vhci-failover-override=NETAPP  LUN + f_tpgs
+root@host-A:~# echo "*scsi_vhci_dip::print -x struct dev_info devi_child | ::list struct dev_info devi_sibling| ::print struct dev_info devi_mdi_client| ::print mdi_client_t ct_vprivate| ::print struct scsi_vhci_lun svl_lun_wwn svl_fops_name"| mdb -k`
+----
++
+[listing]
+----
+svl_lun_wwn = 0xa002a1c8960 "600a098038313477543f524539787938"
+svl_fops_name = 0xa00298d69e0 "conf f_tpgs"
+----
+
+
+
+NOTE: `conf` sera ajouté au `svl_fops_name` lorsqu'un `scsi-vhci-failover-override` a été appliqué. Pour plus d'informations et pour connaître les modifications recommandées par défaut, consultez l'article de la base de connaissances NetApp https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/Solaris_Host_support_recommended_settings_in_SnapMirror_Business_Continuity_(SM-BC)_configuration["Prise en charge de Solaris Host Paramètres recommandés dans la configuration de SnapMirror Business Continuity (SM-BC)"].
+
+
+
+=== Problèmes et limitations connus de HP-UX pour la configuration SM-BC
+
+Depuis ONTAP 9.10.1, SM-BC pour HP-UX est pris en charge. Si un événement de basculement automatique non planifié (AUFO) se produit sur le cluster maître isolé dans la configuration SM-BC, il peut prendre plus de 120 secondes pour que les E/S reprennent sur l'hôte HP-UX. Selon les applications en cours d'exécution, il se peut que cela n'entraîne aucune interruption d'E/S ni aucun message d'erreur. Si un événement AUFO se produit sur le cluster maître isolé, vous devez redémarrer les applications sur l'hôte HP-UX qui ont une tolérance de perturbation inférieure à 120 secondes.
+
+Un événement AUFO sur le cluster maître isolé peut provoquer une défaillance d'événement double lorsque la connexion entre le cluster principal et le cluster secondaire est perdue et que la connexion entre le cluster principal et le médiateur est également perdue. Ce phénomène est considéré comme un événement rare, contrairement à d'autres événements AUFO.

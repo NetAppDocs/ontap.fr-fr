@@ -1,0 +1,334 @@
+---
+sidebar: sidebar 
+permalink: networking/combine_physical_ports_to_create_interface_groups.html 
+keywords: combine, ports, ifgrp, interface, group, create, creating, add, adding, types, single-mode, single, mode, static, dynamic, multimode, best, practice, port-based, port, based, load, balance, balancing, ip, address, mac, sequential, remove, removing, delete, deleting, combine physical ports to create interface groups, interface group types, characteristics of single-mode interface groups, characteristics of static multimode interface groups, dynamic multimode interface group, load balancing in multimode interface groups, port-based load balancing, ip address and mac address load balancing, sequential load balancing, create an interface group, add a port to an interface group, remove a port from an interface group, delete an interface group 
+summary: 'Combinez deux ou plusieurs ports physiques en un seul port logique afin de créer un groupe d"interfaces' 
+---
+= Combinaison de ports physiques pour créer des groupes d'interfaces
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Un groupe d'interfaces, également appelé groupe d'agrégation de liens (LAG), est créé en combinant deux ports physiques ou plus en un seul port logique. Le port logique offre une résilience accrue, une disponibilité accrue et un partage de charge accru.
+
+
+
+== Types de groupe d'interface
+
+Le système de stockage prend en charge trois types de groupes d'interfaces : mode unique, multimode statique et multimode dynamique. Chaque groupe d'interface fournit différents niveaux de tolérance aux pannes. Les groupes d'interfaces multimode fournissent des méthodes pour équilibrer la charge du trafic réseau.
+
+
+
+=== Caractéristiques des groupes d'interfaces monomode
+
+Dans un groupe d'interface à mode unique, une seule des interfaces du groupe d'interface est active. Les autres interfaces sont en veille, prêtes à prendre le relais en cas de défaillance de l'interface active.
+
+Caractéristiques des groupes d'interfaces monomode :
+
+* Pour le basculement, le cluster surveille la liaison active et contrôle le basculement. Comme le cluster surveille la liaison active, aucune configuration de commutateur n'est requise.
+* Il peut y avoir plusieurs interfaces en veille dans un groupe d'interface à mode unique.
+* Si un groupe d'interface à mode unique couvre plusieurs commutateurs, vous devez connecter les switchs à l'aide d'une liaison ISL (Inter-Switch Link).
+* Pour un groupe d'interface à mode unique, les ports switchs doivent être situés dans le même domaine de diffusion.
+* Les paquets ARP de contrôle de liaison, dont l'adresse source est 0.0.0.0, sont envoyés sur les ports pour vérifier que les ports se trouvent dans le même domaine de diffusion.
+
+
+La figure suivante illustre un exemple de groupe d'interfaces monomode. Dans la figure, e0a et e1a font partie du groupe d'interface a0a mode unique. Si l'interface active e0a, tombe en panne, l'interface e1a de secours prend le relais et maintient la connexion au commutateur.
+
+image:ontap_nm_image6.png["Image d'un groupe d'interface à mode unique"]
+
+
+NOTE: Pour profiter de la fonctionnalité Single-mode, l'approche recommandée consiste à utiliser des groupes de basculement. L'utilisation d'un failover group permet de continuer à utiliser le second port pour d'autres LIFs et de ne pas avoir à le conserver. En outre, les groupes de basculement peuvent couvrir plus de deux ports et couvrir plusieurs nœuds.
+
+
+
+=== Caractéristiques des groupes d'interfaces multimode statiques
+
+La mise en œuvre du groupe d'interfaces multimode statique dans ONTAP est conforme à la norme IEEE 802.3ad (statique). Tout switch qui prend en charge les agrégats, mais qui ne dispose pas d'échange de paquets de contrôle pour la configuration d'un agrégat, peut être utilisé avec des groupes d'interfaces multimode statiques.
+
+Les groupes d'interfaces multimode statiques ne sont pas conformes à la norme IEEE 802.3ad (dynamique), également appelée protocole LACP (Link Aggregation Control Protocol). Le protocole LACP est l'équivalent du protocole PAgP (Port Aggregation Protocol), le protocole propriétaire d'agrégation de liens de Cisco.
+
+Les caractéristiques d'un groupe d'interfaces multimode statique sont les suivantes :
+
+* Toutes les interfaces du groupe d'interface sont actives et partagent une seule adresse MAC.
++
+** Plusieurs connexions individuelles sont distribuées sur les interfaces du groupe d'interface.
+** Chaque connexion ou session utilise une interface au sein du groupe d'interface. Lorsque vous utilisez le schéma d'équilibrage de charge séquentiel, toutes les sessions sont distribuées sur les liaisons disponibles par paquet et ne sont pas liées à une interface particulière du groupe d'interfaces.
+
+
+* Les groupes d'interfaces multimode statiques peuvent effectuer une restauration en cas de défaillance d'une interface jusqu'à « n-1 », où n est le nombre total d'interfaces qui forment le groupe d'interface.
+* Si un port tombe en panne ou est débranché, le trafic qui traverserait la liaison défaillante est automatiquement redistribué à l'une des interfaces restantes.
+* Les groupes d'interfaces multimode statiques peuvent détecter une perte de liaison, mais ils ne peuvent pas détecter une perte de connectivité au client ou les erreurs de configuration de commutateur qui pourraient affecter la connectivité et les performances.
+* Un groupe d'interfaces multimode statiques nécessite un commutateur qui prend en charge l'agrégation de liens sur plusieurs ports de commutateur. Le commutateur est configuré de sorte que tous les ports auxquels sont connectées les liaisons d'un groupe d'interfaces font partie d'un seul port logique. Certains commutateurs ne prennent pas en charge l'agrégation de liens des ports configurés pour les trames Jumbo. Pour plus d'informations, consultez la documentation du fournisseur de votre commutateur.
+* Plusieurs options d'équilibrage de charge sont disponibles pour distribuer le trafic entre les interfaces d'un groupe d'interfaces multimode statique.
+
+
+La figure suivante illustre un exemple de groupe d'interfaces multimode statiques. Les interfaces e0a, e1a, e2a et e3a font partie du groupe d'interface multimode a1a. Les quatre interfaces du groupe d'interfaces multimode a1a sont actives.
+
+image:ontap_nm_image7.png["Image d'un groupe d'interfaces multimode statique"]
+
+Il existe plusieurs technologies qui permettent de répartir le trafic dans un lien agrégé unique sur plusieurs commutateurs physiques. Les technologies utilisées pour activer cette fonctionnalité varient selon les produits de mise en réseau. Les groupes d'interfaces multimode statiques en ONTAP sont conformes à la norme IEEE 802.3. Si une technologie particulière d'agrégation de liens de commutateur multiple est dite compatible avec les normes IEEE 802.3 ou conforme à celles-ci, elle doit fonctionner avec ONTAP.
+
+La norme IEEE 802.3 indique que le périphérique de transmission d'une liaison agrégée détermine l'interface physique pour la transmission. Par conséquent, ONTAP est uniquement responsable de la distribution du trafic sortant et ne peut pas contrôler l'arrivée des trames entrantes. Si vous souhaitez gérer ou contrôler la transmission du trafic entrant sur une liaison agrégée, cette transmission doit être modifiée sur le périphérique réseau directement connecté.
+
+
+
+=== Groupe d'interfaces multimode dynamique
+
+Les groupes d'interfaces multimode dynamiques implémentent le protocole LACP (Link Aggregation Control Protocol) pour communiquer l'appartenance aux groupes au commutateur directement connecté. LACP vous permet de détecter la perte de l'état de liaison et l'incapacité du nœud à communiquer avec le port de switch DAS.
+
+La mise en œuvre de groupes d'interfaces multimode dynamiques dans ONTAP est conforme à la norme IEEE 802.3 AD (802.1 AX). ONTAP ne prend pas en charge le protocole PAgP (Port Aggregation Protocol), qui est un protocole propriétaire d'agrégation de liens de Cisco.
+
+Un groupe d'interfaces multimode dynamique requiert un switch qui prend en charge LACP.
+
+ONTAP implémente un LACP en mode actif non configurable qui fonctionne bien avec les switchs configurés en mode actif ou passif. ONTAP implémente les temporisateurs LACP longs et courts (pour une utilisation avec des valeurs non configurables 3 secondes et 90 secondes), comme spécifié dans IEEE 802.3 AD (802.1AX).
+
+L'algorithme d'équilibrage de charge ONTAP détermine le port membre à utiliser pour transmettre le trafic sortant et ne contrôle pas la réception des trames entrantes. Le commutateur détermine le membre (port physique individuel) de son groupe de canaux de port à utiliser pour la transmission, en fonction de l'algorithme d'équilibrage de charge configuré dans le groupe de canaux de port du commutateur. Par conséquent, la configuration du commutateur détermine le port membre (port physique individuel) du système de stockage pour recevoir le trafic. Pour plus d'informations sur la configuration du commutateur, reportez-vous à la documentation fournie par votre fournisseur de commutateur.
+
+Si une interface individuelle ne parvient pas à recevoir de paquets de protocole LACP successifs, cette interface individuelle est marquée comme « Lag_inactive » dans la sortie de la commande « ifgrp status ». Le trafic existant est automatiquement redirigé vers les interfaces actives restantes.
+
+Les règles suivantes s'appliquent lors de l'utilisation de groupes d'interfaces multimode dynamiques :
+
+* Les groupes d'interfaces multimodes dynamiques doivent être configurés de manière à utiliser les méthodes d'équilibrage de charge basées sur les ports, les protocoles IP, MAC ou Round Robin.
+* Dans un groupe d'interfaces multimode dynamiques, toutes les interfaces doivent être actives et partager une adresse MAC unique.
+
+
+La figure suivante illustre un exemple de groupe d'interfaces multimode dynamiques. Les interfaces e0a, e1a, e2a et e3a font partie du groupe d'interface multimode a1a. Les quatre interfaces du groupe d'interfaces multimode dynamique a1a sont actives.
+
+image:ontap_nm_image7.png["Image d'un groupe d'interfaces multimode dynamique"]
+
+
+
+=== Équilibrage de la charge dans les groupes d'interfaces multimode
+
+Vous pouvez vous assurer que toutes les interfaces d'un groupe d'interfaces multimode sont utilisées de la même manière pour le trafic sortant à l'aide des méthodes d'équilibrage de charge basées sur l'adresse IP, l'adresse MAC, l'ordre séquentiel ou le port pour distribuer le trafic réseau de façon égale sur les ports réseau d'un groupe d'interfaces multimode.
+
+La méthode d'équilibrage de charge d'un groupe d'interfaces multimode ne peut être spécifiée que lorsque le groupe d'interfaces est créé.
+
+*Meilleure pratique* : l'équilibrage de charge basé sur les ports est recommandé chaque fois que possible. Utilisez l'équilibrage de charge basé sur les ports, sauf si le réseau a une raison ou une limitation spécifique qui l'empêche.
+
+
+
+==== Équilibrage de charge basé sur des ports
+
+L'équilibrage de charge basé sur les ports est la méthode recommandée.
+
+Vous pouvez égaliser le trafic sur un groupe d'interfaces multimode en fonction des ports de la couche de transport (TCP/UDP) en utilisant la méthode d'équilibrage de charge basée sur les ports.
+
+La méthode d'équilibrage de charge basée sur le port utilise un algorithme de hachage rapide sur les adresses IP source et de destination, ainsi que le numéro de port de la couche de transport.
+
+
+
+==== Équilibrage de la charge des adresses IP et MAC
+
+L'équilibrage de la charge des adresses IP et MAC est le moyen d'égaliser le trafic sur les groupes d'interfaces multimodes.
+
+Ces méthodes d'équilibrage de charge utilisent un algorithme de hachage rapide sur les adresses source et de destination (adresse IP et adresse MAC). Si le résultat de l'algorithme de hachage est mappé à une interface qui n'est pas à l'état de la liaison ACTIVE, l'interface active suivante est utilisée.
+
+
+NOTE: Ne sélectionnez pas la méthode d'équilibrage de charge de l'adresse MAC lors de la création de groupes d'interfaces sur un système qui se connecte directement à un routeur. Dans une telle configuration, pour chaque trame IP sortante, l’adresse MAC de destination est l’adresse MAC du routeur. Par conséquent, une seule interface du groupe d'interface est utilisée.
+
+L'équilibrage de charge d'adresse IP fonctionne de la même manière pour les adresses IPv4 et IPv6.
+
+
+
+==== Équilibrage séquentiel de la charge
+
+Vous pouvez utiliser l'équilibrage séquentiel des charges pour distribuer de manière égale des paquets entre plusieurs liaisons à l'aide d'un algorithme de permutation circulaire. Vous pouvez utiliser l'option séquentielle pour équilibrer la charge du trafic d'une connexion unique sur plusieurs liaisons afin d'augmenter le débit de connexion unique.
+
+Cependant, étant donné que l'équilibrage séquentiel de la charge peut causer une livraison de paquets hors de la commande, les performances peuvent être extrêmement faibles. Par conséquent, l'équilibrage séquentiel de la charge n'est généralement pas recommandé.
+
+
+
+== Créez un groupe d'interfaces ou LAG
+
+Vous pouvez créer un groupe d'interface ou LAG (monomode, multimode statique ou multimode dynamique) afin de présenter une interface unique aux clients en combinant les capacités des ports réseau agrégés.
+
+La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Utilisez System Manager pour créer un LAG*
+
+.Étapes
+. Sélectionnez *réseau > port Ethernet > + Groupe d'agrégation de liens* pour créer un LAG.
+. Sélectionnez le nœud dans la liste déroulante.
+. Choisissez parmi les options suivantes :
++
+.. ONTAP à *sélectionne automatiquement le domaine de diffusion (recommandé)*.
+.. Pour sélectionner manuellement un domaine de diffusion.
+
+
+. Sélectionnez les ports pour former le LAG.
+. Sélectionnez le mode :
++
+.. Unique : un seul port est utilisé à la fois.
+.. Multiples : tous les ports peuvent être utilisés simultanément.
+.. LACP : le protocole LACP détermine les ports qui peuvent être utilisés.
+
+
+. Sélectionner l'équilibrage de charge :
++
+.. Sur IP
+.. Basé SUR MAC
+.. Port
+.. Séquentiel
+
+
+. Enregistrez les modifications.
+
+
+image:AddLag01.png["Ajouter un graphique de décalage"]
+
+--
+.CLI
+--
+*Utilisez l'interface de ligne de commande pour créer un groupe d'interfaces*
+
+Pour obtenir la liste complète des restrictions de configuration qui s'appliquent aux groupes d'interfaces de port, reportez-vous à la section `network port ifgrp add-port` page de manuel.
+
+Lors de la création d'un groupe d'interfaces multimode, vous pouvez spécifier l'une des méthodes d'équilibrage de charge suivantes :
+
+* `port`: Le trafic réseau est distribué sur la base des ports de la couche de transport (TCP/UDP). Il s'agit de la méthode d'équilibrage de charge recommandée.
+* `mac`: Le trafic réseau est distribué sur la base d'adresses MAC.
+* `ip`: Le trafic réseau est distribué sur la base d'adresses IP.
+* `sequential`: Le trafic réseau est distribué au fur et à mesure qu'il est reçu.
+
+
+
+NOTE: L'adresse MAC d'un groupe d'interfaces est déterminée par l'ordre des ports sous-jacents et la façon dont ces ports s'initialisent au démarrage. Vous ne devez donc pas présumer que l'adresse MAC ifgrp est conservée entre les redémarrages ou les mises à niveau ONTAP.
+
+Utilisez le `network port ifgrp create` commande permettant de créer un groupe d'interface.
+
+Vous devez nommer les groupes d'interface à l'aide de la syntaxe `a<number><letter>`. Par exemple, a0A, a0b, a1c et a2a sont des noms de groupes d’interfaces valides.
+
+Pour plus d'informations sur cette commande, voir http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes ONTAP 9"^].
+
+L'exemple suivant montre comment créer un groupe d'interfaces nommé a0a avec une fonction de distribution de port et un mode multimode :
+
+`network port ifgrp create -node _cluster-1-01_ -ifgrp _a0a_ -distr-func _port_ -mode _multimode_`
+
+--
+====
+
+
+== Ajoutez un port à un groupe d'interfaces ou LAG
+
+Vous pouvez ajouter jusqu'à 16 ports physiques à un groupe d'interfaces ou LAG pour toutes les vitesses de port.
+
+La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Utilisez System Manager pour ajouter un port à un LAG*
+
+.Étapes
+. Sélectionnez *réseau > port Ethernet > LAG* pour modifier un LAG.
+. Sélectionnez des ports supplémentaires sur le même nœud à ajouter au LAG.
+. Enregistrez les modifications.
+
+
+--
+.CLI
+--
+*Utilisez l'interface de ligne de commande pour ajouter des ports à un groupe d'interfaces*
+
+Ajout de ports réseau au groupe d'interface :
+
+`network port ifgrp add-port`
+
+Pour plus d'informations sur cette commande, voir link:http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes ONTAP 9"^].
+
+L'exemple suivant montre comment ajouter le port e0c à un groupe d'interfaces nommé a0A :
+
+`network port ifgrp add-port -node _cluster-1-01_ -ifgrp _a0a_ -port _e0c_`
+
+Depuis ONTAP 9.8, les groupes d'interface sont automatiquement placés dans un domaine de diffusion approprié environ une minute après l'ajout du premier port physique au groupe d'interface. Si vous ne souhaitez pas que ONTAP le fait, et préférez placer manuellement le ifgrp sur un domaine de broadcast, spécifiez ensuite le `-skip-broadcast-domain-placement` dans le cadre du `ifgrp add-port` commande.
+
+--
+====
+
+
+== Supprimer un port d'un groupe d'interfaces ou LAG
+
+Vous pouvez supprimer un port d'un groupe d'interface qui héberge les LIFs, tant qu'il ne s'agit pas du dernier port du groupe d'interfaces. Il n'y a pas d'exigence que le groupe d'interface ne doit pas héberger les LIFs d'hôtes, ni que le groupe d'interface ne doit pas être le home port d'une LIF compte tenu de ne pas supprimer le dernier port du groupe d'interface. Cependant, si vous supprimez le dernier port, vous devez d'abord migrer ou déplacer les LIF du groupe d'interface.
+
+Vous pouvez supprimer jusqu'à 16 ports (interfaces physiques) d'un groupe d'interfaces ou LAG.
+
+La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Utilisez System Manager pour supprimer un port d'un LAG*
+
+.Étapes
+. Sélectionnez *réseau > port Ethernet > LAG* pour modifier un LAG.
+. Sélectionnez les ports à supprimer du LAG.
+. Enregistrez les modifications.
+
+
+--
+.CLI
+--
+*Utilisez l'interface de ligne de commande pour supprimer des ports d'un groupe d'interfaces*
+
+Suppression des ports réseau d'un groupe d'interfaces :
+
+`network port ifgrp remove-port`
+
+L'exemple suivant montre comment supprimer le port e0c d'un groupe d'interfaces nommé a0A :
+
+`network port ifgrp remove-port -node _cluster-1-01_ -ifgrp _a0a_ -port _e0c_`
+
+--
+====
+
+
+== Supprimer un groupe d'interfaces ou LAG
+
+Vous pouvez supprimer des groupes d'interfaces ou des groupes LAG si vous souhaitez configurer des LIF directement sur les ports physiques sous-jacents ou décider de modifier le groupe d'interfaces ou le mode LAG ou la fonction de distribution.
+
+.Avant de commencer
+* Le groupe d'interface ou LAG ne doit pas héberger de LIF.
+* Le groupe d'interface ou LAG ne doit pas être le port de départ, ni la cible de basculement d'une LIF.
+
+
+La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Utilisez System Manager pour supprimer un LAG*
+
+.Étapes
+. Sélectionnez *réseau > port Ethernet > LAG* pour supprimer un LAG.
+. Sélectionnez le LAG à supprimer.
+. Supprimer le LAG.
+
+
+--
+.CLI
+--
+*Utilisez l'interface de ligne de commande pour supprimer un groupe d'interfaces*
+
+Utilisez le `network port ifgrp delete` commande permettant de supprimer un groupe d'interface.
+
+Pour plus d'informations sur cette commande, voir link:http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes ONTAP 9"^].
+
+L'exemple suivant montre comment supprimer un groupe d'interfaces nommé a0b :
+
+`network port ifgrp delete -node _cluster-1-01_ -ifgrp _a0b_`
+
+--
+====

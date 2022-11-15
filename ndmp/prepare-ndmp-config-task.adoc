@@ -1,0 +1,103 @@
+---
+permalink: ndmp/prepare-ndmp-config-task.html 
+sidebar: sidebar 
+keywords: prepare, ndmp, configuration 
+summary: 'Avant de configurer l"accès de sauvegarde sur bande via le protocole NDMP (Network Data Management Protocol), vous devez vérifier que la configuration planifiée est prise en charge. Vérifier que vos lecteurs de bande sont répertoriés comme disques qualifiés sur chaque nœud, vérifier que tous les nœuds disposent des LIF intercluster, Et déterminer si l"application de sauvegarde prend en charge l"extension CLUSTER Aware Backup (CAB).' 
+---
+= Préparation à la configuration NDMP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de configurer l'accès de sauvegarde sur bande via le protocole NDMP (Network Data Management Protocol), vous devez vérifier que la configuration planifiée est prise en charge. Vérifier que vos lecteurs de bande sont répertoriés comme disques qualifiés sur chaque nœud, vérifier que tous les nœuds disposent des LIF intercluster, Et déterminer si l'application de sauvegarde prend en charge l'extension CLUSTER Aware Backup (CAB).
+
+.Étapes
+. Consultez le tableau de compatibilité de votre fournisseur d'applications de sauvegarde pour la prise en charge du protocole ONTAP (NetApp ne qualifier pas les applications de sauvegarde tierces avec ONTAP ou NDMP).
++
+Vérifiez que les composants NetApp suivants sont compatibles :
+
++
+--
+** Version de ONTAP 9 qui s'exécute sur le cluster.
+** Le fournisseur et la version de l'application de sauvegarde, par exemple Veritas NetBackup 8.2 ou CommVault.
+** Les lecteurs de bande décrivent en détail le fabricant, le modèle et l'interface des lecteurs de bande, par exemple IBM Ultrium 8 ou HPE StoreEver Ultrium 30750 LTO-8.
+** Plateformes des nœuds du cluster : par exemple, FAS8700 ou A400
+
+
+--
++
+
+NOTE: Vous trouverez des matrices de support de compatibilité ONTAP existantes pour les applications de sauvegarde dans le https://mysupport.netapp.com/matrix["Matrice d'interopérabilité NetApp"^].
+
+. Vérifiez que vos lecteurs de bande sont répertoriés comme lecteurs qualifiés dans le fichier de configuration de bande intégré de chaque nœud :
++
+.. Sur l'interface de ligne de commande, affichez le fichier de configuration de bande intégré à l'aide du `storage tape show-supported-status` commande.
++
+....
+cluster1::> storage tape show-supported-status
+
+Node: cluster1-1
+                                Is
+Tape Drives                     Supported  Support Status
+------------------------------  ---------  -------------------------------
+Certance Ultrium 2              true       Dynamically Qualified
+Certance Ultrium 3              true       Dynamically Qualified
+Digital DLT2000                 true       Qualified
+....
+.. Comparez vos lecteurs de bande à la liste des lecteurs qualifiés dans la sortie.
++
+[NOTE]
+====
+Les noms des périphériques de bande dans la sortie peuvent varier légèrement par rapport aux noms figurant sur l'étiquette du périphérique ou dans la matrice d'interopérabilité. Par exemple, le DLT2000 numérique peut également être appelé DL2k. Vous pouvez ignorer ces différences mineures de dénomination.
+
+====
+.. Si un périphérique ne figure pas dans la liste comme indiqué dans le résultat, même si celui-ci est qualifié conformément à la matrice d'interopérabilité, téléchargez et installez un fichier de configuration mis à jour pour le périphérique, en suivant les instructions du site du support NetApp.
++
+http://mysupport.netapp.com/NOW/download/tools/tape_config["Téléchargements NetApp : fichiers de configuration des lecteurs de bande"]
+
++
+Il se peut qu'un périphérique qualifié ne figure pas dans le fichier de configuration de bande intégré si le périphérique de bande a été qualifié après l'expédition du nœud.
+
+
+
+. Vérifier que chaque nœud du cluster dispose d'un LIF intercluster :
++
+.. Afficher les LIFs intercluster sur les nœuds en utilisant le `network interface show -role intercluster` commande.
++
+[listing]
+----
+cluster1::> network interface show -role intercluster
+
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+cluster1    IC1        up/up      192.0.2.65/24      cluster1-1    e0a     true
+----
+.. Si aucune LIF intercluster n'existe sur un nœud, créer une LIF intercluster en utilisant le `network interface create` commande.
++
+[listing]
+----
+cluster1::> network interface create -vserver cluster1 -lif IC2 -role intercluster
+-home-node cluster1-2 -home-port e0b -address 192.0.2.68 -netmask 255.255.255.0
+-status-admin up -failover-policy local-only -firewall-policy intercluster
+
+cluster1::> network interface show -role intercluster
+
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+cluster1    IC1        up/up      192.0.2.65/24      cluster1-1    e0a     true
+cluster1    IC2        up/up      192.0.2.68/24      cluster1-2    e0b     true
+----
++
+link:../networking/index.html["Gestion du réseau"]
+
+
+
+. Déterminez si l'application de sauvegarde prend en charge Cluster Aware Backup (CAB) à l'aide de la documentation fournie avec l'application de sauvegarde.
++
+Le support CAB est un facteur clé pour déterminer le type de sauvegarde que vous pouvez effectuer.
+
+

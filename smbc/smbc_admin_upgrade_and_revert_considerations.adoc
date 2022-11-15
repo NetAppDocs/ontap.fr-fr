@@ -1,0 +1,101 @@
+---
+sidebar: sidebar 
+permalink: smbc/smbc_admin_upgrade_and_revert_considerations.html 
+keywords: SM-BC, SMBC, upgrade, revert, ONTAP 
+summary: 'Vous devez connaître les conditions requises pour la mise à niveau et le rétablissement d"une configuration SM-BC.' 
+---
+= Considérations relatives à la mise à niveau et à la restauration de SM-BC
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devez connaître les conditions requises pour la mise à niveau et le rétablissement d'une configuration SM-BC.
+
+
+
+== Mise à niveau
+
+Avant de pouvoir configurer et utiliser SM-BC, vous devez mettre à niveau tous les nœuds des clusters source et de destination vers ONTAP 9.8 ou version ultérieure.link:link:../upgrade/index.html["Logiciel Upgating sur les clusters ONTAP"]
+
+
+NOTE: SM-BC n'est pas pris en charge avec les clusters mixtes ONTAP 9.7 et ONTAP 9.8.
+
+La mise à niveau des clusters de 9.8 ou 9.9.1 vers 9.10.1 crée de nouveaux groupes de cohérence à la fois sur la source et la destination pour les relations SM-BC.
+
+
+
+== Les restaurations à ONTAP 9.9.1 depuis ONTAP 9.10.1
+
+Pour rétablir des relations de 9.10.1 à 9.9.1, les relations SM-BC doivent être supprimées, suivies de l'instance de groupe de cohérence 9.10.1. Impossible de supprimer les groupes de cohérence avec une relation SMBC active. Tout volume FlexVol mis à niveau vers la version 9.10.1 précédemment associé à une autre application de conteneur intelligent ou d'entreprise en 9.9.1 ou version antérieure ne sera plus associé à la restauration. La suppression des groupes de cohérence ne supprime pas les volumes constitutifs ou les snapshots granulaires volume. Reportez-vous à la section link:../consistency-groups/delete-task.html["Supprimez un groupe de cohérence"] pour plus d'informations sur cette tâche.
+
+
+
+== Les restaurations à ONTAP 9.7 depuis ONTAP 9.8
+
+Lorsque vous restaurez ONTAP 9.8 vers ONTAP 9.7, vous devez tenir compte des éléments suivants :
+
+* Si le cluster héberge une destination SM-BC, la restauration vers ONTAP 9.7 n'est pas autorisée tant que la relation n'est pas rompue et supprimée.
+* Si le cluster héberge une source SM-BC, la restauration vers ONTAP 9.7 n'est pas autorisée tant que la relation n'est pas libérée.
+* Toutes les politiques SnapMirror personnalisées SM-BC créées par l'utilisateur doivent être supprimées avant de revenir à ONTAP 9.7.
+
+
+.Étapes
+. Effectuer une vérification de restauration à partir de l'un des clusters de la relation SM-BC :
++
+`cluster::*> system node revert-to -version 9.7 -check-only`
+
++
+Exemple :
+
++
+....
+cluster::*> system node revert-to -version 9.7 -check-only
+Error: command failed: The revert check phase failed. The following issues must be resolved before revert can be completed. Bring the data LIFs down on running vservers. Command to list the running vservers: vserver show -admin-state running Command to list the data LIFs that are up: network interface show -role data -status-admin up Command to bring all data LIFs down: network interface modify {-role data} -status-admin down
+Disable snapshot policies.
+    Command to list snapshot policies: "snapshot policy show".
+    Command to disable snapshot policies: "snapshot policy modify -vserver
+   * -enabled false"
+
+   Break off the initialized online data-protection (DP) volumes and delete
+   Uninitialized online data-protection (DP) volumes present on the local
+   node.
+    Command to list all online data-protection volumes on the local node:
+   volume show -type DP -state online -node <local-node-name>
+    Before breaking off the initialized online data-protection volumes,
+   quiesce and abort transfers on associated SnapMirror relationships and
+   wait for the Relationship Status to be Quiesced.
+    Command to quiesce a SnapMirror relationship: snapmirror quiesce
+    Command to abort transfers on a SnapMirror relationship: snapmirror
+   abort
+    Command to see if the Relationship Status of a SnapMirror relationship
+   is Quiesced: snapmirror show
+    Command to break off a data-protection volume: snapmirror break
+    Command to break off a data-protection volume which is the destination
+   of a SnapMirror relationship with a policy of type "vault": snapmirror
+   break -delete-snapshots
+    Uninitialized data-protection volumes are reported by the "snapmirror
+   break" command when applied on a DP volume.
+    Command to delete volume: volume delete
+
+   Delete current version snapshots in advanced privilege level.
+    Command to list snapshots: "snapshot show -fs-version 9.8"
+    Command to delete snapshots: "snapshot prepare-for-revert -node
+   <nodename>"
+
+   Delete all user-created policies of the type active-strict-sync-mirror
+   and active-sync-mirror.
+   The command to see all active-strict-sync-mirror and active-sync-mirror
+   type policies is:
+    snapmirror policy show -type
+   active-strict-sync-mirror,active-sync-mirror
+   The command to delete a policy is :
+    snapmirror policy delete -vserver <SVM-name> -policy <policy-name>
+....
+
+
+Pour plus d'informations sur le rétablissement des clusters, reportez-vous à la section link:../revert/index.html["Restaurez la ONTAP"].

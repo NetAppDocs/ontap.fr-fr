@@ -1,0 +1,78 @@
+---
+permalink: san-config/calculate-queue-depth-task.html 
+sidebar: sidebar 
+keywords: calculate, queue depth 
+summary: 'Vous devrez peut-être ajuster la profondeur de votre file d"attente FC sur l"hôte pour obtenir le maximum de valeurs pour les ITN par nœud et le « Fan-In » du port FC. Le nombre maximal de LUN et le nombre de HBA pouvant se connecter à un port FC sont limités par la profondeur de file d"attente disponible sur les ports FC target.' 
+---
+= Calculer la profondeur de la file d'attente
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devrez peut-être ajuster la profondeur de votre file d'attente FC sur l'hôte pour obtenir le maximum de valeurs pour les ITN par nœud et le « Fan-In » du port FC. Le nombre maximal de LUN et le nombre de HBA pouvant se connecter à un port FC sont limités par la profondeur de file d'attente disponible sur les ports FC target.
+
+La longueur de la file d'attente correspond au nombre de demandes d'E/S (commandes SCSI) pouvant être mises en file d'attente simultanément sur un contrôleur de stockage. Chaque demande d'E/S provenant de l'adaptateur HBA initiateur de l'hôte vers l'adaptateur cible du contrôleur de stockage utilise une entrée de file d'attente. Généralement, une longueur de file d'attente plus élevée équivaut à des performances supérieures. Toutefois, si la profondeur maximale de file d'attente du contrôleur de stockage est atteinte, ce contrôleur de stockage rejette les commandes entrantes en leur renvoyant une réponse QFULL. Si un grand nombre d'hôtes accèdent à un contrôleur de stockage, prévoyez-vous d'éviter les conditions de QFULL qui dégradent considérablement les performances du système et peuvent entraîner des erreurs sur certains systèmes.
+
+Dans une configuration avec plusieurs initiateurs (hôtes), tous les hôtes doivent avoir des profondeurs de file d'attente similaires. En raison des inégalités de profondeur de file d'attente entre les hôtes connectés au contrôleur de stockage via le même port cible, les hôtes dont la profondeur de file d'attente est réduite sont privés d'accès aux ressources par les hôtes dont la profondeur de file d'attente est supérieure.
+
+Les recommandations générales suivantes peuvent être formulées sur les profondeurs de file d'attente « réglage » :
+
+* Pour les systèmes de petite ou moyenne taille, utilisez une longueur de file d'attente HBA de 32.
+* Pour les systèmes de grande taille, utilisez une profondeur de file d'attente HBA de 128.
+* Pour les cas d'exception ou les tests de performances, utilisez une file d'attente de 256 afin d'éviter tout problème de mise en file d'attente.
+* Toutes les profondeurs de file d'attente doivent être définies sur des valeurs similaires pour donner un accès égal à tous les hôtes.
+* Pour éviter des pénalités ou des erreurs, la profondeur de la file d'attente du port FC cible du contrôleur de stockage ne doit pas être dépassée.
+
+
+.Étapes
+. Nombre total d'initiateurs FC dans tous les hôtes qui se connectent à un port FC cible.
+. Multiplier par 128.
++
+** Si le résultat est inférieur à 2,048, définissez la profondeur de la file d'attente pour tous les initiateurs sur 128. Vous avez 15 hôtes avec un initiateur connecté à chacun des deux ports cibles du contrôleur de stockage. 15 × 128 = 1,920. Comme 1,920 est inférieur à la limite de profondeur totale de la file d'attente de 2,048, vous pouvez définir la profondeur de la file d'attente pour tous vos initiateurs sur 128.
+** Si le résultat est supérieur à 2,048, passer à l'étape 3. Vous avez 30 hôtes avec un initiateur connecté à chacun des deux ports cibles du contrôleur de stockage. 30 × 128 = 3,840. Comme 3,840 est supérieur à la limite de profondeur totale de la file d'attente de 2,048, vous devez choisir l'une des options de l'étape 3 pour résoudre le problème.
+
+
+. Choisissez l'une des options suivantes pour ajouter d'autres hôtes au contrôleur de stockage.
++
+** Option 1 :
++
+... Ajoutez d'autres ports FC target.
+... Redistribuez vos initiateurs FC.
+... Répétez les étapes 1 et 2. + la profondeur de file d'attente souhaitée de 3,840 dépasse la profondeur de file d'attente disponible par port. Pour y remédier, vous pouvez ajouter un adaptateur cible FC à deux ports à chaque contrôleur puis resegmenter vos commutateurs FC de sorte que 15 de vos 30 hôtes se connectent à un ensemble de ports, et les 15 hôtes restants se connectent à un second ensemble de ports. La profondeur de file d'attente par port est alors réduite à 15 × 128 = 1,920.
+
+
+** Option 2 :
++
+... Désigner chaque hôte comme « grand » ou « centre commercial » en fonction de ses besoins d'E/S prévus.
+... Multiplier le nombre d'initiateurs volumineux par 128.
+... Multiplier le nombre de petits initiateurs par 32.
+... Additionnez les deux résultats.
+... Si le résultat est inférieur à 2,048, définissez la profondeur de la file d'attente pour les hôtes volumineux sur 128 et la profondeur de la file d'attente pour les petits hôtes sur 32.
+... Si le résultat est toujours supérieur à 2,048 par port, réduisez la profondeur de file d'attente par initiateur jusqu'à ce que la profondeur totale de la file d'attente soit inférieure ou égale à 2,048.
++
+[NOTE]
+====
+Pour estimer la profondeur de file d'attente nécessaire pour obtenir un certain débit d'E/S par seconde, utilisez la formule suivante :
+
+Profondeur de file d'attente nécessaire = (nombre d'E/S par seconde) × (temps de réponse)
+
+Par exemple, si vous avez besoin de 40,000 E/S par seconde avec un temps de réponse de 3 millisecondes, la profondeur de file d'attente requise = 40,000 × (.003) = 120.
+
+====
+
+
+
+
+
+
+Le nombre maximal d'hôtes que vous pouvez connecter à un port cible est de 64, si vous décidez de limiter la profondeur de la file d'attente à la recommandation de base de 32. Cependant, si vous décidez d'avoir une profondeur de file d'attente de 128, vous pouvez avoir un maximum de 16 hôtes connectés à un port cible. Plus la longueur de la file d'attente est importante, plus le nombre d'hôtes qu'un seul port cible peut prendre en charge est élevé. Si vous avez besoin de telle sorte que vous ne puissiez pas compromettre la profondeur de la file d'attente, vous devriez obtenir plus de ports cibles.
+
+La profondeur de file d'attente souhaitée de 3,840 dépasse la profondeur de file d'attente disponible par port. Vous disposez de 10 hôtes « grands » qui ont des besoins en E/S de stockage élevés, et de 20 hôtes « petits » qui ont des besoins en E/S faibles. Définissez la profondeur de la file d'attente d'initiateur sur les hôtes volumineux sur 128 et la profondeur de la file d'attente d'initiateur sur les petits hôtes sur 32.
+
+La profondeur totale de file d'attente obtenue est de (10 × 128) + (20 × 32) = 1,920.
+
+Vous pouvez répartir la profondeur de file d'attente disponible de manière égale sur chaque initiateur.
+
+La profondeur de file d'attente par initiateur obtenue est de 2,048 ÷ 30 = 68.

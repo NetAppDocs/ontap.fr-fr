@@ -1,0 +1,64 @@
+---
+permalink: data-protection/vault-archive-snapmirror-technology-concept.html 
+sidebar: sidebar 
+keywords: vault, archiving, snapmirror, technology 
+summary: 'Les règles d"archivage sécurisé SnapMirror remplacent la technologie SnapVault dans ONTAP 9.3 et versions ultérieures. Vous utilisez une règle de copie SnapMirror pour la réplication de copie Snapshot disque à disque à des fins de conformité aux normes et autres pour la gouvernance. Contrairement à une relation SnapMirror, dans laquelle la destination contient généralement uniquement les copies Snapshot actuellement dans le volume source, la destination d"une copie à distance conserve en général les copies Snapshot instantanées créées sur une période bien plus longue.' 
+---
+= Archivage à distance grâce à la technologie SnapMirror
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les règles d'archivage sécurisé SnapMirror remplacent la technologie SnapVault dans ONTAP 9.3 et versions ultérieures. Vous utilisez une règle de copie SnapMirror pour la réplication de copie Snapshot disque à disque à des fins de conformité aux normes et autres pour la gouvernance. Contrairement à une relation SnapMirror, dans laquelle la destination contient généralement uniquement les copies Snapshot actuellement dans le volume source, la destination d'une copie à distance conserve en général les copies Snapshot instantanées créées sur une période bien plus longue.
+
+Vous pouvez conserver tous les mois des copies Snapshot de vos données sur une période de 20 ans, par exemple, pour vous conformer aux réglementations gouvernementales relatives à la comptabilité de votre entreprise. Etant donné qu'il n'est pas nécessaire de transmettre des données à partir du stockage Vault, vous pouvez utiliser des disques plus lents et moins coûteux sur le système de destination.
+
+La figure ci-dessous illustre les relations de protection des données du coffre-fort SnapMirror.
+
+image::../media/snapvault-data-protection.gif[protection des données avec SnapVault]
+
+
+
+== Comment les relations de protection des données du coffre-fort sont initialisées
+
+La règle SnapMirror pour la relation définit le contenu de la base et toutes les mises à jour.
+
+Transfert de base sous la stratégie de coffre-fort par défaut `XDPDefault` Crée une copie Snapshot du volume source, puis transfère cette copie et les blocs de données qu'il renvoie vers le volume de destination. Contrairement aux relations SnapMirror, une sauvegarde forte n'inclut pas d'anciennes copies Snapshot dans la configuration de base.
+
+
+
+== Mise à jour des relations de protection des données Vault
+
+Les mises à jour sont asynchrones, en fonction du planning que vous configurez. Les règles que vous définissez dans la règle pour la relation identifient les nouvelles copies Snapshot à inclure dans les mises à jour et le nombre de copies à conserver. Les libellés définis dans la politique (« mensuel », par exemple) doivent correspondre à un ou plusieurs libellés définis dans la politique Snapshot de la source. Dans le cas contraire, la réplication échoue.
+
+À chaque mise à jour sous `XDPDefault` Cette règle transfère les copies Snapshot qui ont été effectuées depuis la dernière mise à jour, à condition que leurs étiquettes correspondent aux étiquettes définies dans les règles de règle. Dans la sortie suivante du `snapmirror policy show` commande pour le `XDPDefault` notez la règle suivante :
+
+* `Create Snapshot` est « faux », ce qui indique cela `XDPDefault` Ne crée pas de copie Snapshot lorsque SnapMirror met à jour la relation.
+* `XDPDefault` Dispose de règles « diotidienne » et « hebdomadaire », ce qui indique que toutes les copies Snapshot avec des étiquettes correspondantes sur la source sont transférées lorsque SnapMirror met à jour la relation.
+
+
+[listing]
+----
+cluster_dst::> snapmirror policy show -policy XDPDefault -instance
+
+                     Vserver: vs0
+      SnapMirror Policy Name: XDPDefault
+      SnapMirror Policy Type: vault
+                Policy Owner: cluster-admin
+                 Tries Limit: 8
+           Transfer Priority: normal
+   Ignore accesstime Enabled: false
+     Transfer Restartability: always
+ Network Compression Enabled: false
+             Create Snapshot: false
+                     Comment: Default policy for XDP relationships with daily and weekly
+                              rules.
+       Total Number of Rules: 2
+                  Total Keep: 59
+                       Rules: SnapMirror Label     Keep  Preserve Warn Schedule Prefix
+                              ----------------     ----  -------- ---- -------- ------
+                              daily                   7  false       0 -        -
+                              weekly                 52  false       0 -        -
+----

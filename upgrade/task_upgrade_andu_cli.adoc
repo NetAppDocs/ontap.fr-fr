@@ -1,0 +1,228 @@
+---
+sidebar: sidebar 
+permalink: upgrade/task_upgrade_andu_cli.html 
+keywords: netapp, ontap, automate, automatic, automated, upgrade, nondisruptive, nondisruptively, non-disruptive update, nondisruptive upgrade, upgrade a cluster, shift workload between clusters, hardware platform, configuration, software image, update, update ONTAP, update software, ndu 
+summary: Vous pouvez mettre à jour la version de ONTAP sur votre cluster sans interruption. 
+---
+= Mise à niveau automatisée et sans interruption d'ONTAP à l'aide de l'interface de ligne
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+Vous pouvez utiliser l'interface de ligne de commande pour vérifier que le cluster peut être mis à niveau sans interruption, installer l'image ONTAP cible sur chaque nœud, puis exécuter une mise à niveau en arrière-plan.
+
+Une fois la mise à niveau effectuée, vous devez vérifier la version du cluster, l'état du cluster et l'état de stockage.
+
+
+NOTE: Si vous utilisez une configuration MetroCluster FC, vous devez également vérifier que le cluster est activé pour le basculement automatique non planifié.
+
+Si vous ne prévoyez pas de suivre la progression du processus de mise à niveau, il est conseillé de le faire link:task_requesting_notification_of_issues_encountered_in_nondisruptive_upgrades.html["Demandez des notifications EMS d'erreurs susceptibles de nécessiter une intervention manuelle"].
+
+.Avant de commencer
+* Vous devez lancer le conseiller numérique Active IQ.
++
+Le composant Upgrade Advisor de Active IQ Digital Advisor vous aide à planifier une mise à niveau réussie.
+
++
+Les informations et les recommandations basées sur les données fournies par Active IQ Digital Advisor sont proposées à tous les clients NetApp qui possèdent un contrat *SupportEdge* (les fonctionnalités varient en fonction des produits et des niveaux de support).
+
+* Vous devez avoir rempli les conditions requises pour la préparation de la mise à niveau.
+* Pour chaque paire haute disponibilité, chaque nœud doit avoir un ou plusieurs ports sur le même broadcast domain.
++
+Lors de la mise à niveau par lot d'un ensemble de nœuds, les LIF sont migrées vers les nœuds partenaires haute disponibilité. Si les partenaires ne disposent d'aucun port dans le même broadcast domain, alors la migration LIF échoue.
+
+* Si vous effectuez une mise à niveau de ONTAP 9.3 vers 9.7, vous devez avoir obtenu l'image logicielle pour 9.5 et 9.7.
+* Si vous effectuez une mise à niveau de ONTAP 9.5 vers 9.9.1, vous devez avoir obtenu l'image logicielle pour 9.7 et 9.9.1.
+
+
+Le `cluster image validate` la commande vérifie les composants du cluster pour vérifier que la mise à niveau peut se faire sans interruption, puis elle fournit l'état de chaque vérification et toute action requise que vous devez effectuer avant d'effectuer la mise à niveau logicielle.
+
+
+NOTE: Modification du paramètre de l' `storage failover modify-auto-giveback` L'option de commande avant le début d'une mise à niveau automatique sans interruption (ANDU) n'a aucun impact sur le processus de mise à niveau. Le processus ANDU ignore toute valeur prédéfinie à cette option lors du basculement/retour requis pour la mise à jour. Par exemple, paramètre `-autogiveback` À false avant de commencer ANDU n'interrompt pas la mise à jour automatique avant le retour.
+
+. Supprimez le pack logiciel ONTAP précédent :
++
+`cluster image package delete -version previous_ONTAP_Version`
+
+. Téléchargez le pack logiciel ONTAP cible :
++
+`cluster image package get -url location`
+
++
+
+NOTE: Si vous effectuez une mise à niveau depuis ONTAP 9.3 vers 9.7, téléchargez le pack logiciel pour ONTAP 9.5, puis utilisez la même commande pour télécharger le pack logiciel pour 9.7. Si vous effectuez une mise à niveau depuis ONTAP 9.5 vers 9.9.1, téléchargez le pack logiciel pour ONTAP 9.7, puis utilisez la même commande pour télécharger le pack logiciel pour 9.9.1.
+
++
+[listing]
+----
+cluster1::> cluster image package get -url http://www.example.com/software/9.7/image.tgz
+
+Package download completed.
+Package processing completed.
+----
+. Vérifiez que le pack logiciel est disponible dans le référentiel du package de cluster :
++
+`cluster image package show-repository`
+
++
+[listing]
+----
+cluster1::> cluster image package show-repository
+Package Version  Package Build Time
+---------------- ------------------
+9.7              MM/DD/YYYY 10:32:15
+----
+. Vérifier que le cluster est prêt à être mis à niveau sans interruption :
++
+`cluster image validate -version package_version_number`
+
++
+** Si vous mettez à niveau une configuration MetroCluster à deux ou quatre nœuds, vous devez exécuter cette commande sur les deux clusters avant de poursuivre.
+** Si vous effectuez une mise à niveau de ONTAP 9.3 vers 9.7, utilisez le package 9.7 pour vérification. Il n'est pas nécessaire de valider séparément le paquet 9.5.
+** Si vous effectuez une mise à niveau de ONTAP 9.5 vers 9.9.1, utilisez le package 9.9.1 pour vérification. Il n'est pas nécessaire de valider séparément le paquet 9.7.
+
+
++
+[listing]
+----
+cluster1::> cluster image validate -version 9.7
+
+WARNING: There are additional manual upgrade validation checks that must be performed after these automated validation checks have completed...
+----
+. Surveiller la progression de la validation :
++
+`cluster image show-update-progress`
+
+. Effectuez toutes les actions requises identifiées par la validation.
+. Générer une estimation de mise à niveau logicielle :
++
+`cluster image update -version package_version_number -estimate-only`
+
++
+L'estimation de la mise à niveau logicielle affiche des détails sur chaque composant à mettre à jour, ainsi que la durée estimée de la mise à niveau.
+
+. Effectuez la mise à niveau logicielle :
++
+`cluster image update -version package_version_number`
+
++
+** Si vous effectuez une mise à niveau de ONTAP 9.3 vers 9.7, utilisez la commande 9.7 package_version_number dans la commande ci-dessus.
+** Si vous effectuez une mise à niveau de ONTAP 9.5 vers 9.9.1, utilisez la commande 9.9.1 package_version_number dans la commande ci-dessus.
+** Dans le cas de n'importe quelle configuration MetroCluster, à l'exception d'un système MetroCluster à 2 nœuds, le processus de mise à niveau de la baie ONTAP démarre simultanément sur les paires haute disponibilité de chaque site (le site local et le site de reprise après incident) une fois que l'utilisateur démarre et fournit une confirmation sur la ligne de commande. Sur un système MetroCluster à 2 nœuds, la mise à jour commence en premier sur le site de reprise sur incident, c'est-à-dire sur lequel la mise à niveau n'est pas initiée. Une fois la mise à jour terminée à fond sur le site de reprise d'activité, la mise à niveau commence sur le site local.
+** Si le cluster comprend entre 2 et 6 nœuds, une mise à niveau est effectuée. Si le cluster comprend au moins 8 nœuds, une mise à niveau par lot est effectuée par défaut. Si vous le souhaitez, vous pouvez utiliser le `-force-rolling` paramètre pour spécifier une mise à niveau par roulement à la place.
+** À l'issue de chaque basculement et rétablissement, la mise à niveau attend 8 minutes pour que les applications client puissent restaurer les données après la pause des E/S qui a lieu lors du basculement et du rétablissement. Si votre environnement nécessite plus ou moins de temps pour la stabilisation du client, vous pouvez utiliser le `-stabilize-minutes` paramètre pour spécifier une durée de stabilisation différente.
++
+[listing]
+----
+cluster1::> cluster image update -version 9.7
+
+Starting validation for this update. Please wait..
+
+It can take several minutes to complete validation...
+
+WARNING: There are additional manual upgrade validation checks...
+
+Pre-update Check      Status     Error-Action
+--------------------- ---------- --------------------------------------------
+...
+20 entries were displayed
+
+Would you like to proceed with update ? {y|n}: y
+Starting update...
+
+cluster-1::>
+----
+
+
+. Afficher la progression de la mise à jour du cluster :
++
+`cluster image show-update-progress`
+
++
+
+NOTE: Si vous mettez à niveau une configuration MetroCluster à 4 ou 8 nœuds, le `cluster image show-update-progress` commande uniquement affiche la progression du nœud sur lequel vous exécutez la commande. Vous devez exécuter la commande sur chaque nœud pour voir la progression de chaque nœud.
+
+. Vérifiez que la mise à niveau a été effectuée correctement sur chaque nœud.
++
+[listing]
+----
+cluster1::> cluster image show-update-progress
+
+                                             Estimated         Elapsed
+Update Phase         Status                   Duration        Duration
+-------------------- ----------------- --------------- ---------------
+Pre-update checks    completed                00:10:00        00:02:07
+Data ONTAP updates   completed                01:31:00        01:39:00
+Post-update checks   completed                00:10:00        00:02:00
+3 entries were displayed.
+
+Updated nodes: node0, node1.
+
+cluster1::>
+----
+. Déclencher une notification AutoSupport :
++
+`autosupport invoke -node * -type all -message "Finishing_NDU"`
+
++
+Si votre cluster n'est pas configuré pour envoyer des messages AutoSupport, une copie de la notification est enregistrée localement.
+
+. Vérifier que le cluster est activé pour le basculement automatique non planifié :
++
+
+NOTE: Cette procédure s'effectue uniquement pour les configurations MetroCluster FC. Si vous utilisez une configuration MetroCluster IP, ignorez cette procédure.
+
++
+.. Vérifier si le basculement automatique non planifié est activé :
++
+`metrocluster show`
+
++
+Si le basculement automatique non planifié est activé, l'instruction suivante apparaît dans la sortie de la commande :
+
++
+....
+AUSO Failure Domain    auso-on-cluster-disaster
+....
+.. Si l'instruction n'apparaît pas dans la sortie, activez le basculement automatique non planifié :
++
+`metrocluster modify -auto-switchover-failure-domain auso-on-cluster-disaster`
+
+.. Vérifier que le basculement automatique non planifié a été activé en répétant l'étape 1.
+
+
+
+
+
+
+== Reprise d'une mise à niveau (à l'aide de l'interface de ligne de commande) après une erreur dans le processus de mise à niveau automatisée
+
+Si une mise à niveau automatisée s'interrompt en raison d'une erreur, vous pouvez résoudre l'erreur et reprendre la mise à niveau automatisée, ou vous pouvez annuler la mise à niveau automatisée et terminer le processus manuellement. Si vous choisissez de poursuivre la mise à niveau automatique, n'effectuez aucune des étapes de mise à niveau manuellement.
+
+Si vous souhaitez terminer la mise à niveau manuellement, utilisez le `cluster image cancel-update` pour annuler le processus automatisé et continuer manuellement. Si vous souhaitez poursuivre la mise à niveau automatique, procédez comme suit.
+
+.Étapes
+. Afficher l'erreur de mise à niveau :
++
+`cluster image show-update-progress`
+
+. Résolvez l'erreur.
+. Reprendre la mise à jour :
++
+`cluster image resume-update`
+
+
+
+https://aiq.netapp.com/["Lancez Active IQ"]
+
+https://docs.netapp.com/us-en/active-iq/["Documentation Active IQ"]

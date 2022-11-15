@@ -1,0 +1,31 @@
+---
+permalink: smb-admin/signing-multiple-data-lifs-concept.html 
+sidebar: sidebar 
+keywords: enable, disable, require, smb, sign, server, guideline, lifs, configuration, svm, guidelines for smb signing when multiple data lifs are configured 
+summary: Si vous activez ou désactivez le SMB Signing requis sur le serveur SMB, vous devez connaître les instructions relatives aux configurations de plusieurs LIF de données pour un SVM. 
+---
+= Consignes de signature SMB lorsque plusieurs LIF de données sont configurées
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous activez ou désactivez le SMB Signing requis sur le serveur SMB, vous devez connaître les instructions relatives aux configurations de plusieurs LIF de données pour un SVM.
+
+Lorsque vous configurez un serveur SMB, plusieurs LIF de données peuvent être configurées. Si c'est le cas, le serveur DNS contient plusieurs `A` Entrées d'enregistrement pour le serveur CIFS, toutes utilisant le même nom d'hôte de serveur SMB, mais chacune avec une adresse IP unique. Par exemple, un serveur SMB dont deux LIF de données sont configurées peut avoir le DNS suivant `A` entrées d'enregistrement :
+
+[listing]
+----
+10.1.1.128 A VS1.IEPUB.LOCAL VS1
+10.1.1.129 A VS1.IEPUB.LOCAL VS1
+----
+Le comportement normal est qu'après modification du paramètre de signature SMB requis, seules les nouvelles connexions des clients sont affectées par la modification du paramètre de signature SMB. Cependant, il y a une exception à ce comportement. Il existe un cas où un client dispose d'une connexion existante à un partage, et le client crée une nouvelle connexion au même partage après la modification du paramètre, tout en maintenant la connexion d'origine. Dans ce cas, la connexion SMB, nouvelle et existante, adopte les nouvelles exigences de signature SMB.
+
+Prenons l'exemple suivant :
+
+. Client1 se connecte à un partage sans avoir à signer SMB à l'aide du chemin `O:\`.
+. L'administrateur du stockage modifie la configuration du serveur SMB afin de exiger la signature SMB.
+. Client1 se connecte au même partage avec la signature SMB requise à l'aide du chemin `S:\` (tout en maintenant la connexion à l'aide du chemin `O:\`).
+. Par conséquent, le SMB Signing est utilisé pour accéder aux données sur le système `O:\` et `S:\` disques.
+

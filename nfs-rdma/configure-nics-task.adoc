@@ -1,0 +1,80 @@
+---
+permalink: nfs-rdma/configure-nics-task.html 
+sidebar: sidebar 
+keywords: networking, NICs, NFS over RDMA, NVIDIA, NFS, system manager, ports, ethernet ports 
+summary: Cet article explique comment les processus et les exigences de configuration du système client et de la plateforme de stockage des cartes réseau peuvent utiliser NFS sur RDMA dans ONTAP. 
+---
+= Configurer les cartes réseau pour NFS sur RDMA
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+NFS sur RDMA requiert une configuration de carte réseau pour le système client et la plateforme de stockage.
+
+
+
+== Configuration de la plateforme de stockage
+
+Un adaptateur X1148 RDMA doit être installé sur le serveur. Si vous utilisez une configuration HA, vous devez disposer d'un adaptateur X1148 correspondant sur le partenaire de basculement pour que le service RDMA puisse continuer le processus de basculement. La carte réseau doit être compatible ROCE.
+
+Depuis ONTAP 9.10.1, vous pouvez afficher la liste des protocoles de déchargement RDMA avec la commande :
+`network port show -rdma-protocols roce`
+
+
+
+== Configuration du système client
+
+Les clients doivent utiliser des cartes NIC Mellanox compatibles RDMA (par exemple, X1148) et logiciel réseau Mellanox OFED. Consultez la documentation Mellanox pour connaître les modèles et versions pris en charge. Bien que le client et le serveur puissent être connectés directement, l'utilisation de commutateurs est recommandée en raison des performances de basculement améliorées avec un commutateur.
+
+Le client, le serveur et les commutateurs, ainsi que tous les ports des commutateurs, doivent être configurés à l'aide des trames Jumbo. S'assurer également que le contrôle de flux prioritaire est en vigueur sur tous les commutateurs.
+
+Une fois cette configuration confirmée, vous pouvez monter le NFS.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Vous devez utiliser ONTAP 9.12.1 ou version ultérieure pour configurer les interfaces réseau avec NFS sur RDMA à l'aide de System Manager.
+
+.Étapes
+. Vérifier si le protocole RDMA est pris en charge. Accédez à *réseau > ports Ethernet* et sélectionnez le nœud approprié dans la vue de groupe. Lorsque vous développez le nœud, recherchez le champ *RDMA Protocol* pour un port donné : la valeur *RoCE* indique que RDMA est prise en charge ; un tiret (*-*) indique qu'il n'est pas pris en charge.
+. Pour ajouter un VLAN, sélectionnez *+ VLAN*. Sélectionnez le nœud approprié. Dans le menu déroulant *Port*, les ports disponibles affichent le texte *RoCE Enabled* s'ils prennent en charge RDMA. Aucun texte ne s'affiche s'ils ne prennent pas en charge RDMA.
+. Suivez le flux de travail dans xref:../task_nas_enable_linux_nfs.html[Activez le stockage NAS pour les serveurs Linux à l'aide de NFS] Pour configurer un nouveau serveur NFS.
++
+Lorsque vous ajoutez des interfaces réseau, vous avez la possibilité de sélectionner *utiliser les ports RoCE*. Sélectionnez cette option pour les interfaces réseau que vous souhaitez utiliser NFS sur RDMA.
+
+
+
+--
+.CLI
+--
+. Vérifier si l'accès RDMA est activé sur le serveur NFS avec la commande :
++
+`vserver nfs show-vserver _SVM_name_`
+
++
+Par défaut, `-rdma` doit être activé. Si ce n'est pas le cas, activer l'accès RDMA sur le serveur NFS :
+
++
+`vserver nfs modify -vserver _SVM_name_ -rdma enabled`
+
+. Monter le client via NFSv4.0 sur RDMA :
++
+.. L'entrée du paramètre proto dépend de la version du protocole IP du serveur. S'il s'agit d'IPv4, utilisez `proto=rdma`. S'il s'agit du protocole IPv6, utilisez-le `proto=rdma6`.
+.. Spécifiez le port cible NFS en tant que `port=20049` au lieu du port standard 2049 :
++
+`mount -o vers=4,minorversion=0,proto=rdma,port=20049 _Server_IP_address_:/_volume_path_ _mount_point_`
+
+
+
+. *OPTIONNEL*: Si vous devez démonter le client, exécutez la commande `unmount _mount_path_`
+
+
+--
+====
+.Plus d'informations
+* xref:../nfs-config/create-server-task.html[Créez un serveur NFS]
+* xref:../task_nas_enable_linux_nfs.html[Activez le stockage NAS pour les serveurs Linux à l'aide de NFS]
+

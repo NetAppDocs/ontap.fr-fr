@@ -1,0 +1,82 @@
+---
+permalink: revert/task_preparing_snapshot_copies_before_reverting.html 
+sidebar: sidebar 
+keywords: ontap, revert, reverting, reversion, snapshot, copies, prepare, preparing, disable, delete 
+summary: 'Avant de restaurer vers une version antérieure d"ONTAP, vous devez désactiver toutes les règles de copie Snapshot et supprimer toutes les copies Snapshot créées après la mise à niveau vers la version actuelle.' 
+---
+= Préparez les copies Snapshot avant de procéder aux restaurations
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de restaurer vers une version antérieure d'ONTAP, vous devez désactiver toutes les règles de copie Snapshot et supprimer toutes les copies Snapshot créées après la mise à niveau vers la version actuelle.
+
+Si vous procédez à une restauration dans un environnement SnapMirror, vous devez d'abord avoir supprimé les relations de miroir suivantes :
+
+* Toutes les relations miroir de partage de charge
+* Toutes les relations de miroir de protection des données créées dans ONTAP 8.3.x
+* Toutes les relations de miroir de protection des données si le cluster a été recréré dans ONTAP 8.3.x.
++
+.. Désactiver les règles de copies Snapshot pour tous les SVM de données : `volume snapshot policy modify -vserver * -enabled false`
+.. Désactiver les règles de copie Snapshot pour les agrégats de chaque nœud :
++
+... Identifiez les agrégats du nœud à l'aide de la commande run-nodenodenodenameaggr status.
+... Désactiver la règle de copie Snapshot pour chaque agrégat : `run -node nodename aggr options aggr_name nosnap on`
+... Répétez cette étape pour chaque nœud restant.
+
+
+.. Désactiver les règles de copie Snapshot pour le volume racine de chaque nœud :
++
+... Identifiez le volume racine du nœud à l'aide de la commande run-nodenodaémaux status.
++
+Vous identifiez le volume racine par le mot root dans la colonne Options de la sortie de la commande vol status.
+
++
+[listing]
+----
+vs1::> run -node node1 vol status
+
+         Volume State           Status            Options
+           vol0 online          raid_dp, flex     root, nvfail=on
+                                64-bit
+----
+... Désactiver la policy de copie Snapshot sur le volume root : `run -node nodename vol options root_volume_name nosnap on`
+... Répétez cette étape pour chaque nœud restant.
+
+
+.. Supprimez toutes les copies Snapshot créées après la mise à niveau vers la version actuelle :
++
+... Définissez le niveau de privilège sur avancé : `set -privilege advanced`
+... Désactiver les instantanés :``snapshot policy modify -vserver * -enabled false``
+... Supprimez les copies Snapshot les plus récentes du nœud : `volume snapshot prepare-for-revert -node nodename`
++
+Cette commande supprime les copies Snapshot de version les plus récentes sur chaque volume de données, agrégat racine et volume racine.
+
++
+Si aucune copie Snapshot ne peut être supprimée, la commande échoue et vous informe des actions requises que vous devez effectuer pour pouvoir supprimer les copies. Vous devez effectuer les actions requises, puis exécuter à nouveau la commande de préparation du snapshot du volume pour la restauration avant de passer à l'étape suivante.
+
++
+[listing]
+----
+cluster1::*> volume snapshot prepare-for-revert -node node1
+
+Warning: This command will delete all Snapshot copies that have the format used by the current version of ONTAP. It will fail if any Snapshot copy polices are enabled, or
+         if any Snapshot copies have an owner. Continue? {y|n}: y
+----
+... Vérifiez que les copies Snapshot ont été supprimées : `volume snapshot show -node nodename`
++
+Si des copies Snapshot les plus récentes sont conservées, force-les à être supprimées : `volume snapshot delete {-fs-version 9.0 -node nodename -is-constituent true} -ignore-owners -force`
+
+... Répétez cette étape c pour chaque nœud restant.
+... Retour au niveau de privilège admin : `set -privilege admin`
+
+
+
+
++
+
+NOTE: Ces étapes doivent être réalisées sur les deux clusters en configuration MetroCluster.
+
+

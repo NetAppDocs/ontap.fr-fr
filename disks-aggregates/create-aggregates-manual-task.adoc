@@ -1,0 +1,107 @@
+---
+permalink: disks-aggregates/create-aggregates-manual-task.html 
+sidebar: sidebar 
+keywords: ontap 9, create, aggregates, manually, manual, add, local tier 
+summary: 'Si vous ne souhaitez pas ajouter de niveau local (créer un agrégat) en suivant les recommandations sur les meilleures pratiques de ONTAP, vous pouvez effectuer la procédure manuellement.' 
+---
+= Ajout manuel de niveaux locaux (création d'agrégats
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous ne souhaitez pas ajouter de niveau local (créer un agrégat) en suivant les recommandations sur les meilleures pratiques de ONTAP, vous pouvez effectuer la procédure manuellement.
+
+La procédure de suivi dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Utilisez System Manager pour ajouter un niveau local manuellement*
+
+Depuis ONTAP 9.11.1, si vous ne souhaitez pas utiliser la configuration recommandée par System Manager pour créer un niveau local, vous pouvez spécifier la configuration souhaitée.
+
+.Étapes
+. Dans System Manager, cliquez sur *stockage > niveaux*.
+. Dans la page *tiers*, cliquez sur image:icon-add-local-tier.png["Ajouter une icône de niveau local"] pour créer un nouveau niveau local :
++
+La page *Ajouter un niveau local* affiche le nombre recommandé de niveaux locaux qui peuvent être créés sur les nœuds et le stockage utilisable disponible.
+
+. Lorsque System Manager affiche la recommandation de stockage pour le niveau local, cliquez sur *basculer vers création manuelle de niveau local* dans la section *disques de rechange*.
++
+La page *Ajouter un niveau local* affiche les champs que vous utilisez pour configurer le niveau local.
+
+. Dans la première section de la page *Ajouter un niveau local*, procédez comme suit :
++
+.. Entrez le nom du niveau local.
+.. (Facultatif) : cochez la case *Symétrie de ce niveau local* si vous souhaitez mettre en miroir le niveau local.
+.. Sélectionnez un type de disque.
+.. Sélectionnez le nombre de disques.
+
+
+. Dans la section *Configuration RAID*, procédez comme suit :
++
+.. Sélectionnez le type de RAID.
+.. Sélectionnez la taille du groupe RAID.
+.. Cliquez sur allocation RAID pour afficher la manière dont les disques sont alloués dans le groupe.
+
+
+. (Facultatif) : si le gestionnaire de clés intégré a été installé, vous pouvez le configurer pour le chiffrement dans la section *cryptage* de la page. Cochez la case *configurer le gestionnaire de clés intégré pour le chiffrement*.
++
+.. Saisissez une phrase de passe.
+.. Saisissez de nouveau la phrase de passe pour la confirmer.
+.. Enregistrez la phrase de passe pour une utilisation ultérieure au cas où le système doit être restauré.
+.. Sauvegarder la base de données clé pour une utilisation ultérieure.
+
+
+. Cliquez sur *Enregistrer* pour créer le niveau local et l'ajouter à votre solution de stockage.
+
+
+--
+.CLI
+--
+*Utilisez l'interface de ligne de commande pour créer un agrégat manuellement*
+
+Avant de créer des agrégats manuellement, il est recommandé de vérifier les options de configuration de disque et de simuler la création.
+
+Vous pouvez alors lancer le `storage aggregate create` commander et vérifier les résultats.
+
+Vous devez avoir déterminé le nombre de disques et le nombre de disques de secours dont vous avez besoin dans l'agrégat.
+
+Si le partitionnement données-racines est activé et que votre configuration compte au moins 24 disques SSD, il est recommandé d'attribuer des partitions de données à différents nœuds.
+
+La procédure de création d'agrégats sur des systèmes avec le partitionnement données-racines et le partitionnement données-racines est identique à la procédure de création d'agrégats sur des systèmes utilisant des disques non partitionnés. Si le partitionnement données-racines est activé sur votre système, vous devez utiliser le nombre de partitions de disque pour le système `-diskcount` option. Pour le partitionnement données-racines, le `-diskcount` spécifie le nombre de disques à utiliser.
+
+
+NOTE: Lors de la création de plusieurs agrégats à des fins d'utilisation avec FlexGroups, les agrégats doivent être de taille aussi proche que possible.
+
+Le `storage aggregate create` la page man contient plus d'informations sur les options et les exigences de création d'agrégats.
+
+.Étapes
+. Afficher la liste des partitions de disque de spare pour vérifier que vous avez assez pour créer votre agrégat :
++
+`storage aggregate show-spare-disks -original-owner _node_name_`
+
++
+Les partitions de données sont affichées sous `Local Data Usable`. Une partition racine ne peut pas être utilisée comme partition de rechange.
+
+. Simuler la création de l'agrégat :
++
+`storage aggregate create -aggregate _aggregate_name_ -node _node_name_ -raidtype raid_dp -diskcount _number_of_disks_or_partitions_ -simulate true`
+
+. Si des avertissements s'affichent à partir de la commande simulée, ajustez la commande et répétez la simulation.
+. Créer l'agrégat :
++
+`storage aggregate create -aggregate _aggr_name_ -node _node_name_ -raidtype raid_dp -diskcount _number_of_disks_or_partitions_`
+
+. Afficher l'agrégat pour vérifier qu'il a été créé :
++
+`storage aggregate show-status _aggregate_name_`
+
+
+
+--
+====
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes ONTAP 9"^]

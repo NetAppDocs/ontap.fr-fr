@@ -1,0 +1,65 @@
+---
+permalink: smb-hyper-v-sql/odx-copy-offload-concept.html 
+sidebar: sidebar 
+keywords: offload, data, transfer, odx, copy, application, server, copy, operation 
+summary: 'Offloaded Data Transfer (ODX), également appelé allègement de la charge des copies, permet le transfert direct des données au sein d"un périphérique de stockage compatible ou entre ces périphériques, sans transférer les données via l"ordinateur hôte. Le allègement de la charge des copies ONTAP ODX présente des avantages en termes de performances lors des opérations de copie sur votre serveur applicatif plutôt que sur une installation SMB.' 
+---
+= Comment l'allègement de la charge des copies d'ODX est utilisé avec Hyper-V et SQL Server sur des partages SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Offloaded Data Transfer (ODX), également appelé _copy Offload_, permet le transfert direct de données au sein d'un périphérique de stockage compatible ou entre ces périphériques, sans transférer les données via l'ordinateur hôte. Le allègement de la charge des copies ONTAP ODX présente des avantages en termes de performances lors des opérations de copie sur votre serveur applicatif plutôt que sur une installation SMB.
+
+Dans les transferts de fichiers non ODX, les données sont lues à partir du serveur CIFS source et sont transférées sur le réseau vers l'ordinateur client. L'ordinateur client transfère les données via le réseau vers le serveur CIFS de destination. En résumé, l'ordinateur client lit les données à partir de la source et les écrit vers la destination. Grâce aux transferts de fichiers ODX, les données sont copiées directement de la source vers la destination.
+
+Les copies déchargées d'ODX étant effectuées directement entre le stockage source et le stockage de destination, les performances sont considérablement améliorées. Les avantages obtenus en termes de performances comprennent l'accélération du délai de copie entre la source et la destination, la réduction de l'utilisation des ressources (CPU, mémoire) sur le client et la réduction de l'utilisation de la bande passante E/S du réseau.
+
+Cette fonctionnalité est disponible sur les serveurs Windows Server 2012. L'allègement de la charge des copies ONTAP ODX est pris en charge par les LUN SAN et les connexions SMB 3.0 disponibles en continu.
+
+Les cas d'utilisation suivants prennent en charge l'utilisation de copies et de déplacements d'ODX :
+
+* Intra-volume
++
+Les fichiers ou LUN source et de destination se trouvent dans le même volume.
+
+* Inter-volumes, même nœud, même machine virtuelle de stockage (SVM)
++
+Les fichiers ou LUN source et de destination se trouvent sur des volumes différents situés sur le même nœud. Les données sont détenues par le même SVM.
+
+* Inter-volumes, nœuds différents, même SVM
++
+Les fichiers ou LUN source et de destination se trouvent sur des volumes différents situés sur des nœuds différents. Les données sont détenues par le même SVM.
+
+* Inter-SVM, même nœud
++
+Les fichiers source et de destination ou les LUN se trouvent sur des volumes différents situés sur le même nœud. Les données sont détenues par différents SVM.
+
+* Inter-SVM, nœuds différents
++
+Les fichiers ou LUN source et de destination se trouvent sur des volumes différents situés sur des nœuds différents. Les données sont détenues par différents SVM.
+
+
+
+Les cas d'utilisation spécifiques pour l'allègement de la charge des copies d'ODX avec les solutions Hyper-V sont les suivants :
+
+* Vous pouvez utiliser le pass-through ODX qui décharge les copies et Hyper-V pour copier des données dans ou sur des fichiers de disque dur virtuel (VHD), ou pour copier des données entre les partages SMB mappés et les LUN iSCSI connectés au sein du même cluster.
++
+Ainsi, des copies des systèmes d'exploitation invités peuvent être transmis au stockage sous-jacent.
+
+* Lors de la création de VHD de taille fixe, ODX permet d'initialiser le disque avec des zéros, à l'aide d'un jeton bien connu mis à zéro.
+* L'allègement de la charge des copies d'ODX est utilisé pour la migration du stockage de machines virtuelles si le stockage source et cible est situé sur le même cluster.
+
+
+[NOTE]
+====
+Pour tirer parti des cas d'utilisation liés au délestage des copies ODX par Hyper-V, le système d'exploitation invité doit prendre en charge ODX. Les disques du système d'exploitation invité doivent être des disques SCSI pris en charge par le stockage (SMB ou SAN) prenant en charge ODX. Les disques IDE du système d'exploitation invité ne prennent pas en charge le pass-through ODX.
+
+====
+Voici quelques cas d'utilisation spécifiques des copies ODX utilisées par les solutions SQL Server :
+
+* Vous pouvez utiliser l'allègement de la charge des copies d'ODX pour exporter et importer des bases de données SQL Server entre des partages SMB mappés ou entre des partages SMB et des LUN iSCSI connectés au sein du même cluster.
+* L'allègement de la charge de copies (ODX) est utilisé pour les exportations et les importations de bases de données si le stockage source et cible est situé sur le même cluster.
+

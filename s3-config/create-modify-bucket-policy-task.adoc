@@ -1,0 +1,114 @@
+---
+permalink: s3-config/create-modify-bucket-policy-task.html 
+sidebar: sidebar 
+keywords: modify, bucket, policy 
+summary: 'Vous pouvez ajouter des règles d"accès à la stratégie de compartiment par défaut. L"étendue de son contrôle d"accès est le godet contenant, il est donc le plus approprié lorsqu"il y a un seul godet.' 
+---
+= Modifier une règle de compartiment
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez ajouter des règles d'accès à la stratégie de compartiment par défaut. L'étendue de son contrôle d'accès est le godet contenant, il est donc le plus approprié lorsqu'il y a un seul godet.
+
+Un SVM compatible S3 contenant un serveur S3 et un compartiment doivent déjà exister.
+
+Vous devez avoir déjà créé des utilisateurs ou des groupes avant d'accorder des autorisations.
+
+Vous pouvez ajouter de nouvelles instructions pour les nouveaux utilisateurs et groupes ou modifier les attributs des instructions existantes. Pour plus d'options, reportez-vous à la section `vserver object-store-server bucket policy` pages de manuel.
+
+Des autorisations d'utilisateur et de groupe peuvent être accordées lors de la création du compartiment ou lors de la création de ce dernier. Vous pouvez également modifier la capacité des compartiments et l'affectation des groupes de règles de QoS.
+
+Depuis ONTAP 9.9.1 et les versions ultérieures, si vous prévoyez de prendre en charge la fonctionnalité de balisage d'objets client AWS avec le serveur ONTAP S3, les actions sont nécessaires `GetObjectTagging`, `PutObjectTagging`, et `DeleteObjectTagging` doivent être autorisées à l'aide des règles de compartiment ou de groupe.
+
+La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Étapes
+. Modifiez le compartiment : cliquez sur *stockage > godets*, cliquez sur le compartiment souhaité, puis sur *Modifier*. Lors de l'ajout ou de la modification d'autorisations, vous pouvez spécifier les paramètres suivants :
++
+** *Principal* : l'utilisateur ou le groupe auquel l'accès est accordé.
+** *Effet* : autorise ou refuse l'accès à un utilisateur ou à un groupe.
+** *Actions* : actions autorisées dans le godet pour un utilisateur ou un groupe donné.
+** *Ressources* : chemins et noms des objets dans le compartiment pour lesquels l'accès est accordé ou refusé.
++
+Les valeurs par défaut *_bucketname_* et *_bucketname/*_* permettent d'accéder à tous les objets du compartiment. Vous pouvez également accorder l'accès à des objets uniques, par exemple *_bucketname/_*_readme.txt*.
+
+** *Conditions* (facultatif) : expressions évaluées lors de la tentative d'accès. Par exemple, vous pouvez spécifier une liste d'adresses IP pour lesquelles l'accès sera autorisé ou refusé.
+
+
+
+
+--
+.CLI
+--
+.Étapes
+. Ajouter une déclaration à une politique de compartiment :
++
+`vserver object-store-server bucket policy add-statement -vserver _svm_name_ -bucket _bucket_name_ -effect {allow|deny} -action _object_store_actions_ -principal _user_and_group_names_ -resource _object_store_resources_ [-sid text] [-index integer]`
+
++
+Les paramètres suivants définissent les autorisations d'accès :
+
++
+[cols="1,3"]
+|===
+
+
+ a| 
+`-effect`
+ a| 
+La déclaration peut autoriser ou refuser l'accès
+
+
+
+ a| 
+`-action`
+ a| 
+Vous pouvez spécifier `*` pour faire référence à toutes les actions ou à une liste d'une ou plusieurs des actions suivantes : `GetObject, PutObject, DeleteObject, ListBucket, GetBucketAcl,GetObjectAcl, ListBucketMultipartUploads,` et `ListMultipartUploadParts`.
+
+
+
+ a| 
+`-principal`
+ a| 
+Liste d'un ou plusieurs utilisateurs ou groupes S3.
+
+** Vous pouvez spécifier un maximum de 10 utilisateurs ou groupes.
+** Si un groupe S3 est spécifié, il doit être dans le formulaire `group/group_name.`
+** `*` peut être spécifié pour signifier l'accès public, c'est-à-dire l'accès sans clé d'accès et clé secrète.
+** Si aucun principal n'est spécifié, tous les utilisateurs S3 du SVM sont autorisés à accéder.
+
+
+
+
+ a| 
+`-resource`
+ a| 
+Le compartiment et tout objet qu'il contient. Les caractères génériques `*` et `?` peut être utilisé pour former une expression régulière pour spécifier une ressource.
+
+|===
++
+Vous pouvez éventuellement spécifier une chaîne de texte sous forme de commentaire avec l' `-sid` option.
+
+
+
+L'exemple suivant crée une instruction de stratégie de compartiment de serveur de magasin d'objets pour le SVM svm1.example.com et bucket1 qui spécifie l'accès autorisé à un dossier readme pour l'utilisateur de serveur de magasin d'objets user1.
+
+[listing]
+----
+cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal user1 -resource bucket1/readme/* -sid "fullAccessToReadmeForUser1"
+----
+L'exemple suivant crée une instruction de politique de compartiment de serveur de magasin d'objets pour le SVM svm1.example.com et bucket1 qui spécifie l'accès autorisé à tous les objets pour le groupe de serveurs de magasin d'objets groupe1.
+
+[listing]
+----
+cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal group/group1 -resource bucket1/* -sid "fullAccessForGroup1"
+----
+--
+====

@@ -1,0 +1,42 @@
+---
+permalink: system-admin/ontap-implements-audit-logging-concept.html 
+sidebar: sidebar 
+keywords: ontap, implement, audit, logging, management, autosupport, ems, messages, log, cli, web, browser 
+summary: 'Les activités de gestion enregistrées dans le journal d"audit sont incluses dans les rapports AutoSupport standard et certaines activités de consignation sont incluses dans les messages EMS. Vous pouvez également transférer le journal d"audit aux destinations que vous spécifiez et afficher les fichiers journaux d"audit à l"aide de l"interface de ligne de commande ou d"un navigateur Web.' 
+---
+= Mise en œuvre de la journalisation des audits par ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les activités de gestion enregistrées dans le journal d'audit sont incluses dans les rapports AutoSupport standard et certaines activités de consignation sont incluses dans les messages EMS. Vous pouvez également transférer le journal d'audit aux destinations que vous spécifiez et afficher les fichiers journaux d'audit à l'aide de l'interface de ligne de commande ou d'un navigateur Web.
+
+Depuis ONTAP 9.11.1, vous pouvez afficher le contenu des journaux d'audit à l'aide de System Manager.
+
+Depuis 9.12.1, les journaux d'audit sont inviolables, c'est-à-dire tout fichier journal qui enregistre une action d'administration ne peut pas être modifié ou supprimé, même par les comptes d'administrateur de cluster.
+
+ONTAP consigne les activités de gestion qui sont effectuées sur le cluster, par exemple la requête émise, l'utilisateur qui a déclenché la demande, la méthode d'accès de l'utilisateur et l'heure de la demande.
+
+Les activités de gestion peuvent être de l'un des types suivants :
+
+* DÉFINIR les demandes, qui s'appliquent généralement aux commandes ou opérations non affichées
++
+** Ces demandes sont émises lorsque vous exécutez un `create`, `modify`, ou `delete` commande, par exemple.
+** Les demandes de série sont consignées par défaut.
+
+
+* OBTENIR les demandes, qui récupèrent les informations et les affichent dans l'interface de gestion
++
+** Ces demandes sont émises lorsque vous exécutez un `show` commande, par exemple.
+** Les demandes GET ne sont pas consignées par défaut, mais vous pouvez contrôler si LES demandes GET sont envoyées depuis l'interface de ligne de commande ONTAP (`-cliget`) Ou à partir des API ONTAP (`-ontapiget`) sont consignés dans le fichier.
+
+
+
+
+ONTAP enregistre les activités de gestion dans `/mroot/etc/log/mlog/audit.log` fichier d'un nœud. Les commandes des trois shells pour les commandes CLI--le clustershell, le nodeshell et le systemshell non-interactif (les commandes du systemshell interactives ne sont pas consignées)--ainsi que les commandes d'API sont consignées ici. Les journaux d'audit incluent des horodatages pour indiquer si tous les nœuds d'un cluster sont synchronisés.
+
+Le `audit.log` Le fichier est envoyé par l'outil AutoSupport aux destinataires spécifiés. Vous pouvez également transférer le contenu en toute sécurité vers des destinations externes que vous spécifiez (par exemple, un serveur Splunk ou syslog).
+
+Le `audit.log` le fichier fait l'objet d'une rotation quotidienne. La rotation se produit également lorsqu'elle atteint 100 Mo et que les 48 copies précédentes sont conservées (avec un total maximum de 49 fichiers). Lorsque le fichier d'audit effectue sa rotation quotidienne, aucun message EMS n'est généré. Si le fichier d'audit tourne parce que sa taille limite de fichier est dépassée, un message EMS est généré.

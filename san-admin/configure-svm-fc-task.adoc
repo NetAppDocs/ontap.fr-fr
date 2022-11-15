@@ -1,0 +1,74 @@
+---
+permalink: san-admin/configure-svm-fc-task.html 
+sidebar: sidebar 
+keywords: configure, svm, for fc 
+summary: 'Pour configurer un SVM (Storage Virtual machine) pour FC, vous devez créer des LIFs pour le SVM et affecter le protocole FC à ces LIFs.' 
+---
+= Configuration d'un SVM pour FC
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour configurer un SVM (Storage Virtual machine) pour FC, vous devez créer des LIFs pour le SVM et affecter le protocole FC à ces LIFs.
+
+Vous devez disposer d'une licence FC et elle doit être activée. Si la licence FC n'est pas activée, les LIFs et les SVM semblent être en ligne, mais le statut opérationnel est `down`. Le service FC doit être activé pour que vos LIF et SVM soient opérationnels. Vous devez utiliser un zoning unique pour toutes les LIFs FC du SVM pour héberger les initiateurs.
+
+NetApp prend en charge au moins une LIF FC par nœud pour chaque SVM assurant le service des données avec le protocole FC. Vous devez utiliser deux LIF par nœud et deux structures, avec une LIF par nœud attaché. Cela permet la redondance au niveau de la couche des nœuds et de la structure.
+
+[role="tabbed-block"]
+.Étapes
+====
+.System Manager
+--
+Configurer une machine virtuelle de stockage pour iSCSI avec ONTAP System Manager (9.7 et versions ultérieures).
+
+[cols="2"]
+|===
+| Pour configurer FC sur une nouvelle machine virtuelle de stockage | Pour configurer FC sur une machine virtuelle de stockage existante 
+
+
+ a| 
+. Dans System Manager, cliquez sur *stockage > machines virtuelles de stockage*, puis sur *Ajouter*.
+. Entrez un nom pour la machine virtuelle de stockage.
+. Sélectionnez *FC* pour *Protocole d'accès*.
+. Cliquez sur *Activer FC*. + les ports FC sont attribués automatiquement.
+. Cliquez sur *Enregistrer*.
+
+ a| 
+. Dans System Manager, cliquez sur *stockage > machines virtuelles de stockage*.
+. Cliquez sur la VM de stockage que vous souhaitez configurer.
+. Cliquez sur l'onglet *Paramètres*, puis sur image:icon_gear.gif[""] À côté du protocole FC.
+. Cliquez sur *Activer FC* et entrez l'adresse IP et le masque de sous-réseau de l'interface réseau. + les ports FC sont attribués automatiquement.
+. Cliquez sur *Enregistrer*.
+
+
+|===
+--
+.CLI
+--
+. Activer le service FC sur le SVM :
++
+`vserver fcp create -vserver _vserver_name_ -status-admin up`
+
+. Créez deux LIF pour les SVM sur chaque nœud assurant le service FC :
++
+`network interface create -vserver _vserver_name_ -lif _lif_name_ -role data -data-protocol fcp -home-node _node_name_ -home-port _port_`
+
++
+Le `-role` le paramètre doit être de `data` et le `data-protocol` le paramètre doit être de `fcp`.
+
+. Vérifiez que vos LIF ont été créées et que leur statut opérationnel est `online`:
++
+`network interface show -vserver _vserver_name_ _lif_name_`
+
+
+
+--
+====
+https://mysupport.netapp.com/site/global/dashboard["Support NetApp"]
+
+https://mysupport.netapp.com/matrix["Matrice d'interopérabilité NetApp"^]
+
+xref:lifs-cluster-concept.adoc[Considérations relatives aux LIF dans les environnements cluster SAN]

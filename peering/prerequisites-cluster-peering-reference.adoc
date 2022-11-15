@@ -1,0 +1,80 @@
+---
+permalink: peering/prerequisites-cluster-peering-reference.html 
+sidebar: sidebar 
+keywords: prerequisites, cluster, peering. connectivity, requirements, port, firewall 
+summary: 'Avant de configurer le peering de cluster, vous devez vérifier que la connectivité, le port, l"adresse IP, le sous-réseau, le pare-feu, et les exigences de nommage des clusters sont respectées.' 
+---
+= Conditions préalables au peering de clusters
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de configurer le peering de cluster, vous devez vérifier que la connectivité, le port, l'adresse IP, le sous-réseau, le pare-feu, et les exigences de nommage des clusters sont respectées.
+
+
+
+== Les besoins en connectivité
+
+Chaque LIF intercluster du cluster local doit pouvoir communiquer avec chaque LIF intercluster sur le cluster distant.
+
+Bien qu'il ne soit pas nécessaire, il est généralement plus simple de configurer les adresses IP utilisées pour les LIF intercluster dans le même sous-réseau. Les adresses IP peuvent résider dans le même sous-réseau que les LIF de données ou dans un autre sous-réseau. Le sous-réseau utilisé dans chaque cluster doit respecter les exigences suivantes :
+
+* Le sous-réseau doit appartenir au broadcast domain qui contient les ports utilisés pour la communication intercluster.
+* Le sous-réseau doit disposer de suffisamment d'adresses IP disponibles pour allouer à une LIF intercluster par nœud.
++
+Par exemple, dans un cluster à quatre nœuds, le sous-réseau utilisé pour la communication intercluster doit disposer de quatre adresses IP disponibles. Chaque nœud doit disposer d'un LIF intercluster avec une adresse IP sur le réseau intercluster.
+
+
+
+Les LIF intercluster peuvent disposer d'une adresse IPv4 ou IPv6.
+
+[NOTE]
+====
+ONTAP 9 vous permet de migrer vos réseaux de peering d'IPv4 vers IPv6 en autorisant, éventuellement, la présence simultanée des deux protocoles sur les LIF intercluster. Dans les versions précédentes, toutes les relations intercluster pour un cluster entier étaient au format IPv4 ou IPv6. Cela signifiait que le changement de protocole était potentiellement source de perturbation.
+
+====
+
+
+== Configuration requise pour les ports
+
+Vous pouvez utiliser des ports dédiés pour la communication intercluster ou partager les ports utilisés par le réseau de données. Les ports doivent répondre aux exigences suivantes :
+
+* Tous les ports utilisés pour communiquer avec un cluster distant donné doivent se trouver dans le même IPspace.
++
+Vous pouvez utiliser plusieurs IPspaces pour gérer plusieurs clusters dans un même cluster. Une connectivité à maillage complet par paire est requise uniquement au sein d'un IPspace.
+
+* Le broadcast domain utilisé pour la communication intercluster doit inclure au moins deux ports par nœud afin que la communication intercluster puisse basculer d'un port vers un autre.
++
+Les ports ajoutés à un domaine de diffusion peuvent être des ports réseau physiques, des VLAN ou des groupes d'interfaces (ifgrps).
+
+* Tous les ports doivent être câblés.
+* Tous les ports doivent être en état de santé.
+* Les paramètres MTU des ports doivent être cohérents.
+
+
+
+
+== Exigences relatives au pare-feu
+
+Les pare-feu et la politique de pare-feu intercluster doivent autoriser les protocoles suivants :
+
+* Service ICMP
+* TCP aux adresses IP de toutes les LIFs intercluster sur les ports 10000, 11104 et 11105
+* HTTPS bidirectionnel entre les LIFs intercluster
++
+Bien que HTTPS n'est pas requis lors de la configuration du peering de clusters à l'aide de l'interface de ligne de commande, HTTPS est requis plus tard si vous utilisez System Manager pour configurer la protection des données.
+
+
+
+La valeur par défaut `intercluster` La politique de pare-feu permet l'accès via le protocole HTTPS et à partir de toutes les adresses IP (0.0.0.0/0). Vous pouvez modifier ou remplacer la stratégie si nécessaire.
+
+
+
+== Regroupement des clusters
+
+Les clusters doivent répondre aux exigences suivantes :
+
+* Un cluster ne peut pas se trouver dans une relation entre pairs et plus de 255 clusters.
+

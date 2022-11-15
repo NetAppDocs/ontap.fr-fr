@@ -1,0 +1,306 @@
+---
+permalink: revert/task_things_to_verify_before_revert.html 
+sidebar: sidebar 
+keywords: ontap, revert, reversion, reverting, downgrade, downgrading, preparation 
+summary: Différents paramètres de configuration peuvent avoir un impact sur la préparation de la mise à niveau du cluster. 
+---
+= Éléments à vérifier avant de revenir en arrière
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de revenir à une version antérieure, vous devez vérifier l'état du cluster, l'état de stockage et l'heure du système. Vous devez également supprimer tous les travaux de cluster en cours d'exécution et mettre fin à toutes les sessions SMB qui ne sont pas disponibles en continu.
+
+
+
+== Vérification de l'état du cluster
+
+Avant de revenir au cluster, vérifiez que les nœuds sont sains et peuvent participer au cluster, et que le cluster se trouve au quorum.
+
+. Vérifiez que les nœuds du cluster sont en ligne et peuvent participer au cluster : `cluster show`
++
+[listing]
+----
+cluster1::> cluster show
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node0                 true    true
+node1                 true    true
+----
++
+Si l'un des nœuds est défectueux ou non éligible, vérifiez la présence d'erreurs dans les journaux EMS et effectuez des actions correctives.
+
+. Définissez le niveau de privilège sur avancé : +
+`set -privilege advanced`
++
+Entrez `y` pour continuer.
+
+. Vérifier les détails de configuration pour chaque processus RDB
++
+** L'époque de la base de données relationnelle et les séries de tests de base de données doivent correspondre pour chaque nœud.
+** Le maître de quorum par anneau doit être le même pour tous les nœuds.
++
+Notez que chaque anneau peut avoir un maître de quorum différent.
+
++
+[cols="2*"]
+|===
+| Pour afficher ce processus RDB... | Entrez cette commande... 
+
+
+ a| 
+Application de gestion
+ a| 
+`cluster ring show -unitname mgmt`
+
+
+
+ a| 
+Base de données d'emplacement de volume
+ a| 
+`cluster ring show -unitname vldb`
+
+
+
+ a| 
+Gestionnaire d'interface virtuelle
+ a| 
+`cluster ring show -unitname vifmgr`
+
+
+
+ a| 
+Démon de gestion DU SAN
+ a| 
+`cluster ring show -unitname bcomd`
+
+|===
++
+Cet exemple représente le processus de la base de données d'emplacements de volumes :
+
++
+[listing]
+----
+cluster1::*> cluster ring show -unitname vldb
+Node      UnitName Epoch    DB Epoch DB Trnxs Master    Online
+--------- -------- -------- -------- -------- --------- ---------
+node0     vldb     154      154      14847    node0     master
+node1     vldb     154      154      14847    node0     secondary
+node2     vldb     154      154      14847    node0     secondary
+node3     vldb     154      154      14847    node0     secondary
+4 entries were displayed.
+----
+
+
+. Revenir au niveau de privilège admin : +
+`set -privilege admin`
+. Si vous travaillez dans un environnement SAN, vérifiez que chaque nœud se trouve dans un quorum SAN : `event log show  -severity informational -message-name scsiblade.*`
++
+Le message d'événement scsiBlade le plus récent pour chaque nœud doit indiquer que le SCSI-Blade est quorum.
+
++
+[listing]
+----
+cluster1::*> event log show  -severity informational -message-name scsiblade.*
+Time             Node       Severity       Event
+---------------  ---------- -------------- ---------------------------
+MM/DD/YYYY TIME  node0      INFORMATIONAL  scsiblade.in.quorum: The scsi-blade ...
+MM/DD/YYYY TIME  node1      INFORMATIONAL  scsiblade.in.quorum: The scsi-blade ...
+----
+
+
+link:../system-admin/index.html["Administration du système"]
+
+
+
+== Vérification de l'état du stockage
+
+Avant de restaurer un cluster, vérifiez l'état de vos disques, agrégats et volumes.
+
+. Vérification de l'état du disque :
++
+[cols="2*"]
+|===
+| Pour vérifier... | Procédez comme ça... 
+
+
+ a| 
+Disques cassés
+ a| 
+.. Afficher les éventuels disques défectueux : `storage disk show -state broken`
+.. Retirez ou remplacez tout disque endommagé.
+
+
+
+
+ a| 
+Disques soumis à des opérations de maintenance ou de reconstruction
+ a| 
+.. Afficher tous les disques en état de maintenance, en attente ou reconstruction : `storage disk show -state maintenance|pending|reconstructing`
+.. Attendez la fin de l'opération de maintenance ou de reconstruction avant de poursuivre.
+
+
+|===
+. Vérifiez que tous les agrégats sont en ligne en affichant l'état du stockage physique et logique, y compris les agrégats de stockage : `storage aggregate show -state !online`
++
+Cette commande affiche les agrégats qui sont _not_ online. Tous les agrégats doivent être en ligne avant et après avoir effectué une mise à niveau ou une nouvelle version majeure.
+
++
+[listing]
+----
+cluster1::> storage aggregate show -state !online
+There are no entries matching your query.
+----
+. Vérifiez que tous les volumes sont en ligne en affichant les volumes _NOT_ online : `volume show -state !online`
++
+Tous les volumes doivent être en ligne avant et après avoir effectué une mise à niveau ou une nouvelle version majeure.
+
++
+[listing]
+----
+cluster1::> volume show -state !online
+There are no entries matching your query.
+----
+. Vérifiez qu'il n'y a pas de volumes incohérents : `volume show -is-inconsistent true`
++
+Consultez l'article de la base de connaissances link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Volume_Showing_WAFL_Inconsistent["Volume affichant des WAFL incohérentes"] sur la manière de traiter les volumes incohérents.
+
+
+
+link:../disks-aggregates/index.html["Gestion des disques et des agrégats"]
+
+
+
+== Vérification de l'heure du système
+
+Avant de revenir à une version antérieure, vérifiez que le protocole NTP est configuré et que son heure est synchronisée sur l'ensemble du cluster.
+
+. Vérifiez que le cluster est associé à un serveur NTP : `cluster time-service ntp server show`
+. Vérifiez que chaque nœud a la même date et l'heure : `cluster date show`
++
+[listing]
+----
+cluster1::> cluster date show
+Node      Date                Timezone
+--------- ------------------- -------------------------
+node0     4/6/2013 20:54:38   GMT
+node1     4/6/2013 20:54:38   GMT
+node2     4/6/2013 20:54:38   GMT
+node3     4/6/2013 20:54:38   GMT
+4 entries were displayed.
+----
+
+
+
+
+== Vérifiez qu'aucune tâche n'est en cours d'exécution
+
+Avant de restaurer le logiciel ONTAP, vous devez vérifier l'état des tâches du cluster. Si des tâches d'agrégat, de volume, NDMP (dump ou restore) ou Snapshot (telles que la création, la suppression, le déplacement, la modification, la réplication, et les travaux de montage) sont en cours d'exécution ou mis en file d'attente, vous devez permettre aux travaux de terminer correctement ou arrêter les entrées en file d'attente.
+
+. Examinez la liste de toutes les tâches en cours d'exécution ou en file d'attente d'agrégats, de volumes ou de copies Snapshot : `job show`
++
+[listing]
+----
+cluster1::> job show
+                            Owning
+Job ID Name                 Vserver    Node           State
+------ -------------------- ---------- -------------- ----------
+8629   Vol Reaper           cluster1   -              Queued
+       Description: Vol Reaper Job
+8630   Certificate Expiry Check
+                            cluster1   -              Queued
+       Description: Certificate Expiry Check
+.
+.
+.
+----
+. Supprimez toute tâche en cours d'exécution ou en attente d'agrégats, de volumes ou de copies Snapshot : `job delete -id job_id`
++
+[listing]
+----
+cluster1::> job delete -id 8629
+----
+. Vérifiez qu'aucun travail d'agrégat, de volume ou de Snapshot n'est en cours d'exécution ou mis en file d'attente : `job show`
++
+Dans cet exemple, tous les travaux en cours d'exécution et en file d'attente ont été supprimés :
+
++
+[listing]
+----
+cluster1::> job show
+                            Owning
+Job ID Name                 Vserver    Node           State
+------ -------------------- ---------- -------------- ----------
+9944   SnapMirrorDaemon_7_2147484678
+                            cluster1   node1          Dormant
+       Description: Snapmirror Daemon for 7_2147484678
+18377  SnapMirror Service Job
+                            cluster1   node0          Dormant
+       Description: SnapMirror Service Job
+2 entries were displayed
+----
+
+
+
+
+== Sessions SMB devant être arrêtées
+
+Avant de procéder à une restauration, vous devez identifier et mettre fin à toutes les sessions SMB qui ne sont pas disponibles en continu.
+
+Les partages SMB disponibles en permanence, auxquels les clients Hyper-V ou Microsoft SQL Server accèdent via le protocole SMB 3.0, n'ont pas à être résiliés avant de procéder à une mise à niveau ou à une rétrogradation.
+
+. Identifiez toutes les sessions SMB établies qui ne sont pas disponibles en continu : `vserver cifs session show -continuously-available Yes -instance`
++
+Cette commande affiche des informations détaillées sur les sessions SMB qui ne sont pas disponibles en continu. Vous devez les mettre fin avant de procéder à la mise à niveau vers une version antérieure de ONTAP.
+
++
+[listing]
+----
+cluster1::> vserver cifs session show -continuously-available Yes -instance
+
+                        Node: node1
+                     Vserver: vs1
+                  Session ID: 1
+               Connection ID: 4160072788
+Incoming Data LIF IP Address: 198.51.100.5
+      Workstation IP address: 203.0.113.20
+    Authentication Mechanism: NTLMv2
+                Windows User: CIFSLAB\user1
+                   UNIX User: nobody
+                 Open Shares: 1
+                  Open Files: 2
+                  Open Other: 0
+              Connected Time: 8m 39s
+                   Idle Time: 7m 45s
+            Protocol Version: SMB2_1
+      Continuously Available: No
+1 entry was displayed.
+----
+. Si nécessaire, identifiez les fichiers ouverts pour chaque session SMB que vous avez identifié : `vserver cifs session file show -session-id session_ID`
++
+[listing]
+----
+cluster1::> vserver cifs session file show -session-id 1
+
+Node:       node1
+Vserver:    vs1
+Connection: 4160072788
+Session:    1
+File    File      Open Hosting                               Continuously
+ID      Type      Mode Volume          Share                 Available
+------- --------- ---- --------------- --------------------- ------------
+1       Regular   rw   vol10           homedirshare          No
+Path: \TestDocument.docx
+2       Regular   rw   vol10           homedirshare          No
+Path: \file1.txt
+2 entries were displayed.
+----
+
+
+
+
+== Authentification sécurisée NVMe/TCP
+
+Si vous exécutez le protocole NVMe/TCP et que vous avez établi une authentification sécurisée à l'aide de DH-HMAC-CHAP, vous devez supprimer tout hôte utilisant DH-HMAC-CHAP du sous-système NVMe avant de revenir. Si les hôtes ne sont pas supprimés, la restauration échoue.

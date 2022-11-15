@@ -1,0 +1,99 @@
+---
+permalink: volumes/enable-data-compression-volume-task.html 
+sidebar: sidebar 
+keywords: enable, data, compression, on a volume 
+summary: 'Vous pouvez activer la compression des données sur un volume FlexVol pour réaliser des économies d"espace à l"aide de la commande volume Efficiency modify. Vous pouvez également attribuer un type de compression à votre volume si vous ne souhaitez pas que le type de compression par défaut soit défini.' 
+---
+= Activer la compression des données sur un volume
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez activer la compression des données sur un volume FlexVol afin de réaliser des économies d'espace en utilisant le `volume efficiency modify` commande. Vous pouvez également attribuer un type de compression à votre volume si vous ne souhaitez pas que le type de compression par défaut soit défini.
+
+Vous devez avoir activé la déduplication sur le volume.
+
+[NOTE]
+====
+* La déduplication doit uniquement être activée et elle n'a pas besoin d'être exécutée sur le volume.
+* Le scanner de compression doit être utilisé pour compresser les données existantes sur les volumes présents dans les plateformes AFF.
+
+
+====
+link:enable-deduplication-volume-task.html["Activation de la déduplication sur un volume"]
+
+.Description de la tâche
+* Dans les agrégats de disques durs et les agrégats Flash Pool, vous pouvez activer la compression à la volée et post-traitement ou uniquement la compression post-traitement sur un volume.
++
+Si vous activez les deux, vous devez activer la compression post-traitement sur le volume avant d'activer la compression à la volée.
+
+* Sur les plateformes AFF, seule la compression à la volée est prise en charge.
++
+Avant d'activer la compression à la volée, vous devez activer la compression post-traitement sur le volume. Cependant, comme la compression post-traitement n'est pas prise en charge sur les plateformes AFF, aucune compression post-traitement n'a lieu sur ces volumes et un message EMS est généré vous informant que la compression post-traitement a été ignorée.
+
+* L'efficacité du stockage sensible aux températures est introduite dans ONTAP 9.8. Grâce à cette fonctionnalité, l'efficacité du stockage est appliquée même si les données sont actives ou inactives. Pour les données inactives, les blocs de données de taille supérieure sont compressés et pour les données fortement sollicitées, qui sont écrasées plus souvent, les blocs de données plus petits sont compressés, ce qui optimise l'efficacité du processus. L'efficacité du stockage sensible à la température est activée automatiquement sur les nouveaux volumes AFF à provisionnement fin.
+* Le type de compression est automatiquement attribué en fonction de la plateforme de l'agrégat :
++
+[cols="2*"]
+|===
+| Plateforme/agrégats | Type de compression 
+
+
+ a| 
+AFF
+ a| 
+Compression adaptative
+
+
+
+ a| 
+Les agrégats Flash Pool
+ a| 
+Compression adaptative
+
+
+
+ a| 
+Agrégats de disques durs
+ a| 
+Compression secondaire
+
+|===
+
+
+.Choix
+* Utilisez le `volume efficiency modify` commande pour activer la compression des données avec le type de compression par défaut.
++
+La commande suivante active la compression post-traitement sur le volume Vola du SVM vs1 :
+
++
+`volume efficiency modify -vserver vs1 -volume VolA -compression true`
+
++
+La commande suivante active à la fois la compression post-traitement et la compression en ligne sur le volume Vola du SVM vs1 :
+
++
+`volume efficiency modify -vserver vs1 -volume VolA -compression true -inline-compression true`
+
+* Utilisez le `volume efficiency modify` commande au niveau de privilège avancé pour activer la compression des données avec un type de compression spécifique.
++
+.. Utilisez le `set -privilege advanced` commande permettant de changer le niveau de privilège en avancé.
+.. Utilisez le `volume efficiency modify` commande permettant d'affecter un type de compression à un volume.
++
+La commande suivante active la compression post-traitement et attribue le type de compression adaptative au volume Vola du SVM vs1 :
+
++
+`volume efficiency modify -vserver vs1 -volume VolA -compression true -compression-type adaptive`
+
++
+La commande suivante active la compression post-traitement et la compression en ligne et attribue le type de compression adaptative au volume Vola du SVM vs1 :
+
++
+`volume efficiency modify -vserver vs1 -volume VolA -compression true -compression-type adaptive -inline-compression true`
+
+.. Utilisez le `set -privilege admin` commande permettant de changer le niveau de privilège en admin.
+
+
+

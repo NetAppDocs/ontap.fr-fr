@@ -1,0 +1,114 @@
+---
+permalink: flexgroup/expand-destination-snapmirror-relationship-task.html 
+sidebar: sidebar 
+keywords: expand, destination, flexgroup, volume, snapmirror, relationship 
+summary: 'Vous pouvez développer le volume FlexGroup de destination et rétablir la relation SnapMirror automatiquement ou manuellement. Par défaut, la relation SnapMirror est définie pour l"extension automatique et le volume FlexGroup de destination augmente automatiquement si le volume source se développe.' 
+---
+= Développer le volume FlexGroup de destination d'une relation SnapMirror
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez développer le volume FlexGroup de destination et rétablir la relation SnapMirror automatiquement ou manuellement. Par défaut, la relation SnapMirror est définie pour l'extension automatique et le volume FlexGroup de destination augmente automatiquement si le volume source se développe.
+
+.Ce dont vous avez besoin, 8217;ll
+* Le volume FlexGroup source doit avoir été étendu.
+* La relation SnapMirror doit être dans le `SnapMirrored` état.
++
+La relation SnapMirror ne doit pas être rompue ou supprimée.
+
+
+
+.Description de la tâche
+* Lorsque le volume FlexGroup de destination est créé, le volume est configuré par défaut pour une extension automatique.
++
+Vous pouvez modifier le volume FlexGroup de destination pour une extension manuelle, si nécessaire.
+
++
+[NOTE]
+====
+La meilleure pratique consiste à étendre automatiquement le volume FlexGroup de destination.
+
+====
+* Toutes les opérations de SnapMirror échouent jusqu'à ce que les volumes FlexGroup source et FlexGroup de destination soient étendus et possèdent le même nombre de composants.
+* Si vous développez le volume FlexGroup de destination une fois la relation SnapMirror rompue ou supprimée, vous ne pouvez pas resynchroniser la relation d'origine.
++
+Si vous prévoyez de réutiliser le volume FlexGroup de destination, vous ne devez pas étendre le volume après avoir supprimé la relation SnapMirror.
+
+
+
+.Choix
+* Effectuer un transfert de mise à jour pour développer automatiquement le volume FlexGroup de destination :
++
+.. Effectuer un transfert de mise à jour SnapMirror : `snapmirror update -destination-path svm:vol_name`
+.. Vérifier que l'état de la relation SnapMirror se trouve dans `SnapMirrored` état : `snapmirror show`
++
+[listing]
+----
+cluster2::> snapmirror show
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+vs_src:src_fg
+            XDP  vs_dst:dst_fg
+                              Snapmirrored
+                                      Idle           -         true   -
+----
+
+
++
+En fonction de la taille et de la disponibilité des agrégats, les agrégats sont sélectionnés automatiquement. De nouveaux composants correspondant aux composants du volume FlexGroup source sont ajoutés au volume FlexGroup de destination. Après l'extension, une opération de resynchronisation est automatiquement déclenchée.
+
+* Développez manuellement le volume FlexGroup de destination :
++
+.. Si la relation SnapMirror est en mode d'expansion automatique, définir la relation SnapMirror en mode d'expansion manuelle : `snapmirror modify -destination-path svm:vol_name -is-auto-expand-enabled false`
++
+[listing]
+----
+cluster2::> snapmirror modify -destination-path vs_dst:dst_fg -is-auto-expand-enabled false
+Operation succeeded: snapmirror modify for the relationship with destination "vs_dst:dst_fg".
+----
+.. Mettre au repos la relation SnapMirror : `snapmirror quiesce -destination-path svm:vol_name`
++
+[listing]
+----
+cluster2::> snapmirror quiesce -destination-path vs_dst:dst_fg
+Operation succeeded: snapmirror quiesce for destination "vs_dst:dst_fg".
+----
+.. Développez le volume FlexGroup de destination : `+volume expand -vserver vserver_name -volume fg_name -aggr-list aggregate name,... [-aggr-list-multiplier constituents_per_aggr]+`
++
+[listing]
+----
+cluster2::> volume expand -volume dst_fg -aggr-list aggr1 -aggr-list-multiplier 2  -vserver vs_dst
+
+Warning: The following number of constituents of size 50GB will be added to FlexGroup "dst_fg": 2.
+Do you want to continue? {y|n}: y
+[Job 68] Job succeeded: Successful
+----
+.. Resynchroniser la relation SnapMirror : `snapmirror resync -destination-path svm:vol_name`
++
+[listing]
+----
+cluster2::> snapmirror resync -destination-path vs_dst:dst_fg
+Operation is queued: snapmirror resync to destination "vs_dst:dst_fg".
+----
+.. Vérifier que l'état de la relation SnapMirror est bien `SnapMirrored`: `snapmirror show`
++
+[listing]
+----
+cluster2::> snapmirror show
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+vs_src:src_fg
+            XDP  vs_dst:dst_fg
+                              Snapmirrored
+                                      Idle           -         true   -
+----
+
+
+

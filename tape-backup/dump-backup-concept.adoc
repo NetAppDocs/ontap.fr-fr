@@ -1,0 +1,67 @@
+---
+permalink: tape-backup/dump-backup-concept.html 
+sidebar: sidebar 
+keywords: dump, backup, qtree, file, system, data 
+summary: 'Une sauvegarde de vidage écrit les données du système de fichiers de disque à bande en utilisant un processus prédéfini. Vous pouvez sauvegarder un volume, un qtree ou une sous-arborescence qui n"est ni un volume entier, ni un qtree entier.' 
+---
+= Fonctionnement d'une sauvegarde de vidage
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une sauvegarde de vidage écrit les données du système de fichiers de disque à bande en utilisant un processus prédéfini. Vous pouvez sauvegarder un volume, un qtree ou une sous-arborescence qui n'est ni un volume entier, ni un qtree entier.
+
+Le tableau ci-dessous décrit le processus utilisé par ONTAP pour sauvegarder l'objet indiqué par le chemin de vidage :
+
+[cols="1,4"]
+|===
+| Étape | Action 
+
+
+ a| 
+1
+ a| 
+Pour les sauvegardes qtree complètes ou à volume complet, ONTAP traverse des répertoires pour identifier les fichiers à sauvegarder. Si vous sauvegardez un volume entier ou un qtree, ONTAP associe cette étape à la phase 2.
+
+
+
+ a| 
+2
+ a| 
+Pour une sauvegarde de volume complet ou qtree complet, ONTAP identifie les répertoires des volumes ou des qtrees à sauvegarder.
+
+
+
+ a| 
+3
+ a| 
+ONTAP écrit les répertoires sur bande.
+
+
+
+ a| 
+4
+ a| 
+ONTAP écrit les fichiers sur bande.
+
+
+
+ a| 
+5
+ a| 
+ONTAP écrit les informations de l'ACL (le cas échéant) sur bande.
+
+|===
+La sauvegarde de dump utilise une copie Snapshot de vos données à des fins de sauvegarde. Par conséquent, vous n'avez pas besoin de mettre le volume hors ligne avant de lancer la sauvegarde.
+
+La sauvegarde de dump attribue la création de chaque copie Snapshot `snapshot_for_backup.n`, où `n` est un entier commençant à 0. Chaque fois que la sauvegarde de dump crée une copie Snapshot, elle incrémente le nombre entier de 1. L'entier est réinitialisé à 0 après le redémarrage du système de stockage. Une fois l'opération de sauvegarde terminée, le moteur de dump supprime cette copie Snapshot.
+
+Lorsque ONTAP effectue plusieurs sauvegardes de dump simultanément, le moteur de dump crée plusieurs copies Snapshot. Par exemple, si ONTAP exécute simultanément deux sauvegardes de dump, vous trouverez les copies Snapshot suivantes dans les volumes à partir desquels les données sont sauvegardées : `snapshot_for_backup.0` et `snapshot_for_backup.1`.
+
+[NOTE]
+====
+Lorsque vous effectuez une sauvegarde à partir d'une copie Snapshot, le moteur de dump ne crée pas de copie Snapshot supplémentaire.
+
+====

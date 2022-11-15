@@ -1,0 +1,105 @@
+---
+permalink: concepts/encryption-concept.html 
+sidebar: sidebar 
+keywords: encryption 
+summary: ONTAP propose des technologies de cryptage logicielles et matérielles qui permettent de garantir que les données au repos ne peuvent pas être lues si le support de stockage est requalifié, perdu ou volé. 
+---
+= Le cryptage
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP propose des technologies de cryptage logicielles et matérielles qui permettent de garantir que les données au repos ne peuvent pas être lues si le support de stockage est requalifié, perdu ou volé.
+
+ONTAP est conforme à la norme FIPS (Federal information Processing Standards) 140-2 pour toutes les connexions SSL. Vous pouvez utiliser les solutions de cryptage suivantes :
+
+* Solutions matérielles :
++
+** NetApp Storage Encryption (NSE)
++
+NSE est une solution matérielle qui utilise des lecteurs auto-cryptés (SED).
+
+** Disques SED NVMe
++
+ONTAP fournit le chiffrement de disque intégral pour les disques SED NVMe qui ne sont pas certifiés FIPS 140-2.
+
+
+
+* Solutions logicielles :
++
+** Chiffrement d'agrégat NetApp (NAE)
++
+NAE est une solution logicielle qui permet de chiffrer n'importe quel volume de données sur n'importe quel type de disque grâce à des clés uniques pour chaque agrégat.
+
+** NVE (NetApp Volume Encryption)
++
+NVE est une solution logicielle qui permet de chiffrer n'importe quel volume de données sur n'importe quel type de disque où il est activé avec une clé unique pour chaque volume.
+
+
+
+
+
+Utilisez les solutions de chiffrement logiciel (NAE ou NVE) et matériel (NSE ou NVMe SED) afin d'obtenir le double chiffrement au repos. L'efficacité du stockage n'est pas affectée par le chiffrement NAE ou NVE.
+
+
+
+== NetApp Storage Encryption
+
+NetApp Storage Encryption (NSE) prend en charge les disques SED qui cryptent les données au fur et à mesure de leur écriture. Les données ne peuvent pas être lues sans une clé de chiffrement stockée sur le disque. La clé de chiffrement, à son tour, n'est accessible qu'à un nœud authentifié.
+
+Lors d'une demande d'E/S, un nœud s'authentifie auprès d'un SED à l'aide d'une clé d'authentification extraite d'un serveur de gestion de clés externe ou d'un gestionnaire de clés intégré :
+
+* Le serveur externe de gestion des clés est un système tiers de votre environnement de stockage qui transmet des clés d'authentification aux nœuds à l'aide du protocole KMIP (Key Management Interoperability Protocol).
+* Le gestionnaire de clés intégré est un outil intégré qui sert des clés d'authentification aux nœuds du même système de stockage que vos données.
+
+
+NSE prend en charge les disques durs et SSD à autocryptage. Vous pouvez utiliser NetApp Volume Encryption avec NSE pour doubler le chiffrement des données sur les disques NSE.
+
+
+
+== Disques à autochiffrement NVMe
+
+Les disques SED NVMe ne disposent pas de la certification FIPS 140-2-2. Cependant, ces disques utilisent le chiffrement de disque transparent AES 256 bits pour protéger les données au repos.
+
+Les opérations de chiffrement des données, telles que la génération d'une clé d'authentification, sont effectuées en interne. La clé d'authentification est générée la première fois que le système de stockage accède au disque. Les disques protègent ensuite les données au repos en demandant une authentification du système de stockage à chaque fois que des opérations de données sont demandées.
+
+
+
+== Chiffrement d'agrégat NetApp
+
+NetApp Aggregate Encryption (NAE) est une technologie logicielle de chiffrement de toutes les données dans un agrégat. NAE a pour avantage de regrouper les volumes dans la déduplication au niveau des agrégats, là où les volumes NVE sont exclus.
+
+NAE permet de chiffrer les volumes au sein de l'agrégat à l'aide de clés d'agrégat.
+
+Depuis ONTAP 9.7, les volumes et les agrégats nouvellement créés sont chiffrés par défaut lorsque vous disposez d'une licence NVE et d'une gestion des clés intégrée ou externe.
+
+
+
+== NetApp Volume Encryption
+
+NetApp Volume Encryption (NVE) est une technologie logicielle de chiffrement des données au repos d'un volume à la fois. Une clé de chiffrement accessible uniquement au système de stockage garantit que les données du volume ne peuvent pas être lues si le périphérique sous-jacent est séparé du système.
+
+Les données, y compris les copies Snapshot, et les métadonnées sont chiffrées. L'accès aux données est donné par une clé XTS-AES-256 unique, une par volume. Un gestionnaire de clés intégré sécurise les clés du même système avec vos données.
+
+Vous pouvez utiliser NVE sur n'importe quel type d'agrégat (HDD, SSD, hybride, LUN de baie), avec n'importe quel type RAID et dans n'importe quelle implémentation ONTAP prise en charge, y compris ONTAP Select. Vous pouvez également utiliser NVE avec NetApp Storage Encryption (NSE) pour doubler le chiffrement des données sur les disques NSE.
+
+|===
+
+
+ a| 
+*_quand utiliser des serveurs KMIP_* bien qu'il soit moins onéreux et généralement plus pratique pour utiliser le gestionnaire de clés intégré, vous devez configurer des serveurs KMIP si l'un des cas suivants est vrai :
+
+* Votre solution de gestion des clés de chiffrement doit être conforme à la norme FIPS 140-2 (Federal information Processing Standards) ou OASIS KMIP.
+* Vous avez besoin d'une solution à plusieurs clusters. Les serveurs KMIP prennent en charge plusieurs clusters avec une gestion centralisée des clés de chiffrement.
++
+Les serveurs KMIP prennent en charge plusieurs clusters avec une gestion centralisée des clés de chiffrement.
+
+* Votre entreprise exige que les clés d'authentification soient sécurisées sur un système ou à un emplacement différent de celui des données.
++
+Les serveurs KMIP stockent les clés d'authentification séparément des données.
+
+
+
+|===

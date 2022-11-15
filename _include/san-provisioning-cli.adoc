@@ -1,0 +1,69 @@
+= 
+:allow-uri-read: 
+
+
+. Utilisez le `system license show` Commande pour vérifier que vous disposez d'une licence pour FC ou iSCSI.
++
+`system license show`
+
++
+[listing]
+----
+
+Package           Type    Description           Expiration
+ ----------------- ------- --------------------- --------------------
+ Base              site    Cluster Base License  -
+ NFS               site    NFS License           -
+ CIFS              site    CIFS License          -
+ iSCSI             site    iSCSI License         -
+ FCP               site    FCP License           -
+----
+. Si vous ne disposez pas de licence pour FC ou iSCSI, utilisez le `license add` commande.
++
+`license add -license-code _your_license_code_`
+
+. Activer votre service de protocole sur le SVM :
++
+*Pour iSCSI:* `vserver iscsi create -vserver _vserver_name_ -target-alias _vserver_name_`
+
++
+*Pour FC:* `vserver fcp create -vserver _vserver_name_ -status-admin up`
+
+. Créez deux LIF pour les SVM sur chaque nœud :
++
+`network interface create -vserver _vserver_name_ -lif _lif_name_ -role data -data-protocol iscsi|fc -home-node _node_name_ -home-port _port_name_ -address _ip_address_ -netmask netmask`
+
++
+NetApp prend en charge au moins une LIF iSCSI ou FC par nœud pour chaque SVM assurant le service des données. Cependant, deux LIF par nœud sont nécessaires pour assurer la redondance.
+
+. Vérifiez que vos LIF ont été créées et que leur statut opérationnel est `online`:
++
+`network interface show -vserver _vserver_name_ _lif_name_`
+
+. Création de vos LUN :
++
+`lun create -vserver vserver_name -volume _volume_name_ -lun _lun_name_ -size _lun_size_ -ostype linux -space-reserve enabled|disabled`
+
++
+Le nom de LUN ne doit pas dépasser 255 caractères et ne peut pas contenir d'espaces.
+
++
+
+NOTE: L'option NVFAIL est automatiquement activée lorsqu'une LUN est créée dans un volume.
+
+. Création de vos igroups :
++
+`igroup create -vserver _vserver_name_ -igroup _igroup_name_ -protocol fcp|iscsi|mixed -ostype linux -initiator _initiator_name_`
+
+. Mappage de vos LUN sur des igroups :
++
+`lun mapping create -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -igroup _igroup_name_`
+
+. Vérifiez que vos LUN sont configurées correctement :
++
+`lun show -vserver _vserver_name_`
+
+. link:san-admin/create-port-sets-binding-igroups-task.html["Créez un port défini et associez-le à un groupe initiateur"] (en option).
+. Suivez les étapes de la documentation de votre hôte pour activer l'accès aux blocs sur vos hôtes spécifiques.
+. Utilisez les utilitaires hôtes pour terminer le mappage FC ou iSCSI et détecter vos LUN sur l'hôte.
+

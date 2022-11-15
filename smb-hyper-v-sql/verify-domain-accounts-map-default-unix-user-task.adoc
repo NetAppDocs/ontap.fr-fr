@@ -1,0 +1,111 @@
+---
+permalink: smb-hyper-v-sql/verify-domain-accounts-map-default-unix-user-task.html 
+sidebar: sidebar 
+keywords: verfiy, domain, account, default, unix, server, smb, share, user 
+summary: 'Hyper-V et SQL Server utilisent des comptes de domaine pour créer des connexions SMB à des partages disponibles en continu. Pour réussir la création de la connexion, le compte d"ordinateur doit être mappé avec un utilisateur UNIX. Le moyen le plus pratique pour y parvenir est de mapper le compte d"ordinateur à l"utilisateur UNIX par défaut.' 
+---
+= Vérifiez que les comptes de domaine sont mis en correspondance avec l'utilisateur UNIX par défaut
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Hyper-V et SQL Server utilisent des comptes de domaine pour créer des connexions SMB à des partages disponibles en continu. Pour réussir la création de la connexion, le compte d'ordinateur doit être mappé avec un utilisateur UNIX. Le moyen le plus pratique pour y parvenir est de mapper le compte d'ordinateur à l'utilisateur UNIX par défaut.
+
+Hyper-V et SQL Server utilisent les comptes d'ordinateur de domaine pour créer des connexions SMB. En outre, SQL Server utilise un compte d'utilisateur de domaine comme compte de service qui établit également des connexions SMB.
+
+Lorsque vous créez un SVM (Storage Virtual machine), ONTAP crée automatiquement l'utilisateur par défaut nommé « pcuser » (avec un UID sur `65534`) Et le groupe nommé « pcuser » (avec un GID de `65534`), et ajoute l'utilisateur par défaut au groupe « pcuser ». Si vous configurez une solution Hyper-V sur SMB sur un SVM existant avant de mettre à niveau le cluster vers Data ONTAP 8.2, l'utilisateur et le groupe par défaut risquent de ne pas exister. Dans le cas contraire, vous devez les créer avant de configurer l'utilisateur UNIX par défaut du serveur CIFS.
+
+.Étapes
+. Déterminez s'il existe un utilisateur UNIX par défaut :
++
+`*vserver cifs options show -vserver _vserver_name_*`
+
+. Si l'option utilisateur par défaut n'est pas définie, déterminez si un utilisateur UNIX peut être désigné comme utilisateur UNIX par défaut :
++
+`*vserver services unix-user show -vserver _vserver_name_*`
+
+. Si l'option utilisateur par défaut n'est pas définie et qu'il n'y a pas d'utilisateur UNIX qui peut être désigné comme utilisateur UNIX par défaut, créez l'utilisateur UNIX par défaut et le groupe par défaut, puis ajoutez l'utilisateur par défaut au groupe.
++
+Généralement, l'utilisateur par défaut est nommé « pcuser » et doit être affecté à l'UID de `65534`. Le groupe par défaut est généralement attribué au nom de groupe « pcuser ». Le GID affecté au groupe doit être de `65534`.
+
++
+.. Créez le groupe par défaut : +
+`*vserver services unix-group create -vserver _vserver_name_ -name pcuser -id 65534*`
+.. Créez l'utilisateur par défaut et ajoutez l'utilisateur par défaut au groupe par défaut : +
+`*vserver services unix-user create -vserver _vserver_name_ -user pcuser -id 65534 -primary-gid 65534*`
+.. Vérifiez que l'utilisateur et le groupe par défaut sont correctement configurés : +
+`*vserver services unix-user show -vserver _vserver_name_*`+
+`*vserver services unix-group show -vserver _vserver_name_ -members*`
+
+
+. Si l'utilisateur par défaut du serveur CIFS n'est pas configuré, effectuez les opérations suivantes :
++
+.. Configurez l'utilisateur par défaut :
++
+`*vserver cifs options modify -vserver *vserver_name* -default-unix-user pcuser*`
+
+.. Vérifiez que l'utilisateur UNIX par défaut est configuré correctement :
++
+`*vserver cifs options show -vserver _vserver_name_*`
+
+
+
+. Pour vérifier que le compte de l'ordinateur du serveur d'application correspond correctement à l'utilisateur par défaut, mappez un disque sur un partage résidant sur le SVM et confirmez que l'utilisateur Windows correspond au mappage utilisateur UNIX à l'aide de `vserver cifs session show` commande.
++
+Pour plus d'informations sur l'utilisation de cette commande, consultez les pages de manuels.
+
+
+
+Les commandes suivantes déterminent que l'utilisateur par défaut du serveur CIFS n'est pas défini, mais déterminent que l'utilisateur « pcuser » et le groupe « pcuser » existent. L'utilisateur « pcuser » est attribué en tant qu'utilisateur par défaut du serveur CIFS sur le SVM vs1.
+
+[listing]
+----
+cluster1::> vserver cifs options show
+
+Vserver: vs1
+
+  Client Session Timeout : 900
+  Default Unix Group     : -
+  Default Unix User      : -
+  Guest Unix User        : -
+  Read Grants Exec       : disabled
+  Read Only Delete       : disabled
+  WINS Servers           : -
+
+
+
+cluster1::> vserver services unix-user show
+          User            User   Group  Full
+Vserver   Name            ID     ID     Name
+--------- --------------- ------ ------ ----------------
+vs1       nobody          65535  65535  -
+vs1       pcuser          65534  65534  -
+vs1       root            0      1      -
+
+cluster1::> vserver services unix-group show -members
+Vserver        Name                ID
+vs1            daemon              1
+       Users: -
+vs1            nobody              65535
+       Users: -
+vs1            pcuser              65534
+       Users: -
+vs1            root                0
+       Users: -
+
+cluster1::> vserver cifs options modify -vserver vs1 -default-unix-user pcuser
+
+cluster1::> vserver cifs options show
+
+Vserver: vs1
+
+  Client Session Timeout : 900
+  Default Unix Group     : -
+  Default Unix User      : pcuser
+  Guest Unix User        : -
+  Read Grants Exec       : disabled
+  Read Only Delete       : disabled
+  WINS Servers           : -
+----

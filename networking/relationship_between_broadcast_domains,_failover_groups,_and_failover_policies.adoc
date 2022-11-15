@@ -1,0 +1,75 @@
+---
+sidebar: sidebar 
+permalink: networking/relationship_between_broadcast_domains.html 
+keywords: relationship, broadcast, domain, failover, fail, over, group, policy, policies, relationship between broadcast domains, failover groups, and failover policies, comparing broadcast domains, failover groups, and failover policies, port failover, network interface show -failover, decide which lif failover policy to use, failover policy decision tree, default failover policies by lif type, sfo-partner-only 
+summary: Les domaines de diffusion, les groupes de basculement et les règles de basculement fonctionnent ensemble pour déterminer quel port prendra le relais en cas de défaillance 
+---
+= Relations entre les domaines de diffusion, les groupes de basculement et les règles de basculement
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Les domaines de diffusion, les groupes de basculement et les règles de basculement fonctionnent ensemble afin de déterminer quel port reprendre le contrôle lorsque le nœud ou le port sur lequel une LIF est configurée tombe en panne.
+
+Un broadcast domain répertorie tous les ports accessibles sur le même réseau Ethernet de couche 2. Un paquet de diffusion Ethernet envoyé à partir de l'un des ports est visible par tous les autres ports du domaine de diffusion. Cette caractéristique de reachbilité commune d'un broadcast domain est importante pour les LIFs car si une LIF devait basculer vers n'importe quel autre port du broadcast, elle pourrait toujours atteindre tous les hôtes locaux et distants accessibles depuis le port d'origine.
+
+Les Failover Groups regroupent les ports d'un broadcast domain capable de procurer le failover de LIF les uns pour les autres. Chaque broadcast domain dispose d'un failover group qui inclut tous ses ports. Ce failover group contenant l'ensemble des ports du broadcast domain est le Default et recommandé pour le LIF. Vous pouvez créer des groupes de basculement avec des sous-ensembles plus petits que vous définissez, par exemple un groupe de ports de basculement dont la vitesse de liaison est identique au sein d'un domaine de diffusion.
+
+Une politique de basculement détermine la façon dont une LIF utilise les ports d'un failover group lorsqu'un nœud ou un port tombe en panne. Considérez la stratégie de basculement comme un type de filtre appliqué à un groupe de basculement. Les cibles de basculement d'une LIF (l'ensemble des ports vers lesquels une LIF peut basculer) sont déterminées en appliquant la politique de basculement de la LIF au failover group de la LIF dans le broadcast domain.
+
+Vous pouvez afficher les cibles de basculement d'une LIF à l'aide de la commande CLI suivante :
+
+....
+network interface show -failover
+....
+NetApp recommande fortement d'utiliser la stratégie de basculement par défaut pour votre type de LIF.
+
+
+
+== Décider de la règle de basculement LIF à utiliser
+
+Vous pouvez choisir d'utiliser la stratégie de basculement par défaut recommandée ou de la modifier en fonction de votre type et de votre environnement LIF.
+
+
+
+=== Arbre de décision de stratégie de basculement
+
+image:LIF_failover_decision_tree.png["Image de l'arbre de décision de basculement LIF"]
+
+
+
+=== Stratégies de basculement par défaut par type de LIF
+
+[cols="25,25,50"]
+|===
+
+
+| Type de LIF | Règle de basculement par défaut | Description 
+
+
+| Les LIF BGP | désactivé | La LIF ne bascule pas vers un autre port. 
+
+
+| LIF de cluster | local uniquement | La LIF bascule vers les ports du même nœud uniquement. 
+
+
+| LIF Cluster-mgmt | broadcast-domain-large | La LIF bascule vers les ports du même broadcast domain, sur n'importe quel nœud du cluster. 
+
+
+| LIF intercluster | local uniquement | La LIF bascule vers les ports du même nœud uniquement. 
+
+
+| LIF de données NAS | défini par le système | LIF bascule vers un autre nœud qui n'est pas le partenaire de haute disponibilité. 
+
+
+| LIF node management | local uniquement | La LIF bascule vers les ports du même nœud uniquement. 
+
+
+| LIF de données SAN | désactivé | La LIF ne bascule pas vers un autre port. 
+|===
+Le `sfo-partner-only` La règle de basculement n'est pas une valeur par défaut, mais peut être utilisée lorsque vous souhaitez que la LIF bascule vers un port du nœud de rattachement ou du partenaire SFO uniquement.

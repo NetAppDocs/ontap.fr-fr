@@ -1,0 +1,174 @@
+---
+sidebar: sidebar 
+permalink: task_nas_provision_windows_smb.html 
+keywords: nas, windows, servers, provision, cifs, share access permissions, share access properties, hyper-v over smb, sql server over smb 
+summary: 'Créer des volumes pour fournir un stockage aux serveurs Windows à l"aide du protocole SMB utilisant System Manager, disponible avec ONTAP 9.7 et versions ultérieures de ONTAP 9.' 
+---
+= Provisionnement du stockage NAS pour les serveurs Windows avec SMB
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+Créer des volumes pour fournir un stockage aux serveurs Windows à l'aide du protocole SMB utilisant System Manager, disponible avec ONTAP 9.7 et versions ultérieures.
+
+Cette procédure crée de nouveaux volumes sur un link:task_nas_enable_windows_smb.html["VM de stockage existante compatible SMB"] et crée un partage pour le répertoire racine du volume (/). Vous pouvez accepter les valeurs par défaut des systèmes lors de la configuration de volumes ou de la spécification de configurations personnalisées. Une fois la configuration SMB initiale effectuée, vous pouvez également créer des partages supplémentaires et modifier leurs propriétés.
+
+Vous pouvez créer des volumes FlexVol, ou pour des systèmes de fichiers volumineux répondant à des besoins de performances élevées, des volumes FlexGroup. Voir aussi link:task_nas_provision_flexgroup.html["Provisionnez le stockage NAS pour les systèmes de fichiers volumineux à l'aide de FlexGroup volumes"].
+
+Vous pouvez également enregistrer les spécifications de ce volume dans un PlayBook Ansible. Pour plus d'informations, consultez la page link:task_admin_use_ansible_playbooks_add_edit_volumes_luns.html["Utilisez les manuels de vente Ansible pour ajouter ou modifier des volumes ou des LUN"].
+
+Pour plus d'informations sur la plage de fonctionnalités du protocole SMB de ONTAP, consultez le link:smb-admin/index.html["Présentation des références SMB"].
+
+.Étapes
+. Ajout d'un nouveau volume dans une machine virtuelle de stockage compatible SMB
++
+.. Cliquez sur *Storage > volumes*, puis sur *Add*.
+.. Entrez un nom, sélectionnez la machine virtuelle de stockage, puis entrez une taille.
++
+Seules les machines virtuelles de stockage configurées avec le protocole SMB sont répertoriées. Si une seule machine virtuelle de stockage configurée avec le protocole SMB est disponible, le champ *Storage VM* n'est pas affiché.
+
++
+*** Si vous cliquez sur *Enregistrer* à ce stade, System Manager utilise les valeurs par défaut du système pour créer et ajouter un volume FlexVol.
+*** Vous pouvez cliquer sur *plus d'options* pour personnaliser la configuration du volume afin d'activer des services tels que l'autorisation, la qualité de service et la protection des données. Reportez-vous à la section  the volume configuration, puis revenez ici pour effectuer les étapes suivantes.
+
+
+
+
+. [[step2-complète-Prov-win,étape 2 du flux de travail] passer à un client Windows pour vérifier que le partage est accessible.
++
+.. Dans l'Explorateur Windows, mappez un lecteur sur le partage au format suivant : `+\\_SMB_Server_Name__Share_Name_+`
+.. Sur le lecteur nouvellement créé, créez un fichier test, écrivez du texte et supprimez le fichier.
+
+
+
+
+Après vérification de l'accès, vous pouvez restreindre l'accès du client à l'aide de la liste de contrôle d'accès du partage et définir toutes les propriétés de sécurité souhaitées sur le lecteur mappé. Voir link:smb-config/create-share-task.html["Créez un partage SMB"] pour en savoir plus.
+
+
+
+== Ajouter ou modifier des partages
+
+Vous pouvez ajouter des partages supplémentaires après la configuration SMB initiale. Les partages sont créés avec les valeurs et les propriétés par défaut que vous sélectionnez. Ils peuvent être modifiés ultérieurement.
+
+Vous pouvez définir les propriétés de partage suivantes lors de la configuration d'un partage :
+
+* Autorisations d'accès
+* Propriétés du partage
++
+** Disponibilité sans interruption pour les partages qui contiennent des données Hyper-V et SQL Server sur SMB (à partir de ONTAP 9.10.1). Voir aussi :
++
+*** link:smb-hyper-v-sql/continuously-available-share-hyper-v-concept.html["Exigences de partage disponibles en continu pour Hyper-V sur SMB"]
+*** link:smb-hyper-v-sql/continuously-available-share-sql-concept.html["Exigences de partage constamment disponibles pour SQL Server sur SMB"]
+
+
+** Chiffrez les données avec SMB 3.0 lors de l'accès à ce partage.
+
+
+
+
+Après la configuration initiale, vous pouvez également modifier les propriétés suivantes :
+
+* Liens symboliques
++
+** Activez ou désactivez les liens symlinks et les boutons de fonction
+
+
+* Propriétés du partage
++
+** Autoriser les clients à accéder au répertoire de copies Snapshot.
+** Activez oplocks, ce qui permet aux clients de verrouiller les fichiers et le contenu en cache localement (par défaut).
+** Activez l'énumération basée sur l'accès (ABE) pour afficher les ressources partagées en fonction des autorisations d'accès de l'utilisateur.
+
+
+
+
+Pour ajouter un nouveau partage dans un volume compatible SMB, cliquez sur **stockage > partages**, cliquez sur **Ajouter** et sélectionnez **partage**.
+
+Pour modifier un partage existant, cliquez sur **stockage > partages**, puis cliquez sur image:icon_kabob.gif["icône de kabob vertical à trois points"] Et sélectionnez **Modifier**.
+
+
+
+== Personnaliser la configuration de volume
+
+Vous pouvez personnaliser la configuration du volume lorsque vous ajoutez des volumes au lieu d'accepter les valeurs par défaut du système.
+
+Après avoir cliqué sur *plus d'options*, sélectionnez la fonctionnalité dont vous avez besoin et saisissez les valeurs requises.
+
+* Cache pour le volume distant.
+* Niveau de service de performance (qualité de service, QoS)
++
+Depuis ONTAP 9.8, vous pouvez spécifier une règle QoS personnalisée ou désactiver QoS en plus de la sélection de valeur par défaut.
+
++
+** Pour désactiver QoS, sélectionnez *personnalisé*, *existant*, puis *aucun*.
+** Si vous sélectionnez *personnalisé* et spécifiez un niveau de service existant, un niveau local est automatiquement choisi.
+** À partir de ONTAP 9.9.1, si vous choisissez de créer un niveau de service de performances personnalisé, vous pouvez utiliser System Manager pour sélectionner manuellement le niveau local (*placement manuel*) sur lequel vous souhaitez placer le volume que vous créez.
++
+Cette option n'est pas disponible si vous sélectionnez les options de cache distant ou de volume FlexGroup.
+
+
+
+* Volumes FlexGroup (sélectionnez *distribuer les données de volume sur le cluster*).
++
+Cette option n'est pas disponible si vous avez précédemment sélectionné *placement manuel* sous *niveau de service de performance*. Sinon, le volume que vous ajoutez devient par défaut un volume FlexVol.
+
++
+*Cette option n'est pas disponible si vous avez précédemment sélectionné *placement manuel* sous *niveau de service de performance*. Sinon, le volume que vous ajoutez devient par défaut un volume FlexVol. *Autorisation d'accès pour les protocoles pour lesquels le volume est configuré. *Protection des données avec SnapMirror (local ou distant), spécifiez ensuite la stratégie de protection et les paramètres du cluster de destination dans les listes déroulantes. *Cliquez sur *Enregistrer* pour créer le volume et l'ajouter au cluster et à la machine virtuelle de stockage.
+
+
+
+Vous pouvez personnaliser la configuration du volume lorsque vous ajoutez des volumes au lieu d'accepter les valeurs par défaut du système.
+
+Après avoir cliqué sur *plus d'options*, sélectionnez la fonctionnalité dont vous avez besoin et saisissez les valeurs requises.
+
+* Cache pour le volume distant.
+* Niveau de service de performance (qualité de service, QoS)
++
+Depuis ONTAP 9.8, vous pouvez spécifier une règle QoS personnalisée ou désactiver QoS, en plus de la sélection de valeur par défaut.
+
++
+** Pour désactiver QoS, sélectionnez *personnalisé*, *existant*, puis *aucun*.
+** Si vous sélectionnez *personnalisé* et spécifiez un niveau de service existant, un niveau local est automatiquement choisi.
+** À partir de ONTAP 9.9.1, si vous choisissez de créer un niveau de service de performances personnalisé, vous pouvez utiliser System Manager pour sélectionner manuellement le niveau local (*placement manuel*) sur lequel vous souhaitez placer le volume que vous créez.
++
+Cette option n'est pas disponible si vous sélectionnez les options de cache distant ou de volume FlexGroup.
+
+
+
+* Volumes FlexGroup (sélectionnez *distribuer les données de volume sur le cluster*).
++
+Cette option n'est pas disponible si vous avez précédemment sélectionné *placement manuel* sous *niveau de service de performance*. Sinon, le volume que vous ajoutez devient par défaut un volume FlexVol.
+
+* Autorisations d'accès pour les protocoles pour lesquels le volume est configuré.
+* Protection des données avec SnapMirror (local ou distant), spécifiez ensuite la règle de protection et les paramètres du cluster de destination dans les listes déroulantes.
+* Cliquez sur *Save* pour créer le volume et l'ajouter au cluster et à la machine virtuelle de stockage.
+
+
+
+NOTE: Une fois le volume enregistré, revenez à  Pour effectuer le provisionnement complet des serveurs Windows avec SMB.
+
+
+
+== D'autres façons de le faire dans ONTAP
+
+|===
+
+
+| Pour effectuer cette tâche avec... | Reportez-vous à... 
+
+
+| System Manager Classic (ONTAP 9.7 et versions antérieures) | link:https://docs.netapp.com/us-en/ontap-sm-classic/smb-config/index.html["Présentation de la configuration SMB"^] 
+
+
+| Interface de ligne de commande ONTAP | link:smb-config/index.html["Présentation de la configuration SMB avec l'interface de ligne de commande"] 
+|===

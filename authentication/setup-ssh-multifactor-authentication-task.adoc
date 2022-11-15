@@ -1,0 +1,58 @@
+---
+permalink: authentication/setup-ssh-multifactor-authentication-task.html 
+sidebar: sidebar 
+keywords: enable, ssh, multifactor authentication, mfa, hardware authentication device 
+summary: Depuis ONTAP 9.3, vous pouvez utiliser la commande Security login create pour renforcer la sécurité, car les administrateurs doivent se connecter à un SVM admin ou données avec une clé publique SSH et un mot de passe utilisateur. 
+---
+= Activer l'authentification SSH multifacteur (MFA)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser ONTAP 9.3 à partir de `security login create` Commande pour améliorer la sécurité, les administrateurs doivent se connecter à un SVM d'administration ou de données avec une clé publique SSH et un mot de passe utilisateur.
+
+À partir de ONTAP 9.12.1, vous pouvez utiliser les périphériques d'authentification matérielle Yubikey pour le client SSH MFA en utilisant les normes d'authentification FIDO2 (Fast Identity Online) ou PIV (Personal Identity Verification).
+
+En savoir plus sur link:https://www.netapp.com/pdf.html?item=/media/17055-tr4647pdf.pdf["Authentification multifactorielle dans ONTAP 9 (TR-4647)"^].
+
+Vous devez être un administrateur de cluster pour effectuer cette tâche.
+
+.Description de la tâche
+* Vous devez associer la clé publique au compte avant que le compte puisse accéder à la SVM.
++
+link:manage-public-key-authentication-concept.html["Associer une clé publique à un compte d'utilisateur"]
+
++
+Vous pouvez effectuer cette tâche avant ou après avoir activé l'accès au compte.
+
+* Si vous n'êtes pas certain du rôle de contrôle d'accès que vous souhaitez attribuer au compte de connexion, vous pouvez utiliser le `security login modify` commande permettant d'ajouter le rôle ultérieurement.
++
+link:modify-role-assigned-administrator-task.html["Modification du rôle attribué à un administrateur"]
+
+* L'utilisateur est toujours authentifié par clé publique suivie de l'authentification par mot de passe.
+
+
+.Étape
+. Nécessite des comptes d'administrateur locaux pour accéder à un SVM via SSH MFA :
++
+`security login create -vserver _SVM_ -user-or-group-name _user_name_ -application ssh -authentication-method password|publickey -role admin -second-authentication-method password|publickey`
+
++
+La commande suivante nécessite un compte d'administrateur du SVM `admin2` avec le prédéfini `admin` Rôle de connexion à la SVM``engData1`` Avec une clé publique SSH et un mot de passe utilisateur :
+
++
+[listing]
+----
+cluster-1::> security login create -vserver engData1 -user-or-group-name admin2 -application ssh -authentication-method publickey -role admin -second-authentication-method password
+
+Please enter a password for user 'admin2':
+Please enter it again:
+Warning: To use public-key authentication, you must create a public key for user "admin2".
+----
+
+
+Si vous n'avez pas associé de clé publique au compte administrateur, vous devez le faire avant que le compte puisse accéder à la SVM.
+
+link:manage-public-key-authentication-concept.html["Association d'une clé publique à un compte d'utilisateur"]

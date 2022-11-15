@@ -1,0 +1,111 @@
+---
+sidebar: sidebar 
+permalink: networking/monitor_the_reachability_of_network_ports.html 
+keywords: monitor, monitoring, manage, managing, automatic, reachability, port, network, identify, determine, monitor the reachability of network ports in ontap 9.8 and later, ontap 9.8 and later, determine if the physical network topology does not match the ontap configuration 
+summary: ONTAP 9.8 et versions ultérieures, déterminez si la topologie du réseau physique ne correspond pas à la configuration ONTAP 
+---
+= Surveiller la capacité de port réseau dans ONTAP 9.8 et versions ultérieures
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+La surveillance de l'accessibilité est intégrée à ONTAP 9.8 et versions ultérieures. Utilisez cette surveillance pour identifier si la topologie de réseau physique ne correspond pas à la configuration ONTAP. Dans certains cas, ONTAP peut réparer l'accessibilité des ports. Dans d'autres cas, des étapes supplémentaires sont nécessaires.
+
+Utilisez ces commandes pour vérifier, diagnostiquer et réparer les erreurs de configuration du réseau qui ne ONTAP correspondent pas au câblage physique ou à la configuration du commutateur réseau.
+
+.Étape
+. Afficher la capacité de port :
++
+....
+network port reachability show
+....
+. Utilisez l'arbre de décision et le tableau suivants pour déterminer l'étape suivante, le cas échéant.
+
+
+image:ontap_nm_image1.png["Réparer l'arbre de décision de l'accessibilité"]
+
+[cols="20,80"]
+|===
+
+
+| État-accessibilité | Description 
+
+
+ a| 
+ok
+ a| 
+Le port a une capacité de réachbilité de couche 2 à son domaine de diffusion attribué. Si l'état de la capacité d'accessibilité est « ok », mais qu'il y a des « ports inattendus », envisagez de fusionner un ou plusieurs domaines de diffusion. Pour plus d'informations, reportez-vous à la _Unexpected ports_ row suivante.
+
+Si le statut de la capacité d'accessibilité est « ok », mais qu'il y a des « ports inaccessibles », envisagez de diviser un ou plusieurs domaines de diffusion. Pour plus d'informations, reportez-vous à la ligne _ports inaccessibles_ suivante.
+
+Si l'état de la capacité de reprise est « ok » et qu'il n'y a pas de ports inattendus ou inaccessibles, votre configuration est correcte.
+
+
+
+ a| 
+Ports inattendus
+ a| 
+Le port a une capacité de réachbilité de couche 2 à son domaine de diffusion attribué ; cependant, il a également la possibilité de reachcapacité de couche 2 à au moins un autre domaine de broadcast.
+
+Examinez la connectivité physique et la configuration du commutateur pour déterminer si elle est incorrecte ou si le domaine de diffusion attribué au port doit être fusionné avec un ou plusieurs domaines de diffusion.
+
+Pour plus d'informations, voir link:merge_broadcast_domains.html["Fusionner les domaines de diffusion"].
+
+
+
+ a| 
+Ports inaccessibles
+ a| 
+Si un seul domaine de diffusion a été partitionné en deux ensembles de capacité d'accès différents, vous pouvez fractionner un domaine de diffusion pour synchroniser la configuration ONTAP avec la topologie de réseau physique.
+
+En général, la liste des ports inaccessibles définit l'ensemble des ports qui doivent être divisés en un autre domaine de diffusion après avoir vérifié que la configuration physique et du commutateur est exacte.
+
+Pour plus d'informations, voir link:split_broadcast_domains.html["Séparer les domaines de diffusion"].
+
+
+
+ a| 
+mauvaise configuration de la capacité de réachbilité
+ a| 
+Le port n'a pas la capacité de reachcapacité de couche 2 à son domaine de diffusion affecté ; cependant, le port a une capacité de réachcapacité de couche 2 à un domaine de diffusion différent.
+
+Vous pouvez réparer l'accessibilité du port. Lorsque vous exécutez la commande suivante, le système affecte le port au broadcast domain auquel il a la capacité de reachcapacité :
+
+`network port reachability repair -node -port`Pour plus d'informations, voir link:repair_port_reachability.html["Réparation de l'accessibilité de l'orifice"].
+
+
+
+ a| 
+sans trabilité
+ a| 
+Le port n'a pas la possibilité de reachcapacité de couche 2 à un domaine de diffusion existant.
+
+Vous pouvez réparer l'accessibilité du port. Lorsque vous exécutez la commande suivante, le système affecte le port à un nouveau domaine de diffusion créé automatiquement dans l'IPspace par défaut :
+
+`network port reachability repair -node -port`Pour plus d'informations, voir link:repair_port_reachability.html["Réparation de l'accessibilité de l'orifice"].
+
+
+
+ a| 
+accessibilité multi-domaines
+ a| 
+Le port a une capacité de réachbilité de couche 2 à son domaine de diffusion attribué ; cependant, il a également la possibilité de reachcapacité de couche 2 à au moins un autre domaine de broadcast.
+
+Examinez la connectivité physique et la configuration du commutateur pour déterminer si elle est incorrecte ou si le domaine de diffusion attribué au port doit être fusionné avec un ou plusieurs domaines de diffusion.
+
+Pour plus d'informations, voir link:merge_broadcast_domains.html["Fusionner les domaines de diffusion"] ou link:repair_port_reachability.html["Réparation de l'accessibilité de l'orifice"].
+
+
+
+ a| 
+inconnu
+ a| 
+Si l'état de la capacité d'accessibilité est « inconnu », attendez quelques minutes et essayez à nouveau la commande.
+
+|===
+Une fois que vous avez réparé un port, vous devez vérifier et résoudre les LIFs et les VLAN déplacés. Si le port faisait partie d'un groupe d'interfaces, vous devez également connaître ce qui s'est passé pour ce groupe. Pour plus d'informations, voir link:repair_port_reachability.html["Réparation de l'accessibilité de l'orifice"].

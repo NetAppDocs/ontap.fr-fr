@@ -1,0 +1,43 @@
+---
+permalink: smb-admin/allow-users-groups-bypass-directory-traverse-task.html 
+sidebar: sidebar 
+keywords: traverse, directories, directory, path, file, permission, sechangenotifyprivilege, privilege, local, smb, user, svm, bypass, traverse, check, allow users or groups to bypass directory traverse checking 
+summary: 'Si vous souhaitez qu"un utilisateur puisse parcourir tous les répertoires du chemin d"accès à un fichier, même si l"utilisateur ne dispose pas d"autorisations sur un répertoire parcours, vous pouvez ajouter le privilège SeChangeNotifyPrivilege aux utilisateurs ou groupes SMB locaux sur des SVM (Storage Virtual machines). Par défaut, les utilisateurs peuvent contourner la vérification par passage de répertoire.' 
+---
+= Permet aux utilisateurs ou aux groupes de contourner la vérification de la traverse du répertoire
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous souhaitez qu'un utilisateur puisse parcourir tous les répertoires du chemin d'accès à un fichier, même si l'utilisateur ne dispose pas des autorisations sur un répertoire de parcours, vous pouvez ajouter le `SeChangeNotifyPrivilege` Privilège pour les utilisateurs ou groupes SMB locaux sur des SVM (Storage Virtual machine). Par défaut, les utilisateurs peuvent contourner la vérification par passage de répertoire.
+
+.Avant de commencer
+* Un serveur SMB doit être existant sur le SVM.
+* L'option serveur SMB des utilisateurs et groupes locaux doit être activée.
+* Utilisateur ou groupe local ou de domaine auquel `SeChangeNotifyPrivilege` le privilège sera ajouté doit déjà exister.
+
+
+Lors de l'ajout de privilèges à un utilisateur ou à un groupe de domaine, ONTAP peut valider l'utilisateur ou le groupe du domaine en contactant le contrôleur de domaine. La commande peut échouer si ONTAP ne parvient pas à contacter le contrôleur de domaine.
+
+.Étapes
+. Activer la vérification de la traverse de dérivation en ajoutant le `SeChangeNotifyPrivilege` privilège d'un utilisateur ou groupe local ou de domaine : `vserver cifs users-and-groups privilege add-privilege -vserver _vserver_name_ -user-or-group-name _name_ -privileges SeChangeNotifyPrivilege`
++
+La valeur pour le `-user-or-group-name` il s'agit d'un utilisateur ou d'un groupe local, ou d'un utilisateur ou d'un groupe de domaines.
+
+. Vérifiez que la vérification de la dérivation transversale est activée pour l'utilisateur ou le groupe spécifié : `vserver cifs users-and-groups privilege show -vserver _vserver_name_ ‑user-or-group-name _name_`
+
+
+La commande suivante permet aux utilisateurs qui appartiennent au groupe « EXEMPLE\eng » de contourner la vérification de la traverse de répertoire en ajoutant le `SeChangeNotifyPrivilege` privilège du groupe :
+
+[listing]
+----
+cluster1::> vserver cifs users-and-groups privilege add-privilege -vserver vs1 -user-or-group-name EXAMPLE\eng -privileges SeChangeNotifyPrivilege
+
+cluster1::> vserver cifs users-and-groups privilege show -vserver vs1
+Vserver   User or Group Name    Privileges
+--------- --------------------- ---------------
+vs1       EXAMPLE\eng           SeChangeNotifyPrivilege
+----
+xref:disallow-users-groups-bypass-directory-traverse-task.adoc[Interdire aux utilisateurs ou aux groupes de contourner la vérification de la traverse de répertoire]

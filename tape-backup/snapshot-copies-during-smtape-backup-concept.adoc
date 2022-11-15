@@ -1,0 +1,55 @@
+---
+permalink: tape-backup/snapshot-copies-during-smtape-backup-concept.html 
+sidebar: sidebar 
+keywords: snapshot, copy, smtape, backup, baseline, incremental, snapmirror 
+summary: 'Il est important de comprendre comment les copies Snapshot sont utilisées lors d"une sauvegarde de base SMTape et d"une sauvegarde incrémentielle. Vous devez également tenir compte des considérations d"ordre à prendre en compte lors de la sauvegarde sur SMTape.' 
+---
+= Utilisation des copies Snapshot pendant la sauvegarde SMTape
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Il est important de comprendre comment les copies Snapshot sont utilisées lors d'une sauvegarde de base SMTape et d'une sauvegarde incrémentielle. Vous devez également tenir compte des considérations d'ordre à prendre en compte lors de la sauvegarde sur SMTape.
+
+
+
+== Sauvegarde de base
+
+Lors de l'exécution d'une sauvegarde de base, vous pouvez indiquer le nom de la copie Snapshot à sauvegarder sur bande. Si aucune copie Snapshot n'est spécifiée, selon le type d'accès du volume (lecture/écriture ou lecture seule), une copie Snapshot est créée automatiquement ou des copies Snapshot existantes sont utilisées. Lorsque vous spécifiez une copie Snapshot pour la sauvegarde, toutes les copies Snapshot antérieures à la copie Snapshot spécifiée sont également sauvegardées sur bande.
+
+Si vous ne spécifiez pas de copie Snapshot pour la sauvegarde, les événements suivants se produisent :
+
+* Pour un volume en lecture/écriture, une copie Snapshot est créée automatiquement.
++
+La nouvelle copie Snapshot et toutes les anciennes copies Snapshot sont sauvegardées sur bande.
+
+* Pour un volume en lecture seule, toutes les copies Snapshot, y compris la dernière copie Snapshot, sont sauvegardées sur bande.
++
+Aucune sauvegarde n'est effectuée après le démarrage de la sauvegarde.
+
+
+
+
+
+== Sauvegarde incrémentielle
+
+Pour les opérations de sauvegarde incrémentielle ou différentielle SMTape, les applications de sauvegarde conformes au protocole NDMP créent et gèrent les copies Snapshot.
+
+Vous devez toujours spécifier une copie Snapshot lors de l'opération de sauvegarde incrémentielle. Pour que la sauvegarde incrémentielle soit couronnée de succès, la copie Snapshot sauvegardée lors de l'opération de sauvegarde précédente (copie de base ou incrémentielle) doit se trouver sur le volume à partir duquel la sauvegarde est effectuée. Pour vous assurer que vous utilisez cette copie Snapshot sauvegardée, vous devez tenir compte de la règle Snapshot attribuée à ce volume lors de la configuration de la règle de sauvegarde.
+
+
+
+== Considérations relatives aux sauvegardes SMTape sur les destinations SnapMirror
+
+* Une relation de miroir de protection des données crée des copies Snapshot temporaires sur le volume de destination pour la réplication.
++
+Il est interdit d'utiliser ces copies Snapshot pour la sauvegarde SMTape.
+
+* Lorsqu'une mise à jour SnapMirror se produit sur un volume de destination dans une relation de miroir de protection des données lors d'une opération de sauvegarde SMTape sur le même volume, la copie Snapshot sauvegardée par SMTape ne doit pas être supprimée du volume source.
++
+Lors de la sauvegarde, SMTape verrouille la copie Snapshot sur le volume de destination. Si la copie Snapshot correspondante est supprimée sur le volume source, l'opération de mise à jour SnapMirror suivante échoue.
+
+* Vous ne devez pas utiliser ces copies Snapshot pendant la sauvegarde incrémentielle.
+

@@ -1,0 +1,164 @@
+---
+permalink: tape-backup/format-tape-config-file-concept.html 
+sidebar: sidebar 
+keywords: format, tape, configuration, file, vendor, id, product, compression, type, drive 
+summary: 'Le format du fichier de configuration de bande comprend des champs tels que l"ID du fournisseur, l"ID du produit et les détails des types de compression pour un lecteur de bande. Ce fichier se compose également de champs facultatifs pour l"activation de la fonction d"autochargement d"un lecteur de bande et la modification des valeurs de délai de commande d"un lecteur de bande.' 
+---
+= Format du fichier de configuration de la bande
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le format du fichier de configuration de bande comprend des champs tels que l'ID du fournisseur, l'ID du produit et les détails des types de compression pour un lecteur de bande. Ce fichier se compose également de champs facultatifs pour l'activation de la fonction d'autochargement d'un lecteur de bande et la modification des valeurs de délai de commande d'un lecteur de bande.
+
+Le tableau suivant affiche le format du fichier de configuration de la bande :
+
+|===
+| Élément | Taille | Description 
+
+
+ a| 
+`vendor_id` (chaîne)
+ a| 
+jusqu'à 8 octets
+ a| 
+L'ID du fournisseur tel que signalé par le `SCSI Inquiry` commande.
+
+
+
+ a| 
+`product_id`(chaîne)
+ a| 
+jusqu'à 16 octets
+ a| 
+L'ID du produit tel qu'indiqué par le `SCSI Inquiry` commande.
+
+
+
+ a| 
+`id_match_size`(nombre)
+ a| 
+ a| 
+Nombre d'octets de l'ID produit à utiliser pour la correspondance pour détecter le lecteur de bande à identifier, en commençant par le premier caractère de l'ID produit dans les données de la requête.
+
+
+
+ a| 
+`vendor_pretty` (chaîne)
+ a| 
+jusqu'à 16 octets
+ a| 
+Si ce paramètre est présent, il est spécifié par la chaîne affichée par la commande, `storage tape show -device-names`; Sinon, INQ_VENDOR_ID est affiché.
+
+
+
+ a| 
+`product_pretty`(chaîne)
+ a| 
+jusqu'à 16 octets
+ a| 
+Si ce paramètre est présent, il est spécifié par la chaîne affichée par la commande, `storage tape show -device-names`; Sinon, INQ_PRODUCT_ID s'affiche.
+
+|===
+[NOTE]
+====
+Le `vendor_pretty` et `product_pretty` les champs sont facultatifs, mais si l'un de ces champs a une valeur, l'autre doit également avoir une valeur.
+
+====
+Le tableau suivant explique la description, le code de densité et l'algorithme de compression des différents types de compression, tels que `l`, `m`, `h`, et `a`:
+
+|===
+| Élément | Taille | Description 
+
+
+ a| 
+`{l | m | h | a}_description=(string)`
+ a| 
+jusqu'à 24 octets
+ a| 
+La chaîne à imprimer pour la commande nodeshell, `sysconfig -t`, qui décrit les caractéristiques du paramètre de densité particulier.
+
+
+
+ a| 
+`{l | m | h | a}_density=(hex codes)`
+ a| 
+ a| 
+Le code de densité à définir dans le descripteur de bloc de page en mode SCSI correspondant au code de densité souhaité pour l, m, h ou a.
+
+
+
+ a| 
+`{l | m | h | a}_algorithm=(hex codes)`
+ a| 
+ a| 
+L'algorithme de compression à définir dans la page du mode de compression SCSI correspondant au code de densité et à la caractéristique de densité souhaitée.
+
+|===
+Le tableau suivant décrit les champs facultatifs disponibles dans le fichier de configuration de bande :
+
+|===
+| Champ | Description 
+
+
+ a| 
+`autoload=(Boolean yes/no)`
+ a| 
+Ce champ est défini sur `yes` si le lecteur de bande dispose d'une fonction de chargement automatique, c'est-à-dire après l'insertion de la cartouche de bande, le lecteur de bande devient prêt sans avoir à exécuter un `SCSI load` (unité de démarrage/arrêt). La valeur par défaut de ce champ est `no`.
+
+
+
+ a| 
+`cmd_timeout_0x`
+ a| 
+Valeur de temporisation individuelle. Vous devez utiliser ce champ uniquement si vous souhaitez spécifier une valeur de temporisation différente de celle utilisée par défaut par le pilote de bande. L'exemple de fichier répertorie les valeurs de délai d'expiration de la commande SCSI par défaut utilisées par le lecteur de bande. La valeur de temporisation peut être exprimée en minutes (m), secondes (s) ou millisecondes (ms).
+
+[NOTE]
+====
+Vous ne devez pas modifier ce champ.
+
+====
+|===
+Vous pouvez télécharger et afficher le fichier de configuration de bandes sur le site de support NetApp.
+
+Le format de fichier de configuration de bande pour le lecteur de bande HP LTO5 ULTRIUM est le suivant :
+
+`vendor_id`= « HP »
+
+`product_id`= « Ultrium 5-SCSI »
+
+`id_match_size`=9
+
+`vendor_pretty`= « Hewlett-Packard »
+
+`product_pretty`= « LTO-5 »
+
+`l_description`=« LTO-3 (ro)/4 4 Go »
+
+`l_density`=0x00
+
+`l_algorithm`=0x00
+
+`m_description`=« LTO-3(ro)/4 8/1600 go cmp »
+
+`m_density`=0x00
+
+`m_algorithm`=0x01
+
+`h_description`=« LTO-5 1600 GO »
+
+`h_density`=0x58
+
+`h_algorithm`=0x00
+
+`a_description`=« LTO-5 700 Go cmp »
+
+`a_density`=0x58
+
+`a_algorithm`=0x01
+
+`autoload`= « oui »
+
+https://mysupport.netapp.com/site/tools/tool-eula/5f4d322319c1ab1cf34fd063["Outils NetApp : fichiers de configuration des lecteurs de bandes"]

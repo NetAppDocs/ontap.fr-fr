@@ -1,0 +1,54 @@
+---
+permalink: system-admin/configure-discovery-cluster-management-switches-task.html 
+sidebar: sidebar 
+keywords: configuring, discovery, cluster, management, network, switches, cisco, discovery, protocol, cdp, switch, health 
+summary: 'Le contrôle de l"état du switch de cluster tente automatiquement de détecter les commutateurs du réseau de gestion et de cluster à l"aide du protocole CDP (Cisco Discovery Protocol). Vous devez configurer le contrôle de l"état s"il ne peut pas détecter automatiquement un switch ou si vous ne souhaitez pas utiliser CDP pour la découverte automatique.' 
+---
+= Configurer la détection des commutateurs du réseau de gestion et du cluster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le contrôle de l'état du switch de cluster tente automatiquement de détecter les commutateurs du réseau de gestion et de cluster à l'aide du protocole CDP (Cisco Discovery Protocol). Vous devez configurer le contrôle de l'état s'il ne peut pas détecter automatiquement un switch ou si vous ne souhaitez pas utiliser CDP pour la découverte automatique.
+
+Le `system cluster-switch show` la commande répertorie les switchs détectés par le contrôle de l'état. Si vous ne voyez pas de commutateur que vous aviez prévu dans cette liste, le contrôle de l'état ne peut pas le détecter automatiquement.
+
+.Étapes
+. Si vous souhaitez utiliser CDP pour la découverte automatique, procédez comme suit ; sinon, passez à l'étape ,2:
++
+.. Assurez-vous que le Cisco Discovery Protocol (CDP) est activé sur vos commutateurs.
++
+Reportez-vous à la documentation de votre commutateur pour obtenir des instructions.
+
+.. Exécutez la commande suivante sur chaque nœud du cluster pour vérifier si CDP est activée ou désactivée :
++
+`*run -node _node_name_ -command options cdpd.enable*`
+
++
+Si CDP est activé, passez à l'étape d. Si le CDP est désactivé, passez à l'étape c.
+
+.. Exécutez la commande suivante pour activer CDP :
++
+`*run -node _node_name_ -command options cdpd.enable on*`
+
++
+Attendez cinq minutes avant de passer à l'étape suivante.
+
+.. Utilisez le `system cluster-switch show` Commande pour vérifier si ONTAP peut désormais détecter automatiquement les commutateurs.
+
+
+. Si le contrôle de l'état ne peut pas détecter automatiquement un commutateur, utilisez le `system cluster-switch create` commande pour configurer la découverte du commutateur :
++
+[listing]
+----
+cluster1::> system cluster-switch create -device switch1 -address 192.0.2.250 -snmp-version SNMPv2c -community cshm1! -model NX5020 -type cluster-network
+----
++
+Attendez cinq minutes avant de passer à l'étape suivante.
+
+. Utilisez le `system cluster-switch show` Commande pour vérifier que ONTAP peut détecter le switch pour lequel vous avez ajouté des informations.
+
+
+Vérifiez que le contrôle de l'état peut surveiller vos commutateurs.

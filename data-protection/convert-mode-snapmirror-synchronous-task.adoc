@@ -1,0 +1,64 @@
+---
+permalink: data-protection/convert-mode-snapmirror-synchronous-task.html 
+sidebar: sidebar 
+keywords: convert, mode, snapmirror, synchronous, relationship 
+summary: 'La prise en charge des relations SnapMirror synchrone est prise en charge à partir de la version ONTAP 9.5 Vous pouvez convertir le mode d"une relation SnapMirror synchrone de StrictSync en mode synchrone ou inversement.' 
+---
+= Convertir le mode d'une relation SnapMirror synchrone
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La prise en charge des relations SnapMirror synchrone est prise en charge à partir de la version ONTAP 9.5 Vous pouvez convertir le mode d'une relation SnapMirror synchrone de StrictSync en mode synchrone ou inversement.
+
+Vous ne pouvez pas modifier la règle d'une relation SnapMirror synchrone pour convertir son mode.
+
+.Étapes
+. Depuis le cluster de destination, suspendre la relation SnapMirror synchrone existante :
++
+`snapmirror quiesce -destination-path dest_SVM:dest_volume`
+
++
+[listing]
+----
+cluster2::> snapmirror quiesce -destination-path vs1_dr:vol1
+----
+. Depuis le cluster de destination, supprimez la relation SnapMirror synchrone existante :
++
+`snapmirror delete -destination-path dest_SVM:dest_volume`
+
++
+[listing]
+----
+cluster2::> snapmirror delete -destination-path vs1_dr:vol1
+----
+. Depuis le cluster source, libérer la relation SnapMirror sans supprimer les copies Snapshot courantes :
++
+`snapmirror release -relationship-info-only true -destination-path dest_SVM:dest_volume`
+
++
+[listing]
+----
+cluster1::> snapmirror release -relationship-info-only true -destination-path vs1_dr:vol1
+----
+. Depuis le cluster de destination, créez une relation SnapMirror synchrone en spécifiant le mode vers lequel vous souhaitez convertir la relation SnapMirror synchrone :
++
+`snapmirror create -source-path vs1:vol1 -destination-path dest_SVM:dest_volume -policy Sync|StrictSync`
+
++
+[listing]
+----
+cluster2::> snapmirror create -source-path vs1:vol1 -destination-path vs1_dr:vol1 -policy Sync
+----
+. Depuis le cluster de destination, resynchroniser la relation SnapMirror :
++
+`snapmirror resync -destination-path dest_SVM:dest_volume`
+
++
+[listing]
+----
+cluster2::> snapmirror resync -destination-path vs1_dr:vol1
+----
+

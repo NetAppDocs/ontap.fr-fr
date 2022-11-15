@@ -1,0 +1,93 @@
+---
+permalink: performance-admin/measure-latency-throughput-nodes-task.html 
+sidebar: sidebar 
+keywords: check, throughput, latency, between, nodes 
+summary: 'La commande network test-path permet d"identifier les goulots d"étranglement réseau ou de présélectionner les chemins réseau entre les nœuds. Vous pouvez exécuter la commande entre les nœuds intercluster ou intracluster.' 
+---
+= Vérifiez le débit et la latence entre les nœuds
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser le `network test-path` commande permettant d'identifier les goulets d'étranglement réseau ou de présélectionner les chemins réseau entre les nœuds. Vous pouvez exécuter la commande entre les nœuds intercluster ou intracluster.
+
+.Ce dont vous avez besoin, 8217;ll
+* Vous devez être un administrateur de cluster pour effectuer cette tâche.
+* Des commandes de niveau de privilège avancé sont requises pour cette tâche.
+* Pour un chemin intercluster, les clusters source et destination doivent être associés.
+
+
+Il arrive que les performances du réseau entre les nœuds ne répondent pas aux attentes de votre configuration de chemin. Un taux de transmission de 1 Gbit/s pour le type de transferts de données volumineux vus dans les opérations de réplication SnapMirror, par exemple, ne serait pas cohérent avec une liaison 10 GbE entre les clusters source et destination.
+
+Vous pouvez utiliser le `network test-path` commande pour mesurer le débit et la latence entre les nœuds. Vous pouvez exécuter la commande entre les nœuds intercluster ou intracluster.
+
+[NOTE]
+====
+Le test sature le chemin du réseau avec des données, vous devez donc exécuter la commande lorsque le système n'est pas occupé, et lorsque le trafic réseau entre les nœuds n'est pas excessif. Le test s'est terminé après dix secondes. La commande ne peut être exécutée qu'entre des nœuds ONTAP 9.
+
+====
+Le `session-type` Option identifie le type d'opération que vous exécutez sur le chemin réseau, par exemple « AsyncMirrorRemote » pour la réplication SnapMirror vers une destination distante. Le type détermine la quantité de données utilisées dans le test. Le tableau suivant définit les types de session :
+
+|===
+
+
+| Type de session | Description 
+
+
+ a| 
+AsyncMirrorlocal
+ a| 
+Paramètres utilisés par SnapMirror entre les nœuds du même cluster
+
+
+
+ a| 
+AsyncMirrorRemote
+ a| 
+Paramètres utilisés par SnapMirror entre les nœuds dans différents clusters (type par défaut)
+
+
+
+ a| 
+Transfert de données à distance
+ a| 
+Paramètres utilisés par ONTAP pour l'accès distant aux données entre les nœuds d'un même cluster (par exemple, une requête NFS vers un nœud pour un fichier stocké dans un volume sur un autre nœud)
+
+|===
+.Étapes
+. Changement au niveau de privilège avancé :
++
+`set -privilege advanced`
+
+. Mesure du débit et de la latence entre les nœuds :
++
+`network test-path -source-node _source_nodename_ |local -destination-cluster _destination_clustername_ -destination-node _destination_nodename_ -session-type Default|AsyncMirrorLocal|AsyncMirrorRemote|SyncMirrorRemote|RemoteDataTransfer`
+
++
+Le nœud source doit se trouver dans le cluster local. Le nœud de destination peut être situé sur le cluster local ou dans un cluster en clusters à peering. Une valeur de "local" pour `-source-node` spécifie le nœud sur lequel vous exécutez la commande.
+
++
+La commande suivante mesure le débit et la latence des opérations de réplication de type SnapMirror entre `node1` sur le cluster local et `node3` marche `cluster2`:
+
++
+[listing]
+----
+cluster1::> network test-path -source-node node1 -destination-cluster cluster2 -destination-node node3 -session-type AsyncMirrorRemote
+Test Duration:      10.88 secs
+Send Throughput:    18.23 MB/sec
+Receive Throughput: 18.23 MB/sec
+MB sent:            198.31
+MB received:        198.31
+Avg latency in ms:  2301.47
+Min latency in ms:  61.14
+Max latency in ms:  3056.86
+----
+. Revenir au privilège administratif :
++
+`set -privilege admin`
+
+
+
+Si les performances ne répondent pas aux attentes en matière de configuration du chemin, vérifiez les statistiques de performances du nœud, utilisez les outils disponibles pour isoler le problème sur le réseau, vérifiez les paramètres du commutateur, etc.

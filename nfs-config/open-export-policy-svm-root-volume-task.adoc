@@ -1,0 +1,62 @@
+---
+permalink: nfs-config/open-export-policy-svm-root-volume-task.html 
+sidebar: sidebar 
+keywords: open, export, policy, svm, root, volume 
+summary: 'La export policy par défaut du volume root du SVM doit inclure une règle permettant à tous les clients d"y accéder via NFS. Sans une telle règle, tous les clients NFS se voient refuser l"accès au SVM et à ses volumes.' 
+---
+= Ouvrir la export policy du volume root du SVM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La export policy par défaut du volume root du SVM doit inclure une règle permettant à tous les clients d'y accéder via NFS. Sans une telle règle, tous les clients NFS se voient refuser l'accès au SVM et à ses volumes.
+
+Lorsqu'un nouveau SVM est créé, une export policy par défaut (appelée default) est créée automatiquement pour le volume root du SVM. On doit créer une ou plusieurs règles pour l'export policy par défaut avant que les clients puissent accéder aux données sur la SVM.
+
+Vous devez vérifier que l'accès est ouvert à tous les clients NFS dans la stratégie d'exportation par défaut, puis limiter l'accès aux volumes individuels en créant des règles d'exportation personnalisées pour les volumes individuels ou les qtrees.
+
+.Étapes
+. Si vous utilisez un SVM existant, vérifier la root volume export policy par défaut :
++
+`vserver export-policy rule show`
+
++
+Le résultat de la commande doit être similaire à ce qui suit :
+
++
+[listing]
+----
+
+cluster::> vserver export-policy rule show -vserver vs1.example.com -policyname default -instance
+
+                                    Vserver: vs1.example.com
+                                Policy Name: default
+                                 Rule Index: 1
+                            Access Protocol:  nfs
+Client Match Hostname, IP Address, Netgroup, or Domain: 0.0.0.0/0
+                             RO Access Rule: any
+                             RW Access Rule: any
+User ID To Which Anonymous Users Are Mapped: 65534
+                   Superuser Security Types: any
+               Honor SetUID Bits in SETATTR: true
+                  Allow Creation of Devices: true
+----
++
+Si une telle règle existe et autorise l'accès ouvert, cette tâche est terminée. Si ce n'est pas le cas, passez à l'étape suivante.
+
+. Créer une règle d'export pour le volume root du SVM:
++
+`vserver export-policy rule create -vserver _vserver_name_ -policyname default -ruleindex 1 -protocol nfs -clientmatch 0.0.0.0/0 -rorule any ‑rwrule any -superuser any`
+
++
+Si la SVM ne contiendra que des volumes sécurisés par Kerberos, vous pouvez définir les options des règles d'exportation `-rorule`, `-rwrule`, et `-superuser` pour le volume racine à `krb5` ou `krb5i`. Par exemple :
+
++
+`-rorule krb5i -rwrule krb5i -superuser krb5i`
+
+. Vérifiez la création de règles à l'aide du `vserver export-policy rule show` commande.
+
+
+Tout client NFS peut désormais accéder à tout volume ou qtree créé sur le SVM.

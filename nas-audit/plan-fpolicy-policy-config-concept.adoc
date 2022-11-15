@@ -1,0 +1,190 @@
+---
+permalink: nas-audit/plan-fpolicy-policy-config-concept.html 
+sidebar: sidebar 
+keywords: plan, fpolicy, policy, configuration 
+summary: Avant de configurer la règle FPolicy, vous devez comprendre les paramètres requis lors de la création de la règle ainsi que les raisons pour lesquelles vous pouvez vouloir configurer certains paramètres facultatifs. Ces informations vous aident à déterminer les valeurs à définir pour chaque paramètre. 
+---
+= Planifier l'présentation de la configuration de la règle FPolicy
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de configurer la règle FPolicy, vous devez comprendre les paramètres requis lors de la création de la règle ainsi que les raisons pour lesquelles vous pouvez vouloir configurer certains paramètres facultatifs. Ces informations vous aident à déterminer les valeurs à définir pour chaque paramètre.
+
+Lors de la création d'une politique FPolicy, vous associez cette règle à ce qui suit :
+
+* Le serveur virtuel de stockage (SVM)
+* Un ou plusieurs événements FPolicy
+* Moteur externe FPolicy
+
+
+Vous pouvez également configurer plusieurs paramètres de stratégie facultatifs.
+
+
+
+== Contenu de la configuration des règles FPolicy
+
+Vous pouvez utiliser la liste suivante de règles FPolicy disponibles et de paramètres facultatifs pour vous aider à planifier votre configuration :
+
+[cols="40,20,20,20"]
+|===
+
+
+| Type d'information | Option | Obligatoire | Valeur par défaut 
+
+
+ a| 
+_Nom du SVM_
+
+Spécifie le nom du SVM sur lequel vous souhaitez créer une politique FPolicy.
+ a| 
+`-vserver` `vserver_name`
+ a| 
+Oui.
+ a| 
+Aucune
+
+
+
+ a| 
+_Nom de la politique_
+
+Spécifie le nom de la politique FPolicy.
+
+Le nom peut comporter jusqu'à 256 caractères.
+
+[NOTE]
+====
+Le nom doit comporter jusqu'à 200 caractères si la stratégie est configurée dans une configuration de reprise après incident de MetroCluster ou de SVM.
+
+====
+Le nom peut contenir n'importe quelle combinaison des caractères ASCII suivants :
+
+* `a` à `z`
+* `A` à `Z`
+* `0` à `9`
+* «»_», «»-`", and "`.»
+
+ a| 
+`-policy-name` `policy_name`
+ a| 
+Oui.
+ a| 
+Aucune
+
+
+
+ a| 
+_Noms d'événements_
+
+Spécifie une liste d'événements séparés par des virgules à associer à la politique FPolicy.
+
+* Vous pouvez associer plusieurs événements à une stratégie.
+* Un événement est spécifique à un protocole.
+* Vous pouvez utiliser une seule stratégie pour surveiller les événements d'accès aux fichiers pour plusieurs protocoles en créant un événement pour chaque protocole que la stratégie doit surveiller, puis en associant les événements à la stratégie.
+* Les événements doivent déjà exister.
+
+ a| 
+`-events` `event_name`, ...
+ a| 
+Oui.
+ a| 
+Aucune
+
+
+
+ a| 
+_Nom du moteur externe_
+
+Spécifie le nom du moteur externe à associer à la politique FPolicy.
+
+* Un moteur externe contient les informations requises par le nœud pour envoyer des notifications à un serveur FPolicy.
+* Vous pouvez configurer FPolicy de façon à utiliser le moteur externe natif ONTAP pour simplifier le blocage des fichiers ou à utiliser un moteur externe configuré pour utiliser des serveurs FPolicy externes (serveurs FPolicy) pour obtenir des fonctions plus sophistiquées de blocage et de gestion des fichiers.
+* Si vous souhaitez utiliser le moteur externe natif, vous ne pouvez pas spécifier de valeur pour ce paramètre ou vous pouvez le spécifier `native` comme valeur.
+* Si vous souhaitez utiliser des serveurs FPolicy, la configuration du moteur externe doit déjà exister.
+
+ a| 
+`-engine` `engine_name`
+ a| 
+Oui (à moins que la politique n'utilise le moteur natif ONTAP interne)
+ a| 
+`native`
+
+
+
+ a| 
+_Est un screening obligatoire_
+
+Indique si un filtrage d'accès aux fichiers obligatoire est requis.
+
+* Le paramètre de filtrage obligatoire détermine quelle action est prise en cas d'incident d'accès aux fichiers lorsque tous les serveurs principaux et secondaires sont en panne ou qu'aucune réponse n'est reçue des serveurs FPolicy au cours d'une période de temporisation donnée.
+* Lorsqu'il est réglé sur `true`, les événements d'accès aux fichiers sont refusés.
+* Lorsqu'il est réglé sur `false`, les événements d'accès aux fichiers sont autorisés.
+
+ a| 
+`-is-mandatory` {`true`|`false`}
+ a| 
+Non
+ a| 
+`true`
+
+
+
+ a| 
+_Autoriser l'accès privilégié_
+
+Indique si vous souhaitez que le serveur FPolicy possède un accès privilégié aux fichiers et dossiers surveillés à l'aide d'une connexion de données privilégiée.
+
+S'ils sont configurés, les serveurs FPolicy peuvent accéder aux fichiers à partir de la racine de l'SVM contenant les données surveillées à l'aide de la connexion de données privilégiée.
+
+Pour l'accès privilégié aux données, SMB doit être sous licence sur le cluster et toutes les LIFs de données utilisées pour se connecter aux serveurs FPolicy doivent être configurées de ce fait `cifs` comme l'un des protocoles autorisés.
+
+Si vous souhaitez configurer la policy pour autoriser les accès privilégiés, vous devez également spécifier le nom d'utilisateur du compte que vous souhaitez que le serveur FPolicy utilise pour cet accès privilégié.
+ a| 
+`-allow-privileged-access` {`yes`|`no`}
+ a| 
+Non (sauf si la lecture passthrough est activée)
+ a| 
+`no`
+
+
+
+ a| 
+_Nom d'utilisateur privilégié_
+
+Spécifie le nom d'utilisateur du compte que les serveurs FPolicy utilisent pour l'accès aux données privilégié.
+
+* La valeur de ce paramètre doit utiliser le format "daomain\user name".
+* Si `-allow-privileged-access` est défini sur `no`, toute valeur définie pour ce paramètre est ignorée.
+
+ a| 
+`-privileged-user-name` `user_name`
+ a| 
+Non (sauf si l'accès privilégié est activé)
+ a| 
+Aucune
+
+
+
+ a| 
+_Autoriser la lecture_passthrough_
+
+Spécifie si les serveurs FPolicy peuvent fournir des services de passe-lecture pour les fichiers qui ont été archivés sur le stockage secondaire (fichiers hors ligne) par les serveurs FPolicy :
+
+* Passthrough-read est un moyen de lire les données pour les fichiers hors ligne sans restaurer les données dans le stockage primaire.
++
+La lecture Passthrough réduit les latences de réponse. Les fichiers ne sont donc pas rappelés dans le stockage primaire, ce qui évite de l'avoir à remonter pour répondre à la demande de lecture. De plus, la lecture intermédiaire optimise l'efficacité du stockage puisque vous n'avez plus besoin d'utiliser l'espace de stockage principal avec des fichiers rappelés uniquement pour satisfaire les demandes de lecture.
+
+* Lorsqu'ils sont activés, les serveurs FPolicy fournissent les données du fichier sur un canal de données privilégié distinct ouvert spécifiquement pour les lectures-passants.
+* Si vous souhaitez configurer passthrough-read, la stratégie doit également être configurée pour autoriser l'accès privilégié.
+
+ a| 
+`-is-passthrough-read-enabled` {`true`|`false`}
+ a| 
+Non
+ a| 
+`false`
+
+|===

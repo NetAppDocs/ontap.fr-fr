@@ -1,0 +1,86 @@
+---
+permalink: san-admin/configure-fc-adapters-task.html 
+sidebar: sidebar 
+keywords: configure, fc, adapters, target, initiator, mode 
+summary: 'Chaque port FC intégré peut être configuré individuellement en tant qu"initiateur ou cible. Les ports de certains adaptateurs FC peuvent également être configurés individuellement en tant que port cible ou port initiateur, comme les ports FC intégrés.' 
+---
+= Configurez les adaptateurs FC
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Chaque port FC intégré peut être configuré individuellement en tant qu'initiateur ou cible. Les ports de certains adaptateurs FC peuvent également être configurés individuellement en tant que port cible ou port initiateur, comme les ports FC intégrés. Une liste d'adaptateurs pouvant être configurés pour le mode cible est disponible dans le link:https://hwu.netapp.com["NetApp Hardware Universe"^].
+
+Le mode cible est utilisé pour connecter les ports aux initiateurs FC. Ce mode permet de connecter les ports aux lecteurs de bande, aux librairies de bandes ou aux systèmes de stockage tiers à l'aide de FlexArray Virtualization ou Foreign LUN Import (FLI).
+
+La même procédure est utilisée lors de la configuration des adaptateurs FC pour le protocole FC et le protocole FC-NVMe. Cependant, seuls certains adaptateurs FC prennent en charge la connectivité FC-NVMe. Voir la link:https://hwu.netapp.com["NetApp Hardware Universe"^] Par l'utilisation de la liste des adaptateurs prenant en charge le protocole FC-NVMe.
+
+
+
+== Configurer les adaptateurs FC pour le mode cible
+
+.Étapes
+. Mettez l'adaptateur hors ligne :
++
+`node run -node _node_name_ storage disable adapter _adapter_name_`
+
++
+Si l'adaptateur ne passe pas hors ligne, vous pouvez également retirer le câble du port d'adaptateur approprié du système.
+
+. Modifiez l'adaptateur de l'initiateur sur la cible :
++
+`system hardware unified-connect modify -t target -node _node_name_ adapter _adapter_name_`
+
+. Redémarrez le nœud hébergeant l'adaptateur que vous avez changé.
+. Vérifiez que la configuration du port cible est correcte :
++
+`network fcp adapter show -node _node_name_`
+
+. Mettez votre adaptateur en ligne :
++
+`network fcp adapter modify -node _node_name_ -adapter _adapter_port_ -state up`
+
+
+
+
+
+== Configurer les adaptateurs FC pour le mode initiateur
+
+.Ce dont vous avez besoin, 8217;ll
+* Les LIF présentes sur l'adaptateur doivent être supprimées de n'importe quel ensemble de ports dont elles sont membres.
+* Toutes les LIF de chaque machine virtuelle de stockage (SVM) utilisant le port physique à modifier doivent être migrées ou détruites avant de changer la personnalité du port physique de la cible à l'initiateur.
+
+
+[NOTE]
+====
+Le protocole NVMe/FC prend en charge le mode initiateur.
+
+====
+.Étapes
+. Supprimer toutes les LIFs de l'adaptateur :
++
+`network interface delete -vserver _SVM_name_ -lif _LIF_name,LIF_name_`
+
+. Mettez votre adaptateur hors ligne :
++
+`network fcp adapter modify -node _node_name_ -adapter _adapter_port_ -status-admin down`
+
++
+Si l'adaptateur ne passe pas hors ligne, vous pouvez également retirer le câble du port d'adaptateur approprié du système.
+
+. Modifiez l'adaptateur de la cible à l'initiateur :
++
+`system hardware unified-connect modify -t initiator _adapter_port_`
+
+. Redémarrez le nœud hébergeant l'adaptateur que vous avez changé.
+. Vérifier que les ports FC sont configurés dans l'état approprié pour votre configuration :
++
+`system hardware unified-connect show`
+
+. Remettre la carte en ligne :
++
+`node run -node _node_name_ storage enable adapter _adapter_port_`
+
+

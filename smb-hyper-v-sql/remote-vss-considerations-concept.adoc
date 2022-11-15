@@ -1,0 +1,62 @@
+---
+permalink: smb-hyper-v-sql/remote-vss-considerations-concept.html 
+sidebar: sidebar 
+keywords: remote, vss, consideration, hyper, v, smb, configuration, backup, solution, automatic, recovery, shadow, copy 
+summary: 'Vous devez tenir compte de certains éléments à prendre en compte lors de l"utilisation de solutions de sauvegarde Remote VSS-enabled pour les configurations Hyper-V over SMB.' 
+---
+= Considérations relatives à VSS distant pour les configurations Hyper-V sur SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devez tenir compte de certains éléments à prendre en compte lors de l'utilisation de solutions de sauvegarde Remote VSS-enabled pour les configurations Hyper-V over SMB.
+
+
+
+== Considérations générales de VSS distant
+
+* Un maximum de 64 partages peut être configuré par serveur d'applications Microsoft.
++
+L'opération de copie en double échoue si plus de 64 partages se trouvent dans un jeu de clichés instantanés. Il s'agit d'une condition requise par Microsoft.
+
+* Un seul jeu de clichés instantanés actif par serveur CIFS est autorisé.
++
+Une opération de copie en double échouera si une opération de copie en double est en cours sur le même serveur CIFS. Il s'agit d'une condition requise par Microsoft.
+
+* Aucune jonction n'est autorisée dans la structure de répertoire sur laquelle VSS distant crée une copie en double.
++
+** Dans le cas de la restauration automatique, la création de clichés instantanés échouera si une jonction est rencontrée lors du déplacement du partage.
+** Dans le cas de restauration non automatique, la création de clichés instantanés ne échoue pas, mais la jonction ne pointe en rien.
+
+
+
+
+
+
+== Considérations relatives à la VSS distante qui ne s'appliquent qu'aux clichés instantanés avec restauration automatique
+
+Certaines limites s'appliquent uniquement aux clichés instantanés avec restauration automatique.
+
+* Une profondeur maximale de répertoire de cinq sous-répertoires est autorisée pour la création de clichés instantanés.
++
+Il s'agit de la profondeur du répertoire sur laquelle le service Shadow Copy crée un jeu de sauvegarde Shadow Copy. La création de clichés instantanés échoue si les répertoires contenant un fichier de machine virtuelle sont imbriqués de plus de cinq niveaux. Cela permet de limiter la traversée de répertoire lors du clonage du partage. La profondeur maximale de répertoire peut être modifiée à l'aide d'une option de serveur CIFS.
+
+* La quantité d'espace disponible sur le volume doit être adéquate.
++
+L'espace disponible doit être au moins aussi grand que l'espace combiné utilisé par tous les fichiers, répertoires et sous-répertoires contenus dans les partages inclus dans le jeu de sauvegarde Shadow Copy.
+
+* Aucun lien ou fichier non régulier n'est autorisé dans la structure de répertoires sur laquelle VSS distant crée une copie en double.
++
+La création de la copie en double échoue si des liens ou des fichiers non standard se trouvent dans le partage vers la copie en double. Le processus de clonage ne les prend pas en charge.
+
+* Les répertoires ne sont pas autorisés à ACL NFSv4.
++
+Bien que la création de clichés instantanés conserve les listes de contrôle d'accès NFSv4 sur les fichiers, les listes de contrôle d'accès NFSv4 sur les répertoires sont perdues.
+
+* Un maximum de 60 secondes est autorisé à créer un jeu de clichés instantanés.
++
+Les spécifications Microsoft permettent de créer le jeu de clichés instantanés pendant 60 secondes au maximum. Si le client VSS ne peut pas créer l'ensemble de clichés instantanés dans ce délai, l'opération de copie en double échoue ; ceci limite donc le nombre de fichiers dans un jeu de clichés instantanés. Le nombre réel de fichiers ou de machines virtuelles pouvant être inclus dans un jeu de sauvegardes varie ; ce nombre dépend de nombreux facteurs et doit être déterminé pour chaque environnement du client.
+
+

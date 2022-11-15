@@ -1,0 +1,80 @@
+---
+permalink: fabricpool/setup-aws-s3-cloud-tier-task.html 
+sidebar: sidebar 
+keywords: setting up, aws, s3, cloud tier 
+summary: 'Si vous exécutez ONTAP 9.2 ou une version ultérieure, vous pouvez configurer AWS S3 en tant que Tier cloud pour FabricPool. Si vous exécutez ONTAP 9.5 ou une version ultérieure, vous pouvez configurer AWS commercial Cloud Services (C2S) pour FabricPool.' 
+---
+= Configuration d'AWS S3 en tant que Tier cloud
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous exécutez ONTAP 9.2 ou une version ultérieure, vous pouvez configurer AWS S3 en tant que Tier cloud pour FabricPool. Si vous exécutez ONTAP 9.5 ou une version ultérieure, vous pouvez configurer AWS commercial Cloud Services (C2S) pour FabricPool.
+
+.Utilisation d'AWS S3 avec FabricPool
+* Vous aurez peut-être besoin d'une licence FabricPool.
++
+** Les systèmes AFF nouvellement commandés disposent d'une capacité libre de 10 To pour l'utilisation de FabricPool.
++
+Si vous avez besoin de capacité supplémentaire sur un système AFF, si vous utilisez AWS S3 sur un système non AFF ou si vous effectuez une mise à niveau à partir d'un cluster existant, vous devez disposer d'une licence FabricPool.
+
++
+Si vous commandez FabricPool pour la première fois pour un cluster existant, une licence FabricPool avec 10 To de capacité libre est disponible.
+
+
+
+* Le LIF utilisé par ONTAP pour se connecter au serveur objet AWS S3 doit être sur un port 10 Gbit/s.
+* Sur les systèmes AFF et FAS, ainsi que sur ONTAP Select, FabricPool prend en charge les classes de stockage Amazon S3 suivantes :
++
+** Amazon S3 Standard
+** Amazon S3 Standard – Infrequent Access (Standard – IA)
+** Amazon S3 One zone – Infrequent Access (One zone – IA)
+** Tiering intelligent Amazon S3
+** Amazon commercial Cloud Services
++
+https://aws.amazon.com/s3/storage-classes/["Documentation Amazon Web Services (AWS) : classes de stockage Amazon S3"]
+
+
+
++
+Contactez votre ingénieur commercial pour plus d'informations sur les classes de stockage non répertoriées.
+
+* Sur Cloud Volumes ONTAP, FabricPool prend en charge le Tiering à partir de disques SSD à usage générique (gp2) et de volumes HDD à optimisation du débit d'Amazon Elastic Block Store (EBS).
+
+
+.Étapes
+. Spécifiez les informations de configuration AWS S3 à l'aide du `storage aggregate object-store config create` commande avec `-provider-type` `AWS_S3` paramètre.
++
+** Vous utilisez le `-auth-type` `CAP` Paramètre permettant d'obtenir des informations d'identification pour l'accès au C2S.
++
+Lorsque vous utilisez le `-auth-type` `CAP` vous devez utiliser le paramètre `-cap-url` Paramètre permettant de spécifier l'URL complète pour demander des informations d'identification temporaires pour l'accès à C2S.
+
+** Le `storage aggregate object-store config create` Échec de la commande si ONTAP ne peut pas accéder à AWS S3 avec les informations fournies.
+** Vous utilisez le `-access-key` Paramètre permettant de spécifier la clé d'accès pour l'autorisation des requêtes vers le magasin d'objets AWS S3.
+** Vous utilisez le `-secret-password` Paramètre permettant de spécifier le mot de passe (clé d'accès secrète) pour l'authentification des requêtes vers la boutique d'objets AWS S3.
+** Si le mot de passe AWS S3 est modifié, vous devez immédiatement mettre à jour le mot de passe correspondant stocké dans ONTAP.
++
+ONTAP peut ainsi accéder aux données dans AWS S3 sans interruption.
+
++
+[listing]
+----
+cluster1::> storage aggregate object-store config create
+-object-store-name my_aws_store -provider-type AWS_S3
+-server s3.amazonaws.com -container-name my-aws-bucket
+-access-key DXJRXHPXHYXA9X31X3JX
+----
++
+[listing]
+----
+cluster1::> storage aggregate object-store config create -object-store-name my_c2s_store -provider-type AWS_S3 -auth-type CAP -cap-url https://123.45.67.89/api/v1/credentials?agency=XYZ&mission=TESTACCT&role=S3FULLACCESS -server my-c2s-s3server-fqdn -container my-c2s-s3-bucket
+----
+
+
+. Affichez et vérifiez les informations de configuration d'AWS S3 à l'aide du `storage aggregate object-store config show` commande.
++
+Le `storage aggregate object-store config modify` Vous permet de modifier les informations de configuration d'AWS S3 pour FabricPool.
+
+

@@ -1,0 +1,54 @@
+---
+permalink: system-admin/manage-cluster-time-concept.html 
+sidebar: sidebar 
+keywords: manage, cluster, time, administrator, ntp, network, time, protocol, zone 
+summary: 'Les problèmes peuvent survenir lorsque l"heure du cluster est incorrecte. Bien que ONTAP vous permet de définir manuellement le fuseau horaire, la date et l"heure sur le cluster, vous devez configurer les serveurs NTP (Network Time Protocol) pour synchroniser l"heure du cluster.' 
+---
+= Gestion de l'heure du cluster (administrateurs du cluster uniquement)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les problèmes peuvent survenir lorsque l'heure du cluster est incorrecte. Bien que ONTAP vous permet de définir manuellement le fuseau horaire, la date et l'heure sur le cluster, vous devez configurer les serveurs NTP (Network Time Protocol) pour synchroniser l'heure du cluster.
+
+Depuis ONTAP 9.5, vous pouvez configurer votre serveur NTP avec une authentification symétrique.
+
+NTP est toujours activé. Toutefois, la synchronisation du cluster avec une source de temps externe nécessite toujours une configuration. ONTAP vous permet de gérer la configuration NTP du cluster de l'une des manières suivantes :
+
+* Vous pouvez associer un maximum de 10 serveurs NTP externes au cluster (`cluster time-service ntp server create`).
++
+** Pour la redondance et la qualité du service de temps, vous devez associer au moins trois serveurs NTP externes au cluster.
+** Vous pouvez spécifier un serveur NTP à l'aide de son adresse IPv4 ou IPv6 ou de son nom d'hôte complet.
+** Vous pouvez spécifier manuellement la version NTP (v3 ou v4) à utiliser.
++
+Par défaut, ONTAP sélectionne automatiquement la version NTP prise en charge pour un serveur NTP externe donné.
+
++
+Si la version NTP que vous spécifiez n'est pas prise en charge pour le serveur NTP, le service de change ne peut pas avoir lieu.
+
+** Au niveau de privilège avancé, vous pouvez spécifier un serveur NTP externe associé au cluster comme source de temps principale pour corriger et ajuster l'heure du cluster.
+
+
+* Vous pouvez afficher les serveurs NTP associés au cluster (`cluster time-service ntp server show`).
+* Vous pouvez modifier la configuration NTP du cluster (`cluster time-service ntp server modify`).
+* Vous pouvez dissocier le cluster d'un serveur NTP externe (`cluster time-service ntp server delete`).
+* Au niveau de privilège avancé, vous pouvez réinitialiser la configuration en désactivant toute association de serveurs NTP externes au cluster (`cluster time-service ntp server reset`).
+
+
+Un nœud qui rejoint un cluster adopte automatiquement la configuration NTP du cluster.
+
+Outre l'utilisation du protocole NTP, ONTAP vous permet également de gérer manuellement l'heure du cluster. Cette fonctionnalité est utile pour corriger une heure erronée (par exemple, l'heure d'un nœud est devenue très incorrecte après un redémarrage). Dans ce cas, vous pouvez indiquer une heure approximative du cluster jusqu'à ce que NTP puisse se synchroniser avec un serveur de temps externe. Le temps que vous définissez manuellement prend effet sur tous les nœuds du cluster.
+
+Vous pouvez gérer manuellement l'heure du cluster des manières suivantes :
+
+* Vous pouvez définir ou modifier le fuseau horaire, la date et l'heure sur le cluster (`cluster date modify`).
+* Vous pouvez afficher les paramètres actuels du fuseau horaire, de date et d'heure du cluster (`cluster date show`).
+
+
+[NOTE]
+====
+Les planifications des tâches ne s'adaptent pas aux modifications manuelles de la date et de l'heure du cluster. Ces travaux sont planifiés pour s'exécuter en fonction de l'heure actuelle du cluster au moment de la création du travail ou de l'exécution du travail le plus récent. Par conséquent, si vous modifiez manuellement la date ou l'heure du cluster, vous devez utiliser le `job show` et `job history show` commandes permettant de vérifier que tous les travaux planifiés sont mis en file d'attente et terminés en fonction de vos besoins.
+
+====

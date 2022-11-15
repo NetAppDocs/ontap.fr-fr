@@ -1,0 +1,92 @@
+---
+permalink: smb-admin/monitor-oplock-status-task.html 
+sidebar: sidebar 
+keywords: monitor, display, information, oplock, status, file, state, leasing, lease, determine, manual, monitor oplock status 
+summary: 'Vous pouvez surveiller et afficher des informations sur l"état du oplock. Vous pouvez utiliser ces informations pour déterminer quels fichiers ont des oplocks, ce que sont le niveau de oplock et le niveau d"état de oplock et si le leasing oplock est utilisé. Vous pouvez également déterminer des informations sur les verrous que vous devrez peut-être briser manuellement.' 
+---
+= Surveiller l'état du oplock
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez surveiller et afficher des informations sur l'état du oplock. Vous pouvez utiliser ces informations pour déterminer quels fichiers ont des oplocks, ce que sont le niveau de oplock et le niveau d'état de oplock et si le leasing oplock est utilisé. Vous pouvez également déterminer des informations sur les verrous que vous devrez peut-être briser manuellement.
+
+Vous pouvez afficher des informations sur tous les oplocks sous forme de résumé ou sous forme de liste détaillée. Vous pouvez également utiliser des paramètres facultatifs pour afficher des informations sur un plus petit sous-ensemble de verrous existants. Par exemple, vous pouvez spécifier que le retour de sortie se verrouille uniquement avec l'adresse IP du client spécifiée ou avec le chemin d'accès spécifié.
+
+Vous pouvez afficher les informations suivantes sur les oplocks classiques et de location :
+
+* SVM, node, volume et LIF sur lequel le oplock est établi
+* Verrouiller l'UUID
+* Adresse IP du client avec le oplock
+* Chemin auquel le oplock est établi
+* Protocole de verrouillage (SMB) et type (oplock)
+* État de verrouillage
+* Niveau oplock
+* État de connexion et heure d'expiration SMB
+* ID de groupe ouvert si un oplock de bail est accordé
+
+
+Voir la `vserver oplocks show` page man pour une description détaillée de chaque paramètre.
+
+.Étapes
+. Afficher l'état du oplock à l'aide de l' `vserver locks show` commande.
+
+
+La commande suivante affiche des informations par défaut sur tous les verrouillages. Le oplock du fichier affiché est accordé avec un `read-batch` niveau oplock :
+
+[listing]
+----
+cluster1::> vserver locks show
+
+Vserver: vs0
+Volume   Object Path        LIF         Protocol  Lock Type   Client
+-------- ------------------ ----------- --------- ----------- ----------
+vol1     /vol1/notes.txt    node1_data1
+                                        cifs      share-level 192.168.1.5
+         Sharelock Mode: read_write-deny_delete
+                                                  op-lock     192.168.1.5
+         Oplock Level: read-batch
+----
+L'exemple suivant affiche des informations plus détaillées sur le verrouillage d'un fichier avec le chemin d'accès `/data2/data2_2/intro.pptx`. Un oplock de bail est accordé sur le dossier avec un `batch` Niveau oplock vers un client avec une adresse IP de `10.3.1.3`:
+
+[NOTE]
+====
+Lors de l'affichage d'informations détaillées, la commande fournit une sortie séparée pour les informations oplock et sharelock. Cet exemple montre uniquement la sortie de la section oplock.
+
+====
+[listing]
+----
+cluster1::> vserver lock show -instance -path /data2/data2_2/intro.pptx
+
+                   Vserver: vs1
+                    Volume: data2_2
+         Logical Interface: lif2
+               Object Path: /data2/data2_2/intro.pptx
+                 Lock UUID: ff1cbf29-bfef-4d91-ae06-062bf69212c3
+             Lock Protocol: cifs
+                 Lock Type: op-lock
+   Node Holding Lock State: node3
+                Lock State: granted
+  Bytelock Starting Offset: -
+    Number of Bytes Locked: -
+     Bytelock is Mandatory: -
+     Bytelock is Exclusive: -
+     Bytelock is Superlock: -
+          Bytelock is Soft: -
+              Oplock Level: batch
+   Shared Lock Access Mode: -
+       Shared Lock is Soft: -
+           Delegation Type: -
+            Client Address: 10.3.1.3
+             SMB Open Type: -
+         SMB Connect State: connected
+SMB Expiration Time (Secs): -
+         SMB Open Group ID: 78a90c59d45ae211998100059a3c7a00a007f70da0f8ffffcd445b0300000000
+----
+xref:enable-disable-oplocks-when-creating-shares-task.adoc[Activation ou désactivation des oplocks lors de la création de partages SMB]
+
+xref:enable-disable-oplocks-existing-shares-task.adoc[Activation ou désactivation des oplocks sur des partages SMB existants]
+
+xref:commands-oplocks-volumes-qtrees-reference.adoc[Commandes pour l'activation ou la désactivation des oplocks sur des volumes et des qtrees]

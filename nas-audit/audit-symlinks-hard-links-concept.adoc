@@ -1,0 +1,38 @@
+---
+permalink: nas-audit/audit-symlinks-hard-links-concept.html 
+sidebar: sidebar 
+keywords: considerations, audit, symlinks, hard links 
+summary: 'Il y a certaines considérations que vous devez garder à l"esprit lors de l"audit des liens symlinks et des liens matériels.' 
+---
+= Considérations relatives à l'audit des liens symlinks et des liens matériels
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Il y a certaines considérations que vous devez garder à l'esprit lors de l'audit des liens symlinks et des liens matériels.
+
+Un enregistrement d'audit contient des informations sur l'objet en cours d'audit, y compris le chemin d'accès à l'objet vérifié, qui est identifié dans le `ObjectName` balise : Vous devez savoir comment les chemins pour les liens symlinks et les liens rigides sont enregistrés dans le `ObjectName` balise :
+
+
+
+== Symlinks
+
+Un symlink est un fichier avec un inode séparé qui contient un pointeur vers l'emplacement d'un objet de destination, appelé cible. Lors de l'accès à un objet via une symlink, ONTAP interprète automatiquement la symlink et suit le chemin canonique réel de protocole indépendant vers l'objet cible dans le volume.
+
+Dans l'exemple de sortie suivant, il y a deux symlinks, tous deux pointant vers un fichier nommé `target.txt`. Un des symlinks est un symlink relatif et un est un symlink absolu. Si l'un des symlinks est vérifié, le `ObjectName` la balise de l'événement d'audit contient le chemin d'accès au fichier `target.txt`:
+
+[listing]
+----
+[root@host1 audit]# ls -l
+total 0
+lrwxrwxrwx 1 user1 group1 37 Apr  2 10:09 softlink_fullpath.txt -> /data/audit/target.txt
+lrwxrwxrwx 1 user1 group1 10 Apr  2 09:54 softlink.txt -> target.txt
+-rwxrwxrwx 1 user1 group1 16 Apr  2 10:05 target.txt
+----
+
+
+== Liens matériels
+
+Un lien dur est une entrée de répertoire qui associe un nom à un fichier existant sur un système de fichiers. Le lien matériel pointe vers l'emplacement d'inode du fichier d'origine. De la même manière que ONTAP interprète les symlinks, ONTAP interprète le lien rigide et suit le chemin canonique réel vers l'objet cible dans le volume. Lorsque l'accès à un objet de lien rigide est vérifié, l'événement d'audit enregistre ce chemin canonique absolu dans l' `ObjectName` marquez plutôt que le chemin du lien dur.

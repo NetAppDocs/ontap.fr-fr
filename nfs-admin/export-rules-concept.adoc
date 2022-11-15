@@ -1,0 +1,73 @@
+---
+permalink: nfs-admin/export-rules-concept.html 
+sidebar: sidebar 
+keywords: export, rule, work 
+summary: 'Les règles d"exportation sont les éléments fonctionnels d"une export-policy. Les règles d"exportation correspondent aux demandes d"accès client à un volume par rapport à des paramètres spécifiques que vous configurez pour déterminer comment traiter les demandes d"accès client.' 
+---
+= Fonctionnement des règles d'exportation
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les règles d'exportation sont les éléments fonctionnels d'une export-policy. Les règles d'exportation correspondent aux demandes d'accès client à un volume par rapport à des paramètres spécifiques que vous configurez pour déterminer comment traiter les demandes d'accès client.
+
+Une export-policy doit contenir au moins une règle d'exportation pour permettre l'accès aux clients. Si une export-policy contient plusieurs règles, celles-ci sont traitées dans l'ordre dans lequel elles apparaissent dans l'export-policy. L'ordre des règles est dicté par le numéro d'index des règles. Si une règle correspond à un client, les autorisations de cette règle sont utilisées et aucune autre règle n'est traitée. Si aucune règle ne correspond, l'accès au client est refusé.
+
+Vous pouvez configurer des règles d'exportation pour déterminer les autorisations d'accès client à l'aide des critères suivants :
+
+* Protocole d'accès aux fichiers utilisé par le client envoyant la requête, par exemple, NFSv4 ou SMB.
+* Identifiant client, par exemple, nom d'hôte ou adresse IP.
++
+La taille maximale du `-clientmatch` le champ est composé de 4096 caractères.
+
+* Type de sécurité utilisé par le client pour l'authentification, par exemple Kerberos v5, NTLM ou AUTH_SYS.
+
+
+Si une règle spécifie plusieurs critères, le client doit tous les correspondre pour que la règle s'applique.
+
+[NOTE]
+====
+Depuis ONTAP 9.3, vous pouvez activer la vérification de la configuration des règles d'exportation en tant que tâche d'arrière-plan qui enregistre toutes les violations de règles dans une liste de règles d'erreur. Le `vserver export-policy config-checker` les commandes invoquent le vérificateur et affichent les résultats, que vous pouvez utiliser pour vérifier votre configuration et supprimer des règles erronées de la stratégie.
+
+Les commandes valident uniquement la configuration d'exportation pour les noms d'hôte, les groupes réseau et les utilisateurs anonymes.
+
+====
+La export policy contient une règle d'exportation avec les paramètres suivants :
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `any`
+* `-rwrule` `any`
+
+
+La requête d'accès client est envoyée à l'aide du protocole NFSv3 et le client a l'adresse IP 10.1.17.37.
+
+Bien que le protocole d'accès client corresponde, l'adresse IP du client se trouve dans un sous-réseau différent de celui spécifié dans la règle d'exportation. Par conséquent, la correspondance des clients échoue et cette règle ne s'applique pas à ce client.
+
+La export policy contient une règle d'exportation avec les paramètres suivants :
+
+* `-protocol` `nfs`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `any`
+* `-rwrule` `any`
+
+
+La requête d'accès client est envoyée via le protocole NFSv4 et le client a l'adresse IP 10.1.16.54.
+
+Le protocole d'accès client correspond et l'adresse IP du client se trouve dans le sous-réseau spécifié. Par conséquent, la correspondance du client a réussi et cette règle s'applique à ce client. Le client obtient un accès en lecture-écriture quel que soit son type de sécurité.
+
+La export policy contient une règle d'exportation avec les paramètres suivants :
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `any`
+* `-rwrule` `krb5,ntlm`
+
+
+Le client #1 a l'adresse IP 10.1.16.207, envoie une demande d'accès à l'aide du protocole NFSv3 et est authentifié avec Kerberos v5.
+
+Le client #2 a l'adresse IP 10.1.16.211, envoie une demande d'accès à l'aide du protocole NFSv3 et est authentifié avec AUTH_SYS.
+
+Le protocole d'accès client et l'adresse IP correspondent pour les deux clients. Le paramètre en lecture seule permet l'accès en lecture seule à tous les clients, quel que soit le type de sécurité auquel ils sont authentifiés. Par conséquent, les deux clients bénéficient d'un accès en lecture seule. Cependant, seul le client #1 obtient l'accès en lecture-écriture car il a utilisé le type de sécurité approuvé Kerberos v5 pour s'authentifier. Le client n° 2 ne dispose pas d'un accès en lecture/écriture.

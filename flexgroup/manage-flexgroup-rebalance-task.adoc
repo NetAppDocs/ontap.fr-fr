@@ -1,0 +1,257 @@
+---
+permalink: flexgroup/manage-flexgroup-rebalance-task.html 
+sidebar: sidebar 
+keywords: enable, storage, rebalance, modify, stop, status, flexgroup, volume 
+summary: 'Depuis ONTAP 9.12.1, vous pouvez rééquilibrer les volumes FlexGroup en déplaçant les fichiers d"un composant d"un FlexGroup vers un autre composant sans interruption.' 
+---
+= Rééquilibrer les volumes FlexGroup
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.12.1, vous pouvez rééquilibrer les volumes FlexGroup en déplaçant les fichiers d'un composant d'un FlexGroup vers un autre composant sans interruption.
+
+Le rééquilibrage FlexGroup permet de redistribuer les capacités lorsque les déséquilibres se développent au fil du temps en raison de l'ajout de nouveaux fichiers et de la croissance des fichiers. Une fois que vous avez démarré manuellement l'opération de rééquilibrage, ONTAP sélectionne les fichiers et les déplace automatiquement et sans interruption.
+
+Le rééquilibrage automatique est disponible uniquement lorsque tous les nœuds du cluster exécutent les versions ONTAP 9.12.1 ou ultérieures. Vous devez activer la fonctionnalité de données granulaires inode multiples sur tout volume FlexGroup qui exécute l'opération de rééquilibrage. Une fois cette fonctionnalité activée, vous ne pouvez plus revenir à une version ONTAP précédente, sauf si vous supprimez la FlexGroup et restaurez une version précédente.
+
+
+
+== Considérations relatives au rééquilibrage FlexGroup
+
+Il est important de connaître le fonctionnement du rééquilibrage FlexGroup et son interaction avec d'autres fonctionnalités de ONTAP.
+
+* Conversion FlexVol en FlexGroup
++
+Il est recommandé de procéder à _pas_ à un rééquilibrage FlexGroup automatique après une conversion FlexVol en FlexGroup. Vous pouvez utiliser la fonctionnalité de déplacement de fichier avec effet rétroactif disruptive disponible dans ONTAP 9.10.1 et versions ultérieures, en entrant le `volume rebalance file-move` commande. Pour la syntaxe de commande, voir `volume rebalance file-move start` page de manuel.
+
+* Taille minimale et maximale du fichier
++
+La sélection de fichiers pour le rééquilibrage automatique est basée sur les blocs enregistrés. La taille de fichier minimale prise en compte pour le rééquilibrage est de 100 Mo par défaut (peut être configurée de 4 Ko à l'aide du paramètre de taille de fichier min indiqué ci-dessous) et la taille de fichier maximale est de 100 Go.
+
+* Fichiers dans des copies Snapshot
++
+Vous pouvez configurer le rééquilibrage FlexGroup pour tenir compte uniquement des fichiers qui ne sont actuellement présents dans aucune copie Snapshot. Au démarrage du rééquilibrage, une notification s'affiche si une opération de copie Snapshot est planifiée à tout moment au cours d'une opération de rééquilibrage.
+
++
+Les copies snapshot sont restreintes si un fichier est en cours de déplacement et est en cours de cadrage au niveau de la destination. Une opération de restauration de copie Snapshot n'est pas autorisée tant que le rééquilibrage des fichiers est en cours.
+
+* Opérations SnapMirror
++
+Le rééquilibrage de la FlexGroup doit avoir lieu entre les opérations SnapMirror planifiées. Une opération SnapMirror peut échouer si un fichier est déplacé avant une opération SnapMirror démarre si ce déplacement de fichier ne se termine pas dans une période de 24 minutes. Tout nouveau déplacement de fichier qui commence après le démarrage du transfert SnapMirror n'échoue pas.
+
+* Efficacité du stockage par compression basée sur des fichiers
++
+Avec l'efficacité du stockage en compression basée sur les fichiers, le fichier est décompressé avant son déplacement vers la destination, ce qui entraîne une perte des économies en termes de compression. Les économies de compression sont reobtenues après l'exécution d'un scanner en arrière-plan manuel sur le volume FlexGroup après le rééquilibrage. Cependant, si un fichier est associé à une copie Snapshot sur un volume, ce fichier est ignoré pour la compression.
+
+* Déduplication
++
+Le déplacement des fichiers dédupliqués peut augmenter l'utilisation globale du volume FlexGroup. Lors du rééquilibrage des fichiers, seuls les blocs uniques sont déplacés vers la destination, ce qui libère cette capacité sur la source. Les blocs partagés restent à la source et sont copiés vers la destination. Cela permet de réduire la capacité utilisée sur un composant à source presque complète. Cependant, cela peut également entraîner une augmentation de l'utilisation globale du volume FlexGroup grâce à des copies de blocs partagés sur les nouvelles destinations. Cela est également possible lorsque les fichiers qui font partie d'une copie Snapshot sont déplacés. Les économies d'espace ne sont pas entièrement reconnues avant le recyclage des copies Snapshot et l'absence de copie des fichiers dans des copies Snapshot.
+
+* Volumes FlexClone
++
+Si un rééquilibrage des fichiers est en cours lors de la création d'un volume FlexClone, le rééquilibrage ne sera pas effectué sur le volume FlexClone. Le rééquilibrage du volume FlexClone doit être effectué après sa création.
+
+* Déplacement de fichier
++
+Lorsqu'un fichier est déplacé au cours d'une opération de rééquilibrage FlexGroup, la taille de fichier est indiquée dans le cadre de quotas comptables des composants source et de destination. Une fois le déplacement terminé, la comptabilisation des quotas revient à normal et la taille du fichier est uniquement signalée sur la nouvelle destination.
+
+
+
+
+
+== Activez le rééquilibrage FlexGroup
+
+Depuis ONTAP 9.12.1, vous pouvez activer le rééquilibrage automatique des volumes FlexGroup sans interruption pour redistribuer les fichiers entre les composants FlexGroup.
+
+Vous devez avoir activé `granular-data` Option sur le volume FlexGroup avant l'activation du rééquilibrage FlexGroup. Vous pouvez l'activer en utilisant l'une des méthodes suivantes :
+
+* Lorsque vous créez un volume FlexGroup à l'aide de `volume create` commande
+* En modifiant un volume FlexGroup existant pour activer le paramètre à l'aide de `volume modify` commande
+* Configuration automatique du système lorsque le rééquilibrage FlexGroup est lancé à l'aide du `volume rebalance` commande
+
+
+Vous pouvez gérer le rééquilibrage des FlexGroup à l'aide de ONTAP System Manager ou de l'interface de ligne de commande ONTAP.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Étapes
+. Naviguez jusqu'à *stockage > volumes* et localisez le volume FlexGroup à rééquilibrer.
+. Cliquez sur image:icon_dropdown_arrow.gif["Afficher l'icône des détails"] pour afficher les détails du volume.
+. Cliquez sur *Rebalance*.
+
+
+--
+.CLI
+--
+.Étapes
+. Démarrer le rééquilibrage automatique : `volume rebalance start -vserver _SVM_name_ -volume _volume_name_`
++
+Vous pouvez également spécifier les options suivantes : [[-max-runtime] <time interval>] durée maximale [-max-Threshold <percent>] seuil de déséquilibre maximal par composant [-min-seuil <pourcentage>] seuil minimum par composant [-max-file-déplace <entier>] nombre maximum de déplacements simultanés par fichier [-min-taille_fichier]|nombre_de_Mo|nombre_de_copies_Mo] nombre_minimal|nombre_de_octets_%|nombre_de_Mo|nombre_de_Mo_Mo_Mo_fichiers_fichiers_Mo_Mo_Mo_fichiers_fichiers_restants
+
++
+Exemple :
+
++
+[listing]
+----
+volume rebalance start -vserver vs0 -volume fg1
+----
+. Dans la fenêtre *Rebalance Volume*, modifiez les paramètres par défaut si nécessaire.
+. Cliquez sur *Enregistrer* pour accepter les paramètres par défaut.
+
+
+--
+====
+
+
+== Modifier les configurations FlexGroup rééquilibrées
+
+Vous pouvez modifier une configuration de rééquilibrage FlexGroup pour mettre à jour le seuil de déséquilibre, la quantité de fichiers simultanés ayant la taille minimale, l'exécution maximale et pour inclure ou exclure des copies Snapshot.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Étapes
+. Naviguez jusqu'à *stockage > volumes* et localisez le volume FlexGroup à rééquilibrer.
+. Cliquez sur image:icon_dropdown_arrow.gif["Afficher l'icône des détails"] pour afficher les détails du volume.
+. Cliquez sur *Rebalance*.
+. Dans la fenêtre *Rebalance Volume*, modifiez les paramètres par défaut selon vos besoins.
+. Cliquez sur *Enregistrer*.
+
+
+--
+.CLI
+--
+.Étape
+. Modifier le rééquilibrage automatique : `volume rebalance modify -vserver _SVM_name_ -volume _volume_name_`
++
+Vous pouvez spécifier une ou plusieurs des options suivantes : [[-max-runtime] <time interval>] durée maximale [-max-Threshold <percent>] seuil de déséquilibre maximal par composant [-min-seuil <pourcentage>] seuil de déséquilibre minimal par composant [-max-file-déplace <entier>] nombre maximal de déplacements de fichiers simultanés par fichier Constituent [-min-Mo|nombre_de copies snapshot]|nombre_de fichiers pris en charge_%|nombre_%|nombre_%_%_%_minimum|nombre_%_de_de_Mo_Mo_Mo] nombre_Mo|nombre_exemplaires_de_fichiers_Mo_fichiers_%_Mo
+
+
+
+--
+====
+
+
+== Arrêter le rééquilibrage FlexGroup
+
+Une fois le rééquilibrage FlexGroup activé, vous pouvez l'arrêter à tout moment.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Étapes
+. Accédez à *stockage > volumes* et recherchez le volume FlexGroup.
+. Cliquez sur image:icon_dropdown_arrow.gif["Afficher l'icône des détails"] pour afficher les détails du volume.
+. Cliquez sur *Arrêter le rééquilibrage*.
+
+
+--
+.CLI
+--
+.Étape
+. Arrêter le rééquilibrage FlexGroup : `volume rebalance stop -vserver _SVM_name_ -volume _volume_name_`
+
+
+--
+====
+
+
+== Afficher l'état de rééquilibrage FlexGroup
+
+Vous pouvez afficher le statut d'une opération FlexGroup Rerééquilibrage, la configuration FlexGroup Rerééquilibrage, le temps d'opération Rerééquilibrage et les détails de l'instance de rééquilibrage.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Étapes
+. Accédez à *stockage > volumes* et recherchez le volume FlexGroup.
+. Cliquez sur image:icon_dropdown_arrow.gif["Afficher l'icône des détails"] Pour afficher les détails de FlexGroup.
+. *Statut solde FlexGroup* s'affiche en bas du volet de détails.
+. Pour afficher des informations sur la dernière opération de rééquilibrage, cliquez sur *dernier état de rééquilibrage du volume*.
+
+
+--
+.CLI
+--
+.Étape
+. Afficher le statut d'une opération de rééquilibrage FlexGroup : `volume rebalance show`
++
+Exemple d'état de rééquilibrage :
+
++
+[listing]
+----
+> volume rebalance show
+Vserver: vs0
+                                                        Target     Imbalance
+Volume       State                  Total      Used     Used       Size     %
+------------ ------------------ --------- --------- --------- --------- -----
+fg1          idle                     4GB   115.3MB         -       8KB    0%
+----
++
+Exemple de détails de configuration du rééquilibrage :
+
++
+[listing]
+----
+> volume rebalance show -config
+Vserver: vs0
+                    Max            Threshold         Max          Min          Exclude
+Volume              Runtime        Min     Max       File Moves   File Size    Snapshot
+---------------     ------------   -----   -----     ----------   ---------    ---------
+fg1                 6h0m0s         5%      20%          25          4KB          true
+----
++
+Exemple de détails de l'heure de rééquilibrage :
+
++
+[listing]
+----
+> volume rebalance show -time
+Vserver: vs0
+Volume               Start Time                    Runtime        Max Runtime
+----------------     -------------------------     -----------    -----------
+fg1                  Wed Jul 20 16:06:11 2022      0h1m16s        6h0m0s
+----
++
+Exemple de détails d'instance de rééquilibrage :
+
++
+[listing]
+----
+    > volume rebalance show -instance
+    Vserver Name: vs0
+    Volume Name: fg1
+    Is Constituent: false
+    Rebalance State: idle
+    Rebalance Notice Messages: -
+    Total Size: 4GB
+    AFS Used Size: 115.3MB
+    Constituent Target Used Size: -
+    Imbalance Size: 8KB
+    Imbalance Percentage: 0%
+    Moved Data Size: -
+    Maximum Constituent Imbalance Percentage: 1%
+    Rebalance Start Time: Wed Jul 20 16:06:11 2022
+    Rebalance Stop Time: -
+    Rebalance Runtime: 0h1m32s
+    Rebalance Maximum Runtime: 6h0m0s
+    Maximum Imbalance Threshold per Constituent: 20%
+    Minimum Imbalance Threshold per Constituent: 5%
+    Maximum Concurrent File Moves per Constituent: 25
+    Minimum File Size: 4KB
+    Exclude Files Stuck in Snapshot Copies: true
+----
+
+
+--
+====

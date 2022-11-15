@@ -1,0 +1,70 @@
+---
+permalink: smb-admin/dynamic-home-directories-concept.html 
+sidebar: sidebar 
+keywords: ontap, home, directories, directory, configure, smb, share, map, base, connect, set, variable, creating, create, separate, share, user, define, home, relationship, entry, point, svm, how ontap enables dynamic home directories 
+summary: 'Les home directories ONTAP vous permettent de configurer un partage SMB qui correspond à différents répertoires en fonction de l"utilisateur qui se connecte à celui-ci et d"un ensemble de variables. Au lieu de créer des partages distincts pour chaque utilisateur, vous pouvez configurer un partage avec quelques paramètres home Directory pour définir la relation d’un utilisateur entre un point d’entrée (le partage) et le répertoire home (un répertoire sur le SVM).' 
+---
+= Comment ONTAP rend possible les répertoires locaux dynamiques
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les home directories ONTAP vous permettent de configurer un partage SMB qui correspond à différents répertoires en fonction de l'utilisateur qui se connecte à celui-ci et d'un ensemble de variables. Au lieu de créer des partages distincts pour chaque utilisateur, vous pouvez configurer un partage avec quelques paramètres de home Directory afin de définir la relation d'un utilisateur entre un point d'entrée (le partage) et le home Directory (un répertoire sur la SVM).
+
+Un utilisateur connecté en tant qu'utilisateur invité ne dispose pas d'un répertoire personnel et ne peut pas accéder aux répertoires d'accueil d'autres utilisateurs. Il existe quatre variables qui déterminent la manière dont un utilisateur est mappé à un répertoire :
+
+* *Nom de partage*
++
+Il s'agit du nom du partage que vous créez et auquel l'utilisateur se connecte. Vous devez définir la propriété du répertoire personnel pour ce partage.
+
++
+Le nom du partage peut utiliser les noms dynamiques suivants :
+
++
+** `%w` (Nom d'utilisateur Windows de l'utilisateur)
+** `%d` (Nom de domaine Windows de l'utilisateur)
+**  `%u` (Nom d'utilisateur UNIX mappé de l'utilisateur) pour que le nom du partage soit unique dans tous les répertoires d'accueil, le nom du partage doit contenir soit/`%w` ou le `%u` variable. Le nom du partage peut contenir les deux `%d` et le/`%w` variable (par exemple, `%d`/`%w`), ou le nom du partage peut contenir une partie statique et une partie variable (par exemple, home_/`%w`).
+
+
+* *Chemin de partage*
++
+Il s'agit du chemin relatif, défini par le partage, et donc associé à l'un des noms de partage, qui est ajouté à chaque chemin de recherche pour générer le chemin d'accès complet du home Directory de l'utilisateur, à partir de la racine de la SVM. Il peut être statique (par exemple, `home`), dynamique (par exemple, `%w`), ou une combinaison des deux (par exemple, `eng/%w`).
+
+* *Chemins de recherche*
++
+Il s'agit de l'ensemble des chemins absolus depuis la racine du SVM que vous spécifiez qui dirigent la recherche ONTAP pour les répertoires locaux. Vous pouvez spécifier un ou plusieurs chemins de recherche à l'aide du `vserver cifs home-directory search-path add` commande. Si vous spécifiez plusieurs chemins de recherche, ONTAP les essaie dans l'ordre spécifié jusqu'à ce qu'il trouve un chemin valide.
+
+* *Répertoire*
++
+Il s'agit du répertoire de base de l'utilisateur que vous créez pour l'utilisateur. Le nom du répertoire est généralement le nom de l'utilisateur. Vous devez créer le répertoire personnel dans l'un des répertoires définis par les chemins de recherche.
+
+
+
+Prenons l'exemple de la configuration suivante :
+
+* Utilisateur : John Smith
+* Domaine utilisateur : acme
+* Nom d'utilisateur: Jsmith
+* Nom du SVM : vs1
+* Nom de partage du répertoire de base n°1 : Home_ `%w` - chemin de partage : `%w`
+* Nom de partage du répertoire racine #2 : `%w` - chemin de partage : `%d/%w`
+* Chemin de recherche n°1 : `/vol0home/home`
+* Chemin de recherche n°2 : `/vol1home/home`
+* Chemin de recherche n°3 : `/vol2home/home`
+* Home Directory : `/vol1home/home/jsmith`
+
+
+Scénario 1 : l'utilisateur se connecte à `\\vs1\home_jsmith`. Ceci correspond au premier nom de partage du répertoire racine et génère le chemin relatif `jsmith`. ONTAP recherche désormais un répertoire nommé `jsmith` en vérifiant chaque chemin de recherche dans l'ordre suivant :
+
+* `/vol0home/home/jsmith` n'existe pas ; passer au chemin de recherche n°2.
+* `/vol1home/home/jsmith` existe ; par conséquent, le chemin de recherche #3 n'est pas coché ; l'utilisateur est maintenant connecté à son répertoire de base.
+
+
+Scénario 2 : l'utilisateur se connecte à `\\vs1\jsmith`. Ceci correspond au deuxième nom de partage du répertoire de base et génère le chemin relatif `acme/jsmith`. ONTAP recherche désormais un répertoire nommé `acme/jsmith` en vérifiant chaque chemin de recherche dans l'ordre suivant :
+
+* `/vol0home/home/acme/jsmith` n'existe pas ; passer au chemin de recherche n°2.
+* `/vol1home/home/acme/jsmith` n'existe pas ; passer au chemin de recherche #3.
+* `/vol2home/home/acme/jsmith` n'existe pas ; le répertoire personnel n'existe pas ; la connexion échoue donc.
+

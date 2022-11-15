@@ -1,0 +1,67 @@
+---
+permalink: san-admin/access-read-only-lun-copy-backup-vault-task.html 
+sidebar: sidebar 
+keywords: access, read-only, lun, copy, snapvault, backup 
+summary: 'Vous pouvez accéder à une copie en lecture seule d"une LUN à partir de la dernière copie Snapshot d"une sauvegarde SnapVault. L"ID, le chemin et le numéro de série de la LUN source sont différents de celui-ci et doivent d"abord être mappés. Les réservations permanentes, les mappages de LUN et les groupes initiateurs ne sont pas répliqués sur le volume secondaire SnapVault.' 
+---
+= Accédez à une copie LUN en lecture seule à partir d'une sauvegarde SnapVault
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez accéder à une copie en lecture seule d'une LUN à partir de la dernière copie Snapshot d'une sauvegarde SnapVault. L'ID, le chemin et le numéro de série de la LUN source sont différents de celui-ci et doivent d'abord être mappés. Les réservations permanentes, les mappages de LUN et les groupes initiateurs ne sont pas répliqués sur le volume secondaire SnapVault.
+
+.Ce dont vous avez besoin, 8217;ll
+* La relation SnapVault doit être initialisée et la dernière copie Snapshot dans le volume secondaire SnapVault doit contenir la LUN souhaitée.
+* Le serveur virtuel de stockage (SVM) contenant la sauvegarde SnapVault doit disposer d'une ou plusieurs LIF avec le protocole SAN souhaité accessible depuis l'hôte utilisé pour accéder à la copie LUN.
+* Si vous prévoyez d'accéder directement aux copies de LUN à partir du volume secondaire SnapVault, vous devez créer vos groupes initiateurs sur la SVM SnapVault à l'avance.
++
+Vous pouvez accéder à une LUN directement à partir du volume secondaire SnapVault sans avoir à effectuer au préalable la restauration ou le clonage du volume contenant la LUN.
+
+
+
+Si une nouvelle copie Snapshot est ajoutée au volume secondaire de SnapVault alors que une LUN est mappée à partir d'une copie Snapshot précédente, le contenu de la LUN mappée change. La LUN est toujours mappée avec les mêmes identifiants, mais les données sont issues de la nouvelle copie Snapshot. Si la taille de LUN change, certains hôtes détectent automatiquement la modification de taille ; les hôtes Windows exigent une nouvelle analyse du disque pour identifier toute modification de taille.
+
+.Étapes
+. Exécutez le `lun show` Commande permettant de lister les LUN disponibles dans le volume secondaire SnapVault.
++
+Dans cet exemple, vous pouvez voir les LUN d'origine dans le volume primaire srcvolA et les copies dans le volume secondaire SnapVault dstvolB :
+
++
+[listing]
+----
+cluster::> lun show
+
+Vserver   Path                State   Mapped   Type          Size
+--------  ------------------  ------  -------  --------      -------
+vserverA  /vol/srcvolA/lun_A  online  mapped   windows  300.0GB
+vserverA  /vol/srcvolA/lun_B  online  mapped   windows  300.0GB
+vserverA  /vol/srcvolA/lun_C  online  mapped   windows  300.0GB
+vserverB  /vol/dstvolB/lun_A  online  unmapped windows  300.0GB
+vserverB  /vol/dstvolB/lun_B  online  unmapped windows  300.0GB
+vserverB  /vol/dstvolB/lun_C  online  unmapped windows  300.0GB
+
+6 entries were displayed.
+----
+. Si le groupe initiateur pour l'hôte souhaité n'existe pas déjà sur la SVM contenant le volume secondaire SnapVault, exécutez la `igroup create` commande de création d'un groupe initiateur.
++
+Cette commande crée un groupe initiateur pour un hôte Windows qui utilise le protocole iSCSI :
+
++
+[listing]
+----
+cluster::> igroup create -vserver vserverB -igroup temp_igroup
+  -protocol iscsi -ostype windows
+  -initiator iqn.1991-05.com.microsoft:hostA
+----
+. Exécutez le `lun mapping create` Commande permettant de mapper la copie de LUN souhaitée sur le groupe initiateur.
++
+[listing]
+----
+cluster::> lun mapping create -vserver vserverB -path /vol/dstvolB/lun_A
+  -igroup temp_igroup
+----
+. Connectez l'hôte au LUN et accédez au contenu du LUN selon vos besoins.
+

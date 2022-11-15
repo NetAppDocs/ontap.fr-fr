@@ -1,0 +1,51 @@
+---
+permalink: nas-audit/fpolicy-passthrough-read-enhances-usability-concept.html 
+sidebar: sidebar 
+keywords: fpolicy, passthrough-read, enhances, usability, hierarchical, storage management 
+summary: 'La fonctionnalité Passthrough Read permet au serveur FPolicy (fonctionnant comme serveur HSM (gestion hiérarchique du stockage)) de fournir un accès en lecture aux fichiers hors ligne sans avoir à rappeler le fichier du système de stockage secondaire au système de stockage primaire.' 
+---
+= La fonctionnalité de gestion du stockage hiérarchique de FPolicy permet d'améliorer la facilité d'utilisation de la gestion hiérarchique du stockage
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La fonctionnalité Passthrough Read permet au serveur FPolicy (fonctionnant comme serveur HSM (gestion hiérarchique du stockage)) de fournir un accès en lecture aux fichiers hors ligne sans avoir à rappeler le fichier du système de stockage secondaire au système de stockage primaire.
+
+Lorsqu'un serveur FPolicy est configuré pour fournir HSM les fichiers stockés sur un serveur SMB, la migration de fichiers basée sur des règles se produit lorsque les fichiers sont stockés hors ligne sur le stockage secondaire et qu'un seul fichier stub reste sur le stockage primaire. Même si un fichier stub apparaît comme un fichier normal pour les clients, il s'agit en fait d'un fichier parse de la même taille que le fichier d'origine. Le fichier sparse a le jeu de bits hors ligne SMB et pointe vers le fichier réel qui a été migré vers le stockage secondaire.
+
+En général, lorsqu'une demande de lecture pour un fichier hors ligne est reçue, le contenu demandé doit être rappelé dans le stockage principal, puis accessible par le biais du stockage principal. Le besoin de rappeler des données dans le stockage primaire a plusieurs effets indésirables. L'augmentation de la latence aux demandes des clients, due à la nécessité de rappeler le contenu avant de répondre à la demande et l'augmentation de la consommation d'espace nécessaire pour les fichiers rappelés sur l'infrastructure de stockage primaire, soit un effet indésirable.
+
+La fonctionnalité de passerelle FPolicy permet au serveur HSM (serveur FPolicy) de fournir un accès en lecture aux fichiers migrés hors ligne sans avoir à rappeler le fichier du système de stockage secondaire au système de stockage primaire. Au lieu de rappeler les fichiers dans le stockage primaire, les demandes de lecture peuvent être traitées directement depuis le système de stockage secondaire.
+
+[NOTE]
+====
+La fonction de déchargement des copies (ODX) n'est pas prise en charge par l'opération de lecture intermédiaire FPolicy.
+
+====
+La fonctionnalité Passthrough Read améliore la convivialité en offrant les avantages suivants :
+
+* Les demandes de lecture peuvent être traitées même si l'espace de stockage primaire n'est pas suffisant pour récupérer les données demandées dans le stockage primaire.
+* Meilleure gestion de la capacité et des performances lorsqu'une poussée de récupération des données peut se produire, par exemple si un script ou une solution de sauvegarde doit accéder à de nombreux fichiers hors ligne.
+* Les demandes de lecture de fichiers hors ligne des copies Snapshot peuvent être traitées.
++
+Étant donné que les copies Snapshot sont en lecture seule, le serveur FPolicy ne peut pas restaurer le fichier d'origine si le fichier stub est situé dans une copie Snapshot. L'utilisation de la lecture passthrough élimine ce problème.
+
+* Des règles peuvent être définies pour définir ce contrôle lorsque les demandes de lecture sont traitées par l'accès au fichier sur le système de stockage secondaire et lorsqu'un fichier hors ligne doit être rappelé sur le système de stockage principal.
++
+Par exemple, il est possible de créer une règle sur le serveur HSM qui spécifie le nombre d'accès au fichier hors ligne pendant une période donnée avant que le fichier ne soit remigré vers le stockage principal. Ce type de stratégie évite de rappeler les fichiers rarement utilisés.
+
+
+
+
+
+== Mode de gestion des requêtes de lecture lors de l'activation du mode de gestion FPolicy
+
+Vous devez comprendre comment les requêtes de lecture sont gérées lorsque le mode de lecture intermédiaire FPolicy est activé afin de pouvoir configurer de manière optimale la connectivité entre le SVM et les serveurs FPolicy.
+
+Lorsque la fonction de lecture intermédiaire FPolicy est activée et que le SVM reçoit une demande de fichier hors ligne, FPolicy envoie une notification au serveur FPolicy (serveur HSM) par l'intermédiaire du canal de connexion standard.
+
+Après avoir reçu la notification, le serveur FPolicy lit les données du chemin de fichier envoyé dans la notification et envoie les données demandées à la SVM via la connexion de données privilégiée par lecture-intermédiaire établie entre le SVM et le serveur FPolicy.
+
+Une fois les données envoyées, le serveur FPolicy répond à la demande de lecture comme ALLOW ou DENY. En fonction de l'autorisation ou du refus de la demande de lecture, ONTAP envoie les informations demandées ou envoie un message d'erreur au client.

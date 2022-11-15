@@ -1,0 +1,111 @@
+---
+permalink: disks-aggregates/relocate-aggregate-ownership-task.html 
+sidebar: sidebar 
+keywords: relocate, aggregate, ownership, local tier 
+summary: 'Vous ne pouvez modifier la propriété d"un niveau local (agrégat) qu"entre les nœuds d"une paire haute disponibilité.' 
+---
+= Transférer la propriété d'un niveau local (agrégat) au sein d'une paire haute disponibilité
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez modifier la propriété des niveaux locaux (agrégats) entre les nœuds d'une paire haute disponibilité sans interrompre les services des niveaux locaux.
+
+Les deux nœuds d'une paire haute disponibilité sont physiquement connectés aux disques ou aux LUN de baie des autres. Chaque LUN de disque ou de baie est détenue par un des nœuds.
+
+La propriété de tous les disques ou LUN de baie au sein d'un niveau local (agrégat) passe temporairement d'un nœud à l'autre lorsqu'un basculement se produit. Cependant, les opérations de relocalisation des niveaux locaux peuvent également modifier définitivement la propriété (par exemple, si elles sont effectuées pour équilibrer la charge). La propriété change sans processus de copie des données ni déplacement physique des disques ou des LUN de baies.
+
+.Description de la tâche
+* Comme les limites de nombre de volumes sont validées par programmation lors des opérations de relocalisation de niveau local, il n'est pas nécessaire de vérifier cette valeur manuellement.
++
+Si le nombre de volumes dépasse la limite prise en charge, l'opération de transfert de niveau local échoue et un message d'erreur s'affiche.
+
+* Vous ne devez pas lancer le transfert de niveau local lorsque des opérations au niveau du système sont en cours sur le nœud source ou de destination ; de même, vous ne devez pas démarrer ces opérations pendant le transfert de niveau local.
++
+Ces opérations peuvent inclure les opérations suivantes :
+
++
+** Basculement
+** Rétablissement
+** Arrêt
+** Une autre opération de transfert de niveau local
+** Évolution de la propriété des disques
+** Opérations locales de configuration du niveau ou des volumes
+** Remplacement du contrôleur de stockage
+** Mise à niveau de ONTAP
+** Restauration de ONTAP
+
+
+* Si vous disposez d'une configuration MetroCluster, vous ne devez pas lancer la relocalisation des niveaux locaux pendant que les opérations de reprise sur incident (_basculement_, _rétablissement_ ou _rétablissement_) sont en cours.
+* Si vous disposez d'une configuration MetroCluster et que vous lancez une relocalisation des niveaux locaux sur un niveau local commuté, l'opération peut échouer car elle dépasse le nombre maximal de volumes du partenaire de DR.
+* Vous ne devez pas lancer le transfert de niveau local sur des agrégats corrompus ou soumis à des opérations de maintenance.
+* Avant de lancer la relocalisation des niveaux locaux, vous devez enregistrer les « core dumps » sur les nœuds source et de destination.
+
+
+.Étapes
+. Afficher les agrégats du nœud pour vérifier quels agrégats déplacer et vérifier qu'ils sont en ligne et en bon état :
++
+`storage aggregate show -node _source-node_`
+
++
+La commande suivante montre six agrégats sur les quatre nœuds du cluster. Tous les agrégats sont en ligne. NODE1 et NODE3 forment une paire HA, tandis que les nœuds 2 et Node4 forment une paire HA.
+
++
+[listing]
+----
+cluster::> storage aggregate show
+Aggregate     Size Available Used% State   #Vols  Nodes  RAID Status
+--------- -------- --------- ----- ------- ------ ------ -----------
+aggr_0     239.0GB   11.13GB   95% online       1 node1  raid_dp,
+                                                         normal
+aggr_1     239.0GB   11.13GB   95% online       1 node1  raid_dp,
+                                                         normal
+aggr_2     239.0GB   11.13GB   95% online       1 node2  raid_dp,
+                                                         normal
+aggr_3     239.0GB   11.13GB   95% online       1 node2  raid_dp,
+                                                         normal
+aggr_4     239.0GB   238.9GB    0% online       5 node3  raid_dp,
+                                                         normal
+aggr_5     239.0GB   239.0GB    0% online       4 node4  raid_dp,
+                                                         normal
+6 entries were displayed.
+----
+. Lancer la commande pour démarrer le transfert d'agrégat :
++
+`storage aggregate relocation start -aggregate-list _aggregate-1_, _aggregate-2_... -node _source-node_ -destination _destination-node_`
+
++
+La commande suivante déplace les agrégats aggr_1 et aggr_2 du nœud 1 vers le nœud 3. Node4 est le partenaire HA de Node1. Les agrégats ne peuvent être déplacés qu'au sein de la paire haute disponibilité.
+
++
+[listing]
+----
+cluster::> storage aggregate relocation start -aggregate-list aggr_1, aggr_2 -node node1 -destination node3
+Run the storage aggregate relocation show command to check relocation status.
+node1::storage aggregate>
+----
+. Suivre la progression du transfert d'agrégats avec le `storage aggregate relocation show` commande :
++
+`storage aggregate relocation show -node _source-node_`
+
++
+La commande suivante affiche la progression des agrégats en cours de déplacement vers le nœud 3 :
+
++
+[listing]
+----
+cluster::> storage aggregate relocation show -node node1
+Source Aggregate   Destination    Relocation Status
+------ ----------- -------------  ------------------------
+node1
+       aggr_1      node3          In progress, module: wafl
+       aggr_2      node3          Not attempted yet
+2 entries were displayed.
+node1::storage aggregate>
+----
++
+Lorsque la relocalisation est terminée, la sortie de cette commande affiche chaque agrégat avec un statut de relocalisation "Done".
+
+

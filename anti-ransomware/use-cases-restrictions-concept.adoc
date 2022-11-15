@@ -1,0 +1,121 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/use-cases-restrictions-concept.html 
+keywords: anti-ransomware use cases and restrictions, anti-ransomware performance and frequency considerations, anti-ransomware workloads, anti-ransomware volume requirements, anti-ransomware performance, volumes, anti-ransomware encryption, anti-ransomware system configurations, autonomous ransomware protection, arp 
+summary: 'Dans la version actuelle de, la protection par ransomware est la plus adaptée aux environnements NAS. La prise en charge d"autres environnements sera disponible dans les prochaines versions.' 
+---
+= Cas d'utilisation et considérations relatives à la protection autonome contre les ransomwares
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+Prise en charge de la plateforme ONTAP :
+
+* La fonctionnalité ARP (autonome ransomware protection) est disponible pour tous les systèmes ONTAP sur site, à partir de ONTAP 9.10.1.
+* ARP n'est actuellement pas disponible dans les environnements Cloud Volumes ONTAP suivants :
++
+** Amazon FSX
+** Azure
+** Google Cloud
+
+
+
+
+Charges de travail adaptées :
+
+* Les bases de données sur le stockage NFS
+* Répertoires locaux Windows ou Linux
++
+Comme les utilisateurs pouvaient créer des fichiers avec des extensions qui n'ont pas été détectées pendant la période d'apprentissage, il y a plus de risques de faux positifs dans cette charge de travail.
+
+* Images et vidéos
++
+Par exemple, les dossiers médicaux et les données EDA.
+
+
+
+Depuis ONTAP 9.12.1, ARP est disponible pour les configurations suivantes :
+
+* Volumes protégés par SnapMirror
+* Les SVM sont protégés par SnapMirror
+* SVM activé pour la migration (mobilité des données des SVM)
+
+
+Charges de travail inappropriées :
+
+* Workloads avec fréquence élevée de création ou de suppression de fichiers (des centaines de milliers de fichiers en quelques secondes, par exemple des charges de travail de test/développement)
+* ARP dépend de la capacité à reconnaître une surtension inhabituelle dans l'activité de création ou de suppression de fichiers. Si l'application elle-même est la source de l'activité de fichier, elle ne peut pas être distinguée efficacement de l'activité ransomware
+* Les charges de travail pour lesquelles l'application ou l'hôte crypte les données ARP dépendent de la distinction entre les données entrantes et cryptées. Si l'application elle-même est en train de chiffrer les données, l'efficacité de la fonction est réduite. Toutefois, la fonction peut toujours fonctionner en fonction de l'activité du fichier (création, suppression et écrasement) et du type de fichier.
+
+
+Configurations système non prises en charge :
+
+* Environnements SAN
+* Les environnements ONTAP S3
+* VMDK sur NFS
+
+
+Volume requis :
+
+* Plein à moins de 100 %
+* Le chemin de jonction doit être actif
+
+
+Types de volume non pris en charge :
+
+* Les volumes hors ligne
+* Volumes restreints
+* Volumes protégés par SnapMirror (versions ONTAP 9.11.1 et antérieures)
+* Volumes SnapLock
+* Volumes FlexGroup
+* Volumes FlexCache (la fonctionnalité anti-ransomwares est prise en charge sur les volumes FlexVol d'origine, mais pas sur les volumes en cache)
+* Volumes SAN uniquement
+* Volumes des machines virtuelles de stockage arrêtées
+* Volumes root des VM de stockage
+
+
+
+
+== Interopérabilité SnapMirror et ARP
+
+Depuis la version ONTAP 9.12.1, ARP est pris en charge sur les volumes de destination SnapMirror Si un volume source SnapMirror est activé pour ARP, le volume de destination SnapMirror acquiert automatiquement l'état de configuration ARP du volume source.
+
+Alors que le volume de destination se compose de copies Snapshot RO (lecture seule), aucun traitement ARP n'est effectué sur ses données. Toutefois, lorsque le volume de destination SnapMirror est converti en lecture-écriture (RW), ARP est automatiquement activé sur le volume de destination converti en RW. Le volume de destination ne nécessite pas de procédure d'apprentissage supplémentaire en plus de ce qui est déjà enregistré sur le volume source.
+
+
+
+== Considérations relatives aux performances ARP et à la fréquence
+
+La fonctionnalité ARP peut avoir un impact minimal sur les performances du système, comme mesurée en débit et en IOPS de pointe. L'impact de la fonctionnalité anti-ransomwares est fortement tributaire des charges de travail des volumes. Pour les charges de travail standard ou courantes, les limites de configuration suivantes sont recommandées :
+
+[cols="30,20,30"]
+|===
+| Caractéristiques de la charge de travail | Limite de volume recommandée par nœud | Dégradation des performances lorsque la limite de volume par nœud est dépassée :[*] 
+
+
+| Ces données intensives en lecture ou compressées peuvent être compressées. | 150 | 4 % des IOPS maximales 
+
+
+| Des opérations d'écriture intensives et des données ne peuvent pas être compressées. | 60 | 10 % des IOPS maximales 
+|===
+Pass:[*] les performances du système ne sont pas dégradées au-delà de ces pourcentages, quel que soit le nombre de volumes ajoutés au-delà des limites recommandées.
+
+Étant donné que l'analyse ARP est exécutée dans une séquence hiérarchisée, au fur et à mesure que le nombre de volumes protégés augmente, les analyses sont exécutées moins souvent sur chaque volume.
+
+
+
+== Fonctionnement des copies Snapshot automatiques en cas de détection d'un ransomware
+
+Afin d'obtenir le meilleur point de récupération possible, ARP crée une copie Snapshot automatique dès qu'elle détecte une activité anormale du fichier. Cependant, ARP ne signale pas immédiatement une alerte, mais l'analytique doit s'exécuter et confirmer que l'activité suspecte correspond à un profil ransomware avant de générer une alerte. Ce processus peut prendre jusqu'à 60 minutes. Si l'analytique détermine que l'activité n'est pas suspecte, une alerte n'est pas générée, mais la copie Snapshot créée automatiquement reste présente dans le système de fichiers pendant au moins deux jours.
+
+Depuis ONTAP 9.11.1, vous pouvez contrôler le nombre et la période de conservation des copies Snapshot ARP générées automatiquement en réponse aux attaques de ransomware suspectées. Découvrez comment link:modify-automatic-shapshot-options-task.html["Modifiez les options des copies Snapshot automatiques"].

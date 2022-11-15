@@ -1,0 +1,39 @@
+---
+permalink: nfs-config/verify-client-access-from-cluster-task.html 
+sidebar: sidebar 
+keywords: verify, nfs, client, access, cluster 
+summary: 'Vous pouvez donner à certains clients l"accès au partage en définissant les autorisations de fichier UNIX sur un hôte d"administration UNIX. Vous pouvez vérifier l"accès client à l"aide de la commande vserver export-policy check-Access, en ajustant les règles d"exportation si nécessaire.' 
+---
+= Vérifiez l'accès client NFS depuis le cluster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez donner à certains clients l'accès au partage en définissant les autorisations de fichier UNIX sur un hôte d'administration UNIX. Vous pouvez vérifier l'accès client à l'aide de `vserver export-policy check-access` commande, en ajustant les règles d'exportation si nécessaire.
+
+.Étapes
+. Sur le cluster, vérifiez l'accès des clients aux exportations à l'aide de `vserver export-policy check-access` commande.
++
+La commande suivante vérifie l'accès en lecture/écriture pour un client NFSv3 avec l'adresse IP 1.2.3.4 vers la commande volume home2. La sortie de la commande indique que le volume utilise la export policy `exp-home-dir` et cet accès est refusé.
+
++
+[listing]
+----
+cluster1::> vserver export-policy check-access -vserver vs1 -client-ip 1.2.3.4 -volume home2 -authentication-method sys -protocol nfs3 -access-type read-write
+                                      Policy    Policy     Rule
+Path                    Policy        Owner     Owner Type Index  Access
+----------------------- ------------- --------- ---------- ------ ----------
+/                       default       vs1_root  volume          1 read
+/eng                    default       vs1_root  volume          1 read
+/eng/home2              exp-home-dir  home2     volume          1 denied
+
+3 entries were displayed.
+----
+. Examinez la sortie pour déterminer si l'export policy fonctionne comme prévu et si l'accès client se comporte comme prévu.
++
+Plus précisément, vous devez vérifier quelles export policy est utilisée par le volume ou qtree et ce type d'accès par le client.
+
+. Si nécessaire, reconfigurer les règles d'export policy.
+

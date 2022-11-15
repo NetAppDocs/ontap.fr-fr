@@ -1,0 +1,109 @@
+---
+permalink: upgrade/concept_upgrade_methods.html 
+sidebar: sidebar 
+keywords: upgrade, methods, andu, ndu, automated, automatic, system manager, cli, nondisruptive, disruptive 
+summary: 'La méthode utilisée pour la mise à niveau dépend de votre configuration. Le cas échéant, la mise à niveau automatisée sans interruption (ANDU) utilisant System Manager est la méthode recommandée.' 
+---
+= Quelle méthode de mise à niveau dois-je utiliser ?
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La méthode de mise à niveau - sans interruption, automatisée ou manuelle - dépend de votre configuration. Le cas échéant, la mise à niveau automatisée sans interruption (ANDU) utilisant System Manager est la méthode recommandée.
+
+*Mises à niveau sans interruption* + mises à niveau sans interruption tirant parti de la technologie de basculement haute disponibilité (HA) d'ONTAP pour assurer que les clusters continuent le service des données lors de la mise à niveau. Il existe deux types de processus de mise à niveau sans interruption.
+
+* _Batch_ updates + dans une mise à jour par lot, le cluster est divisé en plusieurs lots, chacun contenant plusieurs paires haute disponibilité. Dans le premier lot, la moitié des nœuds est mise à niveau, suivie par ses partenaires dans le domaine de la haute disponibilité. Le processus est ensuite répété séquentiellement pour les lots restants.
+* _Rolling_ updates + dans une mise à jour propagée, un nœud est mis hors ligne et mis à niveau pendant que son partenaire prend le contrôle de son stockage. Une fois la mise à niveau du nœud terminée, le nœud partenaire renvoie le contrôle sur le nœud de possession d'origine et le processus est répété, cette fois sur le nœud partenaire. Chaque paire haute disponibilité supplémentaire est mise à niveau séquencement jusqu'à ce que toutes les paires haute disponibilité exécutent la version cible. + *Remarque :* le terme _roulement de mise à niveau_ est fréquemment utilisé dans l'industrie logicielle pour les mises à niveau logicielles qui ne provoquent pas de perturbations dans le service et qui est souvent synonyme de « mise à niveau sans interruption ». Dans les mises à niveau d'ONTAP 9, une _mise à jour continue_ est l'un des processus pouvant être utilisés pour des mises à niveau sans interruption.
+
+
+Les mises à niveau sans interruption peuvent être effectuées à l'aide d'une méthode _automatisée_ ou _manuelle_.
+
+* *Mise à niveau automatisée sans interruption (ANDU)*
++
+** Lorsqu'un administrateur lance un ANDU, ONTAP installe automatiquement l'image ONTAP cible sur chaque nœud, valide les composants du cluster afin de garantir une mise à niveau sans interruption, puis exécute un batch ou une mise à jour propagée en arrière-plan.
++
+*** Les mises à jour par lots sont l'option par défaut pour les clusters d'au moins 8 nœuds.
+*** Les mises à jour sont activées par défaut pour les clusters comprenant moins de 8 nœuds. Il est également possible de sélectionner des mises à jour propagées explicitement pour les clusters à 8 nœuds ou plus.
+
+
+** Un ANDU peut être exécuté via System Manager ou l'interface de ligne de commande ONTAP. Si disponible pour votre configuration, L'UTILISATION DE System Manager est la méthode de mise à niveau recommandée.
+
+
+* *Mise à niveau manuelle sans interruption*
++
+** Un administrateur doit confirmer manuellement l'état de préparation à la mise à niveau des composants du cluster sur chaque nœud, puis effectuer manuellement une mise à jour propagée au premier plan.
+** Les mises à niveau manuelles sans interruption sont exécutées à l'aide de l'interface de ligne de commande ONTAP.
+** Vous ne devez utiliser une méthode manuelle que si L'ANDU n'est pas pris en charge pour votre configuration.
+
+
+
+
+*Mises à niveau* + entraînant une interruption de service, le basculement du stockage est désactivé pour chaque paire haute disponibilité, puis chaque nœud est redémarré un par un. Les mises à niveau entraînant des interruptions sont plus rapides que les mises à niveau sans interruption et elles nécessitent moins d'étapes. Cependant, vous ne devez pas effectuer une mise à niveau perturbation sauf si vous pouvez mettre le cluster hors ligne pendant la durée de la mise à niveau. Si vous travaillez dans un environnement SAN, vous devez être prêt à arrêter ou à suspendre tous les clients SAN avant d'effectuer une mise à niveau entraînant des perturbations. Les interruptions sont réalisées à l'aide de l'interface de ligne de commandes ONTAP.
+
+
+
+== Méthodes pour les configurations non MetroCluster
+
+Les clusters avec 2 nœuds ou plus peuvent utiliser l'une des méthodes de mise à niveau suivantes, répertoriées en ordre d'utilisation recommandée.
+
+* xref:task_upgrade_andu_sm.html[Continuité de l'activité automatisée grâce à System Manager]
+* xref:task_upgrade_andu_cli.html[Automatisation de la continuité de l'activité à l'aide de l'interface]
+* xref:task_upgrade_nondisruptive_manual_cli.html[Continuité manuelle de l'activité via l'interface de ligne de commandes]
+* xref:task_updating_an_ontap_cluster_disruptively.html[Interruption manuelle avec l'interface de ligne de commandes]
+
+
+Les clusters à un seul nœud doivent utiliser l'une des méthodes de continuité de l'activité, bien que la méthode automatisée soit recommandée.
+
+* xref:task_upgrade_disruptive_automated_cli.html[Automatisation de l'interruption avec l'interface de ligne de commandes]
+* xref:task_updating_an_ontap_cluster_disruptively.html[Interruption manuelle avec l'interface de ligne de commandes]
+
+
+
+
+== Méthodes pour les configurations MetroCluster
+
+Les méthodes de mise à niveau disponibles pour chaque configuration sont répertoriées dans l'ordre d'utilisation recommandé.
+
+[cols="3*"]
+|===
+| Version ONTAP | Nombre de nœuds | Méthode de mise à niveau 
+
+
+| 9.3 ou ultérieure | 2,4  a| 
+* xref:task_upgrade_andu_sm.html[Continuité de l'activité automatisée grâce à System Manager]
+* xref:task_upgrade_andu_cli.html[Automatisation de la continuité de l'activité à l'aide de l'interface]
+* xref:task_updating_an_ontap_cluster_disruptively.html[Interruption manuelle avec l'interface de ligne de commandes]
+
+
+
+
+| 9.3 ou ultérieure | 8  a| 
+* xref:task_upgrade_andu_cli.html[Automatisation de la continuité de l'activité à l'aide de l'interface]
+* xref:task_updating_a_four_or_eight_node_mcc.html[Continuité manuelle de l'activité via l'interface de ligne de commandes]
+* xref:task_updating_an_ontap_cluster_disruptively.html[Interruption manuelle avec l'interface de ligne de commandes]
+
+
+
+
+| 9.2 ou antérieure | 2  a| 
+* xref:task_updating_a_two_node_metrocluster_configuration_in_ontap_9_2_and_earlier.html[Sans interruption manuelle (pour les clusters à 2 nœuds) grâce à l'interface de ligne de commande]
+* xref:task_updating_an_ontap_cluster_disruptively.html[Interruption manuelle avec l'interface de ligne de commandes]
+
+
+
+
+| 9.2 ou antérieure | 4 février 8  a| 
+* xref:task_updating_a_four_or_eight_node_mcc.html[Continuité manuelle de l'activité via l'interface de ligne de commandes]
+* xref:task_updating_an_ontap_cluster_disruptively.html[Interruption manuelle avec l'interface de ligne de commandes]
+
+
+
+
+| 9.0 ou ultérieure | 4, 8 (correctif uniquement) | xref:task_upgrade_andu_sm.html[Continuité de l'activité automatisée grâce à System Manager] 
+
+
+| 9.2 ou antérieure | 2, 4, 8 (correctif uniquement) | xref:task_upgrade_andu_sm.html[Continuité de l'activité automatisée grâce à System Manager] 
+|===

@@ -1,0 +1,67 @@
+---
+permalink: encryption-at-rest/secure-purge-data-encrypted-volume-concept.html 
+sidebar: sidebar 
+keywords: secure, purge, scrub, data, encrypted, volume, nve, netapp 
+summary: 'Depuis ONTAP 9.4, vous pouvez utiliser la suppression sécurisée pour nettoyer les données sans interruption sur les volumes NVE. La fonction de nettoyage des données d"un volume chiffré garantit qu"elles ne peuvent pas être récupérées depuis le support physique, par exemple, en cas de `spillage,` les traces de données peuvent être laissées derrière elles lors du remplacement de blocs ou lors de la suppression sécurisée des données d"un locataire qui a quitté l"application.' 
+---
+= Supprimez les données de façon sécurisée dans une vue d'ensemble du volume chiffré
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.4, vous pouvez utiliser la suppression sécurisée pour nettoyer les données sans interruption sur les volumes NVE. La suppression des données sur un volume chiffré garantit qu'elles ne peuvent pas être récupérées depuis le support physique, par exemple en cas de « pillage », où les traces de données peuvent être laissées derrière lors de l'écrasement des blocs ou pour supprimer en toute sécurité les données d'un locataire vide.
+
+La suppression sécurisée fonctionne uniquement pour les fichiers précédemment supprimés sur les volumes NVE. Vous ne pouvez pas nettoyer un volume non chiffré. Vous devez utiliser des serveurs KMIP pour fournir des clés, et non le gestionnaire de clés intégré.
+
+
+
+== Considérations relatives à l'utilisation de la suppression sécurisée
+
+* Les volumes créés dans un agrégat pour NetApp Aggregate Encryption (NAE) ne prennent pas en charge la suppression sécurisée.
+* La suppression sécurisée fonctionne uniquement pour les fichiers précédemment supprimés sur les volumes NVE.
+* Vous ne pouvez pas nettoyer un volume non chiffré.
+* Vous devez utiliser des serveurs KMIP pour fournir des clés, et non le gestionnaire de clés intégré.
+
+
+Les fonctions de purge sécurisée varient en fonction de votre version de ONTAP.
+
+[role="tabbed-block"]
+====
+.ONTAP 9.8 et versions ultérieures
+--
+* La suppression sécurisée est prise en charge par MetroCluster et FlexGroup.
+* Si le volume en cours de purge est à l'origine d'une relation SnapMirror, il n'est pas nécessaire de rompre la relation SnapMirror pour effectuer une purge sécurisée.
+* La méthode de rechiffrement est différente pour les volumes qui utilisent la protection des données SnapMirror, contre les volumes qui n'utilisent pas la protection des données SnapMirror (DP) ou ceux qui utilisent la protection étendue des données SnapMirror.
++
+** Par défaut, les volumes utilisant le mode de protection des données SnapMirror (DP) recryptent les données à l'aide de la méthode de chiffrement du déplacement de volume.
+** Par défaut, les volumes qui n'utilisent pas la protection des données SnapMirror ou les volumes en utilisant le mode XDP (SnapMirror Extended Data protection) utilisent la méthode de rechiffrement sur place.
+** Ces valeurs par défaut peuvent être modifiées à l'aide de l' `secure purge re-encryption-method [volume-move|in-place-rekey]` commande.
+
+
+* Par défaut toutes les copies Snapshot des volumes FlexVol sont automatiquement supprimées lors de l'opération de suppression sécurisée. Par défaut, les copies Snapshot des volumes FlexGroup et les volumes qui utilisent la protection des données SnapMirror ne sont pas automatiquement supprimées lors de l'opération de suppression sécurisée. Ces valeurs par défaut peuvent être modifiées à l'aide de l' `secure purge delete-all-snapshots [true|false]` commande.
+
+
+--
+.ONTAP 9.7 et versions antérieures :
+--
+* La purge sécurisée ne prend pas en charge les éléments suivants :
++
+** FlexClone
+** SnapVault
+** FabricPool
+
+
+* Si le volume en cours de purge est la source d'une relation SnapMirror, vous devez interrompre la relation SnapMirror avant de pouvoir purger le volume.
++
+Si des copies Snapshot sont occupées dans le volume, vous devez libérer les copies Snapshot avant de pouvoir purger le volume. Par exemple, vous devrez peut-être séparer un volume FlexClone de son volume parent.
+
+* L'appel réussi de la fonction de suppression sécurisée déclenche un déplacement de volume qui recrypte les données restantes non supprimées avec une nouvelle clé.
++
+Le volume déplacé reste sur l'agrégat actuel. L'ancienne clé est automatiquement détruite, ce qui permet de s'assurer que les données supprimées ne peuvent pas être récupérées du support de stockage.
+
+
+
+--
+====

@@ -1,0 +1,79 @@
+---
+permalink: encryption-at-rest/return-self-encrypting-disks-keys-not-available-task.html 
+sidebar: sidebar 
+keywords: returning, fips, drive, sed, service, authentication, keys, lost 
+summary: 'Le système traite un lecteur FIPS ou SED comme étant rompu si vous perdez définitivement les clés d"authentification pour lui et que vous ne pouvez pas les récupérer du serveur KMIP. Bien que vous ne puissiez pas accéder ou récupérer les données sur le disque, vous pouvez prendre des mesures pour rendre à nouveau disponible l"espace inutilisé de SED pour les données.' 
+---
+= Renvoyez un lecteur FIPS ou SED au service en cas de perte de clés d'authentification
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le système traite un lecteur FIPS ou SED comme étant rompu si vous perdez définitivement les clés d'authentification pour lui et que vous ne pouvez pas les récupérer du serveur KMIP. Bien que vous ne puissiez pas accéder ou récupérer les données sur le disque, vous pouvez prendre des mesures pour rendre à nouveau disponible l'espace inutilisé de SED pour les données.
+
+Vous devez être un administrateur de cluster pour effectuer cette tâche.
+
+Vous ne devez utiliser ce processus que si vous êtes certain que les clés d'authentification du lecteur FIPS ou SED sont définitivement perdues et que vous ne pouvez pas les récupérer.
+
+Si les disques sont partitionnés, ils doivent d'abord être départitionnés avant que vous ne puissiez démarrer ce processus. inclus :./_include/unpartition-disk.adoc[]
+
+.Étapes
+. Renvoyez un lecteur FIPS ou SED au service :
++
+[cols="25,75"]
+|===
+
+
+| Si le SEDS est... | Procédez comme suit... 
+
+
+ a| 
+Pas en mode de conformité FIPS, ni en mode de conformité FIPS et la clé FIPS est disponible
+ a| 
+.. Définissez le niveau de privilège sur avancé :
+`set -privilege advanced`
+.. Réinitialisez la clé FIPS sur l'ID sécurisé de fabrication par défaut 0x0 :
+`storage encryption disk modify -fips-key-id 0x0 -disk _disk_id_`
+.. Vérifiez que l'opération a réussi :
+`storage encryption disk show-status`Si l'opération a échoué, utilisez le processus PSID dans cette rubrique.
+.. Procédez au nettoyage du disque défaillant :
+`storage encryption disk sanitize -disk _disk_id_`Vérifiez que l'opération a réussi avec la commande `storage encryption disk show-status` avant de passer à l'étape suivante.
+.. Éliminez la panne du disque désinfecté :
+`storage disk unfail -spare true -disk _disk_id_`
+.. Vérifiez si le disque est propriétaire :
+`storage disk show -disk _disk_id_`
+.. Si le disque ne dispose pas d'un propriétaire, affectez-en un, puis annulez de nouveau l'échec du disque :
+`storage disk assign -owner node -disk _disk_id_`
+`storage disk unfail -spare true -disk _disk_id_`
+.. Vérifier que le disque est désormais une pièce de rechange et prêt à être réutilisé dans un agrégat :
+`storage disk show -disk _disk_id_`
+
+
+
+
+ a| 
+En mode FIPS-compliance, la clé FIPS n'est pas disponible et les disques SED ont un PSID imprimé sur l'étiquette
+ a| 
+.. Procurez-vous le PSID du disque à partir de l'étiquette du disque.
+.. Définissez le niveau de privilège sur avancé :
+`set -privilege advanced`
+.. Réinitialise le disque en fonction des paramètres configurés en usine :
+`storage encryption disk revert-to-original-state -disk _disk_id_ -psid _disk_physical_secure_id_`Vérifiez que l'opération a réussi avec la commande `storage encryption disk show-status` avant de passer à l'étape suivante.
+.. Éliminez la panne du disque désinfecté :
+`storage disk unfail -spare true -disk _disk_id_`
+.. Vérifiez si le disque est propriétaire :
+`storage disk show -disk _disk_id_`
+.. Si le disque ne dispose pas d'un propriétaire, affectez-en un, puis annulez de nouveau l'échec du disque :
+`storage disk assign -owner node -disk _disk_id_`
+`storage disk unfail -spare true -disk _disk_id_`
+.. Vérifier que le disque est désormais une pièce de rechange et prêt à être réutilisé dans un agrégat :
+`storage disk show -disk _disk_id_`
+
+
+|===
+
+
+Pour connaître la syntaxe complète des commandes, consultez les pages de manuels.

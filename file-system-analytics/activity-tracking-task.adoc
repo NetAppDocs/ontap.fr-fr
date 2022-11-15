@@ -1,0 +1,139 @@
+---
+permalink: file-system-analytics/activity-tracking-task.html 
+sidebar: sidebar 
+keywords: monitor, volume, ontap, FSA, File System Analytics, 
+summary: 'Suivi d"activité pour afficher les fichiers fortement sollicités, les répertoires, les clients et les utilisateurs dans un volume spécifié afin de résoudre les problèmes de performances en temps réel avec' 
+---
+= Activer le suivi des activités
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de ONTAP 9.10.1, l'analyse du système de fichiers inclut une fonction de suivi des activités qui vous permet d'identifier les objets actifs et de les télécharger en tant que fichier CSV. Depuis ONTAP 9.11.1, le suivi de l'activité est étendu au périmètre de la SVM. À partir de ONTAP 9.11.1, System Manager propose également une chronologie pour le suivi des activités, vous permettant d'examiner jusqu'à cinq minutes de données de suivi des activités.
+
+Le suivi des activités permet la surveillance en quatre catégories :
+
+* Répertoires
+* Fichiers
+* Clients
+* Utilisateurs
+
+
+Pour chaque catégorie surveillée, Activity Tracking affiche les IOPS en lecture, les IOPS en écriture, les débits de lecture et les débits d'écriture. Les requêtes sur le suivi d'activité se réactualisent toutes les 10 à 15 secondes en rapport avec les points sensibles observés dans le système au cours de l'intervalle de cinq secondes précédent.
+
+Les informations de suivi d'activité sont approximatives et la précision des données dépend de la distribution du trafic d'E/S entrant.
+
+Lors de l'affichage du suivi d'activité dans System Manager au niveau du volume, seul le menu du volume étendu est actualisé activement. Si l'affichage d'un volume est réduit, il ne sera pas actualisé tant que l'affichage du volume n'aura pas été développé. Vous pouvez arrêter les actualisations à l'aide du bouton *Pause Rafraîchir*. Les données d'activité peuvent être téléchargées au format CSV pour afficher toutes les données ponctuelles capturées pour le volume sélectionné.
+
+La fonction de chronologie proposée sous ONTAP 9.11.1 vous permet de conserver un enregistrement d'activité de zone sensible sur un volume ou une SVM, en mettant à jour en continu environ toutes les cinq secondes et en conservant les données des cinq minutes précédentes. Les données de chronologie ne sont conservées que pour les champs qui sont une zone visible de la page. Si vous réduisez une catégorie de suivi ou faites défiler de façon à ce que la chronologie ne soit plus en vue, la chronologie arrête de collecter les données. Par défaut, les délais sont désactivés et sont automatiquement désactivés lorsque vous vous éloignez de l'onglet activité.
+
+
+
+== Activez le suivi des activités pour un seul volume
+
+Vous pouvez activer le suivi des activités avec ONTAP System Manager ou l'interface de ligne de commandes ONTAP.
+
+Si vous utilisez le RBAC avec l'API REST de ONTAP ou System Manager, vous devez créer des rôles personnalisés pour gérer l'accès au suivi des activités. Voir  access control (RBAC) and Activity Tracking pour ce processus.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Étapes
+. Sélectionnez *stockage > volumes*. Sélectionnez le volume souhaité. Dans le menu volume individuel, sélectionnez système de fichiers, puis sélectionnez l'onglet activité.
+. Assurez-vous que *suivi d'activité* est activé pour afficher des rapports individuels sur les répertoires, les fichiers, les clients et les utilisateurs supérieurs.
+. Pour analyser des données plus en profondeur sans actualiser, sélectionnez *Pause Rafraîchir*. Vous pouvez également télécharger les données pour obtenir un enregistrement CSV du rapport.
+
+
+--
+.CLI
+--
+.Étapes
+. Activer le suivi d'activité :
++
+`volume activity-tracking on -vsverver _svm_name_ -volume _volume_name_`
+
+. Vous pouvez vérifier si l'état de suivi d'activité d'un volume est activé ou désactivé à l'aide de la commande :
++
+`volume activity-tracking show -vsverver _svm_name_ -volume _volume_name_ -state`
+
+. Une fois activée, utilisez ONTAP System Manager ou l'API REST ONTAP pour afficher les données de suivi d'activité.
+
+
+--
+====
+
+
+== Activez le suivi des activités pour plusieurs volumes
+
+Vous pouvez activer le suivi des activités pour plusieurs volumes à la fois avec System Manager.
+
+Si vous utilisez le RBAC avec l'API REST de ONTAP ou System Manager, vous devez créer des rôles personnalisés pour gérer l'accès au suivi des activités. Voir  access control (RBAC) and Activity Tracking pour ce processus.
+
+[role="tabbed-block"]
+====
+.Pour des volumes spécifiques
+--
+.Étapes
+. Sélectionnez *stockage > volumes*. Sélectionnez le volume souhaité. Dans le menu volume individuel, sélectionnez système de fichiers, puis sélectionnez l'onglet activité.
+. Sélectionnez les volumes sur lesquels vous souhaitez activer le suivi d'activité. En haut de la liste des volumes, sélectionnez le bouton *plus d'options*. Sélectionnez *Activer le suivi d'activité*.
+. Pour afficher le suivi des activités au niveau du SVM, sélectionnez le SVM spécifique que vous souhaitez afficher dans *Storage > volumes*. Naviguez jusqu'à l'onglet système de fichiers, puis activité et vous verrez les données des volumes sur lesquels le suivi d'activité est activé.
+
+
+--
+.Pour tous les volumes d'une SVM
+--
+.Étapes
+. Sélectionnez *stockage > volumes*. Sélectionner un SVM dans le menu.
+. Accédez à l'onglet *système de fichiers*, choisissez l'onglet *plus* pour activer le suivi d'activité sur tous les volumes de la SVM.
+
+
+--
+====
+
+
+== Contrôle d'accès basé sur des rôles (RBAC) et suivi des activités
+
+Si vous utilisez xref:../concepts/administrator-authentication-rbac-concept.html[contrôle d'accès basé sur des rôles] (RBAC) dans System Manager ou dans l'API REST ONTAP, vous devez créer un rôle dédié pour modérer l'accès au suivi des activités dans l'analytique du système de fichiers.
+
+.Étapes
+. Créez un rôle par défaut pour accéder à toutes les fonctions.
++
+Cette opération doit être effectuée avant de créer le rôle restrictif afin de garantir que le rôle n'est que restrictif sur le suivi d'activité :
+
++
+`security login role create -cmddirname DEFAULT -access all -role storageAdmin`
+
+. Créer le rôle restrictif :
++
+`security login role create -cmddirname "volume file show-disk-usage" -access none -role storageAdmin`
+
+. Autoriser les rôles à accéder aux services web du SVM :
++
+** `rest` Pour les appels API REST
+** `security` pour la protection par mot de passe
+** `sysmgr` Pour accéder à System Manager
++
+`vserver services web access create -vserver _svm-name_ -name_ -name rest -role storageAdmin`
+
++
+`vserver services web access create -vserver _svm-name_ -name security -role storageAdmin`
+
++
+`vserver services web access create -vserver _svm-name_ -name sysmgr -role storageAdmin`
+
+
+
+. Créer un utilisateur.
++
+Vous devez exécuter une commande de création distincte pour chaque application que vous souhaitez appliquer à l'utilisateur. Les appels créent plusieurs fois sur le même utilisateur appliquent simplement toutes les applications à cet utilisateur et ne créent pas de nouvel utilisateur à chaque fois. Le `http` Le paramètre pour le type d'application s'applique à l'API REST ONTAP et à System Manager.
+
++
+`security login create -user-or-group-name storageUser -authentication-method password -application http -role storageAdmin`
+
+. Avec les nouvelles informations d'identification utilisateur, vous pouvez désormais vous connecter à System Manager ou utiliser l'API REST de ONTAP pour accéder aux données d'analytique des systèmes de fichiers.
+
+
+link:https://docs.netapp.com/us-en/ontap-automation/rest/rbac_overview.html["En savoir plus sur les rôles RBAC et l'API REST de ONTAP"^]

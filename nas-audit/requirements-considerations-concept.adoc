@@ -1,0 +1,64 @@
+---
+permalink: nas-audit/requirements-considerations-concept.html 
+sidebar: sidebar 
+keywords: audit, requirements, considerations 
+summary: 'Avant de configurer et d"activer l"audit sur votre serveur virtuel de stockage (SVM), vous devez connaître certaines exigences et considérations.' 
+---
+= Exigences et considérations relatives à l'audit
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de configurer et d'activer l'audit sur votre serveur virtuel de stockage (SVM), vous devez connaître certaines exigences et considérations.
+
+* Le nombre maximal de SVM activés pour l'audit pris en charge dans un cluster est de 50.
+* L'audit n'est pas lié aux licences SMB ou NFS.
++
+Vous pouvez configurer et activer l'audit même si les licences SMB et NFS ne sont pas installées sur le cluster.
+
+* L'audit NFS prend en charge les ACE de sécurité (type U).
+* Pour l'audit NFS, il n'y a pas de mappage entre les bits de mode et les ACE d'audit.
++
+Lors de la conversion des ACL en bits de mode, les ACE d'audit sont ignorés. Lors de la conversion des bits de mode en listes de contrôle d'accès, les ACE d'audit ne sont pas générés.
+
+* Le répertoire spécifié dans la configuration d'audit doit exister.
++
+S'il n'existe pas, la commande de création de la configuration d'audit échoue.
+
+* Le répertoire spécifié dans la configuration d'audit doit satisfaire aux exigences suivantes :
++
+** Le répertoire ne doit pas contenir de liens symboliques.
++
+Si le répertoire spécifié dans la configuration d'audit contient des liens symboliques, la commande permettant de créer la configuration d'audit échoue.
+
+** Vous devez spécifier le répertoire à l'aide d'un chemin d'accès absolu.
++
+Vous ne devez pas spécifier de chemin relatif, par exemple, `/vs1/../`.
+
+
+
+* L'audit dépend de l'espace disponible dans les volumes de transfert.
++
+Vous devez connaître et planifier l'espace suffisant pour les volumes intermédiaires des agrégats contenant des volumes audités.
+
+* L'audit dépend de l'espace disponible dans le volume contenant le répertoire dans lequel les journaux d'événements convertis sont stockés.
++
+Vous devez connaître et disposer d'un plan vous assurant que l'espace disponible dans les volumes utilisés pour stocker les journaux d'événements est suffisant. Vous pouvez spécifier le nombre de journaux d'événements à conserver dans le répertoire d'audit en utilisant le `-rotate-limit` paramètre lors de la création d'une configuration d'audit, qui peut vous aider à vérifier que l'espace disponible pour les journaux d'événements du volume est suffisant.
+
+* Bien que vous puissiez activer le staging de stratégie d'accès central dans la configuration d'audit sans activer le contrôle d'accès dynamique sur le serveur SMB, le contrôle d'accès dynamique doit être activé pour générer des événements de staging de stratégie d'accès central.
++
+Le contrôle d'accès dynamique n'est pas activé par défaut.
+
+
+
+
+
+== Considérations relatives à l'espace des agrégats lors de l'activation des audits
+
+Lorsqu'une configuration d'audit est créée et que l'audit est activé sur au moins une machine virtuelle de stockage (SVM) du cluster, le sous-système d'audit crée des volumes intermédiaires sur tous les agrégats existants et sur tous les nouveaux agrégats créés. Vous devez tenir compte de certaines considérations relatives à l'espace des agrégats lorsque vous activez l'audit sur le cluster.
+
+La création d'un volume de transfert peut échouer en raison de l'absence de disponibilité de l'espace dans un agrégat. Cela peut se produire si vous créez une configuration d'audit et que les agrégats existants ne disposent pas d'espace suffisant pour contenir le volume d'activation.
+
+Assurez-vous de disposer de suffisamment d'espace sur les agrégats existants pour les volumes intermédiaires avant d'activer l'audit sur une SVM.

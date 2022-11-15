@@ -1,0 +1,119 @@
+---
+permalink: tape-backup/transfer-data-ndmpcopy-task.html 
+sidebar: sidebar 
+keywords: transfer, data, ndmpcopy, incremental, full, qtree, directory, files, v4, ndmp 
+summary: La commande ndmpcopy transfère les données entre les systèmes de stockage prenant en charge NDMP v4. Vous pouvez effectuer des transferts de données complets et incrémentiels. Vous pouvez transférer des volumes complets ou partiels, des qtrees, des répertoires ou des fichiers individuels. 
+---
+= Transférer des données à l'aide de la vue d'ensemble ndmpcopy
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le `ndmpcopy` La commande nodeshell transfère les données entre les systèmes de stockage qui prennent en charge NDMP v4. Vous pouvez effectuer des transferts de données complets et incrémentiels. Vous pouvez transférer des volumes complets ou partiels, des qtrees, des répertoires ou des fichiers individuels.
+
+Avec ONTAP 8.x et les versions antérieures, les transferts incrémentiels sont limités à deux niveaux au maximum (une sauvegarde complète et jusqu'à deux sauvegardes incrémentielles).
+
+Depuis la version ONTAP 9.0 et les versions ultérieures, les transferts incrémentiels se limitent à neuf niveaux maximum (une sauvegarde complète et jusqu'à neuf sauvegardes incrémentielles).
+
+Vous pouvez exécuter `ndmpcopy` à la ligne de commande nodeshell des systèmes de stockage source et de destination, ou d'un système de stockage qui n'est ni la source ni la destination du transfert de données. Vous pouvez également exécuter `ndmpcopy` sur un système de stockage unique qui est à la fois la source et la destination du transfert de données.
+
+Vous pouvez utiliser les adresses IPv4 ou IPv6 des systèmes de stockage source et de destination dans `ndmpcopy` commande. Le format du chemin d'accès est `/vserver_name/volume_name \[path\]`.
+
+.Étapes
+. Activer le service NDMP sur les systèmes de stockage source et cible :
++
+|===
+
+
+| Si vous effectuez le transfert des données à la source ou à la destination dans... | Utiliser la commande suivante... 
+
+
+ a| 
+Mode SVM-scoped NDMP
+ a| 
+`vserver services ndmp on`
+
+[NOTE]
+====
+Pour l'authentification NDMP au SVM admin, le compte utilisateur est `admin` et le rôle de l'utilisateur est `admin` ou `backup`. Au sein de la SVM de données, le compte utilisateur est `vsadmin` et le rôle de l'utilisateur est `vsadmin` ou `vsadmin-backup` rôle.
+
+====
+
+
+ a| 
+Mode node-scoped NDMP
+ a| 
+`system services ndmp on`
+
+|===
+. Transfert de données au sein d'un système de stockage ou entre des systèmes de stockage utilisant le `ndmpcopy` commande au nodeshell :
++
+`*::> system node run -node <node_name> < ndmpcopy [options] source_IP:source_path destination_IP:destination_path [-mcs {inet|inet6}] [-mcd {inet|inet6}] [-md {inet|inet6}]*`
+
++
+[NOTE]
+====
+Les noms DNS ne sont pas pris en charge dans ndmpcopy. Vous devez fournir l'adresse IP de la source et de la destination. L'adresse de bouclage (127.0.0.1) n'est pas prise en charge pour l'adresse IP source ou l'adresse IP de destination.
+
+====
++
+** Le `ndmpcopy` commande détermine le mode d'adresse pour les connexions de contrôle comme suit :
++
+*** Le mode d'adresse pour la connexion de contrôle correspond à l'adresse IP fournie.
+*** Vous pouvez remplacer ces règles à l'aide du `-mcs` et `-mcd` options.
+
+
+** Si la source ou la destination est le système ONTAP, selon le mode NDMP (node-scoped ou SVM-scoped), utiliser une adresse IP permettant d'accéder au volume cible.
+** `source_path` et `destination_path` sont les noms de chemin absolus jusqu'au niveau granulaire du volume, qtree, répertoire ou fichier.
+** `-mcs` spécifie le mode d'adressage préféré pour la connexion de contrôle au système de stockage source.
++
+`inet` Indique un mode d'adresse IPv4 et `inet6` Indique un mode d'adresse IPv6.
+
+** `-mcd` spécifie le mode d'adressage préféré pour la connexion de contrôle au système de stockage de destination.
++
+`inet` Indique un mode d'adresse IPv4 et `inet6` Indique un mode d'adresse IPv6.
+
+** `-md` spécifie le mode d'adressage préféré pour les transferts de données entre les systèmes de stockage source et de destination.
++
+`inet` Indique un mode d'adresse IPv4 et `inet6` Indique un mode d'adresse IPv6.
+
++
+Si vous n'utilisez pas le `-md` dans le `ndmpcopy` commande, le mode d’adressage de la connexion de données est déterminé comme suit :
+
++
+*** Si l'une des adresses spécifiées pour les connexions de contrôle est une adresse IPv6, le mode d'adresse de la connexion de données est IPv6.
+*** Si les deux adresses spécifiées pour les connexions de contrôle sont des adresses IPv4, le `ndmpcopy` La commande tente d'abord de passer en mode d'adresse IPv6 pour la connexion de données.
++
+Si cela échoue, la commande utilise un mode d'adresse IPv4.
+
++
+[NOTE]
+====
+Une adresse IPv6, si elle est spécifiée, doit être entre crochets.
+
+====
++
+Cet exemple de commande migre les données d'un chemin source (`source_path`) vers un chemin de destination (`destination_path`).
+
++
+[listing]
+----
+> ndmpcopy -sa admin:<ndmp_password> -da admin:<ndmp_password>
+ -st md5 -dt md5 192.0.2.129:/<src_svm>/<src_vol> 192.0.2.131:/<dst_svm>/<dst_vol>
+----
++
+Cet exemple de commande définit explicitement les connexions de contrôle et la connexion de données pour utiliser le mode d'adresse IPv6 :
+
++
+[listing]
+----
+> ndmpcopy -sa admin:<ndmp_password> -da admin:<ndmp_password> -st md5 -dt md5 -mcs inet6 -mcd inet6 -md
+ inet6 [2001:0db8:1:1:209:6bff:feae:6d67]:/<src_svm>/<src_vol> [2001:0ec9:1:1:200:7cgg:gfdf:7e78]:/<dst_svm>/<dst_vol>
+----
+
+
+
+
+

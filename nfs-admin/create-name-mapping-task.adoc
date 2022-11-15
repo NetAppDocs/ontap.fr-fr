@@ -1,0 +1,54 @@
+---
+permalink: nfs-admin/create-name-mapping-task.html 
+sidebar: sidebar 
+keywords: create, name, mapping 
+summary: 'Vous pouvez utiliser la commande vserver name-mapping create pour créer un mappage de nom. Vous utilisez les mappages de noms pour permettre aux utilisateurs Windows d"accéder aux volumes du style de sécurité UNIX et les inverser.' 
+---
+= Créer un mappage de nom
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser le `vserver name-mapping create` commande permettant de créer un mappage de noms. Vous utilisez les mappages de noms pour permettre aux utilisateurs Windows d'accéder aux volumes du style de sécurité UNIX et les inverser.
+
+Par SVM, ONTAP prend en charge jusqu'à 12,500 mappages de noms dans chaque direction.
+
+.Étape
+. Créer un mappage de noms :
++
+`vserver name-mapping create -vserver vserver_name -direction {krb-unix|win-unix|unix-win} -position integer -pattern text -replacement text`
+
++
+[NOTE]
+====
+Le `-pattern` et `-replacement` les énoncés peuvent être formulés comme des expressions régulières. Vous pouvez également utiliser le `-replacement` instruction pour refuser explicitement un mappage à l'utilisateur en utilisant la chaîne de remplacement nulle `" "` (le caractère d'espace). Voir la `vserver name-mapping create` page de manuel pour plus de détails.
+
+====
++
+Lorsque des mappages entre Windows et UNIX sont créés, tous les clients SMB disposant de connexions ouvertes au système ONTAP au moment de la création des nouveaux mappages doivent se déconnecter et se reconnecter pour voir les nouveaux mappages.
+
+
+
+La commande suivante crée un nom de mappage sur le SVM nommé vs1. Le mappage est un mappage d'UNIX à Windows à la position 1 dans la liste des priorités. Le mappage mappe l'utilisateur UNIX johnd à l'utilisateur Windows ENG\johndoe.
+
+[listing]
+----
+vs1::> vserver name-mapping create -vserver vs1 -direction unix-win -position 1 -pattern johnd
+-replacement "ENG\\JohnDoe"
+----
+La commande suivante crée un autre mappage de nom sur le SVM nommé vs1. Le mappage est un mappage de Windows à UNIX à la position 1 dans la liste des priorités. Dans ce cas, le motif et le remplacement incluent des expressions régulières. Le mapping mappe chaque utilisateur CIFS du domaine ENG aux utilisateurs du domaine LDAP associé avec la SVM.
+
+[listing]
+----
+vs1::> vserver name-mapping create -vserver vs1 -direction win-unix -position 1 -pattern "ENG\\(.+)"
+-replacement "\1"
+----
+La commande suivante crée un autre mappage de nom sur le SVM nommé vs1. Ici, le schéma inclut "`$'" comme élément du nom d'utilisateur Windows qui doit être échappé. Le mappage mappe l'utilisateur Windows ENG\ john$OPS à l'utilisateur UNIX john_OPS.
+
+[listing]
+----
+vs1::> vserver name-mapping create -direction win-unix -position 1 -pattern ENG\\john\$ops
+-replacement john_ops
+----

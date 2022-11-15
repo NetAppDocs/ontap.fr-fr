@@ -1,0 +1,82 @@
+---
+permalink: upgrade/task_enabling_and_reverting_lifs_to_home_ports_preparing_the_ontap_software_for_the_update.html 
+sidebar: sidebar 
+keywords: ontap, upgrade, enabling, enable, revert, reverting, lifs, home, ports, 
+summary: 'Au cours d"un redémarrage, certaines LIFs ont peut-être été migrées vers leurs ports de basculement qui leur sont attribués. Avant et après la mise à niveau d"un cluster, vous devez activer et restaurer toutes les LIFs qui ne se trouvent pas sur leur port de base.' 
+---
+= Avant de procéder à la mise à niveau, vérifiez que toutes LES LIFS sont présentes sur les ports de base
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Au cours d'un redémarrage, certaines LIFs ont peut-être été migrées vers leurs ports de basculement qui leur sont attribués. Avant et après la mise à niveau d'un cluster, vous devez activer et restaurer toutes les LIFs qui ne se trouvent pas sur leur port de base.
+
+La commande network interface revert restaure une LIF qui n'est pas actuellement sur son port home port vers son port home port, à condition que le port home port soit opérationnel. Le port de base d'une LIF est spécifié lors de sa création ; vous pouvez déterminer le port d'origine d'une LIF à l'aide de la commande network interface show.
+
+. Afficher le statut de toutes les LIFs : `network interface show`
++
+Cet exemple affiche l'état de toutes les LIFs d'un Storage Virtual machine (SVM).
+
++
+[listing]
+----
+cluster1::> network interface show -vserver vs0
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+vs0
+            data001    down/down  192.0.2.120/24     node0         e0e     true
+            data002    down/down  192.0.2.121/24     node0         e0f     true
+            data003    down/down  192.0.2.122/24     node0         e2a     true
+            data004    down/down  192.0.2.123/24     node0         e2b     true
+            data005    down/down  192.0.2.124/24     node0         e0e     false
+            data006    down/down  192.0.2.125/24     node0         e0f     false
+            data007    down/down  192.0.2.126/24     node0         e2a     false
+            data008    down/down  192.0.2.127/24     node0         e2b     false
+8 entries were displayed.
+----
++
+Si des LIF dont le statut Status Admin est down ou avec un état is home est false, passez à l'étape suivante.
+
+. Activation des LIFs de données : `network interface modify {-role data} -status-admin up`
++
+[listing]
+----
+cluster1::> network interface modify {-role data} -status-admin up
+8 entries were modified.
+----
+. Rerestaurez les LIF sur leurs home ports : `network interface revert *`
++
+Cette commande restaure toutes les LIF vers leur port de base.
+
++
+[listing]
+----
+cluster1::> network interface revert *
+8 entries were acted on.
+----
+. Vérifier que toutes les LIFs se trouvent sur leurs ports de type home : `network interface show`
++
+Cet exemple montre que toutes les LIFs pour SVM vs0 sont sur leurs ports de base.
+
++
+[listing]
+----
+cluster1::> network interface show -vserver vs0
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+vs0
+            data001      up/up    192.0.2.120/24     node0         e0e     true
+            data002      up/up    192.0.2.121/24     node0         e0f     true
+            data003      up/up    192.0.2.122/24     node0         e2a     true
+            data004      up/up    192.0.2.123/24     node0         e2b     true
+            data005      up/up    192.0.2.124/24     node1         e0e     true
+            data006      up/up    192.0.2.125/24     node1         e0f     true
+            data007      up/up    192.0.2.126/24     node1         e2a     true
+            data008      up/up    192.0.2.127/24     node1         e2b     true
+8 entries were displayed.
+----
+

@@ -1,0 +1,150 @@
+---
+permalink: system-admin/troubleshoot-autosupport-delivery-smtp-task.html 
+sidebar: sidebar 
+keywords: troubleshoot, autosupport, deliver, system, smtp, settings, resolve, problem 
+summary: Si le système ne parvient pas à transmettre les messages AutoSupport via SMTP, vous pouvez vérifier un certain nombre de paramètres pour résoudre le problème. 
+---
+= Dépanner la transmission des messages AutoSupport via SMTP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si le système ne parvient pas à transmettre les messages AutoSupport via SMTP, vous pouvez vérifier un certain nombre de paramètres pour résoudre le problème.
+
+Vous devez avoir confirmé la connectivité réseau de base et la recherche DNS :
+
+* Votre LIF de node-management doit être active et administrative.
+* Vous devez pouvoir envoyer une requête ping à un hôte opérationnel sur le même sous-réseau à partir de la LIF de gestion du cluster (il ne s'agit pas d'une LIF sur un des nœuds).
+* Vous devez pouvoir envoyer des requêtes ping à un hôte opérationnel en dehors du sous-réseau à partir de la LIF de gestion du cluster.
+* Vous devez pouvoir ping un hôte opérationnel hors du sous-réseau depuis la LIF de gestion du cluster utilisant le nom de l'hôte (pas l'adresse IP).
+
+
+Ces étapes sont destinées aux cas où vous avez déterminé que AutoSupport peut générer le message, mais ne peut pas le transmettre via SMTP.
+
+Si vous rencontrez des erreurs ou si vous ne parvenez pas à effectuer une étape de cette procédure, déterminez et traitez le problème avant de passer à l'étape suivante.
+
+Toutes les commandes sont saisies au niveau de l'interface de ligne de commandes ONTAP, sauf indication contraire.
+
+.Étapes
+. Vérifier l'état du LIF node management :
++
+`*network interface show -home-node local -role node-mgmt -fields vserver,lif,status-oper,status-admin,address,role*`
+
++
+Le `status-oper` et `status-admin` vous devriez y retourner `up`.
+
+. Enregistrer le nom du SVM, le nom de la LIF et l'adresse IP de la LIF pour une utilisation ultérieure.
+. Assurez-vous que le DNS est activé et configuré correctement :
++
+`*vserver services name-service dns show*`
+
+. Afficher tous les serveurs configurés pour être utilisés par AutoSupport :
++
+`*system node autosupport show -fields mail-hosts*`
+
++
+Enregistrer tous les noms de serveur affichés.
+
+. Pour chaque serveur affiché par l'étape précédente, et `support.netapp.com`, Assurez-vous que le serveur ou l'URL peut être atteint par le noeud :
++
+`*network traceroute -node local -destination _server_name_*`
+
++
+Si l'une de ces routes ne fonctionne pas, essayez la même route à partir d'un hôte en fonctionnement sur le même sous-réseau que le cluster, en utilisant l'utilitaire « traceroute » ou « tracert » situé sur la plupart des clients réseau tiers. Cela vous aide à déterminer si le problème se situe dans votre configuration réseau ou dans votre configuration de cluster.
+
+. Connectez-vous à l'hôte désigné comme hôte de messagerie et assurez-vous qu'il peut traiter les demandes SMTP :
++
+`*netstat -aAn|grep 25*`
+
++
+`25` Est le numéro de port SMTP du port d'écoute.
+
++
+Un message similaire au texte suivant s'affiche :
+
++
+[listing]
+----
+ff64878c tcp        0      0  *.25    *.*    LISTEN.
+----
+. À partir d'un autre hôte, ouvrez une session Telnet avec le port SMTP de l'hôte de messagerie :
++
+`*telnet _mailhost_ 25*`
+
++
+Un message similaire au texte suivant s'affiche :
+
++
+[listing]
+----
+
+220 filer.yourco.com Sendmail 4.1/SMI-4.1 ready at Thu, 30 Nov 2014 10:49:04 PST
+----
+. À l'invite telnet, assurez-vous qu'un message peut être relayé depuis votre hôte de messagerie :
++
+`*HELO _domain_name_*`
+
++
+`*MAIL FROM: _your_email_address_*`
+
++
+`*RCPT TO: \autosupport@netapp.com*`
+
++
+`domain_name` est le nom de domaine de votre réseau.
+
++
+Si une erreur est renvoyée indiquant que la retransmission est refusée, la retransmission n'est pas activée sur l'hôte de messagerie. Contactez votre administrateur système.
+
+. À l'invite telnet, envoyez un message de test :
++
+`*DATA*`
+
++
+`*SUBJECT: TESTING*`
+`*THIS IS A TEST*`
+
++
+`*.*`
+
++
+[NOTE]
+====
+Assurez-vous d'entrer la dernière période (.) sur une ligne par elle-même. La période indique à l'hôte de messagerie que le message est terminé.
+
+====
++
+Si une erreur est renvoyée, votre hôte de messagerie n'est pas configuré correctement. Contactez votre administrateur système.
+
+. À partir de l'interface de ligne de commande ONTAP, envoyez un message de test AutoSupport à une adresse e-mail de confiance à laquelle vous avez accès :
++
+`*system node autosupport invoke -node local -type test*`
+
+. Recherchez le numéro de séquence de la tentative :
++
+`*system node autosupport history show -node local -destination smtp*`
+
++
+Recherchez le numéro de séquence de votre tentative en fonction de l'horodatage. C'est probablement la tentative la plus récente.
+
+. Afficher l'erreur de votre tentative de message de test :
++
+`*system node autosupport history show -node local -seq-num seq_num -fields error*`
+
++
+Si l'erreur affichée est de `Login denied`, Votre serveur SMTP n'accepte pas les requêtes d'envoi de la LIF de gestion du cluster. Si vous ne souhaitez pas passer à utiliser HTTPS comme protocole de transport, contactez votre administrateur réseau de site pour configurer les passerelles SMTP afin de résoudre ce problème.
+
++
+Si ce test réussit mais que le même message envoyé à mailto:autosupport@netapp.com ne le fait pas, assurez-vous que le relais SMTP est activé sur tous vos hôtes de messagerie SMTP ou utilisez HTTPS comme protocole de transport.
+
++
+Si même le message du compte de messagerie géré localement ne fonctionne pas, vérifiez que vos serveurs SMTP sont configurés pour transférer les pièces jointes avec les deux caractéristiques suivantes :
+
++
+** Le suffixe « 7z »
+** Le type MIME « application/x-7X-compressé ».
+
+
+

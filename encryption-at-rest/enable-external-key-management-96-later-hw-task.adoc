@@ -1,0 +1,73 @@
+---
+permalink: encryption-at-rest/enable-external-key-management-96-later-hw-task.html 
+sidebar: sidebar 
+keywords: enabling, external key management, ontap 9.6, later, hw-based 
+summary: 'Vous pouvez utiliser un ou plusieurs serveurs KMIP pour sécuriser les clés que le cluster utilise pour accéder aux données chiffrées. Vous pouvez connecter jusqu"à quatre serveurs KMIP à un nœud. Un minimum de deux serveurs est recommandé pour la redondance et la reprise après sinistre.' 
+---
+= Activation de la gestion externe des clés dans ONTAP 9.6 et versions ultérieures (basée sur le matériel)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser un ou plusieurs serveurs KMIP pour sécuriser les clés que le cluster utilise pour accéder aux données chiffrées. Vous pouvez connecter jusqu'à quatre serveurs KMIP à un nœud. Un minimum de deux serveurs est recommandé pour la redondance et la reprise après sinistre.
+
+À partir de ONTAP 9.11.1, vous pouvez ajouter jusqu'à 3 serveurs de clés secondaires par serveur de clés principal pour créer un serveur de clés en cluster. Pour plus d'informations, voir xref:configure-cluster-key-server-task.html[Configurez les serveurs de clés externes en cluster].
+
+.Avant de commencer
+* Les certificats client SSL KMIP et serveur doivent avoir été installés.
+* Vous devez être un administrateur de cluster pour effectuer cette tâche.
+* Vous devez configurer l'environnement MetroCluster avant de configurer un gestionnaire de clés externe.
+
+
+.Étapes
+. Configurer la connectivité du gestionnaire de clés pour le cluster :
++
+`+security key-manager external enable -vserver admin_SVM -key-servers host_name|IP_address:port,... -client-cert client_certificate -server-ca-cert server_CA_certificates+`
+
++
+[NOTE]
+====
+Le `security key-manager external enable` la commande remplace le `security key-manager setup` commande. Vous pouvez exécuter le `security key-manager external modify` commande pour modifier la configuration de la gestion externe des clés. Pour connaître la syntaxe complète des commandes, consultez les pages de manuels.
+
+====
++
+La commande suivante active la gestion externe des clés pour `cluster1` avec trois serveurs de clés externes. Le premier serveur de clés est spécifié à l'aide de son nom d'hôte et de son port, le second est spécifié à l'aide d'une adresse IP et du port par défaut, et le troisième est spécifié à l'aide d'une adresse et d'un port IPv6 :
+
++
+[listing]
+----
+clusterl::> security key-manager external enable -key-servers ks1.local:15696,10.0.0.10,[fd20:8b1e:b255:814e:32bd:f35c:832c:5a09]:1234 -client-cert AdminVserverClientCert -server-ca-certs AdminVserverServerCaCert
+----
+. Vérifiez que tous les serveurs KMIP configurés sont connectés :
++
+`security key-manager external show-status -node node_name -vserver SVM -key-server host_name|IP_address:port -key-server-status available|not-responding|unknown`
+
++
+[NOTE]
+====
+Le `security key-manager external show-status` la commande remplace le `security key-manager show -status` commande. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
+====
++
+[listing]
+----
+cluster1::> security key-manager external show-status
+
+Node  Vserver  Key Server                                     Status
+----  -------  ---------------------------------------        -------------
+node1
+      cluster1
+               10.0.0.10:5696                                 available
+               fd20:8b1e:b255:814e:32bd:f35c:832c:5a09:1234   available
+               ks1.local:15696                                available
+node2
+      cluster1
+               10.0.0.10:5696                                 available
+               fd20:8b1e:b255:814e:32bd:f35c:832c:5a09:1234   available
+               ks1.local:15696                                available
+
+6 entries were displayed.
+----
+

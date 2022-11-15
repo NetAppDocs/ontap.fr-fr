@@ -1,0 +1,161 @@
+---
+permalink: s3-config/create-bucket-task.html 
+sidebar: sidebar 
+keywords: s3, bucket, system manager, 
+summary: 'Les objets S3 sont conservés dans _seaux_--ils ne sont pas imbriqués en tant que fichiers dans un répertoire à l"intérieur d"autres répertoires.' 
+---
+= Créer un compartiment
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les objets S3 sont conservés dans _seaux_--ils ne sont pas imbriqués en tant que fichiers dans un répertoire à l'intérieur d'autres répertoires.
+
+Un SVM contenant un serveur S3 doit déjà exister.
+
+Pour l'interface de ligne de commandes, lorsque vous créez un compartiment, deux options de provisionnement sont disponibles :
+
+* Laissez ONTAP Select les agrégats sous-jacents et les composants FlexGroup (par défaut)
++
+** ONTAP crée et configure un volume FlexGroup pour le premier compartiment en sélectionnant automatiquement les agrégats. Il sélectionne automatiquement le niveau de service le plus élevé disponible pour votre plateforme, ou vous pouvez spécifier le niveau de service de stockage. Tous les compartiments supplémentaires que vous ajoutez ultérieurement dans le SVM auront le même volume FlexGroup sous-jacent.
+** Vous pouvez également indiquer si le compartiment sera utilisé pour le Tiering, dans ce cas, ONTAP tente de sélectionner un support économique avec des performances optimales pour les données hiérarchisées.
+
+
+* Vous sélectionnez les agrégats sous-jacents et les composants FlexGroup (des options de commande de privilège avancé sont requises)
++
+** Vous pouvez sélectionner manuellement les agrégats sur lesquels le compartiment et le volume FlexGroup contenant doivent être créés, puis spécifier le nombre de composants sur chaque agrégat. Lors de l'ajout de compartiments supplémentaires :
++
+*** Si vous spécifiez les agrégats et les composants pour un nouveau compartiment, un nouveau FlexGroup est créé pour ce nouveau compartiment.
+*** Si vous ne spécifiez pas d'agrégats ni de composants pour un nouveau compartiment, le nouveau compartiment est ajouté à un FlexGroup existant. Voir xref:../flexgroup/index.html[Gestion des volumes FlexGroup] pour en savoir plus.
++
+Lorsque vous spécifiez des agrégats et des composants lors de la création d'un compartiment, aucun groupe de règles de QoS, n'est appliqué par défaut ou personnalisé. Vous pouvez le faire plus tard avec le `vserver object-store-server bucket modify` commande.
+
+
+
+
+
+
+
+*Remarque :* si vous utilisez des compartiments à partir de Cloud Volumes ONTAP, vous devez utiliser la procédure CLI. Il est fortement recommandé de sélectionner manuellement les agrégats sous-jacents pour s'assurer qu'ils n'utilisent qu'un seul nœud. L'utilisation d'agrégats des deux nœuds peut avoir un impact sur les performances, car les nœuds se trouvent dans des zones de disponibilité séparées géographiquement et sont donc sujets aux problèmes de latence.
+
+Les niveaux de service de stockage sont des groupes de règles prédéfinies de qualité de service (QoS) adaptative, avec des niveaux par défaut _Value_, _performance_ et _Extreme_. Au lieu d'un des niveaux de service de stockage par défaut, vous pouvez également définir un groupe de règles de QoS personnalisé et le appliquer à un compartiment.
+
+Depuis ONTAP 9.8, lorsque vous provisionnez le stockage, la QoS est activée par défaut. Vous pouvez désactiver QoS ou choisir une règle de QoS personnalisée lors du processus de provisionnement ou ultérieurement.
+
+link:storage-service-definitions-reference.html["Définitions des services de stockage"]
+
+Si vous configurez le Tiering de capacité locale, vous créez des compartiments et des utilisateurs dans une SVM de données, et non dans la SVM système où est situé le serveur S3.
+
+Pour l'accès client à distance, vous devez configurer des compartiments dans une VM de stockage compatible S3. Si vous créez un compartiment dans une machine virtuelle de stockage non compatible S3, il sera uniquement disponible pour le Tiering local.
+
+link:../performance-admin/index.html["Gestion des performances"]
+
+Voir la `vserver object-store-server bucket` pages de manuel pour des options de configuration et d'affichage supplémentaires.
+
+
+
+== Processus de création de compartiments
+
+[role="tabbed-block"]
+====
+.CLI
+--
+. Si vous prévoyez de sélectionner vous-même les agrégats et les composants FlexGroup, définissez le niveau de privilège sur Avancé (sinon, le niveau de privilège admin est suffisant) : `set -privilege advanced`
+. Création d'un compartiment :
++
+`vserver object-store-server bucket create -vserver _svm_name_ -bucket _bucket_name_ [-size integer[KB|MB|GB|TB|PB]] [-comment text] [additional_options]`
+
++
+Le nom de SVM peut être un SVM de données ou `Cluster` (Nom du SVM système) si vous configurez le Tiering local.
+
++
+Si vous ne spécifiez aucune option, ONTAP crée un compartiment de 5 Go avec un niveau de service défini au niveau le plus élevé disponible pour votre système.
+
++
+Si vous souhaitez que ONTAP crée un compartiment en fonction de la performance ou de l'utilisation, choisissez l'une des options suivantes :
+
++
+** niveau de service
++
+Incluez le `-storage-service-level` option avec l'une des valeurs suivantes : `value`, `performance`, ou `extreme`.
+
+** tiering
++
+Incluez le `-used-as-capacity-tier true` option.
+
+
+
++
+Pour spécifier les agrégats sur lesquels créer le volume FlexGroup sous-jacent, utilisez les options suivantes :
+
++
+** Le `-aggr-list` Le paramètre spécifie la liste des agrégats à utiliser pour les composants de volume FlexGroup.
++
+Chaque entrée de la liste crée un composant sur l'agrégat spécifié. Vous pouvez spécifier un agrégat plusieurs fois afin d'avoir plusieurs composants créés sur l'agrégat.
+
++
+Pour assurer des performances prévisibles sur l'ensemble du volume FlexGroup, tous les agrégats doivent utiliser les mêmes configurations de type de disque et de groupe RAID.
+
+** Le `-aggr-list-multiplier` le paramètre spécifie le nombre de fois pour effectuer l'itération sur les agrégats répertoriés avec le `-aggr-list` Paramètre lors de la création d'un volume FlexGroup.
++
+La valeur par défaut du `-aggr-list-multiplier` le paramètre est 4.
+
+
+
+. Ajout d'une « policy group » QoS le cas échéant :
++
+`vserver object-store-server bucket modify -bucket _bucket_name_ -qos-policy-group _qos_policy_group_`
+
+. Vérification de la création de compartiment :
++
+`vserver object-store-server bucket show [-instance]`
+
+
+
+L'exemple suivant crée un compartiment pour le SVM vs1 de taille 1 To et spécification de l'agrégat :
+
+[listing]
+----
+cluster-1::*> vserver object-store-server bucket create -vserver svm1.example.com -bucket testbucket -aggr-list aggr1 -size 1TB
+----
+--
+.System Manager
+--
+. Ajoutez un nouveau compartiment à une machine virtuelle de stockage compatible S3.
++
+.. Cliquez sur *stockage > compartiments*, puis sur *Ajouter*.
+.. Entrez un nom, sélectionnez la machine virtuelle de stockage, puis entrez une taille.
++
+*** Si vous cliquez sur *Enregistrer* à ce stade, un compartiment est créé avec les paramètres par défaut suivants :
++
+**** L'accès au compartiment n'est accordé à aucun utilisateur, sauf si des règles de groupes sont déjà en vigueur.
++
+
+NOTE: Vous ne devez pas utiliser l'utilisateur root S3 pour gérer le stockage objet ONTAP et partager ses autorisations, car il dispose d'un accès illimité au magasin d'objets. Créez plutôt un utilisateur ou un groupe avec les privilèges d'administration que vous attribuez.
+
+**** Niveau de qualité de service (performance) le plus élevé disponible pour votre système
+
+
+*** Vous pouvez cliquer sur *plus d'options* pour configurer les autorisations utilisateur et le niveau de performances lorsque vous configurez le compartiment, ou vous pouvez modifier ces paramètres ultérieurement.
++
+**** Vous devez avoir déjà créé des utilisateurs et des groupes avant d'utiliser *plus d'options* pour configurer leurs autorisations.
+**** Si vous prévoyez d'utiliser le stockage d'objets S3 pour le Tiering FabricPool, choisissez *use pour le Tiering* (utilisez des supports à faible coût avec des performances optimales pour les données hiérarchisées) plutôt que un niveau de service de performance.
+
+
+
+
+
+
+. Pour les applications client S3, un autre système ONTAP ou une application tierce externe, vérifiez l'accès au nouveau compartiment en saisissant les éléments suivants :
++
+** Certificat CA de serveur S3.
+** Clé d'accès et clé secrète de l'utilisateur.
+** Nom de domaine complet du serveur S3 et nom de compartiment.
+
+
+
+
+--
+====

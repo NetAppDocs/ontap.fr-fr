@@ -1,0 +1,84 @@
+---
+permalink: system-admin/positional-parameters-concept.html 
+sidebar: sidebar 
+keywords: understand, positional, parameters, cli, command, input, query 
+summary: 'Vous pouvez utiliser la fonctionnalité des paramètres de position de l"interface de ligne de commande ONTAP pour améliorer l"efficacité de l"entrée de commande. Vous pouvez interroger une commande pour identifier les paramètres qui sont de position pour la commande.' 
+---
+= A propos des paramètres de position
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser la fonctionnalité des paramètres de position de l'interface de ligne de commande ONTAP pour améliorer l'efficacité de l'entrée de commande. Vous pouvez interroger une commande pour identifier les paramètres qui sont de position pour la commande.
+
+
+
+== Définition d'un paramètre de position
+
+* Un paramètre de position est un paramètre qui ne vous demande pas de spécifier le nom du paramètre avant de spécifier la valeur du paramètre.
+* Un paramètre de position peut être intercalé avec des paramètres non positionnels dans l'entrée de commande, tant qu'il observe sa séquence relative avec d'autres paramètres de position dans la même commande, comme indiqué dans l' `*_command_name ?_*` sortie.
+* Un paramètre de position peut être un paramètre obligatoire ou facultatif pour une commande.
+* Un paramètre peut être positionné pour une commande mais non positionnel pour une autre.
+
+
+[NOTE]
+====
+L'utilisation de la fonctionnalité des paramètres de position dans les scripts n'est pas recommandée, en particulier lorsque les paramètres de position sont facultatifs pour la commande ou si des paramètres facultatifs sont répertoriés avant eux.
+
+====
+
+
+== Identifiez un paramètre de position
+
+Vous pouvez identifier un paramètre de position dans l' `*_command_name ?_*` sortie de la commande. Un paramètre de position comporte des crochets autour de son nom de paramètre, dans l'un des formats suivants :
+
+* [`_-parameter_name_`] `_parameter_value_` affiche un paramètre requis qui est positionnel.
+* [[`_-parameter_name_`] `_parameter_value_`] affiche un paramètre facultatif qui est positionnel.
+
+
+Par exemple, lorsqu'il s'affiche comme suit dans le `*_command_name ?_*` sortie, le paramètre est positionné pour la commande dans laquelle il apparaît :
+
+* `[-lif] <lif-name>`
+* `[[-lif] <lif-name>]`
+
+
+Toutefois, lorsqu'il est affiché comme suit, le paramètre n'est pas positionné pour la commande dans laquelle il apparaît :
+
+* `-lif <lif-name>`
+* `[-lif <lif-name>]`
+
+
+
+
+== Exemples d'utilisation de paramètres de position
+
+Dans l'exemple suivant, le `*_volume create ?_*` le résultat indique que trois paramètres sont en position pour la commande : `-volume`, `-aggregate`, et `-size`.
+
+[listing]
+----
+cluster1::> volume create ?
+   -vserver <vserver name>                Vserver Name
+   [-volume] <volume name>                Volume Name
+   [-aggregate] <aggregate name>          Aggregate Name
+  [[-size] {<integer>[KB|MB|GB|TB|PB]}]   Volume Size
+  [ -state {online|restricted|offline|force-online|force-offline|mixed} ]
+                                          Volume State (default: online)
+  [ -type {RW|DP|DC} ]                    Volume Type (default: RW)
+  [ -policy <text> ]                      Export Policy
+  [ -user <user name> ]                   User ID
+  ...
+  [ -space-guarantee|-s {none|volume} ]   Space Guarantee Style (default: volume)
+  [ -percent-snapshot-space <percent> ]   Space Reserved for Snapshot Copies
+  ...
+----
+Dans l'exemple suivant, le `volume create` la commande est spécifiée sans utiliser la fonctionnalité des paramètres de position :
+
+`cluster1::> volume create -vserver svm1 -volume vol1 -aggregate *aggr1 -size 1g* -percent-snapshot-space 0`
+
+Les exemples suivants utilisent la fonctionnalité des paramètres de position pour augmenter l'efficacité de l'entrée de commande. Les paramètres de position sont entrelatés avec des paramètres non positionnels dans `volume create` la commande et les valeurs des paramètres de position sont spécifiées sans les noms des paramètres. Les paramètres de position sont spécifiés dans la même séquence que celle indiquée par le `*volume create ?*` sortie. C'est-à-dire la valeur de `-volume` est spécifié avant celle de `-aggregate`, qui est à son tour spécifié avant celle de `-size`.
+
+`cluster1::> volume create *vol2* *aggr1* *1g* -vserver svm1 -percent-snapshot-space 0`
+
+`cluster1::> volume create -vserver svm1 *vol3* -snapshot-policy default *aggr1* -nvfail off *1g* -space-guarantee none`

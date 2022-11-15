@@ -1,0 +1,76 @@
+---
+permalink: smb-admin/configure-default-unix-user-task.html 
+sidebar: sidebar 
+keywords: configure, unix, user, map, fail, individual, windows, authentication, non-mapped, configure the default unix user 
+summary: 'Vous pouvez configurer l"utilisateur UNIX par défaut à utiliser si toutes les autres tentatives de mappage échouent pour un utilisateur, ou si vous ne souhaitez pas mapper des utilisateurs individuels entre UNIX et Windows. Si vous souhaitez que l"authentification des utilisateurs non mappés échoue, vous ne devez pas configurer l"utilisateur UNIX par défaut.' 
+---
+= Configurez l'utilisateur UNIX par défaut
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez configurer l'utilisateur UNIX par défaut à utiliser si toutes les autres tentatives de mappage échouent pour un utilisateur, ou si vous ne souhaitez pas mapper des utilisateurs individuels entre UNIX et Windows. Si vous souhaitez que l'authentification des utilisateurs non mappés échoue, vous ne devez pas configurer l'utilisateur UNIX par défaut.
+
+Par défaut, le nom de l'utilisateur UNIX par défaut est ""pcuser"", ce qui signifie que par défaut, le mappage d'utilisateur à l'utilisateur UNIX par défaut est activé. Vous pouvez spécifier un autre nom à utiliser comme utilisateur UNIX par défaut. Le nom que vous spécifiez doit exister dans les bases de données de service de noms configurées pour la machine virtuelle de stockage (SVM). Si cette option est définie sur une chaîne null, personne ne peut accéder au serveur CIFS en tant qu'utilisateur UNIX par défaut. En d'autres termes, chaque utilisateur doit avoir un compte dans la base de données de mots de passe avant d'accéder au serveur CIFS.
+
+Pour qu'un utilisateur puisse se connecter au serveur CIFS à l'aide du compte utilisateur UNIX par défaut, l'utilisateur doit respecter les conditions préalables suivantes :
+
+* L'utilisateur est authentifié.
+* L'utilisateur se trouve dans la base de données utilisateur Windows locale du serveur CIFS, dans le domaine personnel du serveur CIFS ou dans un domaine approuvé (si les recherches de mappage de noms de domaines multiples sont activées sur le serveur CIFS).
+* Le nom d'utilisateur n'est pas explicitement mappé à une chaîne nulle.
+
+
+.Étapes
+. Configurez l'utilisateur UNIX par défaut :
++
+|===
+| Si vous voulez ... | Entrer ... 
+
+
+ a| 
+Utiliser l'utilisateur UNIX par défaut « pcuser »
+ a| 
+`vserver cifs options modify -default-unix-user pcuser`
+
+
+
+ a| 
+Utiliser un autre compte utilisateur UNIX comme utilisateur par défaut
+ a| 
+`vserver cifs options modify -default-unix-user _user_name_`
+
+
+
+ a| 
+Désactivez l'utilisateur UNIX par défaut
+ a| 
+`vserver cifs options modify -default-unix-user ""`
+
+|===
++
+`vserver cifs options modify -default-unix-user pcuser`
+
+. Vérifiez que l'utilisateur UNIX par défaut est configuré correctement : `vserver cifs options show -vserver _vserver_name_`
++
+Dans l'exemple suivant, l'utilisateur UNIX par défaut et l'utilisateur UNIX invité sur le SVM vs1 sont configurés pour utiliser l'utilisateur UNIX « pcuser » :
+
++
+`vserver cifs options show -vserver vs1`
+
++
+[listing]
+----
+
+Vserver: vs1
+
+  Client Session Timeout : 900
+  Default Unix Group     : -
+  Default Unix User      : pcuser
+  Guest Unix User        : pcuser
+  Read Grants Exec       : disabled
+  Read Only Delete       : disabled
+  WINS Servers           : -
+----
+

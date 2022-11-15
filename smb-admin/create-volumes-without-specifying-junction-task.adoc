@@ -1,0 +1,44 @@
+---
+permalink: smb-admin/create-volumes-without-specifying-junction-task.html 
+sidebar: sidebar 
+keywords: create, data, volume, junction, point, resultant, automatic, mount, nas, access, configure, smb, share, nfs, create data volumes without specifying junction points 
+summary: 'Vous pouvez créer un volume de données sans spécifier de point de jonction. Le volume résultant n"est pas monté automatiquement et n"est pas disponible pour configurer l"accès NAS. Vous devez monter le volume avant de configurer les partages SMB ou les exportations NFS pour ce volume.' 
+---
+= Créez des volumes de données sans spécifier de points de jonction
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez créer un volume de données sans spécifier de point de jonction. Le volume résultant n'est pas monté automatiquement et n'est pas disponible pour configurer l'accès NAS. Vous devez monter le volume avant de configurer les partages SMB ou les exportations NFS pour ce volume.
+
+L'agrégat dans lequel vous souhaitez créer le volume doit déjà exister.
+
+.Étapes
+. Créer le volume sans point de jonction en utilisant la commande suivante : `volume create -vserver _vserver_name_ -volume _volume_name_ -aggregate _aggregate_name_ -size {integer[KB|MB|GB|TB|PB]} -security-style {ntfs|unix|mixed}`
++
+La spécification d'un style de sécurité de volume est facultative. Si vous ne spécifiez pas de style de sécurité, ONTAP crée le volume avec le même style de sécurité que celui appliqué au volume racine de la machine virtuelle de stockage (SVM). Toutefois, le style de sécurité du volume racine n'est peut-être pas celui que vous souhaitez appliquer au volume de données. Il est recommandé de spécifier le style de sécurité lors de la création du volume afin de minimiser les problèmes d'accès aux fichiers difficiles à résoudre.
+
++
+De nombreux paramètres facultatifs peuvent être utilisés pour personnaliser un volume de données. Pour en savoir plus, consultez les pages de manuel pour le `volume create` commande.
+
+. Vérifier que le volume a été créé sans point de jonction : `volume show -vserver _vserver_name_ -volume _volume_name_ -junction`
+
+
+L'exemple suivant crée un volume nommé « sales » situé sur la SVM vs1 qui n'est pas monté à un point de jonction :
+
+[listing]
+----
+cluster1::> volume create -vserver vs1 -volume sales -aggregate aggr3 -size 20GB
+[Job 3406] Job succeeded: Successful
+
+cluster1::> volume show -vserver vs1 -junction
+                     Junction                 Junction
+Vserver   Volume     Active   Junction Path   Path Source
+--------- ---------- -------- --------------- -----------
+vs1       data       true     /data           RW_volume
+vs1       home4      true     /eng/home       RW_volume
+vs1       vs1_root   -        /               -
+vs1       sales      -        -               -
+----

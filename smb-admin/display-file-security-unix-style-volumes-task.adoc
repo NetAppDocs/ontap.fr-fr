@@ -1,0 +1,102 @@
+---
+permalink: smb-admin/display-file-security-unix-style-volumes-task.html 
+sidebar: sidebar 
+keywords: display, information, file, directory, security, unix, security-style, volume, style, effective, permission, applied, apply, owner, group, result, validate, configuration, troubleshoot, access, issues, display information about file security on unix security-style volumes 
+summary: 'Vous pouvez afficher des informations sur la sécurité des fichiers et des répertoires sur les volumes de style de sécurité UNIX, notamment les styles de sécurité et les styles de sécurité efficaces, les autorisations appliquées et les informations sur les propriétaires et groupes UNIX. Les résultats vous permettent de valider votre configuration de sécurité ou de résoudre les problèmes d"accès aux fichiers.' 
+---
+= Affiche des informations sur la sécurité des fichiers sur des volumes de type sécurité UNIX
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez afficher des informations sur la sécurité des fichiers et des répertoires sur les volumes de style de sécurité UNIX, notamment les styles de sécurité et les styles de sécurité efficaces, les autorisations appliquées et les informations sur les propriétaires et groupes UNIX. Les résultats vous permettent de valider votre configuration de sécurité ou de résoudre les problèmes d'accès aux fichiers.
+
+Vous devez fournir le nom de la machine virtuelle de stockage (SVM) et le chemin d'accès aux données dont vous souhaitez afficher les informations de sécurité de fichier ou de répertoire. Vous pouvez afficher les valeurs de sortie sous forme de récapitulatif ou sous forme de liste détaillée.
+
+* Les volumes et les qtrees de style de sécurité UNIX n'utilisent que les autorisations de fichier UNIX, soit les bits de mode, soit les listes de contrôle d'accès NFSv4 lors de la détermination des droits d'accès aux fichiers.
+* Les valeurs de sortie ACL s'affichent uniquement pour les fichiers et les dossiers avec la sécurité NFSv4.
++
+Ce champ est vide pour les fichiers et les répertoires utilisant la sécurité UNIX qui n'ont que des autorisations de bit de mode appliquées (pas de listes de contrôle d'accès NFSv4).
+
+* Les champs de sortie propriétaire et groupe de la sortie ACL ne s'appliquent pas dans le cas des descripteurs de sécurité NFSv4.
++
+Ils ne sont utiles que pour les descripteurs de sécurité NTFS.
+
+* Étant donné que la sécurité Storage-Level Access Guard est prise en charge sur un volume UNIX ou qtree si un serveur CIFS est configuré sur le SVM, le résultat peut contenir des informations relatives à la sécurité Storage-Level Access Guard appliquée au volume ou au qtree spécifié dans le `-path` paramètre.
+
+
+.Étape
+. Afficher les paramètres de sécurité des fichiers et des répertoires avec le niveau de détail souhaité :
++
+|===
+| Pour afficher les informations... | Saisissez la commande suivante... 
+
+
+ a| 
+Sous forme récapitulative
+ a| 
+`vserver security file-directory show -vserver _vserver_name_ -path _path_`
+
+
+
+ a| 
+Avec détails étendus
+ a| 
+`vserver security file-directory show -vserver _vserver_name_ -path _path_ -expand-mask true`
+
+|===
+
+
+L'exemple suivant affiche les informations de sécurité relatives au chemin d'accès `/home` Au SVM vs1 :
+
+[listing]
+----
+cluster1::> vserver security file-directory show -vserver vs1 -path /home
+
+                                  Vserver: vs1
+                                File Path: /home
+                        File Inode Number: 9590
+                           Security Style: unix
+                          Effective Style: unix
+                           DOS Attributes: 10
+                   DOS Attributes in Text: ----D---
+                  Expanded Dos Attributes: -
+                             Unix User Id: 0
+                            Unix Group Id: 1
+                           Unix Mode Bits: 700
+                   Unix Mode Bits in Text: rwx------
+                                     ACLs: -
+----
+L'exemple suivant affiche les informations de sécurité relatives au chemin d'accès `/home` Au SVM vs1 sous forme de masque étendu :
+
+[listing]
+----
+cluster1::> vserver security file-directory show -vserver vs1 -path /home -expand-mask true
+
+                                 Vserver: vs1
+                               File Path: /home
+                       File Inode Number: 9590
+                          Security Style: unix
+                         Effective Style: unix
+                          DOS Attributes: 10
+                  DOS Attributes in Text: ----D---
+                 Expanded Dos Attributes: 0x10
+                      ...0 .... .... .... = Offline
+                      .... ..0. .... .... = Sparse
+                      .... .... 0... .... = Normal
+                      .... .... ..0. .... = Archive
+                      .... .... ...1 .... = Directory
+                      .... .... .... .0.. = System
+                      .... .... .... ..0. = Hidden
+                      .... .... .... ...0 = Read Only
+                            Unix User Id: 0
+                           Unix Group Id: 1
+                          Unix Mode Bits: 700
+                  Unix Mode Bits in Text: rwx------
+                                    ACLs: -
+----
+xref:display-file-security-ntfs-style-volumes-task.adoc[Affichage d'informations sur la sécurité des fichiers sur les volumes de style de sécurité NTFS]
+
+xref:display-file-security-mixed-style-volumes-task.adoc[Affichage d'informations sur la sécurité des fichiers sur des volumes de style de sécurité mixtes]

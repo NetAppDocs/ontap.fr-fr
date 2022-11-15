@@ -1,0 +1,72 @@
+---
+permalink: snaplock/create-snaplock-volume-task.html 
+sidebar: sidebar 
+keywords: snaplock, volume, shanpshot, copy, create, complianceclock, file, worm, compliance, enterprise 
+summary: 'Vous devez créer un volume SnapLock pour les fichiers ou les copies Snapshot que vous souhaitez valider en état WORM. Depuis ONTAP 9.10.1, tout volume que vous créez, quel que soit le type d"agrégat, est créé par défaut en tant que volume non SnapLock. Vous devez utiliser le `-snaplock-type` Option permettant de créer explicitement un volume SnapLock en spécifiant Compliance ou Enterprise comme type SnapLock. Par défaut, le type de SnapLock est défini sur `non-snaplock`.' 
+---
+= Créer un volume SnapLock
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devez créer un volume SnapLock pour les fichiers ou les copies Snapshot que vous souhaitez valider en état WORM. Depuis ONTAP 9.10.1, tout volume que vous créez, quel que soit le type d'agrégat, est créé par défaut en tant que volume non SnapLock. Vous devez utiliser le `-snaplock-type` Option permettant de créer explicitement un volume SnapLock en spécifiant Compliance ou Enterprise comme type SnapLock. Par défaut, le type de SnapLock est défini sur `non-snaplock`.
+
+.Ce dont vous avez besoin, 8217;ll
+* L'agrégat SnapLock doit être en ligne.
+* La licence SnapLock doit être installée sur le nœud.
+* La ComplanceClock du nœud doit être initialisée.
+
+
+Avec les autorisations SnapLock appropriées, vous pouvez détruire ou renommer un volume d'entreprise à tout moment. Vous ne pouvez pas détruire un volume Compliance tant que la période de conservation n'est pas écoulée. Vous ne pouvez jamais renommer un volume Compliance.
+
+Vous pouvez cloner des volumes SnapLock, mais vous ne pouvez pas cloner des fichiers sur un volume SnapLock. Le volume clone sera du même type SnapLock que le volume parent.
+
+[NOTE]
+====
+Les LUN ne sont pas prises en charge sur les volumes SnapLock. S'il est possible de déplacer des LUN vers un volume SnapLock avec la technologie existante, il ne s'agit pas d'une opération prise en charge, ni de toute autre opération impliquant des LUN dans un volume SnapLock.
+
+====
+Effectuez cette tâche à l'aide de ONTAP System Manager ou de l'interface de ligne de commandes de ONTAP.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Depuis ONTAP 9.12.1, vous pouvez utiliser System Manager pour créer un volume SnapLock.
+
+.Étapes
+. Accédez à *Storage > volumes* et cliquez sur *Add*.
+. Dans la fenêtre *Ajouter un volume*, cliquez sur *plus d'options*.
+. Entrez les informations du nouveau volume, notamment le nom et la taille du volume.
+. Sélectionnez *Activer SnapLock* et choisissez le type SnapLock, conformité ou entreprise.
+. Dans la section *Auto-commit Files*, sélectionnez *Modified* et entrez la durée pendant laquelle un fichier doit rester inchangé avant qu'il ne soit automatiquement engagé. La valeur minimale est de 5 minutes et la valeur maximale est de 10 ans.
+. Dans la section *Data Retention*, sélectionnez la période de rétention minimale et maximale.
+. Sélectionnez la période de rétention par défaut.
+. Cliquez sur *Enregistrer*.
+. Sélectionnez le nouveau volume dans la page *volumes* pour vérifier les paramètres SnapLock.
+
+
+--
+.CLI
+--
+. Créer un volume SnapLock :
++
+`*volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_* -snaplock-type compliance|enterprise`
+
++
+Pour obtenir la liste complète des options, consultez la page man de la commande. Les options suivantes ne sont pas disponibles pour les volumes SnapLock : `-nvfail`, `-atime-update`, `-is-autobalance-eligible`, `-space-mgmt-try-first`, et `vmalign`.
+
++
+La commande suivante crée une SnapLock `Compliance` volume nommé `vol1` marche `aggr1` marche `vs1`:
+
++
+[listing]
+----
+cluster1::> volume create -vserver vs1 -volume vol1 -aggregate aggr1 -snaplock-type compliance
+----
+
+
+--
+====

@@ -1,0 +1,244 @@
+---
+sidebar: sidebar 
+permalink: networking/configure_firewall_policies_for_lifs.html 
+keywords: firewall, policy, policies, security, cluster, unauthorized, access, storage, system, service, enable, enabling, disable, disabling, apply, applying, create, creating, add, adding, lif, protocols, nfs, smb, cifs, svm, firewall policies enhance the security of the cluster, configure firewall policies for lifs, firewall policies and lifs, network interface create, network interface modify, firewall-policy, portmap service configuration, what behavior you can expect portmap service, how to add or remove the portmap service, create a firewall policy and assigning it to a lif, example of creating a firewall policy and applying it to a lif 
+summary: Des politiques de pare-feu améliorent la sécurité du cluster 
+---
+= Configuration des politiques de pare-feu pour les LIF
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+La configuration d'un pare-feu améliore la sécurité du cluster et permet d'empêcher tout accès non autorisé au système de stockage. Par défaut, le pare-feu intégré est configuré pour autoriser l'accès à distance à un ensemble spécifique de services IP pour les données, la gestion et les LIF intercluster.
+
+À partir d'ONTAP 9.10.1 :
+
+* Les politiques de service de pare-feu sont obsolètes et sont remplacées par les politiques de service LIF. Auparavant, le pare-feu intégré était géré à l'aide de politiques de pare-feu. Cette fonctionnalité s'effectue désormais à l'aide d'une politique de service LIF.
+* Toutes les politiques de pare-feu sont vides et n'ouvrent aucun port dans le pare-feu sous-jacent. En revanche, tous les ports doivent être ouverts via une règle de service LIF.
+* Aucune action n'est requise après une mise à niveau vers la version 9.10.1 ou ultérieure afin de passer des politiques de service de pare-feu aux politiques de service LIF. Le système construit automatiquement des politiques de service LIF conformes aux politiques de service de pare-feu utilisées dans la version précédente de ONTAP. Si vous utilisez des scripts ou d'autres outils qui créent et gèrent des politiques de pare-feu personnalisées, vous devrez peut-être mettre à niveau ces scripts pour créer des stratégies de service personnalisées.
+
+
+Pour en savoir plus, voir link:lifs_and_service_policies96.html["LIF et politiques de services dans ONTAP 9.6 et versions ultérieures"].
+
+Les politiques de pare-feu peuvent être utilisées pour contrôler l'accès aux protocoles de service de gestion tels que SSH, HTTP, HTTPS, Telnet, NTP, NDMP, NDMPS, RSH, DNS OU SNMP. Les politiques de pare-feu ne peuvent pas être définies pour des protocoles de données tels que NFS ou SMB.
+
+Vous pouvez gérer le service et les politiques de pare-feu des manières suivantes :
+
+* Activation ou désactivation du service de pare-feu
+* Affichage de la configuration actuelle du service de pare-feu
+* Création d'une nouvelle politique de pare-feu avec le nom de la politique et les services réseau spécifiés
+* Application d'une politique de pare-feu à une interface logique
+* Création d'une nouvelle politique de pare-feu qui est une copie exacte d'une politique existante
++
+Vous pouvez l'utiliser pour créer une politique avec des caractéristiques similaires au sein d'une même SVM ou pour copier la politique dans une autre SVM.
+
+* Affichage d'informations sur les politiques de pare-feu
+* Modification des adresses IP et des masques de réseau utilisés par une politique de pare-feu
+* Suppression d'une politique de pare-feu qui n'est pas utilisée par une LIF
+
+
+
+
+== Politiques de pare-feu et LIF
+
+Les politiques de pare-feu de LIF sont utilisées pour restreindre l'accès au cluster sur chaque LIF. Vous devez comprendre comment la politique de pare-feu par défaut affecte l'accès au système sur chaque type de LIF, et comment personnaliser une politique de pare-feu pour augmenter ou diminuer la sécurité par rapport à une LIF.
+
+Lors de la configuration d'une LIF à l'aide du `network interface create` ou `network interface modify` commande, valeur spécifiée pour le `-firewall-policy` Paramètre détermine les protocoles de service et les adresses IP autorisés à accéder à la LIF.
+
+Dans de nombreux cas, vous pouvez accepter la valeur de la stratégie de pare-feu par défaut. Dans d'autres cas, vous devrez peut-être restreindre l'accès à certaines adresses IP et à certains protocoles de service de gestion. Les protocoles de service de gestion disponibles sont : SSH, HTTP, HTTPS, Telnet, NTP, NDMP, NDMPS, RSH, DNS ET SNMP.
+
+La politique de pare-feu de toutes les LIFs de cluster est par défaut définie sur `""` et ne peut pas être modifié.
+
+Le tableau ci-dessous décrit les politiques de pare-feu par défaut qui sont attribuées à chaque LIF, en fonction de leur rôle (ONTAP 9.5 et versions antérieures) ou de la politique de service (ONTAP 9.6 et versions ultérieures) lors de la création de cette LIF :
+
+|===
+
+
+| Politique de pare-feu | Protocoles de service par défaut | Accès par défaut | LIFs appliquées à 
+
+
+ a| 
+gstn
+ a| 
+dns, http, https, ndmp, ndmps, ntp, snmp, ssh
+ a| 
+Toute adresse (0.0.0.0/0)
+ a| 
+Gestion du cluster, gestion SVM et LIF de node-management
+
+
+
+ a| 
+gestion-nfs
+ a| 
+dns, http, https, ndmp, ndmps, ntp, portmap, snmp, ssh
+ a| 
+Toute adresse (0.0.0.0/0)
+ a| 
+LIF de données qui prennent également en charge l'accès à la gestion des SVMs
+
+
+
+ a| 
+intercluster
+ a| 
+https, ndmp, ndmps
+ a| 
+Toute adresse (0.0.0.0/0)
+ a| 
+Toutes les LIFs intercluster
+
+
+
+ a| 
+les données
+ a| 
+dns, ndmp, ndmps, portmap
+ a| 
+Toute adresse (0.0.0.0/0)
+ a| 
+Toutes les LIF de données
+
+|===
+
+
+== Configuration du service portmap
+
+Le service portmap mappe les services RPC aux ports sur lesquels ils écoutent.
+
+Le service portmap était toujours accessible à ONTAP 9.3 et versions antérieures, est devenu configurable dans ONTAP 9.4 à ONTAP 9.6 et est géré automatiquement à partir de ONTAP 9.7.
+
+* Dans ONTAP 9.3 et versions antérieures, le service portmap (rpcbind) était toujours accessible sur le port 111 dans les configurations réseau qui s'appuyaient sur le pare-feu ONTAP intégré plutôt qu'un pare-feu tiers.
+* De ONTAP 9.4 à ONTAP 9.6, vous pouvez modifier les politiques de pare-feu pour contrôler si le service portmap est accessible sur des LIF spécifiques.
+* Depuis ONTAP 9.7, le service de pare-feu de portmap est supprimé. En revanche, le port portmap est ouvert automatiquement pour toutes les LIF qui prennent en charge le service NFS.
+
+
+*Le service portmap est configurable dans le pare-feu de ONTAP 9.4 à ONTAP 9.6.*
+
+Le reste de cette rubrique explique comment configurer le service de pare-feu portmap pour ONTAP 9.4 à ONTAP 9.6.
+
+En fonction de votre configuration, vous pouvez disautoriser l'accès au service sur des types spécifiques de LIF, généralement les LIF intercluster et de gestion. Dans certains cas, vous pourriez même refuser l'accès aux LIF de données.
+
+Les ONTAP 9.4 à ONTAP 9.6 Behavior ont été conçus pour offrir une transition transparente lors de la mise à niveau. Si le service portmap est déjà accessible sur des types spécifiques de LIF, il sera toujours accessible sur ces types de LIF. Comme dans les versions précédentes de ONTAP, vous pouvez spécifier les services accessibles au sein du pare-feu dans la politique de pare-feu pour le type de LIF.
+
+Pour que le comportement soit effectif, tous les nœuds du cluster doivent exécuter ONTAP 9.4 à ONTAP 9.6. Seul le trafic entrant est affecté.
+
+Les nouvelles règles sont les suivantes :
+
+* Lors de la mise à niveau vers les versions 9.4 à 9.6, ONTAP ajoute le service portmap à toutes les politiques de pare-feu existantes, par défaut ou personnalisées.
+* Lorsque vous créez un cluster ou un nouvel IPspace, ONTAP ajoute le service portmap uniquement à la politique de données par défaut, et non aux politiques de gestion par défaut ou intercluster.
+* Vous pouvez ajouter le service portmap aux règles par défaut ou personnalisées selon vos besoins, puis supprimer le service selon vos besoins.
+
+
+Pour ajouter le service de mappage de port à une SVM ou à une politique de pare-feu de cluster (le rendre accessible via le pare-feu), entrez :
+
+`system services firewall policy create -vserver SVM -policy mgmt|intercluster|data|custom -service portmap`
+
+Pour supprimer le service portmap d'une SVM ou d'une politique de pare-feu de cluster (celle-ci doit être inaccessible au sein du pare-feu), entrez :
+
+`system services firewall policy delete -vserver SVM -policy mgmt|intercluster|data|custom -service portmap`
+
+Vous pouvez utiliser la commande network interface modify pour appliquer la politique de pare-feu à une LIF existante. Pour connaître la syntaxe complète des commandes, voir link:http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes ONTAP 9"^].
+
+
+
+== Créer une politique de pare-feu et l'attribuer à une LIF
+
+Des politiques de pare-feu par défaut sont attribuées à chaque LIF lorsque vous créez la LIF. Dans de nombreux cas, les paramètres par défaut du pare-feu fonctionnent bien et vous n'avez pas besoin de les modifier. Si vous souhaitez modifier les services réseau ou les adresses IP pouvant accéder à une LIF, vous pouvez créer une politique de pare-feu personnalisée et l'affecter à la LIF.
+
+.Description de la tâche
+* Vous ne pouvez pas créer de politique de pare-feu avec `policy` nom `data`,  `intercluster`,  `cluster`, ou `mgmt`.
++
+Ces valeurs sont réservées aux politiques de pare-feu définies par le système.
+
+* Vous ne pouvez ni définir ni modifier une politique de pare-feu pour les LIFs de cluster.
++
+La politique de pare-feu des LIFs de cluster est définie sur 0.0.0.0/0 pour tous les types de services.
+
+* Si vous avez besoin de supprimer un service d'une politique, vous devez supprimer la politique de pare-feu existante et en créer une nouvelle.
+* Si IPv6 est activé sur le cluster, vous pouvez créer des politiques de pare-feu avec des adresses IPv6.
++
+Une fois IPv6 activé,  `data`, `intercluster`, et `mgmt` Les politiques de pare-feu incluent ::/0, le caractère générique IPv6, dans leur liste d'adresses acceptées.
+
+* Lorsque vous utilisez System Manager pour configurer la fonctionnalité de protection des données sur les clusters, vous devez vous assurer que les adresses IP LIF intercluster sont incluses dans la liste des autorisés et que le service HTTPS est autorisé sur les LIF intercluster et sur les pare-feu de votre entreprise.
++
+Par défaut, le `intercluster` La politique de pare-feu permet l'accès à partir de toutes les adresses IP (0.0.0.0/0, ou ::/0 pour IPv6) et active les services HTTPS, NDMP et NDMPS. Si vous modifiez cette politique par défaut ou si vous créez votre propre politique de pare-feu pour les LIF intercluster, vous devez ajouter chaque adresse IP LIF intercluster à la liste des autorisés et activer le service HTTPS.
+
+* Depuis ONTAP 9.6, les services de pare-feu HTTPS et SSH ne sont pas pris en charge.
++
+Dans ONTAP 9.6, le `management-https` et `management-ssh` Les services LIF sont disponibles pour l'accès à la gestion HTTPS et SSH.
+
+
+
+.Étapes
+. Créer une politique de pare-feu qui sera disponible pour les LIF sur un SVM spécifique :
++
+`system services firewall policy create -vserver _vserver_name_ -policy _policy_name_ -service _network_service_ -allow-list _ip_address/mask_`
+
++
+Vous pouvez utiliser cette commande plusieurs fois pour ajouter plusieurs services réseau et une liste d'adresses IP autorisées pour chaque service de la politique de pare-feu.
+
+. Vérifiez que la stratégie a été correctement ajoutée en utilisant le `system services firewall policy show` commande.
+. Appliquer la politique de pare-feu à une LIF :
++
+`network interface modify -vserver _vserver_name_ -lif _lif_name_ -firewall-policy _policy_name_`
+
+. Vérifier que la policy a été correctement ajoutée à la LIF à l'aide de l' `network interface show -fields firewall-policy` commande.
+
+
+La commande suivante crée une politique de pare-feu nommée Data_http qui active l'accès au protocole HTTP et HTTPS à partir des adresses IP sur le sous-réseau 10.10, applique cette politique à la LIF nommée data1 sur le SVM vs1, puis affiche toutes les politiques de pare-feu sur le cluster :
+
+....
+system services firewall policy create -vserver vs1 -policy data_http -service http - allow-list 10.10.0.0/16
+....
+....
+system services firewall policy show
+
+Vserver Policy       Service    Allowed
+------- ------------ ---------- -------------------
+cluster-1
+        data
+                     dns        0.0.0.0/0
+                     ndmp       0.0.0.0/0
+                     ndmps      0.0.0.0/0
+cluster-1
+        intercluster
+                     https      0.0.0.0/0
+                     ndmp       0.0.0.0/0
+                     ndmps      0.0.0.0/0
+cluster-1
+        mgmt
+                     dns        0.0.0.0/0
+                     http       0.0.0.0/0
+                     https      0.0.0.0/0
+                     ndmp       0.0.0.0/0
+                     ndmps      0.0.0.0/0
+                     ntp        0.0.0.0/0
+                     snmp       0.0.0.0/0
+                     ssh        0.0.0.0/0
+vs1
+        data_http
+                     http       10.10.0.0/16
+                     https      10.10.0.0/16
+
+network interface modify -vserver vs1 -lif data1 -firewall-policy data_http
+
+network interface show -fields firewall-policy
+
+vserver  lif                  firewall-policy
+-------  -------------------- ---------------
+Cluster  node1_clus_1
+Cluster  node1_clus_2
+Cluster  node2_clus_1
+Cluster  node2_clus_2
+cluster-1 cluster_mgmt         mgmt
+cluster-1 node1_mgmt1          mgmt
+cluster-1 node2_mgmt1          mgmt
+vs1      data1                data_http
+vs3      data2                data
+....

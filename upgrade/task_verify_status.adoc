@@ -1,0 +1,90 @@
+---
+permalink: upgrade/task_verify_status.html 
+sidebar: sidebar 
+keywords: ontap, upgrade, upgrade, verify, status, ha, ldap, dns, networking, storage, metrocluster 
+summary: Différents paramètres de configuration peuvent avoir un impact sur la préparation de la mise à niveau du cluster. 
+---
+= Vérifiez l'état
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de procéder à la mise à niveau, vérifiez les points suivants :
+
+* État des paires HA
+* Statut LDAP (pour ONTAP 9.2 ou version ultérieure)
+* État du serveur DNS (pour ONTAP 9.2 ou version ultérieure),
+* État de la mise en réseau et du stockage (pour les configurations MetroCluster)
+
+
+
+
+== Vérification de l'état de la HA
+
+Avant d'effectuer une mise à niveau sans interruption, vérifiez que le basculement du stockage est activé pour chaque paire haute disponibilité. Si le cluster comprend deux nœuds seulement, vérifiez également que la haute disponibilité du cluster est activée.
+
+Il n'est pas nécessaire de vérifier l'état de la haute disponibilité si vous prévoyez d'effectuer une mise à niveau disruptive, car cette méthode de mise à niveau ne nécessite pas le basculement du stockage.
+
+. Vérifier que le basculement du stockage est activé et possible pour chaque paire haute disponibilité : `storage failover show`
++
+Cet exemple montre que le basculement du stockage est activé et possible sur les nœuds 0 et 1 :
+
++
+[listing]
+----
+cluster1::> storage failover show
+                              Takeover
+Node           Partner        Possible State
+-------------- -------------- -------- -------------------------------------
+node0          node1          true     Connected to node1
+node1          node0          true     Connected to node0
+2 entries were displayed.
+----
++
+Si nécessaire, vous pouvez activer le basculement du stockage à l'aide de la commande Storage failover modify.
+
+. Si le cluster ne comprend que deux nœuds (une seule paire haute disponibilité), vérifiez que le cluster haute disponibilité est configuré : `cluster ha show`
++
+Cet exemple montre que le cluster HA est configuré :
+
++
+[listing]
+----
+cluster1::> cluster ha show
+High Availability Configured: true
+----
++
+Si nécessaire, vous pouvez activer la haute disponibilité du cluster en utilisant la commande cluster ha modify.
+
+
+
+
+
+== Vérification de l'état du protocole LDAP (ONTAP 9.2 et versions ultérieures)
+
+Depuis ONTAP 9.2, si le protocole LDAP est utilisé par vos SVM (Storage Virtual machines), vous devez disposer d'une connexion LDAP établie pour effectuer une mise à niveau sans interruption. Vous devez vérifier la connexion LDAP avant de commencer la mise à niveau.
+
+La tâche ne s'applique pas si vous effectuez une mise à niveau depuis ONTAP 9.1 ou une version antérieure.
+
+. Vérifiez le statut LDAP : `ldap check -vserver vserver_name`
+. Si le statut LDAP est inactif, modifiez-le : `ldap client modify -client-config LDAP_client -ldap-servers ip_address`
+. Vérifiez que le statut LDAP est actif : `ldap check -vserver vserver_name`
+
+
+
+
+== Vérification de l'état du serveur DNS (ONTAP 9.2 et versions ultérieures)
+
+À partir de ONTAP 9.2 et des versions ultérieures, vous devez vérifier l'état de votre serveur DNS avant et après une mise à niveau sans interruption.
+
+La tâche ne s'applique pas si vous effectuez une mise à niveau depuis ONTAP 9.1 ou une version antérieure.
+
+. Vérifiez le statut de vos serveurs DNS : `dns check -vserver vserver_name`
++
+Un état actif indique que le service est en cours d'exécution. Un état de panne indique que le service n'est pas en cours d'exécution.
+
+. Si le serveur DNS est en panne, modifiez-le : `dns modify -vserver vserver_name -domains domain_name -name-servers name_server_ipaddress`
+. Vérifiez que l'état du serveur DNS est actif.
+

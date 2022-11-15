@@ -1,0 +1,91 @@
+---
+permalink: smb-admin/enable-branchcache-existing-share-task.html 
+sidebar: sidebar 
+keywords: enable, branchcache, exist, smb, share, add, share, property, exist, list, enable branchcache on an existing smb share 
+summary: Vous pouvez activer BranchCache sur un partage SMB existant en ajoutant la propriété de partage branchcache à la liste existante des propriétés de partage. 
+---
+= Activez BranchCache sur un partage SMB existant
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez activer BranchCache sur un partage SMB existant en ajoutant le `branchcache` partager la propriété dans la liste existante des propriétés de partage.
+
+.Description de la tâche
+* Si BranchCache est activé sur le partage SMB, le partage doit disposer de la configuration des fichiers hors ligne pour la mise en cache manuelle.
++
+Si le paramètre fichiers hors ligne du partage existant n'est pas défini sur mise en cache manuelle, vous devez le configurer en modifiant le partage.
+
+* Vous pouvez définir le `branchcache` Propriété sur un partage, même si BranchCache n'est pas configuré et activé sur le serveur virtuel de stockage (SVM).
++
+Toutefois, si vous souhaitez que le partage offre du contenu en cache, vous devez configurer et activer BranchCache sur le SVM.
+
+* Lorsque vous ajoutez le `branchcache` la propriété de partage sur le partage, les paramètres de partage existants et les propriétés de partage sont conservés.
++
+La propriété de partage BranchCache est ajoutée à la liste existante des propriétés de partage. Pour plus d'informations sur l'utilisation du `vserver cifs share properties add` commandes, consultez les pages de manuels.
+
+
+
+.Étapes
+. Si nécessaire, configurez le paramètre de partage de fichiers hors ligne pour la mise en cache manuelle :
++
+.. Déterminez ce que le paramètre de partage de fichiers hors ligne est défini à l'aide de l' `vserver cifs share show` commande.
+.. Si le paramètre de partage de fichiers hors ligne n'est pas défini sur manuel, remplacez-le par la valeur requise : `vserver cifs share modify -vserver vserver_name -share-name share_name -offline-files manual`
+
+
+. Activer BranchCache sur un partage SMB existant : `vserver cifs share properties add -vserver vserver_name -share-name share_name -share-properties branchcache`
+. Vérifiez que la propriété de partage BranchCache est définie sur le partage SMB : `vserver cifs share show -vserver vserver_name -share-name share_name`
+
+
+La commande suivante permet d'activer BranchCache sur un partage SMB existant nommé « data2 » avec le chemin d'accès de `/data2` Sur la SVM vs1 :
+
+[listing]
+----
+cluster1::> vserver cifs share show -vserver vs1 -share-name data2
+
+                      Vserver: vs1
+                        Share: data2
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data2
+             Share Properties: oplocks
+                               browsable
+                               changenotify
+                               showsnapshot
+           Symlink Properties: -
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: 10s
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+
+cluster1::> vserver cifs share properties add  -vserver vs1 -share-name data2 -share-properties branchcache
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data2
+
+                      Vserver: vs1
+                        Share: data2
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data2
+             Share Properties: oplocks
+                               browsable
+                               showsnapshot
+                               changenotify
+                               branchcache
+           Symlink Properties: -
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: 10s
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----
+xref:add-remove-share-properties-eexisting-share-task.adoc[Ajout ou suppression de propriétés de partage sur un partage SMB existant]
+
+xref:disable-branchcache-single-share-task.adoc[Désactivation de BranchCache sur un partage SMB unique]

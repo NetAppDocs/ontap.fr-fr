@@ -1,0 +1,71 @@
+---
+permalink: element-replication/create-custom-replication-policy-concept.html 
+sidebar: sidebar 
+keywords: create, custom, replication, policy, policies, relationship, compress data, snapmirror, snap mirror, snapshot 
+summary: 'Vous pouvez créer une stratégie de réplication personnalisée si la stratégie par défaut d"une relation n"est pas appropriée. Vous pouvez compresser les données d"un transfert réseau, par exemple, ou modifier le nombre de tentatives de transfert de copies Snapshot par SnapMirror.' 
+---
+= Création d'une règle de réplication personnalisée
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser une règle par défaut ou personnalisée lorsque vous créez une relation de réplication. Pour une règle de réplication unifiée personnalisée, vous devez définir une ou plusieurs _règles_ qui déterminent quelles copies Snapshot sont transférées lors de l'initialisation et de la mise à jour.
+
+Vous pouvez créer une stratégie de réplication personnalisée si la stratégie par défaut d'une relation n'est pas appropriée. Vous pouvez compresser les données d'un transfert réseau, par exemple, ou modifier le nombre de tentatives de transfert de copies Snapshot par SnapMirror.
+
+Le _policy type_ de la règle de réplication détermine le type de relation qu'elle prend en charge. Le tableau ci-dessous présente les types de stratégies disponibles.
+
+[cols="2*"]
+|===
+
+
+| Type de règle | Type de relation 
+
+
+ a| 
+mise en miroir asynchrone
+ a| 
+Reprise sur incident SnapMirror
+
+
+
+ a| 
+coffre-fort
+ a| 
+Réplication unifiée
+
+|===
+.Étape
+. Création d'une règle de réplication personnalisée :
++
+`snapmirror policy create -vserver _SVM_ -policy policy -type async-mirror|mirror-vault -comment _comment_ -tries _transfer_tries_ -transfer-priority low|normal -is-network-compression-enabled true|false`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+Depuis la version ONTAP 9.5, vous pouvez définir le planning de création d'un planning de copie Snapshot commun pour les relations SnapMirror synchrone à l'aide de la `-common-snapshot-schedule` paramètre. Par défaut, la planification commune de copies Snapshot pour les relations SnapMirror synchrone est d'une heure. Définissez une valeur de 30 minutes à deux heures pour la planification de copie Snapshot pour les relations SnapMirror synchrone.
+
++
+L'exemple suivant crée une règle de réplication personnalisée pour SnapMirror DR qui permet la compression réseau pour les transferts de données :
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy create -vserver svm1 -policy DR_compressed -type async-mirror -comment “DR with network compression enabled” -is-network-compression-enabled true
+----
++
+L'exemple suivant crée une règle de réplication personnalisée pour la réplication unifiée :
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy create -vserver svm1 -policy my_unified -type mirror-vault
+----
+
+
+Pour les types de règles « miroir-coffre-fort », vous devez définir des règles qui déterminent les copies Snapshot qui sont transférées lors de l'initialisation et de la mise à jour.
+
+Utilisez le `snapmirror policy show` Commande pour vérifier que la règle SnapMirror a été créée. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.

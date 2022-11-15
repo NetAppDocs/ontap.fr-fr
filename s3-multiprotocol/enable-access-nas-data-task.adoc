@@ -1,0 +1,108 @@
+---
+permalink: s3-multiprotocol/enable-access-nas-data-task.html 
+sidebar: sidebar 
+keywords: s3, svm, nfs, smb, dns, authentication, protocol, configuration, nas, certificate, authority, installation, lifs 
+summary: 'L"activation de l"accès au protocole S3 consiste à s"assurer qu"un SVM compatible avec NAS répond aux mêmes exigences qu"un serveur compatible S3, notamment l"ajout d"un serveur de magasin d"objets et la vérification des exigences en matière de réseau et d"authentification.' 
+---
+= Activez l'accès au protocole S3 aux données NAS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+L'activation de l'accès au protocole S3 consiste à s'assurer qu'un SVM compatible avec NAS répond aux mêmes exigences qu'un serveur compatible S3, notamment l'ajout d'un serveur de magasin d'objets et la vérification des exigences en matière de réseau et d'authentification.
+
+Pour les nouvelles installations ONTAP, il est recommandé d'activer l'accès par le protocole S3 à un SVM après sa configuration afin d'assurer le service des données NAS aux clients. Pour en savoir plus sur la configuration du protocole NAS, voir :
+
+* link:../nfs-config/index.html["Configuration NFS"]
+* link:../smb-config/index.html["Configuration SMB"]
+
+
+Les éléments suivants doivent être configurés avant d'activer le protocole S3 :
+
+* Le protocole S3 et les protocoles NAS souhaités (NFS, SMB ou les deux) sont sous licence.
+* Un SVM est configuré pour les protocoles NAS souhaités.
+* Les serveurs NFS et/ou SMB existent.
+* DNS et tous les autres services requis sont configurés.
+* Les données NAS sont exportées ou partagées vers les systèmes clients.
+
+
+Un certificat d'autorité de certification (CA) est nécessaire pour activer le trafic HTTPS des clients S3 vers le SVM compatible avec S3. Les certificats CA provenant de trois sources peuvent être utilisés :
+
+* Nouveau certificat auto-signé ONTAP sur le SVM.
+* Certificat ONTAP signé automatiquement sur le SVM.
+* Un certificat tiers.
+
+
+Vous pouvez utiliser les mêmes LIF de données pour le compartiment S3/NAS que pour le service des données NAS. Si des adresses IP spécifiques sont requises, reportez-vous à la section link:../s3-config/create-data-lifs-task.html["Création de LIF de données"]. Une règle de données de service S3 est nécessaire pour activer le trafic de données S3 sur les LIF. Vous pouvez modifier la règle de service existante de la SVM afin d'inclure S3.
+
+Lorsque vous créez le serveur objet S3, vous devez préparer le nom du serveur S3 en tant que nom de domaine complet (FQDN) que les clients utiliseront pour l'accès S3. Le FQDN du serveur S3 ne doit pas commencer par un nom de compartiment.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Activez S3 sur une machine virtuelle de stockage avec les protocoles NAS configurés.
++
+.. Cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez une machine virtuelle de stockage prête pour le NAS, cliquez sur Paramètres, puis sur image:icon_gear.gif["Icône vitesse"] Sous S3.
+.. Sélectionnez le type de certificat. Que vous sélectionniez un certificat généré par le système ou l'un de vos propres certificats, il sera nécessaire d'accéder au client.
+.. Saisissez les interfaces réseau.
+
+
+. Si vous avez sélectionné le certificat généré par le système, les informations de certificat s'affichent lorsque la création de la nouvelle machine virtuelle de stockage est confirmée. Cliquez sur *Download* et enregistrez-le pour accéder au client.
++
+** La clé secrète ne s'affiche plus.
+** Si vous avez besoin de nouveau des informations de certificat : cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez la machine virtuelle de stockage, puis cliquez sur *Paramètres*.
+
+
+
+
+--
+.CLI
+--
+. Vérifier que le protocole S3 est autorisé sur la SVM : +
+`vserver show -fields allowed-protocols`
+. Enregistrer le certificat de clé publique pour ce SVM. + si un nouveau certificat auto-signé ONTAP est nécessaire, voir link:../s3-config/create-install-ca-certificate-svm-task.html["Créer et installer un certificat d'autorité de certification sur le SVM"].
+. Mettre à jour la stratégie de données de service
++
+.. Afficher la politique de données de service pour la SVM +
+`network interface service-policy show -vserver _svm_name_`
+.. Ajoutez le `data-core` et `data-s3-server services` s'ils ne sont pas présents. +
+`network interface service-policy add-service -vserver _svm_name_ -policy _policy_name_ -services data-core,data-s3-server`
+
+
+. Vérifier que les LIF de données du SVM répondent à vos exigences : +
+`network interface show -vserver _svm_name_`
+. Création du serveur S3 : +
+`vserver object-store-server create -vserver _svm_name_ -object-store-server _s3_server_fqdn_ -certificate-name _ca_cert_name_ -comment text [additional_options]`
+
+
+Vous pouvez spécifier des options supplémentaires lors de la création du serveur S3 ou à tout moment ultérieurement.
+
+* HTTPS est activé par défaut sur le port 443. Vous pouvez modifier le numéro de port à l'aide de l'option -Secure-Listener-port. + lorsque HTTPS est activé, des certificats CA sont requis pour une intégration correcte avec SSL/TLS.
+* HTTP est désactivé par défaut ; lorsqu'il est activé, le serveur écoute le port 80. Vous pouvez l'activer avec l'option -is-http-enabled ou modifier le numéro de port avec l'option -port d'écoute. + lorsque HTTP est activé, toutes les demandes et réponses sont envoyées en clair sur le réseau.
+
+
+. Vérifiez que S3 est configuré comme vous le souhaitez : +
+`vserver object-store-server show`
+
+
+*Exemple* + la commande suivante vérifie les valeurs de configuration de tous les serveurs de stockage objet : +
+`cluster1::> vserver object-store-server show`
+
+[listing]
+----
+Vserver: vs1
+
+                      Object Store Server Name: s3.example.com
+                          Administrative State: up
+                        Listener Port For HTTP: 80
+                Secure Listener Port For HTTPS: 443
+                                  HTTP Enabled: false
+                                 HTTPS Enabled: true
+             Certificate for HTTPS Connections: svm1_ca
+                                       Comment: Server comment
+----
+--
+====

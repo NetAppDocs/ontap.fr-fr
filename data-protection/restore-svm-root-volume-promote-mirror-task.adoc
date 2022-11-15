@@ -1,0 +1,71 @@
+---
+permalink: data-protection/restore-svm-root-volume-promote-mirror-task.html 
+sidebar: sidebar 
+keywords: promote, load-sharing, mirror 
+summary: 'Si un volume racine est définitivement indisponible, vous pouvez promouvoir le volume LSM (Load-sharing mirror) pour fournir un accès en écriture aux données du volume racine.' 
+---
+= Promotion d'un miroir de partage de charge
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si un volume racine est définitivement indisponible, vous pouvez promouvoir le volume LSM (Load-sharing mirror) pour fournir un accès en écriture aux données du volume racine.
+
+Vous devez utiliser des commandes de niveau de privilège avancé pour cette tâche.
+
+.Étapes
+. Changement au niveau de privilège avancé :
++
+`set -privilege advanced`
+
+. Promouvoir un volume LSM :
++
+`snapmirror promote -destination-path _SVM:volume_|_cluster://SVM/volume_`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+L'exemple suivant promeut le volume `svm1_m2` En tant que nouveau volume root SVM :
+
++
+[listing]
+----
+cluster_src::*> snapmirror promote -destination-path svm1:svm1_m2
+
+Warning: Promote will delete the offline read-write volume
+         cluster_src://svm1/svm1_root and replace it with
+         cluster_src://svm1/svm1_m2. Because the volume is offline,
+         it is not possible to determine whether this promote will
+         affect other relationships associated with this source.
+Do you want to continue? {y|n}: y
+----
++
+Entrez `y`. ONTAP fait du volume LSM un volume en lecture/écriture et supprime le volume racine d'origine s'il est accessible.
+
++
+[NOTE]
+====
+Le volume racine promu peut ne pas avoir toutes les données contenues dans le volume racine d'origine si la dernière mise à jour n'a pas eu lieu récemment.
+
+====
+. Retour au niveau de privilège admin :
++
+`set -privilege admin`
+
+. Renommez le volume promu en respectant la convention de nommage utilisée pour le volume racine :
++
+`volume rename -vserver _SVM_ -volume _volume_ -newname _new_name_`
+
++
+L'exemple suivant renomme le volume promu `svm1_m2` avec le nom `svm1_root`:
+
++
+[listing]
+----
+cluster_src::> volume rename -vserver svm11 -volume svm1_m2 -newname svm1_root
+----
+. Protéger le volume racine renommé, comme décrit à l'étape link:create-load-sharing-mirror-task.html#steps["3"] à l'étape link:create-load-sharing-mirror-task.html#steps["4"] dans link:create-load-sharing-mirror-task.html["Création et initialisation de relations de miroir de partage de charge"].
+

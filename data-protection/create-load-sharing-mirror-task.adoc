@@ -1,0 +1,84 @@
+---
+permalink: data-protection/create-load-sharing-mirror-task.html 
+sidebar: sidebar 
+keywords: create, initialize, load-sharing, mirror, relationship 
+summary: 'Vous devez créer un miroir de partage de charge (LSM) pour chaque volume racine du cluster. Vous pouvez créer le LSM sur n"importe quel nœud autre que celui contenant le volume racine, par exemple le nœud partenaire dans une paire HA, ou de préférence dans une autre paire HA. Pour un cluster à deux nœuds, vous devez créer le LSM sur le partenaire du nœud avec le volume racine.' 
+---
+= Créer et initialiser des relations de miroir de partage de charge
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Il est recommandé de créer un miroir de partage de charge (LSM) pour chaque volume root du SVM qui transmet les données NAS au sein du cluster. Vous pouvez créer le LSM sur n'importe quel nœud autre que celui contenant le volume racine, par exemple le nœud partenaire dans une paire HA, ou de préférence dans une autre paire HA. Pour un cluster à deux nœuds, il faut créer le LSM sur le partenaire du nœud avec le volume root du SVM.
+
+Si vous créez un LSM sur le même nœud et que le nœud n'est pas disponible, vous disposez d'un point d'échec unique et vous ne disposez pas d'une seconde copie pour vous assurer que les données restent accessibles aux clients. Cependant, si vous créez le LSM sur un nœud autre que celui contenant le volume root ou sur une autre paire HA, vos données sont toujours accessibles en cas de panne.
+
+Par exemple, dans un cluster à quatre nœuds avec un volume racine sur trois nœuds :
+
+* Pour le volume racine sur HA 1 nœud 1, créez le LSM sur HA 2 nœud 1 ou HA 2 nœud 2.
+* Pour le volume racine sur HA 1 nœud 2, créez le LSM sur HA 2 nœud 1 ou HA 2 nœud 2.
+* Pour le volume racine sur HA 2 nœud 1, créez le LSM sur HA 1 nœud 1 ou HA 1 nœud 2.
+
+
+.Étapes
+. Créer un volume de destination pour le LSM :
++
+`volume create -vserver _SVM_ -volume volume -aggregate _aggregate_ -type DP -size size`
+
++
+La taille du volume de destination doit être identique ou supérieure à celle du volume racine.
+
++
+Il est recommandé de nommer le volume racine et le volume de destination avec des suffixes, par exemple `_root` et `_m1`.
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+L'exemple suivant illustre la création d'un volume miroir de partage de charge pour le volume racine `svm1_root` dans `cluster_src`:
+
++
+[listing]
+----
+cluster_src:> volume create -vserver svm1 -volume svm1_m1 -aggregate aggr_1 -size 1gb -state online -type DP
+----
+. Créez une planification de tâche de réplication, comme décrit à la section link:create-replication-job-schedule-task.html["Création d'une planification de tâche de réplication"].
+. Créer une relation de miroir de partage de charge entre le volume root du SVM et le volume de destination pour le LSM :
++
+`snapmirror create -source-path _SVM:volume_|_cluster://SVM/volume_ -destination-path _SVM:volume_|_cluster://SVM/volume_ -type LS -schedule _schedule_`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+L'exemple suivant crée une relation de miroir de partage de charge entre le volume racine `svm1_root` et le volume du miroir de partage de charge `svm1_m1`:
+
++
+[listing]
+----
+cluster_src::> snapmirror create -source-path svm1:svm1_root -destination-path svm1:svm1_m1 -type LS -schedule hourly
+----
++
+L'attribut type du miroir de partage de charge passe de `DP` à `LS`.
+
+. Initialiser le miroir de partage de charge :
++
+`snapmirror initialize-ls-set -source-path _SVM:volume_|_cluster://SVM/volume_`
+
++
+L'initialisation peut prendre beaucoup de temps. Vous pouvez exécuter le transfert de base en dehors des heures creuses.
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+L'exemple suivant initialise le miroir de partage de charge pour le volume racine `svm1_root`:
+
++
+[listing]
+----
+cluster_src::> snapmirror initialize-ls-set -source-path svm1:svm1_root
+----
+

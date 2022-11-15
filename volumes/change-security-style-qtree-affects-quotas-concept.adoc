@@ -1,0 +1,29 @@
+---
+permalink: volumes/change-security-style-qtree-affects-quotas-concept.html 
+sidebar: sidebar 
+keywords: how, changing, security, style of a qtree, affects, user quotas 
+summary: 'Vous pouvez appliquer des listes de contrôle d"accès (ACL) sur les qtrees en utilisant des styles de sécurité NTFS ou mixte, mais pas en utilisant le style de sécurité UNIX. Par conséquent, la modification du style de sécurité d"un qtree peut affecter le mode de calcul des quotas. Vous devez toujours réinitialiser les quotas après avoir modifié le style de sécurité d"un qtree.' 
+---
+= La modification du style de sécurité d'un qtree affecte les quotas d'utilisateur
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez appliquer des listes de contrôle d'accès (ACL) sur les qtrees en utilisant des styles de sécurité NTFS ou mixte, mais pas en utilisant le style de sécurité UNIX. Par conséquent, la modification du style de sécurité d'un qtree peut affecter le mode de calcul des quotas. Vous devez toujours réinitialiser les quotas après avoir modifié le style de sécurité d'un qtree.
+
+Si vous modifiez le style de sécurité d'un qtree de NTFS ou Mixed à UNIX, toutes les ACL des fichiers de ce qtree sont ignorées et l'utilisation du fichier est comptabilisée par rapport aux ID d'utilisateurs UNIX.
+
+Si vous modifiez le style de sécurité d'un qtree d'UNIX vers un qtree NTFS ou mixte, les ACL précédemment masquées sont visibles. De plus, les ACL ignorés sont de nouveau effectives et les informations utilisateur NFS sont ignorées. Si aucune ACL n'existait auparavant, les informations NFS continuent à être utilisées dans le calcul du quota.
+
+[NOTE]
+====
+Pour s'assurer que les utilisations des quotas d'utilisateurs UNIX et Windows sont correctement calculées après la modification du style de sécurité d'un qtree, vous devez réinitialiser les quotas du volume contenant ce qtree.
+
+====
+L'exemple suivant montre comment une modification du style de sécurité d'un qtree entraîne l'utilisation d'un utilisateur différent pour l'utilisation d'un fichier dans ce qtree.
+
+Supposons que la sécurité NTFS soit en vigueur sur le qtree A et qu'une ACL donne à l'utilisateur Windows corp\joe la propriété d'un fichier de 5 Mo. User corp\joe est facturé avec 5 Mo d'espace disque pour le qtree A.
+
+Vous modifiez maintenant le style de sécurité du qtree A de NTFS à UNIX. Une fois les quotas réinitialisés, l'utilisateur Windows corp\joe n'est plus chargé pour ce fichier ; à la place, l'utilisateur UNIX correspondant à l'UID du fichier est chargé pour le fichier. L'UID peut être un utilisateur UNIX mappé à corp\joe ou à l'utilisateur racine.

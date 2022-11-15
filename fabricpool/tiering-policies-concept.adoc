@@ -1,0 +1,232 @@
+---
+permalink: fabricpool/tiering-policies-concept.html 
+sidebar: sidebar 
+keywords: understanding, fabricpool, tiering, policies, types, modify, volume, clone, cloud migration 
+summary: Les règles de Tiering de FabricPool vous permettent de déplacer efficacement les données entre les tiers à mesure que les données sont actives ou inactives. Le respect des règles de hiérarchisation vous permet de choisir la règle la plus adaptée à vos besoins en matière de gestion du stockage. 
+---
+= À propos des règles de hiérarchisation FabricPool
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les règles de Tiering de FabricPool vous permettent de déplacer efficacement les données entre les tiers à mesure que les données sont actives ou inactives. Le respect des règles de hiérarchisation vous permet de choisir la règle la plus adaptée à vos besoins en matière de gestion du stockage.
+
+
+
+== Types de règles de Tiering FabricPool
+
+Les règles de Tiering FabricPool déterminent quand ou si les blocs de données utilisateur d'un volume d'FabricPool sont déplacés vers le Tier cloud, en fonction de la « température » du volume « actif » ou froid (inactif). Le volume « température » augmente lorsqu'il est fréquemment utilisé et diminue lorsqu'il n'est pas utilisé. Certaines règles de Tiering ont associé une période de refroidissement minimale de Tiering, qui définit le temps pendant lequel les données utilisateur d'un volume FabricPool doivent rester inactives pour que les données soient considérées comme « inactives » et déplacées vers le Tier cloud.
+
+La règle de Tiering FabricPool est spécifiée au niveau du volume. Quatre options sont disponibles :
+
+* Le `snapshot-only` La règle de Tiering (par défaut) déplace les blocs de données utilisateur des copies Snapshot de volume non associées au système de fichiers actif vers le niveau cloud.
++
+La période de refroidissement minimum par niveaux est de 2 jours. Vous pouvez modifier le paramètre par défaut de la période de refroidissement minimum par niveaux avec l' `-tiering-minimum-cooling-days` paramètre au niveau de privilège avancé de l' `volume create` et `volume modify` commandes. Les valeurs valides sont comprises entre 2 et 183 jours avec ONTAP 9.8 et version ultérieure. Si vous utilisez une version de ONTAP antérieure à 9.8, les valeurs valides sont comprises entre 2 et 63 jours.
+
+* Le `auto` La règle de Tiering, prise en charge uniquement sur ONTAP 9.4 et les versions ultérieures, déplace les blocs de données inactives dans les copies Snapshot et le système de fichiers actif vers le Tier cloud.
++
+La période de refroidissement minimale par défaut du Tiering est de 31 jours. Elle s'applique à tout le volume, pour le système de fichiers actif et les copies Snapshot.
+
++
+Vous pouvez modifier le paramètre par défaut de la période de refroidissement minimum par niveaux avec l' `-tiering-minimum-cooling-days` paramètre au niveau de privilège avancé de l' `volume create` et `volume modify` commandes. Les valeurs valides sont de 2 à 183 jours.
+
+* Le `all` La règle de Tiering, prise en charge uniquement sur ONTAP 9.6 et versions ultérieures, déplace tous les blocs de données utilisateur du système de fichiers actif et les copies Snapshot vers le Tier cloud. Elle remplace le `backup` règle de hiérarchisation.
++
+La période de refroidissement minimale de Tiering n'est pas applicable, car les données sont déplacées vers le Tier cloud dès l'exécution de l'analyse de Tiering et vous ne pouvez pas modifier le paramètre.
+
+* Le `none` la règle de tiering conserve les données d'un volume situé dans le tier de performance, ce qui la empêche de les déplacer vers le tier cloud.
++
+Le Tiering n'applique pas la période de refroidissement minimale, car les données ne sont jamais déplacées vers le Tier cloud et vous ne pouvez pas modifier le paramètre.
+
+
+
+Le `volume show` la sortie de la commande affiche la politique de tiering d'un volume. Un volume qui n'a encore jamais été utilisé avec FabricPool présente la `none` règle de hiérarchisation dans la sortie.
+
+
+
+== Que se passe-t-il lorsque vous modifiez la règle de Tiering d'un volume dans FabricPool
+
+Vous pouvez modifier la règle de hiérarchisation d'un volume en effectuant une `volume modify` fonctionnement. Vous devez savoir en quoi la modification de la règle de Tiering peut affecter le temps nécessaire aux données inactives et déplacées vers le Tier cloud.
+
+* Modification de la règle de hiérarchisation à partir de `snapshot-only` ou `none` à `auto` Dans ce cas, ONTAP envoie des blocs de données utilisateur dans le système de fichiers actif qui sont déjà inactifs vers le Tier cloud, même si ces blocs de données ne sont pas encore éligibles pour le Tier cloud.
+* Modification de la règle de hiérarchisation en `all` Suite à une autre règle, ONTAP déplace tous les blocs utilisateur du système de fichiers actif et des copies Snapshot vers le Tier cloud lors de l'exécution suivante de l'analyse par Tiering.
++
+Le déplacement des blocs vers le Tier de performance n'est pas autorisé.
+
+* Modification de la règle de hiérarchisation à partir de `auto` à `snapshot-only` ou `none` n'entraîne pas la migration vers le tier de performance des blocs de système de fichiers actifs qui sont déjà déplacés vers le tier cloud.
++
+Les lectures de volume sont nécessaires pour que les données puissent être retransférées vers le Tier de performance.
+
+* Chaque fois que vous modifiez la règle de Tiering sur un volume, la période de refroidissement minimum de Tiering est redéfinie sur la valeur par défaut de la règle.
+
+
+
+
+== Que arrive-t-il à la règle de Tiering lorsque vous déplacez un volume
+
+* Sauf si vous spécifiez explicitement une règle de Tiering, un volume conserve sa règle de Tiering d'origine lorsqu'il est déplacé dans un agrégat compatible FabricPool ou en dehors.
++
+Toutefois, la règle de Tiering s'applique uniquement lorsque le volume se trouve dans un agrégat compatible FabricPool.
+
+* Valeur existante du `-tiering-minimum-cooling-days` paramètre d'un volume déplacé avec le volume sauf si vous spécifiez une règle de tiering différente pour la destination.
++
+Si vous spécifiez une autre règle de Tiering, le volume utilise la période de refroidissement minimale par défaut de Tiering pour cette règle. C'est le cas si la destination est FabricPool ou non.
+
+* Vous pouvez déplacer un volume entre agrégats et modifier simultanément la règle de Tiering.
+* Vous devez accorder une attention particulière lorsqu'un `volume move` l'opération implique le `auto` règle de hiérarchisation.
++
+Si la source et la destination sont des agrégats compatibles FabricPool, le tableau suivant résume le résultat d'un `volume move` opération qui implique des changements de stratégie liés à `auto`:
+
++
+|===
+
+
+| Lorsque vous déplacez un volume doté d'une règle de Tiering : | Et vous modifiez la règle de Tiering en effectuant la transition vers : | Puis, après le déplacement du volume... 
+
+
+ a| 
+`all`
+ a| 
+`auto`
+ a| 
+Toutes les données sont transférées vers le Tier de performance.
+
+
+
+ a| 
+`snapshot-only`, `none`, ou `auto`
+ a| 
+`auto`
+ a| 
+Les blocs de données sont déplacés vers le même niveau de destination que ceux précédemment stockés sur la source.
+
+
+
+ a| 
+`auto` ou `all`
+ a| 
+`snapshot-only`
+ a| 
+Toutes les données sont transférées vers le Tier de performance.
+
+
+
+ a| 
+`auto`
+ a| 
+`all`
+ a| 
+Toutes les données utilisateur sont déplacées vers le niveau cloud.
+
+
+
+ a| 
+`snapshot-only`,`auto` ou `all`
+ a| 
+`none`
+ a| 
+Toutes les données sont conservées sur le Tier de performance.
+
+|===
+
+
+
+
+== Que arrive-t-il à la règle de Tiering lorsque vous clonez un volume
+
+* Depuis ONTAP 9.8, le volume clone hérite toujours de la règle de Tiering et de la politique d'extraction du cloud du volume parent.
++
+Dans les versions antérieures à ONTAP 9.8, un clone hérite de la règle de Tiering du parent, sauf lorsque le clone possède le `all` règle de hiérarchisation.
+
+* Si le volume parent a le `never` la politique de récupération du cloud, son volume clone doit avoir l'une ou l'autre `never` récupération cloud ou `all` la règle de tiering et la politique de récupération de cloud correspondante `default`.
+* La politique de récupération du cloud du volume parent ne peut pas être changée en `never` à moins que tous ses volumes de clones ne disposent d'une politique de récupération cloud `never`.
+
+
+Lors du clonage de volumes, tenez compte des bonnes pratiques suivantes :
+
+* Le `-tiering-policy` option et `tiering-minimum-cooling-days` l'option de clonage contrôle uniquement le comportement de hiérarchisation des blocs uniques au clone. Par conséquent, nous recommandons d'utiliser les paramètres de Tiering sur la FlexVol parent qui déplacent la même quantité de données ou déplacent moins de données que n'importe quel clone
+* La politique de récupération cloud de l'FlexVol parent doit déplacer la même quantité de données ou déplacer plus de données que la politique de récupération de l'un des clones
+
+
+
+
+== Fonctionnement des règles de Tiering avec la migration vers le cloud
+
+La récupération des données dans le cloud FabricPool est contrôlée par des règles de Tiering qui déterminent la récupération des données depuis le Tier cloud vers le Tier de performance selon le modèle de lecture. Les modèles de lecture peuvent être séquentiels ou aléatoires.
+
+Le tableau ci-dessous répertorie les politiques de Tiering ainsi que les règles de récupération des données cloud pour chaque règle.
+
+|===
+
+
+| Règle de hiérarchisation | Comportement de récupération 
+
+
+ a| 
+Aucune
+ a| 
+Lectures séquentielles et aléatoires
+
+
+
+ a| 
+snapshot uniquement
+ a| 
+Lectures séquentielles et aléatoires
+
+
+
+ a| 
+automatique
+ a| 
+Lectures aléatoires
+
+
+
+ a| 
+tous
+ a| 
+Aucune récupération des données
+
+|===
+Depuis ONTAP 9.8, vous gardez le contrôle de la migration vers le cloud `cloud-retrieval-policy` l'option remplace le comportement par défaut de migration ou de récupération dans le cloud contrôlé par la règle de tiering.
+
+Le tableau suivant répertorie les politiques de récupération du cloud prises en charge et leur comportement de récupération.
+
+|===
+
+
+| Politique de récupération cloud | Comportement de récupération 
+
+
+ a| 
+valeur par défaut
+ a| 
+La règle de Tiering décide des données à récupérer et ne modifie pas la récupération des données cloud par « deDefault »,`" `cloud-retrieval-policy`. Cette règle correspond à la valeur par défaut de tout volume, quel que soit le type d'agrégat hébergé.
+
+
+
+ a| 
+en lecture
+ a| 
+Toutes les données client lues sont extraites du Tier cloud au Tier de performance.
+
+
+
+ a| 
+jamais
+ a| 
+Aucune donnée client n'est tirée du Tier cloud vers le Tier de performance
+
+
+
+ a| 
+promouvoir
+ a| 
+* Pour la règle de Tiering « aucune », toutes les données cloud sont transférées du Tier cloud vers le Tier de performance
+* Pour la règle de Tiering « napshot-only », les données AFS sont extraites.
+
+
+|===

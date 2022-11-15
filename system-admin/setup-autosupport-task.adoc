@@ -1,0 +1,170 @@
+---
+permalink: system-admin/setup-autosupport-task.html 
+sidebar: sidebar 
+keywords: set, up, autosupport, technical, support, organization, internal, configuration, test 
+summary: Vous pouvez contrôler si les informations de AutoSupport sont envoyées au support technique et à votre organisation de support interne, puis tester que la configuration est correcte. 
+---
+= Configurer AutoSupport
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez contrôler si les informations de AutoSupport sont envoyées au support technique et à votre organisation de support interne, puis tester que la configuration est correcte.
+
+Dans les versions ONTAP 9.5 et ultérieures, vous pouvez activer AutoSupport et modifier sa configuration simultanément sur tous les nœuds du cluster. Lorsqu'un nouveau nœud rejoint le cluster, le nœud hérite automatiquement de la configuration de cluster AutoSupport. Vous n'avez pas besoin de mettre à jour la configuration séparément sur chaque nœud.
+
+[NOTE]
+====
+Depuis ONTAP 9.5, le champ d'application du `system node autosupport modify` la commande s'effectue au niveau du cluster. La configuration AutoSupport est modifiée sur tous les nœuds du cluster, même lorsque `-node` est spécifié. L'option est ignorée, mais elle a été conservée pour la rétrocompatibilité CLI.
+
+Dans les versions ONTAP 9.4 et précédentes, l'étendue de la commande « system node AutoSupport modify » est propre au nœud. La configuration AutoSupport doit être modifiée sur chaque nœud de votre cluster.
+
+====
+Par défaut, AutoSupport est activé sur chaque nœud pour envoyer des messages au support technique via le protocole de transport HTTPS.
+
+.Étapes
+. Assurez-vous que AutoSupport est activé :
++
+[listing]
+----
+system node autosupport modify -state enable
+----
+. Si vous souhaitez que le support technique reçoive les messages AutoSupport, utilisez la commande suivante :
++
+[listing]
+----
+system node autosupport modify -support enable
+----
++
+Vous devez activer cette option si vous souhaitez permettre à AutoSupport de travailler avec AutoSupport OnDemand ou si vous souhaitez télécharger des fichiers volumineux, tels que les fichiers core dump et d'archivage des performances, vers le support technique ou une URL spécifiée.
+
+. Si le support technique est activé pour recevoir des messages AutoSupport, spécifiez le protocole de transport à utiliser pour les messages.
++
+Vous pouvez choisir parmi les options suivantes :
+
++
+|===
+
+
+| Les fonctions que vous recherchez... | Définissez ensuite les paramètres suivants du `system node autosupport modify` commande... 
+
+
+ a| 
+Utilisez le protocole HTTPS par défaut
+ a| 
+.. Réglez `-transport` à `https`.
+.. Si vous utilisez un proxy, définissez `-proxy-url` À l'URL de votre proxy. Cette configuration prend en charge la communication avec AutoSupport OnDemand et les téléchargements de fichiers volumineux.
+
+
+
+
+ a| 
+Utilisez HTTP préféré par rapport à SMTP
+ a| 
+.. Réglez `-transport` à `http`.
+.. Si vous utilisez un proxy, définissez `-proxy-url` À l'URL de votre proxy. Cette configuration prend en charge les téléchargements de fichiers volumineux, mais pas AutoSupport OnDemand.
+
+
+
+
+ a| 
+Utiliser SMTP
+ a| 
+Réglez `-transport` à `smtp`.
+
+Cette configuration ne prend pas en charge AutoSupport OnDemand ni les téléchargements de fichiers volumineux.
+
+|===
+. Si vous souhaitez que votre service de support interne ou un partenaire de support reçoive les messages AutoSupport, effectuez les opérations suivantes :
++
+.. Identifiez les destinataires de votre organisation en définissant les paramètres suivants de l' `system node autosupport modify` commande :
++
+|===
+
+
+| Définir ce paramètre... | À ceci... 
+
+
+ a| 
+`-to`
+ a| 
+Jusqu'à cinq adresses e-mail ou listes de distribution individuelles séparées par des virgules dans votre service de support interne qui recevront des messages AutoSupport clés
+
+
+
+ a| 
+`-noteto`
+ a| 
+Jusqu'à cinq adresses e-mail ou listes de distribution individuelles séparées par des virgules dans votre service d'assistance interne qui recevront une version abrégée des messages clés AutoSupport conçus pour les téléphones portables et autres appareils mobiles
+
+
+
+ a| 
+`-partner-address`
+ a| 
+Jusqu'à cinq adresses e-mail ou listes de distribution séparées par des virgules dans votre organisation partenaire de support qui recevront tous les messages AutoSupport
+
+|===
+.. Vérifiez que les adresses sont correctement configurées en répertoriant les destinations à l'aide de l' `system node autosupport destinations show` commande.
+
+
+. Si vous envoyez des messages à votre organisation de support interne ou si vous avez choisi le transport SMTP pour les messages au support technique, configurez SMTP en définissant les paramètres suivants de l' `system node autosupport modify` commande :
++
+** Réglez `-mail-hosts` à un ou plusieurs hôtes de messagerie, séparés par des virgules.
++
+Vous pouvez définir un maximum de cinq.
+
++
+Vous pouvez configurer une valeur de port pour chaque hôte de messagerie en spécifiant un point-virgule et un numéro de port après le nom d'hôte de messagerie : par exemple, `mymailhost.example.com:5678`, où 5678 est le port de l'hôte de messagerie.
+
+** Réglez `-from` À l'adresse e-mail qui envoie le message AutoSupport.
+
+
+. Configurez DNS.
+. (Facultatif) Ajouter des options de commande si vous souhaitez modifier des paramètres spécifiques :
++
+|===
+
+
+| Pour cela... | Définissez ensuite les paramètres suivants du `system node autosupport modify` commande... 
+
+
+ a| 
+Masquez des données privées en supprimant, masquant ou encodant des données sensibles dans les messages
+ a| 
+Réglez `-remove-private-data` à `true`. Si vous changez de `false` à `true`, Tous les fichiers historiques AutoSupport et tous les fichiers associés sont supprimés.
+
+
+
+ a| 
+Arrêt de l'envoi des données de performance dans des messages AutoSupport périodiques
+ a| 
+Réglez `-perf` à `false`.
+
+|===
+. Vérifiez la configuration globale à l'aide du `system node autosupport show` commande avec `-node` paramètre.
+. Vérifier le fonctionnement de AutoSupport à l'aide de l' `system node autosupport check show` commande.
++
+Si des problèmes sont signalés, utilisez le `system node autosupport check show-details` pour afficher plus d'informations.
+
+. Vérifiez que les messages AutoSupport sont en cours d'envoi et de réception :
++
+.. Utilisez le `system node autosupport invoke` commande avec `-type` paramètre défini sur `test`.
++
+[listing]
+----
+cluster1::> system node autosupport invoke -type test -node node1
+----
+.. Vérifiez que NetApp reçoit vos messages AutoSupport :
++
+l'historique de AutoSupport du nœud système affiche -node local
+
++
+Le statut du dernier message AutoSupport sortant doit finalement être défini sur `sent-successful` pour toutes les destinations de protocole appropriées.
+
+.. (Facultatif) Confirmez que le message AutoSupport est envoyé à votre organisation de support interne ou à votre partenaire de support en consultant l'e-mail correspondant à l'adresse que vous avez configurée pour `-to`, `-noteto`, ou `-partner-address` paramètres du `system node autosupport modify` commande.
+
+
+

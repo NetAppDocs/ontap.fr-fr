@@ -1,0 +1,107 @@
+---
+permalink: element-replication/define-rule-policy-task.html 
+sidebar: sidebar 
+keywords: define, rule, policy 
+summary: 'Pour les stratégies personnalisées avec le type de stratégie « mirror-vault », vous devez définir au moins une règle qui détermine les copies Snapshot qui sont transférées pendant l"initialisation et la mise à jour. Vous pouvez également définir des règles pour les stratégies par défaut avec le type de stratégie "mirror-vault".' 
+---
+= Définir une règle pour une règle
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour les règles personnalisées avec le type de règle « miroir-coffre-fort », vous devez définir au moins une règle qui détermine les copies Snapshot transférées lors de l'initialisation et de la mise à jour. Vous pouvez également définir des règles pour les stratégies par défaut avec le type de stratégie "miroir-coffre-fort".
+
+Chaque règle avec le type de règle « iroir-vault » doit disposer d'une règle qui spécifie les copies Snapshot à répliquer. La règle « bimensuelle », par exemple, indique que seules les copies Snapshot affectées au label SnapMirror « bimensuel » doivent être répliquées. Vous attribuez l'étiquette SnapMirror lors de la configuration des copies Snapshot Element.
+
+Chaque type de stratégie est associé à une ou plusieurs règles définies par le système. Ces règles sont automatiquement attribuées à une règle lorsque vous spécifiez son type de stratégie. Le tableau ci-dessous présente les règles définies par le système.
+
+|===
+
+
+| Règle définie par le système | Utilisé dans les types de stratégie | Résultat 
+
+
+ a| 
+sm_créé
+ a| 
+asynchrone-mirror, mirror-vault
+ a| 
+Une copie Snapshot créée par SnapMirror est transférée lors de l'initialisation et de la mise à jour.
+
+
+
+ a| 
+tous les jours
+ a| 
+coffre-fort
+ a| 
+Les nouvelles copies Snapshot de la source portant le label SnapMirror « `diotidienne » sont transférées lors de l'initialisation et de la mise à jour.
+
+
+
+ a| 
+hebdomadaire
+ a| 
+coffre-fort
+ a| 
+Les nouvelles copies Snapshot de la source portant l'étiquette SnapMirror « hebdomadaire » sont transférées lors de l'initialisation et de la mise à jour.
+
+
+
+ a| 
+tous les mois
+ a| 
+coffre-fort
+ a| 
+Les nouvelles copies Snapshot de la source avec le libellé SnapMirror « `mensuel' » sont transférées lors de l'initialisation et de la mise à jour.
+
+|===
+Vous pouvez indiquer des règles supplémentaires selon vos besoins pour les règles par défaut ou personnalisées. Par exemple :
+
+* Pour la valeur par défaut `MirrorAndVault` Politique, vous pouvez créer une règle appelée « deux mois » pour faire correspondre les copies Snapshot de la source avec l'étiquette SnapMirror « deux mois ».
+* Dans le cas d'une règle personnalisée avec le type de règle « miroir-coffre-fort », vous pouvez créer une règle appelée « deux semaines » pour faire correspondre les copies Snapshot de la source avec l'étiquette SnapMirror « deux semaines ».
+
+
+.Étape
+. Définir une règle pour une règle :
++
+`snapmirror policy add-rule -vserver _SVM_ -policy _policy_for_rule_ -snapmirror-label _snapmirror-label_ -keep _retention_count_`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+L'exemple suivant ajoute une règle avec l'étiquette SnapMirror `bi-monthly` par défaut `MirrorAndVault` règle :
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy add-rule -vserver svm1 -policy MirrorAndVault -snapmirror-label bi-monthly -keep 6
+----
++
+L'exemple suivant ajoute une règle avec l'étiquette SnapMirror `bi-weekly` au personnalisé `my_snapvault` règle :
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy add-rule -vserver svm1 -policy my_snapvault -snapmirror-label bi-weekly -keep 26
+----
++
+L'exemple suivant ajoute une règle avec l'étiquette SnapMirror `app_consistent` au personnalisé `Sync` règle :
+
++
+[listing]
+----
+cluster_dst::> snapmirror policy add-rule -vserver svm1 -policy Sync -snapmirror-label app_consistent -keep 1
+----
++
+Vous pouvez ensuite répliquer les copies Snapshot à partir du cluster source correspondant à l'étiquette SnapMirror :
+
++
+[listing]
+----
+cluster_src::> snapshot create -vserver vs1 -volume vol1 -snapshot snapshot1 -snapmirror-label app_consistent
+----
+

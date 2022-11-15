@@ -1,0 +1,79 @@
+---
+permalink: smb-admin/add-task-security-policy-audit-task.html 
+sidebar: sidebar 
+keywords: create, creating, add, policy, task, security, configuring, configure, apply, acl, file, svm, associate, task, entries, add a task to the security policy 
+summary: 'La création et l"ajout d"une tâche policy à une policy de sécurité constitue la quatrième étape de la configuration et de l"application de ACL à des fichiers ou dossiers des SVM. Lorsque vous créez la tâche de stratégie, vous associez la tâche à une stratégie de sécurité. Vous pouvez ajouter une ou plusieurs entrées de tâche à une stratégie de sécurité.' 
+---
+= Ajoutez une tâche à la stratégie de sécurité
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La création et l'ajout d'une tâche policy à une policy de sécurité constitue la quatrième étape de la configuration et de l'application de ACL à des fichiers ou dossiers des SVM. Lorsque vous créez la tâche de stratégie, vous associez la tâche à une stratégie de sécurité. Vous pouvez ajouter une ou plusieurs entrées de tâche à une stratégie de sécurité.
+
+La stratégie de sécurité est un conteneur pour une tâche. Une tâche fait référence à une opération unique qui peut être effectuée par une stratégie de sécurité pour les fichiers ou dossiers avec NTFS ou la sécurité mixte (ou à un objet de volume si vous configurez Storage-Level Access Guard).
+
+Il existe deux types de tâches :
+
+* Tâches de fichier et de répertoire
++
+Permet de spécifier les tâches qui appliquent des descripteurs de sécurité aux fichiers et dossiers spécifiés. Les ACL appliquées via les tâches de fichier et de répertoire peuvent être gérées avec les clients SMB ou l'interface de ligne de commande ONTAP.
+
+* Tâches de Storage-Level Access Guard
++
+Permet de spécifier les tâches qui appliquent des descripteurs de sécurité Storage-Level Access Guard à un volume spécifié. Les listes de contrôle d'accès appliquées via les tâches Storage-Level Access Guard peuvent être gérées uniquement via l'interface de ligne de commande ONTAP.
+
+
+
+Une tâche contient des définitions pour la configuration de sécurité d'un fichier (ou d'un dossier) ou d'un ensemble de fichiers (ou de dossiers). Chaque tâche d'une stratégie est identifiée de manière unique par le chemin. Il ne peut y avoir qu'une seule tâche par chemin au sein d'une même stratégie. Une stratégie ne peut pas avoir d'entrées de tâche en double.
+
+Instructions pour l'ajout d'une tâche à une stratégie :
+
+* Il peut y avoir un maximum de 10,000 entrées de tâches par stratégie.
+* Une stratégie peut contenir une ou plusieurs tâches.
++
+Même si une stratégie peut contenir plusieurs tâches, vous ne pouvez pas configurer une stratégie pour contenir à la fois des tâches de répertoire de fichiers et de Storage-Level Access Guard. Une stratégie doit contenir soit toutes les tâches Storage-Level Access Guard, soit toutes les tâches du répertoire de fichiers.
+
+* Storage-Level Access Guard est utilisé pour restreindre les autorisations.
++
+Il ne vous donnera jamais d'autorisations d'accès supplémentaires.
+
+
+
+Vous pouvez personnaliser la configuration du descripteur de sécurité à l'aide des paramètres facultatifs suivants :
+
+* Type de sécurité
+* Mode de propagation
+* Position de l'index
+* Type de contrôle d'accès
+
+
+La valeur de n'importe quel paramètre facultatif est ignorée pour Storage-Level Access Guard. Consultez les pages de manuels pour plus d'informations.
+
+.Étapes
+. Ajoutez une tâche avec un descripteur de sécurité associé à la stratégie de sécurité : `vserver security file-directory policy task add -vserver vserver_name -policy-name policy_name -path path -ntfs-sd SD_nameoptional_parameters`
++
+`file-directory` est la valeur par défaut de l' `-access-control` paramètre. La définition du type de contrôle d'accès lors de la configuration des tâches d'accès aux fichiers et aux répertoires est facultative.
+
++
+`vserver security file-directory policy task add -vserver vs1 -policy-name policy1 -path /home/dir1 -security-type ntfs -ntfs-mode propagate -ntfs-sd sd2 -index-num 1 -access-control file-directory`
+
+. Vérifiez la configuration de la tâche de stratégie : `vserver security file-directory policy task show -vserver vserver_name -policy-name policy_name -path path`
++
+`vserver security file-directory policy task show`
+
++
+[listing]
+----
+
+Vserver: vs1
+Policy: policy1
+
+Index    File/Folder    Access           Security   NTFS       NTFS Security
+         Path           Control          Type       Mode       Descriptor Name
+-----    --------       -----------      --------   ------     ----------------
+1        /home/dir1     file-directory   ntfs       propagate  sd2
+----
+

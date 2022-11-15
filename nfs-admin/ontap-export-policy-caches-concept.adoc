@@ -1,0 +1,70 @@
+---
+permalink: nfs-admin/ontap-export-policy-caches-concept.html 
+sidebar: sidebar 
+keywords: ontap, use, export, policy, cache 
+summary: 'Pour améliorer les performances système, ONTAP utilise des caches locaux pour stocker des informations telles que les noms d"hôtes et les groupes de réseaux. Cela permet à ONTAP de traiter les règles des export-policy plus rapidement que de récupérer les informations à partir de sources externes. Comprendre ce qu"sont les caches et ce qu"ils font pour vous aider à résoudre les problèmes d"accès client.' 
+---
+= Utilisation des caches de règles d'exportation par ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour améliorer les performances système, ONTAP utilise des caches locaux pour stocker des informations telles que les noms d'hôtes et les groupes de réseaux. Cela permet à ONTAP de traiter les règles des export-policy plus rapidement que de récupérer les informations à partir de sources externes. Comprendre ce qu'sont les caches et ce qu'ils font pour vous aider à résoudre les problèmes d'accès client.
+
+Vous configurez les export policy pour contrôler l'accès client aux exports NFS. Chaque export policy contient des règles, et chaque règle contient des paramètres qui correspondent à la règle avec les clients demandant un accès. Certains de ces paramètres exigent que ONTAP contacte une source externe, telle que des serveurs DNS ou NIS, pour résoudre des objets tels que des noms de domaine, des noms d'hôtes ou des groupes réseau.
+
+Ces communications avec des sources externes prennent peu de temps. Afin d'améliorer les performances, ONTAP réduit le temps nécessaire à la résolution des objets de règles d'exportation en stockant les informations localement sur chaque nœud dans plusieurs caches.
+
+[cols="2*"]
+|===
+| Nom du cache | Type d'information stockée 
+
+
+ a| 
+L'accès
+ a| 
+Mise en correspondance des clients avec les règles d'exportation correspondantes
+
+
+
+ a| 
+Nom
+ a| 
+Mappage des noms d'utilisateur UNIX avec les ID utilisateur UNIX correspondants
+
+
+
+ a| 
+ID
+ a| 
+Mappage des ID utilisateur UNIX avec les ID utilisateur UNIX correspondants et les ID de groupe UNIX étendus
+
+
+
+ a| 
+Hôte
+ a| 
+Mappages de noms d'hôtes sur les adresses IP correspondantes
+
+
+
+ a| 
+Groupe réseau
+ a| 
+Mappages de groupes réseau aux adresses IP correspondantes des membres
+
+
+
+ a| 
+Showmount
+ a| 
+Liste des répertoires exportés depuis le namespace du SVM
+
+|===
+Si vous modifiez les informations sur les serveurs de noms externes de votre environnement après la récupération et le stockage en local par ONTAP, les caches peuvent désormais contenir des informations obsolètes. Bien que les mises à jour ONTAP se placent automatiquement après certaines périodes, différents caches ont des temps d'expiration et d'actualisation et des algorithmes différents.
+
+Une autre raison possible pour que les caches contiennent des informations obsolètes est le moment où ONTAP tente d'actualiser les informations en cache mais rencontre un échec lors de tentatives de communication avec des serveurs de noms. Dans ce cas, ONTAP continue d'utiliser les informations actuellement stockées dans les caches locaux pour éviter toute perturbation du client.
+
+Par conséquent, les demandes d'accès des clients qui sont censées réussir risquent d'échouer et les demandes d'accès des clients qui sont censées échouer pourraient réussir. Vous pouvez afficher et vider manuellement certains caches de règles d'exportation lors du dépannage de tels problèmes d'accès client.

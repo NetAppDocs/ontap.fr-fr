@@ -1,0 +1,51 @@
+---
+permalink: fabricpool/modify-tiering-policy-cooling-period-task.html 
+sidebar: sidebar 
+keywords: managing, storage, tiering, modifying, volume, tiering, policy, tiering, minimum, cooling period 
+summary: 'Vous pouvez modifier la règle de Tiering d"un volume afin de déterminer si les données sont déplacées vers le Tier cloud lorsqu"elles deviennent inactives. Dans le cas d"un volume doté de la règle de Tiering uniquement ou automatique, vous pouvez également spécifier la période de Tiering minimum de refroidissement pendant laquelle les données utilisateur doivent rester inactives avant leur transfert vers le Tier cloud.' 
+---
+= Gérez le Tiering du stockage en modifiant la règle de hiérarchisation d'un volume ou une période de refroidissement minimale de hiérarchisation
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez modifier la règle de Tiering d'un volume afin de déterminer si les données sont déplacées vers le Tier cloud lorsqu'elles deviennent inactives (_Cold_). Pour un volume avec `snapshot-only` ou `auto` la règle de tiering permet également de définir la période de refroidissement minimale de tiering à laquelle les données utilisateur doivent rester inactives avant leur transfert vers le tier cloud.
+
+Modification d'un volume sur le `auto` La règle de Tiering ou la modification de la période de refroidissement minimum de Tiering nécessite ONTAP 9.4 ou une version ultérieure.
+
+La modification de la règle de Tiering d'un volume modifie uniquement le comportement de Tiering ultérieur du volume. Elle ne déplace pas de façon rétroactive les données vers le Tier cloud.
+
+La modification de la règle de Tiering peut affecter le temps nécessaire aux données inactives et déplacées vers le Tier cloud.
+
+link:tiering-policies-concept.html#what-happens-when-you-modify-the-tiering-policy-of-a-volume-in-fabricpool["Que se passe-t-il lorsque vous modifiez la règle de Tiering d'un volume dans FabricPool"]
+
+.Étapes
+. Modifiez la règle de hiérarchisation pour un volume existant à l'aide de la `volume modify` commande avec `-tiering-policy` paramètre :
++
+Vous pouvez spécifier l'une des règles de hiérarchisation suivantes :
+
++
+** `snapshot-only` (valeur par défaut)
+** `auto`
+** `all`
+** `none`
++
+link:tiering-policies-concept.html#types-of-fabricPool-tiering-policies["Types de règles de Tiering FabricPool"]
+
+
+
+. Si le volume utilise le `snapshot-only` ou `auto` et que vous souhaitez modifier la période de tiering minimum de refroidissement, utilisez le `volume modify` commande avec `-tiering-minimum-cooling-days` paramètre facultatif au niveau de privilège avancé.
++
+Vous pouvez spécifier une valeur comprise entre 2 et 183 pour les jours de refroidissement minimum par niveaux. Si vous utilisez une version de ONTAP antérieure à la version 9.8, vous pouvez indiquer une valeur comprise entre 2 et 63 pour les jours de refroidissement minimum par Tiering.
+
+
+
+L'exemple suivant modifie la politique de hiérarchisation du volume « myvol » dans la SVM « vs1 » en `auto` et la période de refroidissement minimale par tiering à 45 jours :
+
+[listing]
+----
+cluster1::> volume modify -vserver vs1 -volume myvol
+-tiering-policy auto -tiering-minimum-cooling-days 45
+----

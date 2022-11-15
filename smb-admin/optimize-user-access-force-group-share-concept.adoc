@@ -1,0 +1,33 @@
+---
+permalink: smb-admin/optimize-user-access-force-group-share-concept.html 
+sidebar: sidebar 
+keywords: create, share, ontap, command, line, data, unix, effective, security, smb, user, group, force-group, predefined, database, force-group, access, how to optimize smb user access with the force-group share setting 
+summary: 'Lorsque vous créez un partage à partir de la ligne de commande ONTAP vers des données avec sécurité effective UNIX, vous pouvez spécifier que tous les fichiers créés par les utilisateurs SMB de ce partage appartiennent au même groupe, appelé groupe de force, qui doit être un groupe prédéfini dans la base de données du groupe UNIX. L"utilisation d"un groupe de force facilite l"accès aux fichiers par les utilisateurs SMB appartenant à différents groupes.' 
+---
+= Optimisez l'accès des utilisateurs SMB à l'aide du paramètre de partage force-groupe
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Lorsque vous créez un partage à partir de la ligne de commande ONTAP vers des données avec sécurité efficace UNIX, vous pouvez spécifier que tous les fichiers créés par les utilisateurs SMB de ce partage appartiennent au même groupe, appelé _force-group_, qui doit être un groupe prédéfini dans la base de données du groupe UNIX. L'utilisation d'un groupe de force facilite l'accès aux fichiers par les utilisateurs SMB appartenant à différents groupes.
+
+La spécification d'un groupe de force n'est pertinente que si le partage est dans un qtree UNIX ou mixte. Il n'est pas nécessaire de définir un groupe de force pour les partages d'un volume NTFS ou d'un qtree, car l'accès aux fichiers de ces partages est déterminé par les autorisations Windows, et non par des GIDS UNIX.
+
+Si un groupe de force a été spécifié pour un partage, les valeurs suivantes deviennent vraies pour le partage :
+
+* Les moyennes entreprises qui accèdent à ce partage sont temporairement modifiées en GID du groupe force.
++
+Ce GID leur permet d'accéder aux fichiers de ce partage qui ne sont pas accessibles normalement avec leur GID ou leur UID principal.
+
+* Tous les fichiers de ce partage créés par les utilisateurs SMB appartiennent au même groupe de force, quel que soit le GID principal du propriétaire du fichier.
+
+
+Lorsque les utilisateurs SMB essaient d'accéder à un fichier créé par NFS, les principaux GID des utilisateurs SMB déterminent les droits d'accès.
+
+La force-group n'affecte pas la façon dont les utilisateurs NFS accèdent aux fichiers dans ce partage. Un fichier créé par NFS acquiert le GID du propriétaire du fichier. La détermination des autorisations d'accès est basée sur l'UID et le GID principal de l'utilisateur NFS qui tente d'accéder au fichier.
+
+L'utilisation d'un groupe de force facilite l'accès aux fichiers par les utilisateurs SMB appartenant à différents groupes. Par exemple, si vous souhaitez créer un partage pour stocker les pages Web de l'entreprise et donner un accès en écriture aux utilisateurs des départements Ingénierie et Marketing, vous pouvez créer un partage et donner accès en écriture à un groupe de force nommé « webgroupe1 ». En raison du groupe de force, tous les fichiers créés par les utilisateurs SMB de ce partage appartiennent au groupe « webgroupe1 ». En outre, les utilisateurs se voient automatiquement attribuer le GID du groupe « webgroupe1 » lorsqu'ils accèdent au partage. Par conséquent, tous les utilisateurs peuvent écrire sur ce partage sans avoir à gérer les droits d'accès des utilisateurs dans les services Ingénierie et Marketing.
+
+xref:create-share-force-group-setting-task.adoc[Création d'un partage SMB avec le paramètre de partage force-group]

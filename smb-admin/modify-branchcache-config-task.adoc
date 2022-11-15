@@ -1,0 +1,78 @@
+---
+permalink: smb-admin/modify-branchcache-config-task.html 
+sidebar: sidebar 
+keywords: modify, configuration, branchcache, service, svm, store, directory, path, hash, maximum, size, operating, mode, version, modify branchcache configurations 
+summary: Vous pouvez modifier la configuration du service de BranchCache sur les SVM, notamment la modification du chemin du répertoire du magasin de hachage, la taille maximale du répertoire, le mode de fonctionnement et les versions de BranchCache prises en charge. Vous pouvez également augmenter la taille du volume contenant le magasin de hachage. 
+---
+= Modifier les configurations de BranchCache
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez modifier la configuration du service de BranchCache sur les SVM, notamment la modification du chemin du répertoire du magasin de hachage, la taille maximale du répertoire, le mode de fonctionnement et les versions de BranchCache prises en charge. Vous pouvez également augmenter la taille du volume contenant le magasin de hachage.
+
+.Étapes
+. Effectuez l'action appropriée :
++
+|===
+| Les fonctions que vous recherchez... | Entrez les informations suivantes... 
+
+
+ a| 
+Modifier la taille du répertoire du magasin de hachage
+ a| 
+`vserver cifs branchcache modify -vserver vserver_name -hash-store-max-size {integer[KB|MB|GB|TB|PB]}`
+
+
+
+ a| 
+Augmentez la taille du volume contenant le magasin de hachage
+ a| 
+`volume size -vserver vserver_name -volume volume_name -new-size new_size[k|m|g|t]` Si le volume contenant le magasin de hachage se remplit, vous pourrez peut-être augmenter la taille du volume. Vous pouvez spécifier la nouvelle taille du volume comme un nombre suivi d'une désignation d'unité.
+
+Voir link:../volumes/index.html["Gestion du stockage logique"] pour plus d'informations sur l'augmentation de la taille du volume.
+
+
+
+ a| 
+Modifiez le chemin du répertoire du magasin de hachage
+ a| 
+`vserver cifs branchcache modify -vserver vserver_name -hash-store-path path -flush-hashes {true|false}` Si le SVM est une source de reprise d'activité du SVM, le chemin de hachage ne peut pas se trouver sur le volume root. En effet, le volume racine n'est pas répliqué vers la destination de reprise après incident.
+
+Le chemin de hachage BranchCache peut contenir des blancs et des caractères de nom de fichier valides.
+
+Si vous modifiez le chemin de hachage, `-flush-hashes` Est un paramètre requis qui spécifie si vous souhaitez que ONTAP affleure les hachages à partir de l'emplacement de magasin de hachage d'origine. Vous pouvez définir les valeurs suivantes pour le `-flush-hashes` paramètre :
+
+** Si vous spécifiez `true`, ONTAP supprime les hachages dans l'emplacement d'origine et crée de nouveaux hachages à l'emplacement du nouveau, car les nouvelles demandes sont effectuées par des clients compatibles BranchCache.
+** Si vous spécifiez `false`, les hachages ne sont pas vidés.
++
+Dans ce cas, vous pouvez choisir de réutiliser les hachages existants ultérieurement en retrouvant le chemin du magasin de hachage à l'emplacement d'origine.
+
+
+
+
+
+ a| 
+Changer le mode de fonctionnement
+ a| 
+`vserver cifs branchcache modify -vserver vserver_name -operating-mode {per-share|all-shares|disable}`
+
+[NOTE]
+====
+Lorsque vous modifiez le mode de fonctionnement, sachez que ONTAP annonce la prise en charge de BranchCache pour un partage lorsque la session SMB est configurée. - Les clients qui ont déjà établi des sessions lorsque BranchCache est activé doivent se déconnecter et se reconnecter pour utiliser le contenu mis en cache pour ce partage.
+
+====
+
+
+ a| 
+Modifier la prise en charge de BranchCache
+ a| 
+`vserver cifs branchcache modify -vserver vserver_name -versions {v1-enable|v2-enable|enable-all}`
+
+|===
+. Vérifiez les modifications de configuration à l'aide de la `vserver cifs branchcache show` commande.
+
+
+link:../volumes/index.html["Guide de gestion du stockage logique"]

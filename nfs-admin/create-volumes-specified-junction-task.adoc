@@ -1,0 +1,60 @@
+---
+permalink: nfs-admin/create-volumes-specified-junction-task.html 
+sidebar: sidebar 
+keywords: create, data, volume, specify, junction, point 
+summary: 'Vous pouvez spécifier le point de jonction lorsque vous créez un volume de données. Le volume ainsi obtenu est automatiquement monté au point de jonction et est immédiatement disponible pour la configuration pour l"accès NAS.' 
+---
+= Créez des volumes de données avec des points de jonction spécifiés
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez spécifier le point de jonction lorsque vous créez un volume de données. Le volume ainsi obtenu est automatiquement monté au point de jonction et est immédiatement disponible pour la configuration pour l'accès NAS.
+
+L'agrégat dans lequel vous souhaitez créer le volume doit déjà exister.
+
+[NOTE]
+====
+Les caractères suivants ne peuvent pas être utilisés dans le chemin de jonction : * # " > < | ? \
+
+De plus, la longueur du chemin de jonction ne peut pas dépasser 255 caractères.
+
+====
+.Étapes
+. Créer le volume avec un point de jonction :
++
+`volume create -vserver _vserver_name_ -volume _volume_name_ -aggregate _aggregate_name_ -size {integer[KB|MB|GB|TB|PB]} -security-style {ntfs|unix|mixed} -junction-path _junction_path_`
+
++
+Le chemin de jonction doit commencer par la racine (/) et peut contenir à la fois des répertoires et des volumes reliés. Il n'est pas nécessaire que la Junction path contienne le nom du volume. Les Junction paths sont indépendants du nom du volume.
+
++
+La spécification d'un style de sécurité de volume est facultative. Si vous ne spécifiez pas de style de sécurité, ONTAP crée le volume avec le même style de sécurité que celui appliqué au volume racine de la machine virtuelle de stockage (SVM). Cependant, le style de sécurité du volume racine n'est peut-être pas celui que vous souhaitez appliquer au volume de données que vous créez. Il est recommandé de spécifier le style de sécurité lors de la création du volume afin de minimiser les problèmes d'accès aux fichiers difficiles à résoudre.
+
++
+Le chemin de jonction n'est pas sensible à la casse ; `/ENG` est identique à `/eng`. Si vous créez un partage CIFS, Windows traite le chemin de jonction comme s'il est sensible à la casse. Par exemple, si la jonction est de `/ENG`, Le chemin d'un partage SMB doit commencer par `/ENG`pas `/eng`.
+
++
+De nombreux paramètres facultatifs peuvent être utilisés pour personnaliser un volume de données. Pour en savoir plus, consultez les pages de manuel pour le `volume create` commande.
+
+. Vérifier que le volume a été créé avec le point de jonction souhaité :
++
+`volume show -vserver _vserver_name_ -volume _volume_name_ -junction`
+
+
+
+L'exemple suivant crée un volume nommé « maison 4 » situé sur le SVM vs1 qui a une Junction path `/eng/home`:
+
+[listing]
+----
+cluster1::> volume create -vserver vs1 -volume home4 -aggregate aggr1 -size 1g -junction-path /eng/home
+[Job 1642] Job succeeded: Successful
+
+cluster1::> volume show -vserver vs1 -volume home4 -junction
+                  Junction                 Junction
+Vserver   Volume  Active   Junction Path   Path Source
+--------- ------- -------- --------------- -----------
+vs1       home4   true     /eng/home       RW_volume
+----

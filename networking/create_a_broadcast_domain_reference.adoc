@@ -1,0 +1,70 @@
+---
+sidebar: sidebar 
+permalink: networking/create_a_broadcast_domain_reference.html 
+keywords: create, creation, creating, add, adding, broadcast, domain, create a broadcast domain, broadcast domains group network ports in the cluster that belong to the same layer 2 network, network port broadcast-domain remove-ports 
+summary: Les domaines de diffusion regroupent des ports réseau dans le cluster qui appartiennent au même réseau de couche 2 
+---
+= Créer un domaine de diffusion
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Créez un broadcast domain pour regrouper les ports réseau du cluster qui appartiennent au même réseau de couche 2. Les ports peuvent ensuite être utilisés par les SVM.
+
+Les ports que vous prévoyez d'ajouter au broadcast domain ne doivent pas appartenir à un autre broadcast domain.
+
+.Description de la tâche
+* Tous les noms de domaine de diffusion doivent être uniques au sein d'un IPspace.
+* Les ports ajoutés à un domaine de diffusion peuvent être des ports réseau physiques, des VLAN ou des groupes d'interfaces (ifgrps).
+* Si les ports que vous souhaitez utiliser appartiennent à un autre domaine de diffusion, mais sont inutilisés, vous utilisez le `network port broadcast-domain remove-ports` commande pour supprimer les ports du broadcast domain existant.
+* Le MTU des ports ajoutés à un domaine de diffusion est mis à jour en fonction de la valeur MTU définie dans le domaine de diffusion.
+* La valeur MTU doit correspondre à tous les périphériques connectés à ce réseau de couche 2, à l'exception du trafic de gestion du port e0M.
+* Si vous ne spécifiez pas de nom IPspace, le domaine de diffusion est créé dans l'IPspace « par défaut ».
+
+
+Pour faciliter la configuration du système, un failover group du même nom est créé automatiquement contenant les mêmes ports.
+
+.Étapes
+. Afficher les ports qui ne sont pas actuellement affectés à un broadcast domain :
++
+`network port show`
+
++
+Si l'affichage est grand, utilisez le `network port show -broadcast-domain` commande pour afficher uniquement les ports non assignés.
+
+. Créer un broadcast domain :
++
+`network port broadcast-domain create -broadcast-domain _broadcast_domain_name_ -mtu _mtu_value_ [-ipspace _ipspace_name_] [-ports _ports_list_]`
+
++
+** `_broadcast_domain_name_` est le nom du domaine de diffusion que vous souhaitez créer.
+** `_mtu_value_` Est la taille de MTU des paquets IP ; 1500 et 9000 sont des valeurs types.
++
+Cette valeur est appliquée à tous les ports ajoutés à ce broadcast domain.
+
+** `_ipspace_name_` Est le nom de l'IPspace à laquelle ce broadcast domain sera ajouté.
++
+L'IPspace par défaut est utilisé sauf si vous spécifiez une valeur pour ce paramètre.
+
+** `_ports_list_` est la liste des ports qui seront ajoutés au broadcast domain.
++
+Les ports sont ajoutés au format `_node_name:port_number_`, par exemple, `node1:e0c`.
+
+
+
+. Vérifiez que le domaine de diffusion a été créé comme vous le souhaitez :
+`network port show -instance -broadcast-domain _new_domain_`
+
+
+La commande suivante crée broadcast domain bcast1 dans l'IPspace par défaut, définit le MTU sur 1500 et ajoute quatre ports :
+
+`network port broadcast-domain create -broadcast-domain _bcast1_ -mtu _1500_ -ports _cluster1-01:e0e,cluster1-01:e0f,cluster1-02:e0e,cluster1-02:e0f_`
+
+Vous pouvez définir le pool d'adresses IP qui seront disponibles dans le broadcast domain en créant un sous-réseau, ou encore attribuer des SVM et des interfaces au IPspace à ce moment. Pour plus d'informations, voir link:https://docs.netapp.com/us-en/ontap-sm-classic/peering/index.html["Cluster et SVM peering"].
+
+Si vous devez modifier le nom d'un domaine de diffusion existant, utilisez le `network port broadcast-domain rename` commande.

@@ -1,0 +1,91 @@
+---
+permalink: encryption-at-rest/create-authentication-keys-96-later-task.html 
+sidebar: sidebar 
+keywords: creating, authentication keys, ontap 9.6, later 
+summary: 'Vous pouvez utiliser la commande Security Key-Manager create pour créer les clés d"authentification d"un nœud et les stocker sur les serveurs KMIP configurés.' 
+---
+= Créez des clés d'authentification dans ONTAP 9.6 et versions ultérieures
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser le `security key-manager key create` Commande permettant de créer les clés d'authentification d'un nœud et de les stocker sur les serveurs KMIP configurés.
+
+Vous devez être un administrateur de cluster pour effectuer cette tâche.
+
+Si votre configuration de sécurité exige que vous utilisiez des clés différentes pour l'authentification des données et l'authentification FIPS 140-2, vous devez créer une clé distincte pour chacune d'elles. Si ce n'est pas le cas, vous pouvez utiliser la même clé d'authentification pour la conformité FIPS que celle utilisée pour l'accès aux données.
+
+ONTAP crée des clés d'authentification pour tous les nœuds du cluster.
+
+* Cette commande n'est pas prise en charge lorsque le gestionnaire de clés intégré est activé. Toutefois, deux clés d'authentification sont créées automatiquement lorsque le gestionnaire de clés intégré est activé. Les clés peuvent être affichées à l'aide de la commande suivante :
++
+`security key-manager key query -key-type NSE-AK`
+
+* Vous recevez un avertissement si les serveurs de gestion des clés configurés stockent déjà plus de 128 clés d'authentification.
++
+Vous pouvez utiliser le `security key-manager key delete` commande permettant de supprimer les clés inutilisées. Le `security key-manager key delete` La commande échoue si la clé donnée est actuellement utilisée par ONTAP. (Vous devez avoir des privilèges supérieurs à « admin » pour utiliser cette commande.)
+
+
+
+.Étapes
+. Créer les clés d'authentification pour les nœuds du cluster :
++
+`security key-manager key create -key-tag passphrase_label -prompt-for-key true|false`
+
++
+[NOTE]
+====
+Réglage `prompt-for-key=true` provoque l'invite de l'administrateur de cluster à utiliser la phrase secrète lors de l'authentification de disques cryptés. Dans le cas contraire, le système génère automatiquement une phrase de passe de 32 octets. Le `security key-manager key create` la commande remplace le `security key-manager create-key` commande. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
+====
++
+L'exemple suivant crée les clés d'authentification pour `cluster1`, génération automatique d'une phrase de passe de 32 octets :
+
++
+[listing]
+----
+cluster1::> security key-manager key create
+Key ID: 000000000000000002000000000001006268333f870860128fbe17d393e5083b0000000000000000
+----
+. Vérifiez que les clés d'authentification ont été créées :
++
+`security key-manager key query -node node`
+
++
+[NOTE]
+====
+Le `security key-manager key query` la commande remplace le `security key-manager query key` commande. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man. L'ID de clé affiché dans la sortie est un identificateur utilisé pour faire référence à la clé d'authentification. Ce n'est pas la clé d'authentification ou la clé de chiffrement des données.
+
+====
++
+L'exemple suivant vérifie que les clés d'authentification ont été créées pour `cluster1`:
+
++
+[listing]
+----
+cluster1::> security key-manager key query
+       Vserver: cluster1
+   Key Manager: external
+          Node: node1
+
+Key Tag                               Key Type  Restored
+------------------------------------  --------  --------
+node1                                 NSE-AK    yes
+    Key ID: 000000000000000002000000000001000c11b3863f78c2273343d7ec5a67762e0000000000000000
+node1                                 NSE-AK    yes
+    Key ID: 000000000000000002000000000001006f4e2513353a674305872a4c9f3bf7970000000000000000
+
+       Vserver: cluster1
+   Key Manager: external
+          Node: node2
+
+Key Tag                               Key Type  Restored
+------------------------------------  --------  --------
+node2                                 NSE-AK    yes
+    Key ID: 000000000000000002000000000001000c11b3863f78c2273343d7ec5a67762e0000000000000000
+node2                                 NSE-AK    yes
+    Key ID: 000000000000000002000000000001006f4e2513353a674305872a4c9f3bf7970000000000000000
+----
+

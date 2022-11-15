@@ -1,0 +1,268 @@
+---
+permalink: system-admin/sp-sensor-status-values-command-output-concept.html 
+sidebar: sidebar 
+keywords: understand, discrete, sp, sensor, status, values, command, output, cli, hexedecimal, format 
+summary: 'Les capteurs discrets ne possèdent pas de seuils. Leurs lectures, affichées sous la colonne Current du résultat de la commande des capteurs du système de l"interface de ligne de commandes du processeur de service, ne portent pas leurs significations réelles et sont ainsi ignorées par le processeur de service. La colonne État du résultat de la commande system Sensors affiche les valeurs d"état des capteurs discrets au format hexadécimal.' 
+---
+= Informations sur les valeurs d'état du capteur SP discrètes du résultat de la commande des capteurs du système
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les capteurs discrets ne possèdent pas de seuils. Leurs relevés, affichés sous le `Current` Dans l'interface de ligne de commandes du processeur de service `system sensors` La sortie de la commande, ne portent pas de significations réelles et sont ainsi ignorées par le processeur de service. Le `Status` dans le `system sensors` le résultat de la commande affiche les valeurs d'état des capteurs discrets au format hexadécimal.
+
+Les capteurs de panne des ventilateurs, des unités d'alimentation et du système sont des exemple de capteurs discrets. La liste spécifique des capteurs discrets dépend de la plateforme.
+
+Vous pouvez utiliser l'interface de ligne de commandes du processeur de service `system sensors get` `sensor_name` commande d'aide à l'interprétation des valeurs d'état de la plupart des capteurs discrets. Les exemples suivants montrent les résultats de la saisie `system sensors get` `sensor_name` Pour les capteurs discrets CPU0_Error et IO_Slot1_PRESENT :
+
+[listing]
+----
+SP node1> system sensors get CPU0_Error
+Locating sensor record...
+Sensor ID              : CPU0_Error (0x67)
+ Entity ID             : 7.97
+ Sensor Type (Discrete): Temperature
+ States Asserted       : Digital State
+                         [State Deasserted]
+----
+[listing]
+----
+SP node1> system sensors get IO_Slot1_Present
+Locating sensor record...
+Sensor ID              : IO_Slot1_Present (0x74)
+ Entity ID             : 11.97
+ Sensor Type (Discrete): Add-in Card
+ States Asserted       : Availability State
+                        [Device Present]
+----
+Bien que le `system sensors get` `sensor_name` La commande affiche les informations d'état de la plupart des capteurs discrets ; elle ne fournit pas d'informations d'état pour les capteurs discrets System_FW_Status, System_Watchdog, PSU1_Input_Type et PSU2_Input_Type. Vous pouvez utiliser les informations suivantes pour interpréter les valeurs d'état de ces capteurs.
+
+
+
+== System_FW_Status
+
+L'état du capteur System_FW_Status s'affiche sous la forme de `0xAABB`. Vous pouvez combiner les informations de `AA` et `BB` pour déterminer l'état du capteur.
+
+`AA` peut avoir l'une des valeurs suivantes :
+
+|===
+| Valeurs | État du capteur 
+
+
+ a| 
+01
+ a| 
+Erreur du firmware du système
+
+
+
+ a| 
+02
+ a| 
+Blocage du firmware du système
+
+
+
+ a| 
+04
+ a| 
+Progression du firmware du système
+
+|===
+`BB` peut avoir l'une des valeurs suivantes :
+
+|===
+| Valeurs | État du capteur 
+
+
+ a| 
+00
+ a| 
+Le logiciel système s'est arrêté correctement
+
+
+
+ a| 
+01
+ a| 
+Initialisation de la mémoire en cours
+
+
+
+ a| 
+02
+ a| 
+Initialisation de la NVMEM en cours (lorsque la mémoire NVMEM est présente)
+
+
+
+ a| 
+04
+ a| 
+Restauration des valeurs du concentrateur du contrôleur de mémoire (MCH) (lorsque NVMEM est présent)
+
+
+
+ a| 
+05
+ a| 
+L'utilisateur a accédé à la configuration
+
+
+
+ a| 
+13
+ a| 
+Démarrage du système d'exploitation ou DU CHARGEUR
+
+
+
+ a| 
+1F
+ a| 
+Le BIOS est en cours de démarrage
+
+
+
+ a| 
+20
+ a| 
+LE CHARGEUR est en cours d'exécution
+
+
+
+ a| 
+21
+ a| 
+LE CHARGEUR programme le firmware du BIOS principal. Vous ne devez pas mettre le système hors tension.
+
+
+
+ a| 
+22
+ a| 
+LE CHARGEUR programme l'autre firmware du BIOS. Vous ne devez pas mettre le système hors tension.
+
+
+
+ a| 
+2F
+ a| 
+ONTAP est en cours d'exécution
+
+
+
+ a| 
+60
+ a| 
+Le processeur de service est hors tension du système
+
+
+
+ a| 
+61
+ a| 
+Le processeur de service est mis sous tension sur le système
+
+
+
+ a| 
+62
+ a| 
+Le processeur de service a réinitialisé le système
+
+
+
+ a| 
+63
+ a| 
+Cycle d'alimentation du chien de garde du processeur de service
+
+
+
+ a| 
+64
+ a| 
+Réinitialisation à froid du processeur de service
+
+|===
+Par exemple, l'état du capteur System_FW_Status 0x042F signifie « progression du micrologiciel du système (04), ONTAP est en cours d'exécution (2F) ».
+
+
+
+== Surveillance_système
+
+Le capteur System_Watchdog peut avoir l'une des conditions suivantes :
+
+* *0x0080*
++
+L'état de ce capteur n'a pas changé
+
+
+
+|===
+| Valeurs | État du capteur 
+
+
+ a| 
+0x0081
+ a| 
+Interruption du temporisateur
+
+
+
+ a| 
+0x0180
+ a| 
+Temporisation expirée
+
+
+
+ a| 
+0x0280
+ a| 
+Réinitialisation matérielle
+
+
+
+ a| 
+0x0480
+ a| 
+Hors tension
+
+
+
+ a| 
+0x0880
+ a| 
+Cycle d'alimentation
+
+|===
+Par exemple, l'état 0x0880 du capteur System_Watchdog indique qu'un délai de surveillance est expiré et provoque un cycle d'alimentation du système.
+
+
+
+== PSU1_Input_Type et PSU2_Input_Type
+
+Pour les alimentations à courant continu (CC), les capteurs PSU1_Input_Type et PSU2_Input_Type ne s'appliquent pas. Pour les alimentations à courant alternatif (CA), l'état des capteurs peut avoir l'une des valeurs suivantes :
+
+|===
+| Valeurs | État du capteur 
+
+
+ a| 
+0x01 xx
+ a| 
+Type d'alimentation 220 V
+
+
+
+ a| 
+0x02 xx
+ a| 
+Type d'alimentation 110 V
+
+|===
+Par exemple, l'état du capteur PSU1_Input_Type 0x0280 indique que le capteur indique que le type d'alimentation est 110 V.

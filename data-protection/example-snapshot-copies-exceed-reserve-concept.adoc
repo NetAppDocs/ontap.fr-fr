@@ -1,0 +1,36 @@
+---
+permalink: data-protection/example-snapshot-copies-exceed-reserve-concept.html 
+sidebar: sidebar 
+keywords: delete, protected, files, less file space 
+summary: 'Une copie Snapshot pointe vers un bloc, même après la suppression du fichier utilisé par ce bloc. Cela explique pourquoi une réserve de copies Snapshot épuisée peut entraîner un résultat contre-intuitif, dans lequel la suppression d"un système de fichiers entier réduit l"espace disponible par rapport au système de fichiers occupé.' 
+---
+= La manière dont la suppression des fichiers protégés peut entraîner une diminution de l'espace fichier par rapport aux attentes
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une copie Snapshot pointe vers un bloc, même après la suppression du fichier utilisé par ce bloc. Cela explique pourquoi une réserve de copies Snapshot épuisée peut entraîner un résultat contre-intuitif, dans lequel la suppression d'un système de fichiers entier réduit l'espace disponible par rapport au système de fichiers occupé.
+
+Prenons l'exemple suivant. Avant de supprimer des fichiers, le `df` la sortie de la commande est la suivante :
+
+[listing]
+----
+
+Filesystem          kbytes  used    avail  capacity
+/vol/vol0/          3000000 3000000 0       100%
+/vol/vol0/.snapshot 1000000 500000  500000   50%
+----
+Après avoir supprimé l'intégralité du système de fichiers et créé une copie Snapshot du volume, la `df` la commande génère la sortie suivante :
+
+[listing]
+----
+
+Filesystem          kbytes  used    avail  capacity
+/vol/vol0/          3000000 2500000 500000   83%
+/vol/vol0/.snapshot 1000000 3500000 0       350%
+----
+Comme le montre le résultat, l'intégralité des 3 Go utilisés auparavant par le système de fichiers actif est désormais utilisée par les copies Snapshot, en plus des 0.5 Go utilisés avant la suppression.
+
+L'espace disque utilisé par les copies Snapshot dépasse maintenant la réserve de copies Snapshot, le débordement de 2.5 Go de « `spillss' » dans l'espace réservé aux fichiers actifs, vous laissant avec 0.5 Go d'espace libre pour les fichiers où vous aviez raisonnablement prévu des 3 Go.

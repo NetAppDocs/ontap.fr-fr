@@ -1,0 +1,279 @@
+---
+permalink: nas-audit/plan-auditing-config-concept.html 
+sidebar: sidebar 
+keywords: plan, audit, configuration, svm, rotate, logs, size, schedule, rotation, dr, disaster recovery 
+summary: 'Avant de configurer l"audit sur les SVM (Storage Virtual machines), vous devez connaître les options de configuration disponibles et planifier les valeurs à définir pour chaque option. Ces informations peuvent vous aider à configurer la configuration d"audit qui répond aux besoins de votre entreprise.' 
+---
+= Planification de la configuration d'audit
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de configurer l'audit sur les SVM (Storage Virtual machines), vous devez connaître les options de configuration disponibles et planifier les valeurs à définir pour chaque option. Ces informations peuvent vous aider à configurer la configuration d'audit qui répond aux besoins de votre entreprise.
+
+Certains paramètres de configuration sont communs à toutes les configurations d'audit.
+
+En outre, certains paramètres peuvent être utilisés pour spécifier les méthodes utilisées lors de la rotation des journaux d'audit consolidés et convertis. Vous pouvez spécifier l'une des trois méthodes suivantes lorsque vous configurez l'audit :
+
+* Rotation des journaux en fonction de la taille du journal
++
+Il s'agit de la méthode par défaut utilisée pour faire pivoter les journaux.
+
+* Rotation des journaux en fonction d'un planning
+* Rotation des journaux en fonction de la taille du journal et du planning (quel que soit l'événement qui se produit en premier)
+
+
+[NOTE]
+====
+Au moins une des méthodes de rotation du log doit toujours être définie.
+
+====
+
+
+== Paramètres communs à toutes les configurations d'audit
+
+Vous devez spécifier deux paramètres requis lors de la création de la configuration d'audit. Il existe également trois paramètres facultatifs que vous pouvez spécifier :
+
+[cols="40,30,10,10,10"]
+|===
+
+
+| Type d'information | Option | Obligatoire | Inclure | Vos valeurs 
+
+
+ a| 
+_Nom du SVM_
+
+Nom du SVM sur lequel créer la configuration d'audit. Le SVM doit déjà exister.
+ a| 
+`-vserver` `vserver_name`
+ a| 
+Oui.
+ a| 
+Oui.
+ a| 
+
+
+
+ a| 
+_Chemin de destination du journal_
+
+Spécifie le répertoire dans lequel les journaux d'audit convertis sont stockés, généralement un volume dédié ou un qtree. Le chemin doit déjà exister dans le namespace du SVM.
+
+Le chemin d'accès peut comporter jusqu'à 864 caractères et doit avoir des autorisations de lecture/écriture.
+
+Si le chemin n'est pas valide, la commande audit de configuration échoue.
+
+Si le SVM est une source de reprise après incident du SVM, le chemin de destination du journal ne peut pas se trouver sur le volume root. En effet, le contenu du volume racine n'est pas répliqué vers la destination de reprise après incident.
+
+Vous ne pouvez pas utiliser un volume FlexCache comme destination du journal (ONTAP 9.7 et versions ultérieures).
+ a| 
+`-destination` `text`
+ a| 
+Oui.
+ a| 
+Oui.
+ a| 
+
+
+
+ a| 
+_Catégories d'événements à auditer_
+
+Spécifie les catégories d'événements à auditer. Les catégories d'événements suivantes peuvent être auditées :
+
+* Événements d'accès aux fichiers (SMB et NFSv4)
+* Événements de connexion et de déconnexion SMB
+* Événements d'activation de stratégie d'accès central
++
+Les événements d'activation de stratégie d'accès central sont un nouvel événement d'audit avancé disponible à partir des domaines Windows 2012 Active Directory. Mise en attente centralisée des événements de journalisation des stratégies d'accès informations sur les modifications apportées aux stratégies d'accès central configurées dans Active Directory.
+
+* Événements de catégorie de partage de fichiers
+* Audit des événements de modification de règle
+* Événements locaux de gestion de compte utilisateur
+* Événements de gestion de groupe de sécurité
+* Événements de modification de la politique d'autorisation
+
+
+La valeur par défaut consiste à auditer l'accès aux fichiers et les événements de connexion et de déconnexion SMB.
+
+*Remarque :* avant de pouvoir spécifier `cap-staging` En tant que catégorie d'événement, un serveur SMB doit exister sur le SVM. Bien que vous puissiez activer le staging de stratégie d'accès central dans la configuration d'audit sans activer le contrôle d'accès dynamique sur le serveur SMB, les événements de staging de stratégie d'accès central ne sont générés que si le contrôle d'accès dynamique est activé. Le contrôle d'accès dynamique est activé par le biais d'une option de serveur SMB. Elle n'est pas activée par défaut.
+ a| 
+`-events` {`file-ops`|`cifs-logon-logoff`|`cap-staging`|`file-share`|`audit-policy-change`|`user-account`|`security-group`|`authorization-policy-change`}
+ a| 
+Non
+ a| 
+ a| 
+
+
+
+ a| 
+_Format de sortie du fichier journal_
+
+Détermine le format de sortie des journaux d'audit. Le format de sortie peut être spécifique à ONTAP `XML` Ou Microsoft Windows `EVTX` format du journal. Par défaut, le format de sortie est `EVTX`.
+ a| 
+`-format` {`xml`|`evtx`}
+ a| 
+Non
+ a| 
+ a| 
+
+
+
+ a| 
+_Limite de rotation des fichiers journaux_
+
+Détermine le nombre de fichiers journaux d'audit à conserver avant de faire pivoter le fichier journal le plus ancien vers l'extérieur. Par exemple, si vous saisissez une valeur de `5`, les cinq derniers fichiers journaux sont conservés.
+
+Valeur de `0` indique que tous les fichiers journaux sont conservés. La valeur par défaut est 0.
+ a| 
+`-rotate-limit` `integer`
+ a| 
+Non
+ a| 
+ a| 
+
+|===
+
+
+== Paramètres utilisés pour déterminer quand faire pivoter les journaux d'événements d'audit
+
+*Faire pivoter les journaux en fonction de la taille du journal*
+
+La valeur par défaut consiste à faire pivoter les journaux d'audit en fonction de la taille.
+
+* La taille du journal par défaut est de 100 Mo
+* Si vous souhaitez utiliser la méthode de rotation du journal par défaut et la taille du journal par défaut, vous n'avez pas besoin de configurer de paramètres spécifiques pour la rotation du journal.
+* Si vous souhaitez faire pivoter les journaux d'audit en fonction d'une taille de journal seule, utilisez la commande suivante pour annuler la définition du `-rotate-schedule-minute` paramètre : `vserver audit modify -vserver vs0 -destination / -rotate-schedule-minute -`
+
+
+Si vous ne souhaitez pas utiliser la taille de journal par défaut, vous pouvez configurer le `-rotate-size` paramètre pour spécifier une taille de journal personnalisée :
+
+[cols="40,30,10,10,10"]
+|===
+
+
+| Type d'information | Option | Obligatoire | Inclure | Vos valeurs 
+
+
+ a| 
+_Limite de taille du fichier journal_
+
+Détermine la limite de taille du fichier journal d'audit.
+ a| 
+`-rotate-size` {`integer`[KO|MO|GO|TO|PB]}
+ a| 
+Non
+ a| 
+ a| 
+
+|===
+*Faire pivoter les journaux en fonction d'un horaire*
+
+Si vous choisissez de faire pivoter les journaux d'audit en fonction d'un planning, vous pouvez programmer la rotation du journal en utilisant les paramètres de rotation basés sur le temps dans n'importe quelle combinaison.
+
+* Si vous utilisez une rotation basée sur le temps, le `-rotate-schedule-minute` paramètre obligatoire.
+* Tous les autres paramètres de rotation basés sur le temps sont facultatifs.
+* Le planning de rotation est calculé en utilisant toutes les valeurs liées au temps.
++
+Par exemple, si vous spécifiez uniquement le `-rotate-schedule-minute` paramètre, les fichiers journaux d'audit sont pivotés en fonction des minutes spécifiées pour tous les jours de la semaine, pendant toutes les heures sur tous les mois de l'année.
+
+* Si vous spécifiez uniquement un ou deux paramètres de rotation basés sur le temps (par exemple, `-rotate-schedule-month` et `-rotate-schedule-minutes`), les fichiers journaux pivotent en fonction des valeurs de minutes que vous avez spécifiées tous les jours de la semaine, pendant toutes les heures, mais seulement pendant les mois spécifiés.
++
+Par exemple, vous pouvez préciser que le journal d'audit doit être tourné pendant les mois janvier, mars et août tous les lundis, mercredis et samedis à 10 h 30
+
+* Si vous spécifiez des valeurs pour les deux `-rotate-schedule-dayofweek` et `-rotate-schedule-day`, ils sont considérés indépendamment.
++
+Par exemple, si vous spécifiez `-rotate-schedule-dayofweek` Comme vendredi et `-rotate-schedule-day` Comme 13, les registres de vérification seront ensuite tournés tous les vendredis et les 13ème jours du mois spécifié, pas seulement tous les vendredis du 13ème.
+
+* Si vous souhaitez faire pivoter les journaux d'audit en fonction d'une planification seule, utilisez la commande suivante pour annuler la définition du `-rotate-size` paramètre : `vserver audit modify -vserver vs0 -destination / -rotate-size -`
+
+
+Vous pouvez utiliser la liste suivante de paramètres d'audit disponibles pour déterminer les valeurs à utiliser pour configurer un planning pour les rotations du journal d'événements d'audit :
+
+[cols="40,30,10,10,10"]
+|===
+
+
+| Type d'information | Option | Obligatoire | Inclure | Vos valeurs 
+
+
+ a| 
+_Horaire de rotation du journal : mois_
+
+Détermine le calendrier mensuel de rotation des journaux d'audit.
+
+Les valeurs valides sont `January` à `December`, et `all`. Par exemple, vous pouvez indiquer que le journal d'audit doit être pivoté pendant les mois janvier, mars et août.
+ a| 
+`-rotate-schedule-month` `chron_month`
+ a| 
+Non
+ a| 
+ a| 
+
+
+
+ a| 
+_Horaire de rotation du journal : jour de la semaine_
+
+Détermine le calendrier quotidien (jour de la semaine) pour la rotation des journaux d'audit.
+
+Les valeurs valides sont `Sunday` à `Saturday`, et `all`. Par exemple, vous pouvez préciser que le journal d'audit doit être tourné le mardi et le vendredi, ou pendant tous les jours d'une semaine.
+ a| 
+`-rotate-schedule-dayofweek` `chron_dayofweek`
+ a| 
+Non
+ a| 
+ a| 
+
+
+
+ a| 
+_Horaire de rotation du journal : jour_
+
+Détermine le jour du mois de la rotation du journal d'audit.
+
+Les valeurs valides vont de `1` à `31`. Par exemple, vous pouvez indiquer que le journal d'audit doit être tourné les 10e et 20e jours d'un mois, ou tous les jours d'un mois.
+ a| 
+`-rotate-schedule-day` `chron_dayofmonth`
+ a| 
+Non
+ a| 
+ a| 
+
+
+
+ a| 
+_Horaire de rotation du journal : heure_
+
+Détermine le planning horaire pour la rotation du journal d'audit.
+
+Les valeurs valides vont de `0` de minuit à `23` (11 h 00). Spécification `all` fait pivoter les journaux d'audit toutes les heures. Par exemple, vous pouvez spécifier que le journal d'audit doit être tourné à 6 (6 h) et 18 (6 h).
+ a| 
+`-rotate-schedule-hour` `chron_hour`
+ a| 
+Non
+ a| 
+ a| 
+
+
+
+ a| 
+_Horaire de rotation du journal : minute_
+
+Détermine la planification des minutes pour la rotation du journal d'audit.
+
+Les valeurs valides vont de `0` à `59`. Par exemple, vous pouvez indiquer que le journal d'audit doit être pivoté à la 30e minute.
+ a| 
+`-rotate-schedule-minute` `chron_minute`
+ a| 
+Oui, si vous configurez une rotation de journal basée sur un planning, sinon non
+ a| 
+ a| 
+
+|===
+*Faire pivoter les journaux en fonction de la taille du journal et de l'horaire*
+
+Vous pouvez choisir de faire pivoter les fichiers journaux en fonction de la taille du journal et d'une planification en définissant les deux `-rotate-size` paramètre et paramètres de rotation basés sur le temps dans n'importe quelle combinaison. Par exemple : si `-rotate-size` Est défini sur 10 Mo et `-rotate-schedule-minute` Est défini sur 15, les fichiers journaux pivotent lorsque la taille du fichier journal atteint 10 Mo ou la 15e minute de chaque heure (selon la première éventualité).

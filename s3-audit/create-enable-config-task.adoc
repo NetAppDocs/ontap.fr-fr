@@ -1,0 +1,62 @@
+---
+permalink: s3-audit/create-enable-config-task.html 
+sidebar: sidebar 
+keywords: consistency groups, consistency group, application protection, parent, child, configure 
+summary: 'Pour implémenter l"audit S3, vous devez d"abord créer une configuration d"audit de magasin d"objets persistant sur un SVM compatible avec S3, puis activer la configuration.' 
+---
+= Créez et activez une configuration d'audit S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour implémenter l'audit S3, vous devez d'abord créer une configuration d'audit de magasin d'objets persistant sur un SVM compatible avec S3, puis activer la configuration.
+
+.Ce dont vous avez besoin, 8217;ll
+* SVM compatible S3.
+* Espace suffisant pour les volumes intermédiaires dans l'agrégat.
+
+
+Une configuration d'audit est requise pour chaque SVM contenant des compartiments S3 que vous souhaitez auditer. Vous pouvez activer l'audit S3 sur des serveurs S3 nouveaux ou existants. Les configurations d'audit restent conservées dans un environnement S3 jusqu'à ce qu'elles soient supprimées par la commande *vserver Object-store-Server audit delete*.
+
+La configuration d'audit de S3 s'applique à toutes les compartiments du SVM que vous sélectionnez pour l'audit. Un SVM activé pour un audit peut contenir des compartiments audités et non audités.
+
+Il est recommandé de configurer l'audit S3 pour une rotation automatique des journaux, déterminée par la taille du journal ou par une planification. Si vous ne configurez pas la rotation automatique des journaux, tous les fichiers journaux sont conservés par défaut. Vous pouvez également faire pivoter les fichiers journaux S3 manuellement à l'aide de la commande *vserver Object-store-Server audit rotate-log*.
+
+Si le SVM est une source de reprise d'activité du SVM, le chemin de destination ne peut pas se trouver sur le volume root.
+
+.Procédure
+. Créez la configuration d'audit pour faire pivoter les journaux d'audit en fonction de la taille du journal ou d'une planification.
++
+[cols="2,4"]
+|===
+| Si vous souhaitez faire pivoter les journaux d'audit en... | Entrer... 
+
+
+| Taille du journal | `vserver object-store-server audit create -vserver _svm_name_ -destination _path_ [[-events] {data{vbar}management}, ...] {[-rotate-limit _integer_] {vbar} [-retention-duration [_integer_d] [_integer_h][_integer_m][_integers_]]} [-rotate-size {_integer_[KB{vbar}MB{vbar}GB{vbar}TB{vbar}PB]}]` 
+
+
+| Un planning  a| 
+`vserver object-store-server audit create -vserver _svm_name_ -destination path [[-events] {data{vbar}management}, ...] {[-rotate-limit _integer_] {vbar} [-retention-duration [_integerd_][_integerh_] [_integerm_][_integers_]] } [-rotate-schedule-month _chron_month_] [-rotate-schedule-dayofweek _chron_dayofweek_] [-rotate-schedule-day _chron_dayofmonth_] [-rotate-schedule-hour _chron_hour_] -rotate-schedule-minute _chron_minute_`
+
+Le `-rotate-schedule-minute` le paramètre est requis si vous configurez la rotation du journal d'audit basée sur le temps.
+
+|===
+. Activation de l'audit S3 :
++
+`vserver object-store-server audit enable -vserver _svm_name_`
+
+
+
+L'exemple suivant illustre une configuration d'audit qui audite tous les événements S3 (par défaut) à l'aide d'une rotation basée sur la taille. Les journaux sont stockés dans le répertoire /audit_log. La taille maximale du fichier journal est de 200 Mo. Les journaux pivotent lorsqu'ils atteignent 200 Mo de taille.
+
+`cluster1::> vserver audit create -vserver vs1 -destination /audit_log -rotate-size 200MB`
+
+L'exemple suivant illustre une configuration d'audit qui audite tous les événements S3 (par défaut) à l'aide d'une rotation basée sur la taille. La taille maximale du fichier journal est de 100 Mo (valeur par défaut) et les journaux sont conservés pendant 5 jours avant leur suppression.
+
+`cluster1::> vserver audit create -vserver vs1 -destination /audit_log -retention-duration 5d0h0m`
+
+L'exemple suivant crée une configuration d'audit qui audite les événements de gestion S3 et les événements d'activation de règles d'accès centrales à l'aide d'une rotation basée sur le temps. Les journaux d'audit sont pivotés tous les mois, à 12:30 tous les jours de la semaine. La limite de rotation du log est de 5.
+
+`cluster1::> vserver audit create -vserver vs1 -destination /audit_log -events management -rotate-schedule-month all -rotate-schedule-dayofweek all -rotate-schedule-hour 12 -rotate-schedule-minute 30 -rotate-limit 5`

@@ -1,0 +1,53 @@
+---
+permalink: san-config/configure-fc-adapters-initiator-mode-task.html 
+sidebar: sidebar 
+keywords: configure, fc adapters, initiator mode 
+summary: 'Vous pouvez configurer des ports FC individuels des adaptateurs intégrés et certaines cartes d"adaptateur FC pour le mode initiateur. Ce mode permet de connecter les ports aux lecteurs de bande, aux librairies de bandes ou aux systèmes de stockage tiers à l"aide de FlexArray Virtualization ou Foreign LUN Import (FLI).' 
+---
+= Configurer les adaptateurs FC pour le mode initiateur
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez configurer des ports FC individuels des adaptateurs intégrés et certaines cartes d'adaptateur FC pour le mode initiateur. Ce mode permet de connecter les ports aux lecteurs de bande, aux librairies de bandes ou aux systèmes de stockage tiers à l'aide de FlexArray Virtualization ou Foreign LUN Import (FLI).
+
+.Ce dont vous avez besoin, 8217;ll
+* Les LIF présentes sur l'adaptateur doivent être supprimées de n'importe quel ensemble de ports dont elles sont membres.
+* Toutes les LIF de chaque machine virtuelle de stockage (SVM) utilisant le port physique à modifier doivent être migrées ou détruites avant de changer la personnalité du port physique de la cible à l'initiateur.
+
+
+Chaque port FC intégré peut être configuré individuellement en tant qu'initiateur ou cible. Les ports de certains adaptateurs FC peuvent également être configurés individuellement en tant que port cible ou port initiateur, comme les ports FC intégrés. Une liste des adaptateurs pouvant être configurés pour le mode cible est disponible dans https://hwu.netapp.com["NetApp Hardware Universe"^].
+
+[NOTE]
+====
+Le protocole NVMe/FC prend en charge le mode initiateur.
+
+====
+.Étapes
+. Supprimer toutes les LIFs de l'adaptateur :
++
+`network interface delete -vserver _SVM_name_ -lif _lif_name_,_lif_name_`
+
+. Mettez votre adaptateur hors ligne :
++
+`network fcp adapter modify -node _node_name_ -adapter _adapter_port_ -status-admin down`
+
++
+Si l'adaptateur ne passe pas hors ligne, vous pouvez également retirer le câble du port d'adaptateur approprié du système.
+
+. Modifiez l'adaptateur de la cible à l'initiateur :
++
+`system hardware unified-connect modify -t initiator _adapter_port_`
+
+. Redémarrez le nœud hébergeant l'adaptateur que vous avez changé.
+. Vérifier que les ports FC sont configurés dans l'état approprié pour votre configuration :
++
+`system hardware unified-connect show`
+
+. Remettre la carte en ligne :
++
+`node run -node _node_name_ storage enable adapter _adapter_port_`
+
+

@@ -1,0 +1,200 @@
+---
+permalink: disks-aggregates/sanitize-disk-maintenance-mode-task.html 
+sidebar: sidebar 
+keywords: sanitize, disk, maintenance mode, nodeshell, node shell, sanitization 
+summary: 'À partir de ONTAP 9.6, vous pouvez effectuer le nettoyage de disque en mode de maintenance. Cela vous permet de supprimer les données d"un disque ou d"un ensemble de disques sur les systèmes hors service ou inexploitables, de sorte que les données ne puissent jamais être restaurées.' 
+---
+= Procédez à la suppression d'un disque
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le nettoyage d'un disque vous permet de supprimer les données d'un disque ou d'un ensemble de disques sur les systèmes déclassés ou non opérationnels, de sorte que les données ne puissent jamais être restaurées.
+
+Deux méthodes sont disponibles pour désinfecter les disques à l'aide de l'interface de ligne de commande :
+
+.Nettoyage d'un disque avec &#8220;mode de maintenance&#8221; commandes (ONTAP 9.6 et versions ultérieures)
+====
+À partir de ONTAP 9.6, vous pouvez effectuer le nettoyage de disque en mode de maintenance.
+
+.Avant de commencer
+* Les disques ne peuvent pas être des disques à autochiffrement (SED).
++
+Vous devez utiliser le `storage encryption disk sanitize` Commande permettant de désinfecter un SED.
+
++
+link:../encryption-at-rest/index.html["Cryptage des données au repos"]
+
+
+
+.Étapes
+. Démarre en mode de maintenance.
+. Si les disques que vous souhaitez désinfecter sont partitionnés, départitionnez chaque disque :
++
+
+NOTE: La commande permettant de départitionner un disque est uniquement disponible au niveau diagnostic et ne doit être effectuée qu'avec NetApp support supervision. Nous vous recommandons vivement de contacter le support NetApp avant de continuer. Vous pouvez également vous reporter à l'article de la base de connaissances link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Systems/FAS_Systems/How_to_unpartition_a_spare_drive_in_ONTAP["Comment départitionner un lecteur de réserve dans ONTAP"^]
+
++
+`disk unpartition _disk_name_`
+
+. Procédez à la nettoyage des disques spécifiés :
++
+`disk sanitize start [-p _pattern1_|-r [-p _pattern2_|-r [-p _pattern3_|-r]]] [-c _cycle_count_] _disk_list_`
+
++
+
+NOTE: Ne mettez pas le nœud hors tension, arrêtez la connectivité du stockage et ne retirez pas les disques cibles pendant le nettoyage. Si le nettoyage est interrompu pendant la phase de formatage, la phase de formatage doit être redémarrée et autorisée à terminer avant que les disques soient nettoyés et prêts à être renvoyés dans le pool de réserve. Si vous devez abandonner le processus de nettoyage, vous pouvez le faire en utilisant le `disk sanitize abort` commande. Si la phase de nettoyage des disques spécifiés est en cours de formatage, l'abandon ne se produit qu'une fois la phase terminée.
+
++
+ `-p` `_pattern1_` `-p` `_pattern2_` `-p` `_pattern3_` spécifie un cycle d'écrasement d'un à trois octets hexadécimaux définis par l'utilisateur qui peuvent être appliqués successivement aux disques en cours d'assainissement. Le motif par défaut est trois passes, en utilisant 0x55 pour le premier passage, 0xaa pour le second passage et 0x3c pour le troisième passage.
+
++
+`-r` remplace un remplacement à répétition par un remplacement aléatoire pour une ou toutes les passes.
+
++
+`-c` `_cycle_count_` spécifie le nombre de fois où les modèles d'écrasement spécifiés sont appliqués. La valeur par défaut est un cycle. La valeur maximale est de sept cycles.
+
++
+`_disk_list_` Spécifie une liste séparée par des espaces des ID des disques de rechange à désinfecter.
+
+. Si vous le souhaitez, vérifiez l'état du processus de nettoyage de disque :
++
+`disk sanitize status [_disk_list_]`
+
+. Une fois le processus de nettoyage terminé, retournez les disques à l'état de spare de chaque disque :
++
+`disk sanitize release _disk_name_`
+
+. Quittez le mode maintenance.
+
+
+====
+.Nettoyage d'un disque avec &#8220;nodeshell&#8221; commandes (toutes les versions d'ONTAP 9)
+====
+Pour toutes les versions d'ONTAP 9, lorsque le nettoyage de disque est activé à l'aide des commandes du nodeshell, certaines commandes de ONTAP bas niveau sont désactivées. Une fois le nettoyage de disque activé sur un nœud, il ne peut pas être désactivé.
+
+.Avant de commencer
+* Les disques doivent être des disques de spare ; ils doivent être détenus par un nœud, mais pas utilisés dans un niveau local (agrégat).
++
+Si les disques sont partitionnés, aucune partition ne peut être utilisée dans un niveau local (agrégat).
+
+* Les disques ne peuvent pas être des disques à autochiffrement (SED).
++
+Vous devez utiliser le `storage encryption disk sanitize` Commande permettant de désinfecter un SED.
+
++
+link:../encryption-at-rest/index.html["Cryptage des données au repos"]
+
+* Les disques ne peuvent pas faire partie d'un pool de stockage.
+
+
+.Étapes
+. Si les disques que vous souhaitez désinfecter sont partitionnés, départitionnez chaque disque :
++
+--
+
+NOTE: La commande permettant de départitionner un disque est uniquement disponible au niveau diagnostic et ne doit être effectuée qu'avec NetApp support supervision. **Il est fortement recommandé de contacter le support NetApp avant de continuer.** vous pouvez également vous reporter à l'article de la base de connaissances link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Systems/FAS_Systems/How_to_unpartition_a_spare_drive_in_ONTAP["Comment départitionner un lecteur de réserve dans ONTAP"^].
+
+--
++
+`disk unpartition _disk_name_`
+
+. Entrez le nodeshell pour le nœud qui possède les disques à désinfecter :
++
+`system node run -node _node_name_`
+
+. Activation du nettoyage de disque :
++
+`options licensed_feature.disk_sanitization.enable on`
+
++
+Vous êtes invité à confirmer la commande car elle est irréversible.
+
+. Basculer vers le niveau de privilège avancé du nodeshell :
++
+`priv set advanced`
+
+. Procédez à la nettoyage des disques spécifiés :
++
+`disk sanitize start [-p pattern1|-r [-p pattern2|-r [-p pattern3|-r]]] [-c cycle_count] disk_list`
+
++
+
+NOTE: Ne mettez pas le nœud hors tension, arrêtez la connectivité du stockage et ne retirez pas les disques cibles pendant le nettoyage. Si le nettoyage est interrompu pendant la phase de formatage, la phase de formatage doit être redémarrée et autorisée à terminer avant que les disques soient nettoyés et prêts à être renvoyés dans le pool de réserve. Si vous avez besoin d'abandonner le processus de nettoyage, vous pouvez le faire avec la commande d'annulation du nettoyage de disque. Si la phase de nettoyage des disques spécifiés est en cours de formatage, l'abandon ne se produit qu'une fois la phase terminée.
+
++
+`-p pattern1 -p pattern2 -p pattern3` spécifie un cycle d'écrasement d'un à trois octets hexadécimaux définis par l'utilisateur qui peuvent être appliqués successivement aux disques en cours d'assainissement. Le motif par défaut est trois passes, en utilisant 0x55 pour le premier passage, 0xaa pour le second passage et 0x3c pour le troisième passage.
+
++
+`-r` remplace un remplacement à répétition par un remplacement aléatoire pour une ou toutes les passes.
+
++
+`-c cycle_count` spécifie le nombre de fois où les modèles d'écrasement spécifiés sont appliqués.
+
++
+La valeur par défaut est un cycle. La valeur maximale est de sept cycles.
+
++
+`disk_list` Spécifie une liste séparée par des espaces des ID des disques de rechange à désinfecter.
+
+. Pour vérifier l'état du processus de nettoyage de disque :
++
+`disk sanitize status [disk_list]`
+
+. Une fois le processus de nettoyage terminé, retournez les disques à l'état spare :
++
+`disk sanitize release _disk_name_`
+
+. Retour au niveau de privilège admin du nodeshell :
++
+`priv set admin`
+
+. Revenir à l'interface de ligne de commandes ONTAP :
++
+`exit`
+
+. Déterminer si tous les disques ont été renvoyés à l'état de réserve :
++
+`storage aggregate show-spare-disks`
+
++
+[cols="1,2"]
+|===
+
+
+| Si... | Alors... 
+
+
+| Tous les disques aseptisés sont répertoriés comme pièces de rechange | Vous avez terminé. Les disques sont aseptisés et en état de rechange. 
+
+
+| Certains des disques aseptisés ne sont pas répertoriés comme pièces de rechange  a| 
+Procédez comme suit :
+
+.. Entrer en mode de privilège avancé :
++
+`set -privilege advanced`
+
+.. Affectez les disques aseptisés non affectés au nœud approprié pour chaque disque :
++
+`storage disk assign -disk _disk_name_ -owner _node_name_`
+
+.. Renvoyer les disques à l'état libre pour chaque disque :
++
+`storage disk unfail -disk _disk_name_ -s -q`
+
+.. Revenir en mode administratif :
++
+`set -privilege admin`
+
+
+
+|===
+
+
+====
+Les disques spécifiés sont aseptisés et désignés comme des disques de rechange chauds. Les numéros de série des disques aseptisés sont écrits sur `/etc/log/sanitized_disks`.
+
+Les journaux de nettoyage des disques spécifiés, qui montrent ce qui a été terminé sur chaque disque, sont écrits dans `/mroot/etc/log/sanitization.log`.

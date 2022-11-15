@@ -1,0 +1,72 @@
+---
+permalink: antivirus/create-on-demand-task-task.html 
+sidebar: sidebar 
+keywords: create, on-demand, task 
+summary: 'Une tâche à la demande définit la portée d"une analyse à la demande. Vous pouvez spécifier la taille maximale des fichiers à scanner, les extensions et les chemins des fichiers à inclure dans le scan, ainsi que les extensions et chemins des fichiers à exclure du scan. Les fichiers des sous-répertoires sont analysés par défaut.' 
+---
+= Créer une tâche à la demande
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une tâche à la demande définit la portée d'une analyse à la demande. Vous pouvez spécifier la taille maximale des fichiers à scanner, les extensions et les chemins des fichiers à inclure dans le scan, ainsi que les extensions et chemins des fichiers à exclure du scan. Les fichiers des sous-répertoires sont analysés par défaut.
+
+.Étapes
+. Créer une tâche à la demande :
++
+`vserver vscan on-demand-task create -vserver data_SVM -task-name task_name -scan-paths paths_of_files_to_scan -report-directory report_directory_path -report-expiry-time expiration_time_for_report -schedule cron_schedule -max-file-size max_size_of_files_to_scan -paths-to-exclude paths_of_files_to_exclude -file-ext-to-exclude extensions_of_files_to_exclude -file-ext-to-include extensions_of_files_to_include -scan-files-with-no-ext true|false -directory-recursion true|false`
+
++
+** Le `-file-ext-to-exclude` le réglage remplace le `-file-ext-to-include` réglage.
+** Réglez `-scan-files-with-no-ext` à vrai pour numériser des fichiers sans extensions. Pour obtenir la liste complète des options, consultez la page man de la commande.
+
+
++
+La commande suivante crée une tâche à accès nommée `Task1` sur le ``vs1``SVM :
+
++
+[listing]
+----
+cluster1::> vserver vscan on-demand-task create -vserver vs1 -task-name Task1 -scan-paths "/vol1/","/vol2/cifs/" -report-directory "/report" -schedule daily -max-file-size 5GB -paths-to-exclude "/vol1/cold-files/" -file-ext-to-include "vmdk?","mp*" -file-ext-to-exclude "mp3","mp4" -scan-files-with-no-ext false
+[Job 126]: Vscan On-Demand job is queued. Use the "job show -id 126" command to view the status.
+----
++
+[NOTE]
+====
+Vous pouvez utiliser le `job show` commande permettant d'afficher l'état du travail. Vous pouvez utiliser le `job pause` et `job resume` commandes permettant d'interrompre et de redémarrer le travail, ou le `job stop` commande pour mettre fin au travail.
+
+====
+. Vérifiez que la tâche à la demande a été créée : `vserver vscan on-demand-task show -instance data_SVM -task-name task_name`
++
+Pour obtenir la liste complète des options, consultez la page man de la commande.
+
++
+La commande suivante affiche les détails de `Task1` tâche :
+
++
+[listing]
+----
+cluster1::> vserver vscan on-demand-task show -instance vs1 -task-name Task1
+
+                           Vserver: vs1
+                         Task Name: Task1
+                List of Scan Paths: /vol1/, /vol2/cifs/
+             Report Directory Path: /report
+                      Job Schedule: daily
+Max File Size Allowed for Scanning: 5GB
+            File Paths Not to Scan: /vol1/cold-files/
+       File Extensions Not to Scan: mp3, mp4
+           File Extensions to Scan: vmdk?, mp*
+      Scan Files with No Extension: false
+           Request Service Timeout: 5m
+                    Cross Junction: true
+               Directory Recursion: true
+                     Scan Priority: low
+                  Report Log Level: info
+        Expiration Time for Report: -
+----
+
+
+Vous devez activer l'analyse sur la SVM avant que la tâche ne soit planifiée.

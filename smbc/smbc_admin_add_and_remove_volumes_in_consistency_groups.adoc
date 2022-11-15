@@ -1,0 +1,82 @@
+---
+sidebar: sidebar 
+permalink: smbc/smbc_admin_add_and_remove_volumes_in_consistency_groups.html 
+keywords: SM-BC, SMBC, volume, consistency group, remove volume, add volume 
+summary: 'Si vous souhaitez modifier la composition du groupe de cohérence en ajoutant ou en supprimant un volume, vous devez d"abord supprimer la relation d"origine, puis créer à nouveau le groupe de cohérence avec la nouvelle composition.' 
+---
+= Ajouter et supprimer des volumes dans un groupe de cohérence
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous souhaitez modifier la composition du groupe de cohérence en ajoutant ou en supprimant un volume, vous devez d'abord supprimer la relation d'origine, puis créer à nouveau le groupe de cohérence avec la nouvelle composition.
+
+
+NOTE: Ce flux de travail s'applique à ONTAP 9.8 et 9.9.1. Depuis ONTAP 9.10.1, il est recommandé de le gérer link:../consistency-groups/index.html["groupes de cohérence"] Via System Manager ou avec l'API REST ONTAP. Depuis ONTAP 9.12.1, vous pouvez ajouter ou supprimer des volumes à un groupe de cohérence à l'aide de System Manager ou de l'API REST de ONTAP. Vous devrez interrompre la relation SM-BC avant de pouvoir modifier le groupe de cohérence, puis restaurer la protection SM-BC. Pour plus d'informations sur ce processus, voir xref:../consistency-groups/modify-task.html[Modifier un groupe de cohérence].
+
+.Description de la tâche
+* La modification de composition n'est pas autorisée lorsque le groupe de cohérence est à l'état "insync".
+* Le volume de destination doit être de type DP.
+
+
+
+NOTE: Le nouveau volume que vous ajoutez pour développer le groupe de cohérence doit disposer d'une paire de copies Snapshot communes entre les volumes source et de destination.
+
+Cette procédure suppose qu'il existe deux mappages de volumes : vol_src1 <-> vol_dst1 et vol_src2 <-> vol_dst2, dans une relation de groupe de cohérence entre les points d'extrémité vs1_src:/cg/CG_src et vs1_dst:/cg_dst.
+
+. Vérifiez qu'une copie Snapshot commune existe entre les volumes source et de destination sur le cluster source et destination :
++
+`source::>snapshot show -vserver vs1_src -volume vol_src3 -snapshot snapmirror*`
+
++
+`destination::>snapshot show -vserver vs1_dst -volume vol_dst3 -snapshot snapmirror*`
+
+. Si aucune copie Snapshot n'existe déjà, créez et initialisez une relation FlexVol SnapMirror :
++
+`destination::>snapmirror initialize -source-path vs1_src:vol_src3 -destination-path vs1_dst:vol_dst3`
+
+. Supprimez la relation de groupe de cohérence RTO zéro :
++
+`destination::>snapmirror delete -destination-path vs1_dst:vol_dst3`
+
+. Libérer la relation SnapMirror source et conserver les copies Snapshot courantes :
++
+`source::>snapmirror release -relationship-info-only true -destination-path vs1_dst:vol_dst3`
+
+. Annulez le mappage des LUN et supprimez la relation de groupe de cohérence existante :
++
+`destination::>lun mapping delete -vserver vs1_dst -path <lun_path> -igroup <igroup_name>`
+
++
+
+NOTE: Les LUN de destination ne sont pas mappées, tandis que les LUN présentes sur la copie primaire continuent de servir les E/S de l'hôte
+
++
+`destination::>snapmirror delete -destination-path vs1_dst:/cg/cg_dst`
+
++
+`source::>snapmirror release -destination-path vs1_dst:/cg/cg_dst -relationship-info-only true`
+
+. **Si vous utilisez ONTAP 9.10.1 ou version ultérieure,** supprimez et recréez et le groupe de cohérence sur la source avec la composition correcte. Suivez les étapes de la section xref:../consistency-groups/delete-task.html[Supprimez un groupe de cohérence] puis xref:../consistency-groups/configure-task.html[Configurez un seul groupe de cohérence]. Dans ONTAP 9.10.1 et les versions ultérieures, vous devez effectuer les opérations de suppression et de création dans System Manager ou avec l'API REST ONTAP ; il n'existe pas de procédure d'interface de ligne de commandes.
++
+**Si vous utilisez ONTAP 9.8, 9.0 ou 9.9.1, passez à l'étape suivante.**
+
+. Créez le nouveau groupe de cohérence sur la destination avec la nouvelle composition :
++
+`destination::>snapmirror create -source-path vs1_src:/cg/cg_src -destination-path vs1_dst:/cg/cg_dst -cg-item-mappings vol_src1:@vol_dst1, vol_src2:@vol_dst2, vol_src3:@vol_dst3`
+
+. Resynchroniser la relation de groupe de cohérence RTO zéro pour garantir qu'elle est synchronisée :
++
+`destination::>snapmirror resync -destination-path vs1_dst:/cg/cg_dst`
+
+. Remappage des LUN que vous n'avez pas mappées à l'étape 5 :
++
+`destination::> lun map -vserver vs1_dst -path <lun_path> -igroup <igroup_name>`
+
+. Relancez les chemins d'E/S de la LUN hôte pour restaurer tous les chemins d'accès aux LUN.
+

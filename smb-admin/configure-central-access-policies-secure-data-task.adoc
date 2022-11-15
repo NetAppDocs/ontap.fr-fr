@@ -1,0 +1,146 @@
+---
+permalink: smb-admin/configure-central-access-policies-secure-data-task.html 
+sidebar: sidebar 
+keywords: secure, access, data, cifs, server, central, access, policies, policy, dynamic, access, control, dac, gpo, configure central access policies to secure data on cifs servers 
+summary: 'Il existe plusieurs étapes à suivre pour sécuriser l"accès aux données sur le serveur CIFS à l"aide de stratégies d"accès centrales, notamment l"activation du contrôle d"accès dynamique (DAC) sur le serveur CIFS, la configuration de stratégies d"accès central dans Active Directory, l"application des règles d"accès central aux conteneurs Active Directory avec des GPO, Et activation des stratégies de groupe sur le serveur CIFS.' 
+---
+= Configurez les règles d'accès centrales pour sécuriser les données sur les serveurs CIFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Il existe plusieurs étapes à suivre pour sécuriser l'accès aux données sur le serveur CIFS à l'aide de stratégies d'accès centrales, notamment l'activation du contrôle d'accès dynamique (DAC) sur le serveur CIFS, la configuration de stratégies d'accès central dans Active Directory, l'application des règles d'accès central aux conteneurs Active Directory avec des GPO, Et activation des stratégies de groupe sur le serveur CIFS.
+
+.Avant de commencer
+* L'Active Directory doit être configuré pour utiliser les stratégies d'accès central.
+* Vous devez disposer d'un accès suffisant sur les contrôleurs de domaine Active Directory pour créer des stratégies d'accès centrales et pour créer et appliquer des GPO aux conteneurs contenant les serveurs CIFS.
+* Vous devez disposer d'un accès administratif suffisant sur le SVM (Storage Virtual machine) pour exécuter les commandes nécessaires.
+
+
+Les stratégies d'accès central sont définies et appliquées aux objets de stratégie de groupe (GPO, Group Policy Objects) d'Active Directory. Vous pouvez consulter la bibliothèque Microsoft TechNet pour obtenir des instructions sur la configuration des stratégies d'accès centralisé et des GPO.
+
+http://technet.microsoft.com/library/["Bibliothèque Microsoft TechNet"]
+
+.Étapes
+. Activer le contrôle dynamique d'accès sur le SVM si celui-ci n'est pas déjà activé à l'aide de `vserver cifs options modify` commande.
++
+`vserver cifs options modify -vserver vs1 -is-dac-enabled true`
+
+. Activez les objets de stratégie de groupe (GPO, Group policy objects) sur le serveur CIFS s'ils ne sont pas déjà activés à l'aide de l' `vserver cifs group-policy modify` commande.
++
+`vserver cifs group-policy modify -vserver vs1 -status enabled`
+
+. Créez des règles d'accès centrales et des stratégies d'accès central sur Active Directory.
+. Créez un objet de stratégie de groupe (GPO) pour déployer les stratégies d'accès central sur Active Directory.
+. Appliquez l'objet GPO au conteneur où se trouve le compte d'ordinateur du serveur CIFS.
+. Mettre à jour manuellement les GPO appliqués au serveur CIFS à l'aide de `vserver cifs group-policy update` commande.
++
+`vserver cifs group-policy update -vserver vs1`
+
+. Vérifiez que la stratégie d'accès central GPO est appliquée aux ressources du serveur CIFS à l'aide de `vserver cifs group-policy show-applied` commande.
++
+L'exemple suivant montre que la stratégie de domaine par défaut comporte deux stratégies d'accès central appliquées au serveur CIFS :
+
++
+`vserver cifs group-policy show-applied`
+
++
+[listing]
+----
+Vserver: vs1
+-----------------------------
+    GPO Name: Default Domain Policy
+       Level: Domain
+      Status: enabled
+  Advanced Audit Settings:
+      Object Access:
+          Central Access Policy Staging: failure
+  Registry Settings:
+      Refresh Time Interval: 22
+      Refresh Random Offset: 8
+      Hash Publication Mode for BranchCache: per-share
+      Hash Version Support for BranchCache: all-versions
+  Security Settings:
+      Event Audit and Event Log:
+          Audit Logon Events: none
+          Audit Object Access: success
+          Log Retention Method: overwrite-as-needed
+          Max Log Size: 16384
+      File Security:
+          /vol1/home
+          /vol1/dir1
+      Kerberos:
+          Max Clock Skew: 5
+          Max Ticket Age: 10
+          Max Renew Age:  7
+      Privilege Rights:
+          Take Ownership: usr1, usr2
+          Security Privilege: usr1, usr2
+          Change Notify: usr1, usr2
+      Registry Values:
+          Signing Required: false
+      Restrict Anonymous:
+          No enumeration of SAM accounts: true
+          No enumeration of SAM accounts and shares: false
+          Restrict anonymous access to shares and named pipes: true
+          Combined restriction for anonymous user: no-access
+      Restricted Groups:
+          gpr1
+          gpr2
+  Central Access Policy Settings:
+      Policies: cap1
+                cap2
+
+    GPO Name: Resultant Set of Policy
+       Level: RSOP
+  Advanced Audit Settings:
+      Object Access:
+          Central Access Policy Staging: failure
+  Registry Settings:
+      Refresh Time Interval: 22
+      Refresh Random Offset: 8
+      Hash Publication Mode for BranchCache: per-share
+      Hash Version Support for BranchCache: all-versions
+  Security Settings:
+      Event Audit and Event Log:
+          Audit Logon Events: none
+          Audit Object Access: success
+          Log Retention Method: overwrite-as-needed
+          Max Log Size: 16384
+      File Security:
+          /vol1/home
+          /vol1/dir1
+      Kerberos:
+          Max Clock Skew: 5
+          Max Ticket Age: 10
+          Max Renew Age:  7
+      Privilege Rights:
+          Take Ownership: usr1, usr2
+          Security Privilege: usr1, usr2
+          Change Notify: usr1, usr2
+      Registry Values:
+          Signing Required: false
+      Restrict Anonymous:
+          No enumeration of SAM accounts: true
+          No enumeration of SAM accounts and shares: false
+          Restrict anonymous access to shares and named pipes: true
+          Combined restriction for anonymous user: no-access
+      Restricted Groups:
+          gpr1
+          gpr2
+  Central Access Policy Settings:
+      Policies: cap1
+                cap2
+2 entries were displayed.
+----
+
+
+xref:display-gpo-config-task.adoc[Affichage des informations sur les configurations GPO]
+
+xref:display-central-access-policies-task.adoc[Affichage d'informations sur les règles d'accès central]
+
+xref:display-central-access-policy-rules-task.adoc[Affichage d'informations sur les règles de stratégie d'accès central]
+
+xref:enable-disable-dynamic-access-control-task.adoc[Activation ou désactivation du contrôle d'accès dynamique]

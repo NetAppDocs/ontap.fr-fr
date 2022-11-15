@@ -1,0 +1,92 @@
+---
+permalink: s3-multiprotocol/enable-client-users-task.html 
+sidebar: sidebar 
+keywords: s3, nas, vserver, configuration, nas, certificate, linux, unix, installation 
+summary: 'Pour permettre aux utilisateurs clients S3 d"accéder aux données NAS, vous devez mapper les noms d"utilisateur S3 aux utilisateurs NAS correspondants, puis leur accorder la permission d"accéder aux données NAS à l"aide des politiques de service de compartiment.' 
+---
+= Activez les utilisateurs client S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour permettre aux utilisateurs clients S3 d'accéder aux données NAS, vous devez mapper les noms d'utilisateur S3 aux utilisateurs NAS correspondants, puis leur accorder la permission d'accéder aux données NAS à l'aide des politiques de service de compartiment.
+
+Les noms d'utilisateur pour l'accès client (utilisateurs clients LINUX/UNIX, Windows et S3) doivent déjà exister.
+
+Le mappage d'un nom d'utilisateur S3 avec un utilisateur LINUX/UNIX ou Windows correspondant permet de vérifier les autorisations sur les fichiers NAS qui doivent être honorés lors de l'accès à ces fichiers par des clients S3. Les mappages S3 vers NAS sont spécifiés en fournissant un nom d'utilisateur S3 _Pattern_, qui peut être exprimé sous la forme d'un nom unique ou d'une expression régulière POSIX, et un nom d'utilisateur LINUX/UNIX ou Windows _Replace_.
+
+En l'absence de mappage de nom, le mappage de nom par défaut sera utilisé, où le nom d'utilisateur S3 lui-même sera utilisé comme nom d'utilisateur UNIX et nom d'utilisateur Windows. Vous pouvez modifier les mappages de noms d'utilisateur UNIX et Windows par défaut avec l' `vserver object-store-server modify` commande.
+
+Seule la configuration locale de mappage de noms est prise en charge ; LDAP n'est pas prise en charge.
+
+Une fois que les utilisateurs S3 sont mappés aux utilisateurs NAS, vous pouvez accorder des autorisations aux utilisateurs spécifiant les ressources (répertoires et fichiers) auxquelles ils ont accès et les actions qu'ils sont autorisés ou non à y effectuer.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Créez des mappages de noms locaux pour les clients UNIX ou Windows (ou les deux).
++
+.. Cliquez sur *stockage > compartiments*, puis sélectionnez la machine virtuelle de stockage compatible S3/NAS.
+.. Sélectionnez *Paramètres*, puis cliquez sur image:../media/icon_arrow.gif["flèche droite"] Dans *Name Mapping* (sous *Host Users and Groups*).
+.. Dans les mosaïques *S3 à Windows* ou *S3 à UNIX* (ou les deux), cliquez sur *Ajouter*, puis entrez les noms d'utilisateur *Pattern* (S3) et *Replacement* (NAS) souhaités.
+
+
+. Création d'une politique de compartiment pour fournir un accès client
++
+.. Cliquez sur *stockage > godets*, puis sur image:../media/icon_kabob.gif["icône kebab"] En regard du compartiment S3 souhaité, cliquez sur *Modifier*.
+.. Cliquez sur *Ajouter* et indiquez les valeurs souhaitées.
++
+*** *Principal* - fournir des noms d'utilisateur S3 ou utiliser la valeur par défaut (tous les utilisateurs)
+*** *Effet* - sélectionnez *Autoriser* ou *refuser/*
+*** *Actions* - Entrez des actions pour ces utilisateurs et ressources. L'ensemble des opérations de ressources que le serveur de magasin d'objets prend actuellement en charge pour les compartiments NAS S3 sont : GetObject, PutObject, DeleteObject, ListBucketAcl, GetObjectAcl, GetObjectTagging, PutObjectTagging, DeleteObjectTagging, GetBuckeLocation, GetBucketVersioning, PutBuckeVersioning et ListBuckeVersions. Les caractères génériques sont acceptés pour ce paramètre.
+*** *Ressources* - Entrez les chemins de dossier ou de fichier dans lesquels les actions sont autorisées ou refusées, ou utilisez les valeurs par défaut (répertoire racine du compartiment).
+
+
+
+
+
+
+--
+.CLI
+--
+. Créez des mappages de noms locaux pour les clients UNIX ou Windows (ou les deux). +
+`vserver name-mapping create -vserver svm_name> -direction {s3-win|s3-unix} -position _integer_ -pattern _s3_user_name_ -replacement _nas_user_name_`
++
+** `-position` - numéro de priorité pour l'évaluation de la cartographie; saisissez 1 ou 2.
+** `-pattern` - Un nom d'utilisateur S3 ou une expression régulière
+** `-replacement` - un nom d'utilisateur windows ou unix
+
+
+
+
+Exemples +
+`vserver name-mapping create -direction s3-win -position 1 -pattern s3_user_1 -replacement win_user_1
+vserver name-mapping create -direction s3-unix -position 2 -pattern s3_user_1 -replacement unix_user_1`
+
+. Création d'une politique de compartiment pour fournir un accès client +
+`vserver object-store-server bucket policy add-statement -vserver svm_name -bucket bucket_name -effect {deny|allow}  -action list_of_actions -principal list_of_users_or_groups -resource [-sid alphanumeric_text]`
++
+** `-effect {deny|allow}` - indique si l'accès est autorisé ou refusé lorsqu'un utilisateur demande une action.
+** `-action <Action>, ...` - spécifie les opérations de ressources qui sont autorisées ou refusées. L'ensemble des opérations de ressources que le serveur de magasin d'objets prend actuellement en charge pour les compartiments NAS S3 sont : GetObject, PutObject, DeleteObject, ListBucketAcl, GetObjectAcl, GetObjectTagging, PutObjectTagging, DeleteObjectTagging, GetBuckeLocation, GetBucketVersioning, PutBuckeVersioning et ListBuckeVersions. Les caractères génériques sont acceptés pour ce paramètre.
+** `-principal <Objectstore Principal>, ...` - valide l'utilisateur demandant un accès par rapport aux utilisateurs ou aux groupes du serveur de magasin d'objets spécifiés dans ce paramètre.
++
+*** Un groupe de serveurs de stockage d'objets est spécifié en ajoutant un groupe de préfixe/ au nom du groupe.
+*** `-principal` - (le caractère de trait d'union) donne accès à tous les utilisateurs.
+
+
+** `-resource <text>, ...` - spécifie le compartiment, le dossier ou l'objet pour lequel les autorisations d'autorisation/de refus sont définies. Les caractères génériques sont acceptés pour ce paramètre.
+** `[-sid <SID>]` - spécifie un commentaire texte facultatif pour l'instruction de stratégie de compartiment de serveur de magasin d'objets.
+
+
+
+
+Exemples +
+`cluster1::> vserver object-store-server bucket policy add-statement -bucket testbucket -effect allow -action  GetObject,PutObject,DeleteObject,ListBucket,GetBucketAcl,GetObjectAcl, GetBucketLocation,GetBucketPolicy,PutBucketPolicy,DeleteBucketPolicy -principal user1 -resource testbucket,testbucket/* sid "FullAccessForUser1"`
+
+`cluster1::> vserver object-store-server bucket policy statement create -vserver vs1 -bucket bucket1 -effect allow -action GetObject -principal - -resource bucket1/readme/* -sid "ReadAccessToReadmeForAllUsers"`
+
+--
+====

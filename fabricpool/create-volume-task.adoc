@@ -1,0 +1,89 @@
+---
+permalink: fabricpool/create-volume-task.html 
+sidebar: sidebar 
+keywords: creating, volume, fabricpool, tiering, policy, policies, create, snap shot, snapshot, aggregate, flexgroup, cloud retrieval 
+summary: 'Lorsque vous créez un volume pour FabricPool, vous pouvez spécifier une règle de Tiering. Si aucune règle de Tiering n"est spécifiée, le volume créé utilise la règle de Tiering par défaut pour les snapshots uniquement. Pour un volume doté de la règle de hiérarchisation automatique ou Snapshot uniquement, vous pouvez également spécifier la période de refroidissement minimale par Tiering.' 
+---
+= Créer un volume pour FabricPool
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez ajouter des volumes dans FabricPool en créant de nouveaux volumes directement dans l'agrégat compatible FabricPool ou en déplaçant des volumes existants d'un autre agrégat vers l'agrégat compatible FabricPool.
+
+Lorsque vous créez un volume pour FabricPool, vous pouvez spécifier une règle de Tiering. Si aucune règle de Tiering n'est spécifiée, le volume créé utilise la valeur par défaut `snapshot-only` règle de hiérarchisation. Pour un volume avec `snapshot-only` ou `auto` vous pouvez également spécifier la période de tiering minimum de refroidissement.
+
+.Ce dont vous avez besoin, 8217;ll
+* Réglage d'un volume pour utiliser le `auto` Le Tiering ou la définition de la période de refroidissement minimale de Tiering requiert la version ONTAP 9.4 ou ultérieure.
+* L'utilisation des volumes FlexGroup requiert ONTAP 9.5 ou version ultérieure.
+* Réglage d'un volume pour utiliser le `all` La règle de Tiering nécessite ONTAP 9.6 ou une version ultérieure.
+* Réglage d'un volume pour utiliser le `-cloud-retrieval-policy` Paramètre nécessite ONTAP 9.8 ou version ultérieure.
+
+
+.Étapes
+. Créez un volume pour FabricPool en utilisant le `volume create` commande.
++
+** Le `-tiering-policy` le paramètre facultatif vous permet de spécifier la règle de tiering du volume.
++
+Vous pouvez spécifier l'une des règles de hiérarchisation suivantes :
+
++
+*** `snapshot-only` (valeur par défaut)
+*** `auto`
+*** `all`
+*** `backup` (obsolète)
+*** `none`
++
+link:tiering-policies-concept.html#types-of-fabricpool-tiering-policies["Types de règles de Tiering FabricPool"]
+
+
+
+** Le `-cloud-retrieval-policy` paramètre facultatif permet aux administrateurs du cluster disposant du niveau de privilège avancé de remplacer le comportement de migration ou de récupération du cloud par défaut contrôlé par la règle de tiering.
++
+Vous pouvez définir l'une des règles de récupération cloud suivantes :
+
++
+*** `default`
++
+La règle de Tiering détermine les données qui sont récupérées, donc aucune modification n'est apportée à la récupération des données du cloud `default` stratégie de récupération cloud. Le comportement est donc identique à celui des versions antérieures à ONTAP 9.8 :
+
++
+**** Si la règle de hiérarchisation est `none` ou `snapshot-only`, « par conséquent » signifie que toutes les données lues par les clients sont extraites du tier cloud vers le tier de performance.
+**** Si la règle de hiérarchisation est `auto`, les lectures aléatoires basées sur le client sont alors extraites, mais pas les lectures séquentielles.
+**** Si la règle de hiérarchisation est `all` alors, aucune donnée axée sur les clients n'est extraite du tier cloud.
+
+
+*** `on-read`
++
+Toutes les lectures de données basées sur client sont transférées du Tier cloud vers le Tier de performance.
+
+*** `never`
++
+Aucune donnée client n'est tirée du Tier cloud vers le Tier de performance
+
+*** `promote`
++
+**** De la règle de Tiering `none`, toutes les données du cloud sont extraites du tier cloud jusqu'au tier de performance
+**** De la règle de Tiering `snapshot-only`, toutes les données de système de fichiers actives sont extraites du tier cloud vers le tier de performance.
+
+
+
+
+** Le `-tiering-minimum-cooling-days` le paramètre facultatif du niveau de privilège avancé vous permet de spécifier la période de refroidissement minimum du tiering pour un volume qui utilise le `snapshot-only` ou `auto` règle de hiérarchisation.
++
+Depuis la version ONTAP 9.8, vous pouvez spécifier une valeur entre 2 et 183 pour les jours de refroidissement minimum par Tiering. Si vous utilisez une version de ONTAP antérieure à la version 9.8, vous pouvez indiquer une valeur comprise entre 2 et 63 pour les jours de refroidissement minimum par Tiering.
+
+
+
+
+
+L'exemple suivant crée un volume appelé « myvol1 » dans l'agrégat doté de FabricPool « myFabricPool ». La règle de Tiering est définie sur `auto` la période de tiering minimale de refroidissement est définie sur 45 jours :
+
+[listing]
+----
+cluster1::*> volume create -vserver myVS -aggregate myFabricPool
+-volume myvol1 -tiering-policy auto -tiering-minimum-cooling-days 45
+----
+link:../flexgroup/index.html["Gestion des volumes FlexGroup"]

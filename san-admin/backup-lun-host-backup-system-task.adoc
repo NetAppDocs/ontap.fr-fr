@@ -1,0 +1,59 @@
+---
+permalink: san-admin/backup-lun-host-backup-system-task.html 
+sidebar: sidebar 
+keywords: back up, lun, through, host, backup, system 
+summary: 'Vous pouvez utiliser une LUN clonée à partir d"une copie Snapshot comme données source pour le système de sauvegarde hôte.' 
+---
+= Sauvegarder une LUN par le biais d'un système de sauvegarde hôte
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser une LUN clonée à partir d'une copie Snapshot comme données source pour le système de sauvegarde hôte.
+
+Une LUN de production doit exister et être mappée sur un groupe initiateur qui inclut le WWPN ou le nom de nœud initiateur du serveur d'applications. La LUN doit également être formatée et accessible pour l'hôte
+
+.Étapes
+. Enregistrez le contenu des tampons du système de fichiers hôte sur le disque.
++
+Vous pouvez utiliser la commande fournie par le système d'exploitation hôte ou utiliser SnapDrive pour Windows ou SnapDrive pour UNIX. Vous pouvez également choisir de faire de cette étape une partie de votre script de prétraitement de sauvegarde SAN.
+
+. Utilisez le `volume snapshot create` Commande pour créer une copie Snapshot de la LUN de production.
++
+`volume snapshot create -vserver vs0 -volume vol3 -snapshot vol3_snapshot -comment "Single snapshot" -foreground false`
+
+. Utilisez le `volume file clone create` Commande permettant de créer un clone de la LUN de production.
++
+`volume file clone create -vserver vs3 -volume vol3 -source-path lun1 -snapshot-name snap_vol3 -destination-path lun1_backup`
+
+. Utilisez le `lun igroup create` Commande permettant de créer un groupe initiateur incluant le WWPN du serveur de sauvegarde.
++
+`lun igroup create -vserver vs3 -igroup igroup3 -protocol fc -ostype windows -initiator 10:00:00:00:c9:73:5b:91`
+
+. Utilisez le `lun mapping create` Commande pour mapper le clone de LUN que vous avez créé à l'étape 3 sur l'hôte de sauvegarde.
++
+`lun mapping create -vserver vs3 -volume vol3 -lun lun1_backup -igroup igroup3`
+
++
+Vous pouvez choisir de faire de cette étape une partie du script post-traitement de votre application de sauvegarde SAN.
+
+. Depuis l'hôte, découvrez le nouveau LUN et rendez le système de fichiers disponible pour l'hôte.
++
+Vous pouvez choisir de faire de cette étape une partie du script post-traitement de votre application de sauvegarde SAN.
+
+. Sauvegardez les données du clone de LUN de l'hôte de sauvegarde sur bande à l'aide de votre application de sauvegarde SAN.
+. Utilisez le `lun modify` Commande permettant de mettre le clone de LUN hors ligne.
++
+`lun modify -vserver vs3 -path /vol/vol3/lun1_backup -state offline`
+
+. Utilisez le `lun delete` Pour supprimer le clone de LUN.
++
+`lun delete -vserver vs3 -volume vol3 -lun lun1_backup`
+
+. Utilisez le `volume snapshot delete` Commande permettant de supprimer la copie Snapshot.
++
+`volume snapshot delete -vserver vs3 -volume vol3 -snapshot vol3_snapshot`
+
+

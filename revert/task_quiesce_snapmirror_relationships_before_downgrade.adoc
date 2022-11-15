@@ -1,0 +1,62 @@
+---
+permalink: revert/task_quiesce_snapmirror_relationships_before_downgrade.html 
+sidebar: sidebar 
+keywords: ontap, downgrade, downgrading, snapmirror, operations, quisce 
+summary: Nous vous recommandons de suspendre vos opérations SnapMirror avant de procéder à une restauration sans interruption de ONTAP. 
+---
+= Arrêter les relations SnapMirror avant la rétrogradation
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Nous vous recommandons de suspendre vos opérations SnapMirror avant d'effectuer une restauration de ONTAP.
+
+. Utiliser la commande snapmirror show pour déterminer le chemin de destination pour chaque relation SnapMirror.
+. Pour chaque volume de destination, suspendre les futurs transferts SnapMirror : `snapmirror quiesce -destination-path destination`
++
+Si aucun transfert actif n'est attribué à la relation SnapMirror, cette commande définit son état sur suspendu. Si la relation dispose de transferts actifs, l'état est mis en veille jusqu'à ce que le transfert soit terminé, puis l'état est mis en veille.
+
++
+Dans cet exemple, les transferts impliquant le volume de destination vol1 de SVMvs0.example.com sont suspendus :
+
++
+[listing]
+----
+cluster1::> snapmirror quiesce -destination-path vs0.example.com:vol1
+----
+. Vérifiez que toutes les relations SnapMirror sont suspendues : `snapmirror show -status !Quiesced`
++
+Cette commande affiche toutes les relations SnapMirror qui sont _pas_ suspendues.
+
++
+Dans cet exemple, toutes les relations SnapMirror sont suspendues :
+
++
+[listing]
+----
+cluster1::> snapmirror show -status !Quiesced
+There are no entries matching your query.
+----
+. Si des relations SnapMirror sont actuellement transférées, effectuer l'une des options suivantes :
++
+[cols="2*"]
+|===
+| Option | Description 
+
+
+ a| 
+Attendez que les transferts se terminent avant d'effectuer la mise à niveau vers une version antérieure de ONTAP.
+ a| 
+Une fois chaque transfert terminé, la relation passe à l'état suspendu.
+
+
+
+ a| 
+Arrêter les transferts : `snapmirror abort -destination-path destination -h` *Remarque :* vous devez utiliser le paramètre -Foreground true si vous avortez les transferts de miroir de partage de charge.
+ a| 
+Cette commande arrête le transfert SnapMirror et restaure le volume de destination vers la dernière copie Snapshot qui a été transférée. La relation est définie sur l'état suspendu.
+
+|===
+

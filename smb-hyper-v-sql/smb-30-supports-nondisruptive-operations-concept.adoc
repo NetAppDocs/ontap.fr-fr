@@ -1,0 +1,20 @@
+---
+permalink: smb-hyper-v-sql/smb-30-supports-nondisruptive-operations-concept.html 
+sidebar: sidebar 
+keywords: smb, functionality, support, nondisruptive, operations, shares, clients, hyper, v, sql, server 
+summary: 'SMB 3.0 apporte une fonctionnalité essentielle qui permet la continuité de l"activité pour les partages Hyper-V et SQL Server sur SMB. Cela inclut la propriété de partage disponible en continu et un type de descripteur de fichier appelé descripteur permanent qui permet aux clients SMB de récupérer l"état ouvert des fichiers et de rétablir les connexions SMB de manière transparente.' 
+---
+= La fonctionnalité SMB 3.0 prend en charge la continuité de l'activité sur les partages SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+SMB 3.0 apporte une fonctionnalité essentielle qui permet la continuité de l'activité pour les partages Hyper-V et SQL Server sur SMB. Cela inclut le `continuously-available` Partagez la propriété et un type de descripteur de fichier appelé _persistent handle_ qui permettent aux clients SMB de récupérer l'état ouvert du fichier et de rétablir de façon transparente les connexions SMB.
+
+Des pointeurs permanents peuvent être accordés aux clients compatibles SMB 3.0 qui se connectent à un partage avec l'ensemble de propriétés de partage disponible en continu. Si la session SMB est déconnectée, le serveur CIFS conserve les informations relatives à l'état de descripteur permanent. Le serveur CIFS bloque les autres requêtes client pendant la période de 60 secondes pendant laquelle le client est autorisé à se reconnecter, ce qui permet au client avec le descripteur permanent de récupérer le descripteur après une déconnexion du réseau. Les clients avec pointeurs permanents peuvent se reconnecter en utilisant l'une des LIF de données sur la machine virtuelle de stockage (SVM), en reconnectant via la même LIF ou via une autre LIF.
+
+Le transfert, le basculement et le rétablissement d'agrégats s'effectuent tous entre les paires SFO. Pour gérer de manière transparente la déconnexion et la reconnexion des sessions avec des fichiers dotés de pointeurs permanents, le nœud partenaire conserve une copie de toutes les informations de verrouillage de descripteur permanent. Que l'événement soit planifié ou non, le partenaire SFO peut gérer les reconnexions de la poignée persistante sans interruption. Grâce à cette nouvelle fonctionnalité, les connexions SMB 3.0 au serveur CIFS peuvent basculer en toute transparence vers une autre LIF de données affectée à la SVM, selon les temps d'événements perturbateurs.
+
+Bien que l'utilisation de pointeurs permanents permette au serveur CIFS de basculer en toute transparence sur des connexions SMB 3.0, en cas de défaillance, l'application Hyper-V bascule vers un autre nœud du cluster Windows Server, le client n'a aucun moyen de récupérer les descripteurs de fichiers de ces pointeurs déconnectés. Dans ce scénario, les descripteurs de fichier à l'état déconnecté peuvent potentiellement bloquer l'accès à l'application Hyper-V s'il est redémarré sur un autre nœud. « Failover Clustering » fait partie de SMB 3.0 qui répond à ce scénario en fournissant un mécanisme permettant d'invalider des pointeurs obsolètes en conflit. Grâce à ce mécanisme, un cluster Hyper-V peut restaurer rapidement les données en cas de panne des nœuds de cluster Hyper-V.

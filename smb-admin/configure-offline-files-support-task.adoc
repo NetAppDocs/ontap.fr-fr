@@ -1,0 +1,128 @@
+---
+permalink: smb-admin/configure-offline-files-support-task.html 
+sidebar: sidebar 
+keywords: configure, offline, file, support, ontap, cli, smb, modify, exist, smb, share, manual, default, setting, configure offline files support on smb shares using the cli 
+summary: 'Vous pouvez configurer la prise en charge des fichiers hors ligne à l"aide de l"interface de ligne de commandes ONTAP en spécifiant l"un des quatre paramètres de fichier hors ligne lorsque vous créez des partages SMB ou en modifiant à tout moment des partages SMB existants. La prise en charge des fichiers manuels hors ligne est le paramètre par défaut.' 
+---
+= Configurer la prise en charge des fichiers hors ligne sur les partages SMB à l'aide de l'interface de ligne de commande
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez configurer la prise en charge des fichiers hors ligne à l'aide de l'interface de ligne de commandes ONTAP en spécifiant l'un des quatre paramètres de fichier hors ligne lorsque vous créez des partages SMB ou en modifiant à tout moment des partages SMB existants. La prise en charge des fichiers manuels hors ligne est le paramètre par défaut.
+
+Lors de la configuration de la prise en charge des fichiers hors ligne, vous pouvez choisir l'un des quatre paramètres de fichiers hors ligne suivants :
+
+|===
+| Réglage | Description 
+
+
+ a| 
+`none`
+ a| 
+Interdire aux clients Windows de mettre en cache les fichiers sur ce partage.
+
+
+
+ a| 
+`manual`
+ a| 
+Permet aux utilisateurs des clients Windows de sélectionner manuellement les fichiers à mettre en cache.
+
+
+
+ a| 
+`documents`
+ a| 
+Permet aux clients Windows de mettre en cache les documents utilisateur qui sont utilisés par l'utilisateur pour l'accès hors ligne.
+
+
+
+ a| 
+`programs`
+ a| 
+Permet aux clients Windows de mettre en cache les programmes utilisés par l'utilisateur pour l'accès hors ligne. Les clients peuvent utiliser les fichiers de programme mis en cache en mode hors ligne, même si le partage est disponible.
+
+|===
+Vous ne pouvez choisir qu'un seul paramètre de fichier hors ligne. Si vous modifiez un paramètre de fichiers hors ligne sur un partage SMB existant, le nouveau paramètre de fichiers hors ligne remplace le paramètre d'origine. Les autres paramètres de configuration et propriétés de partage SMB existants ne sont ni supprimés ni remplacés. Ils restent en vigueur jusqu'à ce qu'ils soient explicitement supprimés ou modifiés.
+
+.Étapes
+. Effectuez l'action appropriée :
++
+|===
+| Si vous souhaitez configurer des fichiers hors ligne sur... | Entrez la commande... 
+
+
+ a| 
+Un nouveau partage SMB
+ a| 
+`vserver cifs share create -vserver vserver_name -share-name share_name -path path -offline-files {none|manual|documents|programs}`
+
+
+
+ a| 
+Un partage SMB existant
+ a| 
+`vserver cifs share modify -vserver vserver_name -share-name share_name -offline-files {none|manual|documents|programs}`
+
+|===
+. Vérifiez que la configuration du partage SMB est correcte : `vserver cifs share show -vserver vserver_name -share-name share_name -instance`
+
+
+La commande suivante crée un partage SMB nommé "data1" avec des fichiers hors ligne définis sur `documents`:
+
+[listing]
+----
+cluster1::> vserver cifs share create -vserver vs1 -share-name data1 -path /data1 -comment "Offline files" -offline-files documents
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data1 -instance
+
+                          Vserver: vs1
+                            Share: data1
+         CIFS Server NetBIOS Name: VS1
+                             Path: /data1
+                 Share Properties: oplocks
+                                   browsable
+                                   changenotify
+               Symlink Properties: enable
+          File Mode Creation Mask: -
+     Directory Mode Creation Mask: -
+                    Share Comment: Offline files
+                        Share ACL: Everyone / Full Control
+    File Attribute Cache Lifetime: -
+                      Volume Name: -
+                    Offline Files: documents
+    Vscan File-Operations Profile: standard
+Maximum Tree Connections on Share: 4294967295
+       UNIX Group for File Create: -
+----
+La commande suivante modifie un partage SMB existant nommé "data1" en changeant le paramètre fichiers hors ligne sur `manual` et ajout de valeurs pour le masque de création de mode fichier et répertoire :
+
+[listing]
+----
+cluster1::> vserver cifs share modify -vserver vs1 -share-name data1 -offline-files manual -file-umask 644 -dir-umask 777
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data1 -instance
+
+                          Vserver: vs1
+                            Share: data1
+         CIFS Server NetBIOS Name: VS1
+                             Path: /data1
+                 Share Properties: oplocks
+                                   browsable
+                                   changenotify
+               Symlink Properties: enable
+          File Mode Creation Mask: 644
+     Directory Mode Creation Mask: 777
+                    Share Comment: Offline files
+                        Share ACL: Everyone / Full Control
+    File Attribute Cache Lifetime: -
+                      Volume Name: -
+                    Offline Files: manual
+    Vscan File-Operations Profile: standard
+Maximum Tree Connections on Share: 4294967295
+       UNIX Group for File Create: -
+----
+xref:add-remove-share-properties-eexisting-share-task.adoc[Ajout ou suppression de propriétés de partage sur un partage SMB existant]

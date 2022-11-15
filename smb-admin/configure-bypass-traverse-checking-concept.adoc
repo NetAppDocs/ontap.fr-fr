@@ -1,0 +1,75 @@
+---
+permalink: smb-admin/configure-bypass-traverse-checking-concept.html 
+sidebar: sidebar 
+keywords: bypass, traverse, user, privilege, permission, directory, allow, check, configure, storage, virtual, machine, svm, configure bypass traverse checking 
+summary: 'La vérification du contournement de la traverse est un droit d"utilisateur (également appelé privilège) qui détermine si un utilisateur peut traverser tous les répertoires du chemin d"accès à un fichier, même si l"utilisateur ne dispose pas des autorisations sur le répertoire parcouru. Vous devez comprendre ce qui se passe lors de l"autorisation ou de la désautorisation de la vérification transversale et comment configurer la vérification de dérivation pour les utilisateurs sur les machines virtuelles de stockage (SVM).' 
+---
+= Configurer la vue d'ensemble de vérification de la traverse de dérivation
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La vérification du contournement de la traverse est un droit utilisateur (également appelé _Privilege_) qui détermine si un utilisateur peut traverser tous les répertoires du chemin d'accès à un fichier, même si l'utilisateur ne dispose pas des autorisations sur le répertoire de parcours. Vous devez comprendre ce qui se passe lors de l'autorisation ou de la désautorisation de la vérification transversale et comment configurer la vérification de dérivation pour les utilisateurs sur les machines virtuelles de stockage (SVM).
+
+
+
+== Que se passe-t-il lors de l'autorisation ou de la désautorisation du contrôle de la traverse de dérivation
+
+* Si l'accès est autorisé, lorsqu'un utilisateur tente d'accéder à un fichier, ONTAP ne vérifie pas l'autorisation traverse pour les répertoires intermédiaires lorsqu'il détermine s'il faut accorder ou refuser l'accès au fichier.
+* S'il n'est pas autorisé, ONTAP vérifie l'autorisation traverse (exécution) pour tous les répertoires du chemin d'accès au fichier.
++
+Si l'un des répertoires intermédiaires ne dispose pas de l'autorisation « X » (traverse), ONTAP refuse l'accès au fichier.
+
+
+
+
+
+== Configurer la vérification de la traverse de dérivation
+
+Vous pouvez configurer la vérification de contournement via l'interface de ligne de commande ONTAP ou en configurant des règles de groupe Active Directory avec ce droit d'utilisateur.
+
+Le `SeChangeNotifyPrivilege` privilège contrôle si les utilisateurs sont autorisés à contourner la vérification transversale.
+
+* L'ajout aux utilisateurs ou groupes SMB locaux sur le SVM, ou aux utilisateurs ou groupes de domaine permet de contourner la vérification transversale.
+* L'élimination de ce groupe ou des utilisateurs SMB locaux sur le SVM, ou des utilisateurs ou groupes de domaine permet de contourner la vérification des traversent.
+
+
+Par défaut, les groupes BUILTIN suivants sur le SVM ont le droit de contourner le contrôle de la traverse :
+
+* `BUILTIN\Administrators`
+* `BUILTIN\Power Users`
+* `BUILTIN\Backup Operators`
+* `BUILTIN\Users`
+* `Everyone`
+
+
+Si vous ne souhaitez pas autoriser les membres de l'un de ces groupes à contourner la vérification de la traverse, vous devez supprimer ce privilège du groupe.
+
+Lors de la configuration de la vérification de dérivation des utilisateurs et groupes SMB locaux sur le SVM, il faut garder ce qui suit à l'aide de l'interface de ligne de commande :
+
+* Si vous souhaitez autoriser les membres d'un groupe local ou de domaine personnalisé à contourner la vérification transversale, vous devez ajouter le `SeChangeNotifyPrivilege` privilège de ce groupe.
+* Si vous souhaitez autoriser un utilisateur local ou de domaine individuel à contourner la vérification de la traverse et que cet utilisateur n'est pas membre d'un groupe avec ce privilège, vous pouvez ajouter `SeChangeNotifyPrivilege` privilège de ce compte utilisateur.
+* Vous pouvez désactiver la vérification de contournement pour les utilisateurs ou groupes locaux ou de domaine en supprimant le `SeChangeNotifyPrivilege` privilège à tout moment.
++
+[NOTE]
+====
+Pour désactiver la vérification des trvers de contournement pour les utilisateurs ou groupes locaux ou de domaine spécifiés, vous devez également supprimer le `SeChangeNotifyPrivilege` privilège du `Everyone` groupe.
+
+====
+
+
+xref:allow-users-groups-bypass-directory-traverse-task.adoc[Permet aux utilisateurs ou aux groupes de contourner la vérification de la traverse du répertoire]
+
+xref:disallow-users-groups-bypass-directory-traverse-task.adoc[Interdire aux utilisateurs ou aux groupes de contourner la vérification de la traverse de répertoire]
+
+xref:configure-character-mappings-file-name-translation-task.adoc[Configurez le mappage de caractères pour la conversion de nom de fichier SMB sur des volumes]
+
+xref:create-share-access-control-lists-task.html[Créer des listes de contrôle d'accès pour le partage SMB]
+
+xref:secure-file-access-storage-level-access-guard-concept.html[Sécurisez l'accès aux fichiers à l'aide de Storage-Level Access Guard]
+
+xref:list-supported-privileges-reference.adoc[Liste des privilèges pris en charge]
+
+xref:add-privileges-local-domain-users-groups-task.html[Ajoutez des privilèges aux utilisateurs ou groupes locaux ou de domaine]

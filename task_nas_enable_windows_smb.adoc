@@ -1,0 +1,85 @@
+---
+sidebar: sidebar 
+permalink: task_nas_enable_windows_smb.html 
+keywords: ontap, netapp, modify storage VM, enable NAS, provision NAS storage, NFS, SMB, windows, enable NFS, enable SMB, configure DNS, configure name server, configure Kerberos 
+summary: 'Modifiez les VM de stockage afin d"assurer le service des données aux clients Windows sur les serveurs SMB.' 
+---
+= Activation du stockage NAS pour serveurs Windows à l'aide de SMB
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+Créez ou modifiez des VM de stockage afin de permettre aux serveurs SMB de transmettre des données aux clients Windows.
+
+Cette procédure active une machine virtuelle de stockage nouvelle ou existante pour le protocole SMB. Nous partons du principe que des informations de configuration sont disponibles pour tous les services de réseau, d'authentification ou de sécurité requis dans votre environnement.
+
+image:workflow_nas_enable_windows_smb.gif["Schéma des flux de production pour l'activation d'un NAS pour des serveurs Windows utilisant SMB"]
+
+.Étapes
+. Activation de SMB sur une VM de stockage
++
+.. Pour les nouvelles machines virtuelles de stockage : cliquez sur *stockage > machines virtuelles de stockage*, cliquez sur *Ajouter*, entrez un nom de machine virtuelle de stockage et, dans l'onglet *SMB/CIFS, NFS, S3*, sélectionnez *Activer SMB/CIFS*.
++
+*** Saisissez les informations suivantes :
++
+**** Nom et mot de passe de l'administrateur
+**** Nom du serveur
+**** Domaine Active Directory
+
+
+*** Confirmez l'unité organisationnelle.
+*** Confirmez les valeurs DNS.
+*** Confirmez la langue par défaut.
+*** Ajouter des interfaces réseau.
+*** Mise à jour des informations de compte administrateur de VM de stockage (facultatif)
+
+
+.. Pour les machines virtuelles de stockage existantes : cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez une machine virtuelle de stockage, cliquez sur *Paramètres*, puis cliquez sur image:icon_gear.gif["icône paramètres"] Sous *SMB*.
+
+
+. Ouvrir la export policy du volume root de la VM de stockage :
++
+.. Cliquez sur *Storage > volumes*, sélectionnez le volume racine de la machine virtuelle de stockage (qui est par défaut _nom-volume_root_), puis cliquez sur la stratégie affichée sous *règles d'exportation*.
+.. Cliquez sur *Ajouter* pour ajouter une règle.
++
+*** Spécification client = `0.0.0.0/0`
+*** Protocoles d'accès = SMB
+*** Informations d'accès = NTFS lecture seule
+
+
+
+
+. Configurer le DNS pour la résolution de nom d'hôte :
++
+.. Cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez la machine virtuelle de stockage, cliquez sur *Paramètres*, puis cliquez sur image:icon_gear.gif["icône paramètres"] Sous *DNS*.
+.. Basculez sur le serveur DNS et mappez le serveur SMB.
++
+*** Créer des entrées de recherche de transfert (A - enregistrement d'adresse) et de retour (PTR - enregistrement du pointeur) pour mapper le nom du serveur SMB à l'adresse IP de l'interface du réseau de données.
+*** Si vous utilisez des alias NetBIOS, créez une entrée de recherche nom canonique d'alias (enregistrement de ressource CNAME) pour mapper chaque alias à l'adresse IP de l'interface de réseau de données du serveur SMB.
+
+
+
+
+. Configurez les services de noms si nécessaire
++
+.. Cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez la machine virtuelle de stockage, cliquez sur *Paramètres*, puis cliquez sur image:icon_gear.gif["icône paramètres"] Sous *LDAP* ou *NIS*.
+.. Inclure toute modification dans le fichier de changement de services de noms : cliquez sur image:icon_pencil.gif["icône modifier"] Sous *commutateur de services de noms*.
+
+
+. Configurez Kerberos si nécessaire :
++
+.. Cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez la machine virtuelle de stockage, puis cliquez sur *Paramètres*.
+.. Cliquez sur image:icon_arrow.gif["icône de flèche"] Sous *Kerberos*, puis cliquez sur *Add*.
+
+
+

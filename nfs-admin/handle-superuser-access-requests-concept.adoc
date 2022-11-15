@@ -1,0 +1,85 @@
+---
+permalink: nfs-admin/handle-superuser-access-requests-concept.html 
+sidebar: sidebar 
+keywords: how, handle, superuser, access, request 
+summary: 'Lorsque vous configurez des stratégies d"exportation, vous devez tenir compte de ce que vous voulez faire si le système de stockage reçoit une demande d"accès client avec l"ID utilisateur 0, c"est-à-dire en tant que superutilisateur, et définir vos règles d"exportation en conséquence.' 
+---
+= Gérer les demandes d'accès superutilisateur
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Lorsque vous configurez des stratégies d'exportation, vous devez tenir compte de ce que vous voulez faire si le système de stockage reçoit une demande d'accès client avec l'ID utilisateur 0, c'est-à-dire en tant que superutilisateur, et définir vos règles d'exportation en conséquence.
+
+Dans le monde UNIX, un utilisateur avec l'ID utilisateur 0 est appelé superutilisateur, généralement appelé root, qui dispose de droits d'accès illimités sur un système. L'utilisation des privilèges de superutilisateur peut être dangereuse pour plusieurs raisons, y compris une violation du système et de la sécurité des données.
+
+Par défaut, ONTAP mappe les clients présentant l'ID utilisateur 0 à l'utilisateur anonyme. Toutefois, vous pouvez spécifier le `- superuser` Paramètre dans les règles d'exportation pour déterminer comment gérer les clients présentant l'ID utilisateur 0 en fonction de leur type de sécurité. Les options suivantes sont valides pour le `-superuser` paramètre :
+
+* `any`
+* `none`
++
+Il s'agit du paramètre par défaut si vous ne spécifiez pas le `-superuser` paramètre.
+
+* `krb5`
+* `ntlm`
+* `sys`
+
+
+Il existe deux façons différentes de gérer les clients présentant l'ID utilisateur 0, selon le `-superuser` configuration des paramètres :
+
+[cols="2*"]
+|===
+| Si le `*-superuser*` et le type de sécurité du client... | Ensuite, le client... 
+
+
+ a| 
+Correspondance
+ a| 
+Obtient l'accès superutilisateur avec l'ID utilisateur 0.
+
+
+
+ a| 
+Ne correspondent pas
+ a| 
+Obtient l'accès en tant qu'utilisateur anonyme avec l'ID utilisateur spécifié par le `-anon` paramètre et ses autorisations attribuées. Cette option est précise si le paramètre lecture seule ou lecture-écriture spécifie l'option `none`.
+
+|===
+Si un client se présente avec l'ID utilisateur 0 pour accéder à un volume avec le style de sécurité NTFS et le `-superuser` le paramètre est défini sur `none`, ONTAP utilise le mappage de noms pour l'utilisateur anonyme afin d'obtenir les informations d'identification appropriées.
+
+La export policy contient une règle d'exportation avec les paramètres suivants :
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `any`
+* `-rwrule` `krb5,ntlm`
+* `-anon` `127`
+
+
+Le client #1 a l'adresse IP 10.1.16.207, a l'ID utilisateur 746, envoie une demande d'accès à l'aide du protocole NFSv3 et authentifiée avec Kerberos v5.
+
+Le client #2 a l'adresse IP 10.1.16.211, a l'ID utilisateur 0, envoie une demande d'accès à l'aide du protocole NFSv3 et authentifiée avec AUTH_SYS.
+
+Le protocole d'accès client et l'adresse IP correspondent pour les deux clients. Le paramètre en lecture seule permet l'accès en lecture seule à tous les clients, quel que soit le type de sécurité auquel ils sont authentifiés. Cependant, seul le client #1 obtient l'accès en lecture-écriture car il a utilisé le type de sécurité approuvé Kerberos v5 pour s'authentifier.
+
+Le client #2 ne dispose pas d'un accès super-utilisateur. Au lieu de cela, il est mappé sur anonyme car le `-superuser` paramètre non spécifié. Cela signifie que la valeur par défaut est `none` Et mappe automatiquement l'ID utilisateur 0 sur anonyme. Le client #2 obtient également un accès en lecture seule car son type de sécurité ne correspond pas au paramètre lecture-écriture.
+
+La export policy contient une règle d'exportation avec les paramètres suivants :
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `any`
+* `-rwrule` `krb5,ntlm`
+* `-superuser` `krb5`
+* `-anon` `0`
+
+
+Le client #1 a l'adresse IP 10.1.16.207, a l'ID utilisateur 0, envoie une demande d'accès à l'aide du protocole NFSv3 et authentifiée avec Kerberos v5.
+
+Le client #2 a l'adresse IP 10.1.16.211, a l'ID utilisateur 0, envoie une demande d'accès à l'aide du protocole NFSv3 et authentifiée avec AUTH_SYS.
+
+Le protocole d'accès client et l'adresse IP correspondent pour les deux clients. Le paramètre en lecture seule permet l'accès en lecture seule à tous les clients, quel que soit le type de sécurité auquel ils sont authentifiés. Cependant, seul le client #1 obtient l'accès en lecture-écriture car il a utilisé le type de sécurité approuvé Kerberos v5 pour s'authentifier. Le client n° 2 ne dispose pas d'un accès en lecture/écriture.
+
+La règle d'exportation permet l'accès superutilisateur pour les clients avec l'ID utilisateur 0. Le client #1 obtient l'accès superutilisateur car il correspond à l'ID utilisateur et au type de sécurité pour la lecture seule et `-superuser` paramètres. Le client #2 ne dispose pas d'un accès en lecture-écriture ou super-utilisateur, car son type de sécurité ne correspond pas au paramètre en lecture-écriture ou au `-superuser` paramètre. Au lieu de cela, le client #2 est mappé à l'utilisateur anonyme, qui a dans ce cas l'ID utilisateur 0.

@@ -1,0 +1,52 @@
+---
+permalink: nfs-admin/enable-ldap-rfc2307bis-support-task.html 
+sidebar: sidebar 
+keywords: enable, ldap, rfc2307bis, support 
+summary: 'Si vous souhaitez utiliser LDAP et que vous avez besoin de la fonctionnalité supplémentaire d"utilisation des appartenances aux groupes imbriqués, vous pouvez configurer ONTAP pour activer la prise en charge de LDAP RFC2307bis.' 
+---
+= Activez la prise en charge du protocole LDAP RFC2307bis
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous souhaitez utiliser LDAP et que vous avez besoin de la fonctionnalité supplémentaire d'utilisation des appartenances aux groupes imbriqués, vous pouvez configurer ONTAP pour activer la prise en charge de LDAP RFC2307bis.
+
+Vous devez avoir créé une copie de l'un des schémas de client LDAP par défaut que vous souhaitez utiliser.
+
+Dans les schémas client LDAP, les objets de groupe utilisent l'attribut memberUID. Cet attribut peut contenir plusieurs valeurs et répertorie les noms des utilisateurs appartenant à ce groupe. Dans les schémas de client LDAP compatibles avec RFC2307bis, les objets de groupe utilisent l'attribut uniqueMember. Cet attribut peut contenir le nom unique complet (DN) d'un autre objet dans le répertoire LDAP. Cela vous permet d'utiliser des groupes imbriqués car les groupes peuvent avoir d'autres groupes en tant que membres.
+
+L'utilisateur ne doit pas être membre de plus de 256 groupes, y compris des groupes imbriqués. ONTAP ignore tous les groupes dépassant la limite de 256 groupes.
+
+Par défaut, le support RFC2307bis est désactivé.
+
+[NOTE]
+====
+La prise en charge RFC2307bis est activée automatiquement dans ONTAP lorsqu'un client LDAP est créé avec le schéma MS-AD-BIS.
+
+====
+Pour plus d'informations, reportez-vous à la section https://www.netapp.com/pdf.html?item=/media/19423-tr-4835.pdf["Rapport technique NetApp 4835 : comment configurer LDAP dans ONTAP"].
+
+.Étapes
+. Définissez le niveau de privilège sur avancé :
++
+`set -privilege advanced`
+
+. Modifiez le schéma de client LDAP RFC2307 copié pour activer la prise en charge de RFC2307bis :
++
+`vserver services name-service ldap client schema modify -vserver vserver_name -schema schema-name -enable-rfc2307bis true`
+
+. Modifiez le schéma pour qu'il corresponde à la classe d'objet prise en charge par le serveur LDAP :
++
+`vserver services name-service ldap client schema modify -vserver vserver-name -schema schema_name -group-of-unique-names-object-class object_class`
+
+. Modifiez le schéma pour qu'il corresponde au nom d'attribut pris en charge par le serveur LDAP :
++
+`vserver services name-service ldap client schema modify -vserver vserver-name -schema schema_name -unique-member-attribute attribute_name`
+
+. Retour au niveau de privilège admin :
++
+`set -privilege admin`
+
+

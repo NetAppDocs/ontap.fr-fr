@@ -1,0 +1,49 @@
+---
+sidebar: sidebar 
+permalink: networking/move_broadcast_domains.html 
+keywords: move, moving, broadcast, domain, ipspace, move broadcast domains into ipspaces, move the system created broadcast domains into the ipspaces you created 
+summary: Déplacez les domaines de diffusion créés par le système vers les IPspaces que vous avez créés 
+---
+= Déplacez les domaines de diffusion vers les IPspaces
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Déplacez les domaines de diffusion créés par le système en fonction de la réaccessibilité de couche 2 vers les IPspaces que vous avez créés.
+
+Avant de déplacer le domaine de diffusion, vous devez vérifier l'accessibilité des ports de vos domaines de diffusion.
+
+L'analyse automatique des ports peut déterminer quels ports peuvent se toucher et les placer dans le même domaine de diffusion, mais cette analyse ne peut pas déterminer l'IPspace approprié. Si le domaine de diffusion appartient à un IPspace non-défaut, vous devez le déplacer manuellement en suivant les étapes de cette section.
+
+Les domaines de diffusion sont automatiquement configurés dans le cadre des opérations de création et de jointure du cluster. ONTAP définit le broadcast domain « Default » comme l'ensemble des ports qui ont une connectivité de couche 2 vers le home port de l'interface de gestion sur le premier nœud créé dans le cluster. D'autres domaines de diffusion sont créés, si nécessaire, et sont nommés *default-1*, *default-2*, etc.
+
+Lorsqu'un nœud rejoint un cluster existant, ses ports réseau rejoignent automatiquement les domaines de diffusion existants en fonction de leur accessibilité de couche 2. S'ils n'ont pas la possibilité de reacher un domaine de diffusion existant, les ports sont placés dans un ou plusieurs nouveaux domaines de diffusion.
+
+.Description de la tâche
+* Les ports avec LIF de cluster sont automatiquement placés dans l'IPspace « Cluster ».
+* Les ports qui reachcapacité au home port de la LIF node-management sont placés dans le broadcast « default ».
+* Les autres domaines de diffusion sont automatiquement créés par ONTAP dans le cadre de l'opération de création ou de jointure du cluster.
+* Au fur et à mesure de l'ajout de VLAN et de groupes d'interface, ils sont automatiquement placés dans le domaine de diffusion approprié une minute après leur création.
+
+
+.Étapes
+. Vérifiez l'accessibilité des ports de vos domaines de diffusion. ONTAP surveille automatiquement l'accessibilité de couche 2. Utilisez la commande suivante pour vérifier que chaque port a été ajouté à un broadcast domain et a la capacité de reachable « ok ».
++
+`network port reachability show -detail`
+
+. Si nécessaire, déplacez les domaines de diffusion vers d'autres IPspaces :
++
+`network port broadcast-domain move`
+
++
+Par exemple, si vous souhaitez déplacer un domaine de diffusion de « Default » à « ips1 » :
+
++
+`network port broadcast-domain move -ipspace Default -broadcast-domain Default -to-ipspace ips1`
+
+

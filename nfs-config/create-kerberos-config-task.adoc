@@ -1,0 +1,73 @@
+---
+permalink: nfs-config/create-kerberos-config-task.html 
+sidebar: sidebar 
+keywords: enable, kerberos, data, lif 
+summary: 'Vous pouvez utiliser la commande vserver nfs Kerberos interface enable Kerberos sur une LIF donnée. Cela permet au SVM d"utiliser les services de sécurité Kerberos pour NFS.' 
+---
+= Activez Kerberos sur une LIF donnée
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser le `vserver nfs kerberos interface enable` Commande pour activer Kerberos sur une LIF de données. Cela permet au SVM d'utiliser les services de sécurité Kerberos pour NFS.
+
+Si vous utilisez un KDC Active Directory, les 15 premiers caractères de tous les noms de domaine utilisés doivent être uniques sur les SVM au sein d'un domaine ou d'un domaine.
+
+.Étapes
+. Créez la configuration NFS Kerberos :
++
+`vserver nfs kerberos interface enable -vserver _vserver_name_ -lif _logical_interface_ -spn _service_principal_name_`
+
++
+ONTAP nécessite la clé secrète pour le SPN à partir du KDC pour activer l'interface Kerberos.
+
++
+Pour les VDC Microsoft, le KDC est contacté et un nom d'utilisateur et un mot de passe sont émis sur l'CLI pour obtenir la clé secrète. Si vous devez créer le SPN dans une autre UO du domaine Kerberos, vous pouvez spécifier l'option `-ou` paramètre.
+
++
+Pour les KDC non Microsoft, la clé secrète peut être obtenue en utilisant l'une des deux méthodes suivantes :
+
++
+|===
+| Si... | Vous devez également inclure le paramètre suivant avec la commande... 
+
+
+ a| 
+Demandez à l'administrateur KDC de récupérer la clé directement à partir du KDC
+ a| 
+`-admin-username` `_kdc_admin_username_`
+
+
+
+ a| 
+Ne disposez pas des informations d'identification de l'administrateur KDC mais d'un fichier keytab du KDC contenant la clé
+ a| 
+`-keytab-uri` {ftp|http}://`_uri_`
+
+|===
+. Vérifier que Kerberos a été activé sur la LIF :
++
+`vserver nfs kerberos-config show`
+
+. Répétez les étapes 1 et 2 pour activer Kerberos sur plusieurs LIFs.
+
+
+La commande suivante crée et vérifie une configuration Kerberos NFS pour le SVM nommé vs1 sur l'interface logique ves03-d1, avec le SPN nfs/ves03-d1.lab.example.com@TEST.LAB.EXAMPLE.COM dans l'UO lab2ou :
+
+[listing]
+----
+vs1::> vserver nfs kerberos interface enable -lif ves03-d1 -vserver vs2
+-spn nfs/ves03-d1.lab.example.com@TEST.LAB.EXAMPLE.COM -ou "ou=lab2ou"
+
+vs1::>vserver nfs kerberos-config show
+        Logical
+Vserver Interface Address       Kerberos  SPN
+------- --------- -------       --------- -------------------------------
+vs0     ves01-a1
+                  10.10.10.30   disabled  -
+vs2     ves01-d1
+                  10.10.10.40   enabled   nfs/ves03-d1.lab.example.com@TEST.LAB.EXAMPLE.COM
+2 entries were displayed.
+----

@@ -1,0 +1,78 @@
+---
+permalink: system-admin/modify-sp-api-service-config-task.html 
+sidebar: sidebar 
+keywords: modify, sp, api, service, configuration, network 
+summary: 'L"API du processeur de service est une API réseau sécurisée qui permet à ONTAP de communiquer avec le processeur de service sur le réseau. Vous pouvez modifier le port utilisé par le service API SP, renouveler les certificats que le service utilise pour les communications internes ou désactiver entièrement le service. Vous ne devez modifier la configuration que dans de rares cas.' 
+---
+= Modifiez la configuration du service d'API du processeur de service
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+L'API du processeur de service est une API réseau sécurisée qui permet à ONTAP de communiquer avec le processeur de service sur le réseau. Vous pouvez modifier le port utilisé par le service API SP, renouveler les certificats que le service utilise pour les communications internes ou désactiver entièrement le service. Vous ne devez modifier la configuration que dans de rares cas.
+
+.Description de la tâche
+* Le service d'API du processeur de service utilise le port `50000` par défaut.
++
+Vous pouvez modifier la valeur du port si, par exemple, vous êtes dans un paramètre réseau où port `50000` Est utilisé pour la communication par une autre application réseau ou pour différencier le trafic des autres applications et le trafic généré par le service API SP.
+
+* Les certificats SSL et SSH utilisés par le service API du processeur de service sont internes au cluster et ne sont pas distribués en externe.
++
+Dans le cas peu probable où les certificats sont compromis, vous pouvez les renouveler.
+
+* Le service API du processeur de service est activé par défaut.
++
+Il vous suffit de désactiver le service API du processeur de service dans de rares cas, par exemple dans un LAN privé où le processeur de service n'est pas configuré ou utilisé et que vous souhaitez désactiver ce service.
+
++
+Si le service d'API du processeur de service est désactivé, l'API n'accepte aucune connexion entrante. En outre, des fonctionnalités telles que les mises à jour de micrologiciel SP basées sur le réseau et la collecte de journaux de SP « `down system' » basée sur le réseau deviennent indisponibles. Le système passe à l'aide de l'interface série.
+
+
+
+.Étapes
+. Passez au niveau de privilège avancé à l'aide du `set -privilege advanced` commande.
+. Modifiez la configuration du service d'API du processeur de service :
++
+|===
+| Les fonctions que vous recherchez... | Utiliser la commande suivante... 
+
+
+ a| 
+Modifiez le port utilisé par le service d'API du processeur de service
+ a| 
+`system service-processor api-service modify` avec le `-port` {`49152`..`65535`paramètre }
+
+
+
+ a| 
+Renouvelez les certificats SSL et SSH utilisés par le service API SP pour les communications internes
+ a| 
+** Pour ONTAP 9.5 ou une utilisation ultérieure `system service-processor api-service renew-internal-certificate`
+** Pour ONTAP 9.4 et une utilisation antérieure
+** `system service-processor api-service renew-certificates`
++
+Si aucun paramètre n'est spécifié, seuls les certificats d'hôte (y compris les certificats client et serveur) sont renouvelés.
+
++
+Si le `-renew-all true` Le paramètre est spécifié, les certificats d'hôte et le certificat d'autorité de certification racine sont renouvelés.
+
+
+
+
+
+ a| 
+comm
+ a| 
+
+
+
+ a| 
+Désactivez ou réactivez le service API du processeur de service
+ a| 
+`system service-processor api-service modify` avec le `-is-enabled` {`true`|`false`paramètre }
+
+|===
+. Affichez la configuration du service API du processeur de service à l'aide de `system service-processor api-service show` commande.
+

@@ -1,0 +1,85 @@
+---
+permalink: nfs-config/test-access-client-systems-task.html 
+sidebar: sidebar 
+keywords: testing, nfs, access, client, systems 
+summary: 'Après avoir vérifié l"accès NFS au nouvel objet de stockage, il est important de tester la configuration en vous connectant à un hôte d"administration NFS et en lisant les données à partir de et en écrivant les données sur la SVM. Vous devez ensuite répéter le processus en tant qu"utilisateur non-root sur un système client.' 
+---
+= Testez l'accès NFS à partir des systèmes client
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Après avoir vérifié l'accès NFS au nouvel objet de stockage, il est important de tester la configuration en vous connectant à un hôte d'administration NFS et en lisant les données à partir de et en écrivant les données sur la SVM. Vous devez ensuite répéter le processus en tant qu'utilisateur non-root sur un système client.
+
+.Ce dont vous avez besoin, 8217;ll
+* Le système client doit disposer d'une adresse IP autorisée par la règle d'exportation que vous avez spécifiée précédemment.
+* Vous devez disposer des informations de connexion pour l'utilisateur root.
+
+
+.Étapes
+. Sur le cluster, vérifier l'adresse IP de la LIF qui héberge le nouveau volume :
++
+`network interface show –vserver _svm_name_`
+
+. Connectez-vous en tant qu'utilisateur racine au système client hôte d'administration.
+. Changez le répertoire pour le dossier de montage :
++
+`cd /mnt/`
+
+. Créer et monter un nouveau dossier en utilisant l'adresse IP de la SVM :
++
+.. Créez un nouveau dossier : +
+`mkdir /mnt/_folder_`
+.. Montez le nouveau volume dans ce nouveau répertoire : +
+`mount -t nfs -o hard _IPAddress_:/_volume_name_ /mnt/_folder_`
+.. Remplacez le répertoire par le nouveau dossier : +
+`cd _folder_`
++
+Les commandes suivantes créent un dossier nommé test1, montent le volume vol1 à l'adresse IP 192.0.2.130 du dossier de montage tes1 et changent dans le nouveau répertoire tes1 :
+
++
+[listing]
+----
+host# mkdir /mnt/test1
+host# mount -t nfs -o hard 192.0.2.130:/vol1 /mnt/test1
+host# cd /mnt/test1
+----
+
+
+. Créez un nouveau fichier, vérifiez qu'il existe et écrivez du texte :
++
+.. Créez un fichier de test : +
+`touch _filename_`
+.. Vérifiez que le fichier existe.: +
+`ls -l _filename_`
+.. Entrer : +
+`cat > _filename_`
++
+Tapez du texte, puis appuyez sur Ctrl+D pour écrire du texte dans le fichier test.
+
+.. Afficher le contenu du fichier de test. +
+`cat _filename_`
+.. Supprimez le fichier test : +
+`rm _filename_`
+.. Revenir au répertoire parent : +
+`cd ..`
++
+[listing]
+----
+host# touch myfile1
+host# ls -l myfile1
+-rw-r--r-- 1 root root 0 Sep 18 15:58 myfile1
+host# cat >myfile1
+This text inside the first file
+host# cat myfile1
+This text inside the first file
+host# rm -r myfile1
+host# cd ..
+----
+
+
+. En tant que root, définissez les droits de propriété et les autorisations UNIX souhaités sur le volume monté.
+. Sur un système client UNIX identifié dans vos règles d'exportation, connectez-vous en tant qu'un des utilisateurs autorisés qui ont désormais accès au nouveau volume, puis répétez les procédures des étapes 3 à 5 pour vérifier que vous pouvez monter le volume et créer un fichier.
+

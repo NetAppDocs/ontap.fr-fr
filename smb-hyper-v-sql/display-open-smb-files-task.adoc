@@ -1,0 +1,182 @@
+---
+permalink: smb-hyper-v-sql/display-open-smb-files-task.html 
+sidebar: sidebar 
+keywords: display, information, open, smb, file, session, id, nondisruptive, protection, level 
+summary: 'Vous pouvez afficher des informations sur les fichiers SMB ouverts, notamment la connexion SMB et l"ID de session, le volume hôte, le nom du partage et le chemin du partage. Vous pouvez également afficher des informations sur le niveau de protection disponible en continu d"un fichier, ce qui permet de déterminer si un fichier ouvert est dans un état qui prend en charge la continuité de l"activité.' 
+---
+= Affiche des informations sur les fichiers SMB ouverts
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez afficher des informations sur les fichiers SMB ouverts, notamment la connexion SMB et l'ID de session, le volume hôte, le nom du partage et le chemin du partage. Vous pouvez également afficher des informations sur le niveau de protection disponible en continu d'un fichier, ce qui permet de déterminer si un fichier ouvert est dans un état qui prend en charge la continuité de l'activité.
+
+Vous pouvez afficher des informations sur les fichiers ouverts dans une session SMB établie. Les informations affichées sont utiles lorsque vous devez déterminer les informations de session SMB pour des fichiers particuliers dans une session SMB.
+
+Par exemple, si vous disposez d'une session SMB où certains fichiers ouverts sont ouverts avec une protection disponible en continu et certains ne sont pas ouverts avec une protection disponible en continu (valeur pour le `-continuously-available` champ dans `vserver cifs session show` la sortie de la commande est `Partial`), vous pouvez déterminer quels fichiers ne sont pas disponibles en continu à l'aide de cette commande.
+
+Vous pouvez afficher les informations de tous les fichiers ouverts sur des sessions SMB établies sur des SVM (Storage Virtual machines) sous forme de récapitulatif à l'aide de `vserver cifs session file show` commande sans paramètres facultatifs.
+
+Cependant, dans de nombreux cas, la quantité de production renvoyée est importante. Vous pouvez personnaliser les informations affichées dans la sortie en spécifiant des paramètres facultatifs. Cela peut être utile lorsque vous souhaitez afficher des informations pour un petit sous-ensemble de fichiers ouverts uniquement.
+
+* Vous pouvez utiliser l'option `-fields` paramètre pour afficher la sortie sur les champs de votre choix.
++
+Vous pouvez utiliser ce paramètre seul ou en combinaison avec d'autres paramètres facultatifs.
+
+* Vous pouvez utiliser le `-instance` Paramètre pour afficher des informations détaillées sur les fichiers SMB ouverts.
++
+Vous pouvez utiliser ce paramètre seul ou en combinaison avec d'autres paramètres facultatifs.
+
+
+
+.Étapes
+. Effectuez l'une des opérations suivantes :
++
+|===
+| Si vous souhaitez afficher des fichiers SMB ouverts... | Saisissez la commande suivante... 
+
+
+ a| 
+Sur le SVM sous forme résumée
+ a| 
+`*vserver cifs session file show -vserver _vserver_name_*`
+
+
+
+ a| 
+Sur un nœud spécifié
+ a| 
+`*vserver cifs session file show -vserver _vserver_name_ -node {node_name|local}*`
+
+
+
+ a| 
+Sur un ID de fichier spécifié
+ a| 
+`*vserver cifs session file show -vserver _vserver_name_ -file-id integer*`
+
+
+
+ a| 
+Sur un ID de connexion SMB spécifié
+ a| 
+`*vserver cifs session file show -vserver _vserver_name_ -connection-id integer*`
+
+
+
+ a| 
+Sur un ID de session SMB spécifié
+ a| 
+`*vserver cifs session file show -vserver _vserver_name_ -session-id integer*`
+
+
+
+ a| 
+Sur l'agrégat d'hébergement spécifié
+ a| 
+`*vserver cifs session file show -vserver _vserver_name_ -hosting-aggregate _aggregate_name_*`
+
+
+
+ a| 
+Sur le volume spécifié
+ a| 
+`*vserver cifs session file show -vserver _vserver_name_ -hosting-volume _volume_name_*`
+
+
+
+ a| 
+Sur le partage SMB spécifié
+ a| 
+`*vserver cifs session file show -vserver _vserver_name_ -share _share_name_*`
+
+
+
+ a| 
+Sur le chemin SMB spécifié
+ a| 
+`*vserver cifs session file show -vserver _vserver_name_ -path _path_*`
+
+
+
+ a| 
+Avec le niveau spécifié de protection disponible en continu
+ a| 
+`*vserver cifs session file show -vserver _vserver_name_ -continuously-available _continuously_available_status_*`
+
+La valeur pour `-continuously-available` peut être l'une des suivantes :
+
+** `No`
+** `Yes`
++
+[NOTE]
+====
+Si l'état disponible en continu est de `No`, cela signifie que ces fichiers ouverts ne peuvent pas être rétablis sans interruption à partir du basculement et du rétablissement. Ils ne peuvent pas non plus récupérer d'une relocalisation générale entre les partenaires dans une relation de haute disponibilité.
+
+====
+
+
+
+
+ a| 
+Avec l'état reconnecté spécifié
+ a| 
+`*vserver cifs session file show -vserver _vserver_name_ -reconnected _reconnected_state_*`
+
+La valeur pour `-reconnected` peut être l'une des suivantes :
+
+** `No`
+** `Yes`
++
+[NOTE]
+====
+Si l'état reconnecté est `No`, le fichier ouvert n'est pas reconnecté après un événement de déconnexion. Cela peut signifier que le fichier n'a jamais été déconnecté ou que le fichier a été déconnecté et n'a pas été reconnecté avec succès. Si l'état reconnecté est `Yes`, cela signifie que le fichier ouvert est reconnecté avec succès après un événement de déconnexion.
+
+====
+
+
+|===
++
+D'autres paramètres facultatifs peuvent être utilisés pour affiner les résultats de sortie. Consultez la page man pour plus d'informations
+
+
+
+L'exemple suivant affiche les informations sur les fichiers ouverts sur le SVM vs1 :
+
+[listing]
+----
+cluster1::> vserver cifs session file show -vserver vs1
+Node:       node1
+Vserver:    vs1
+Connection: 3151274158
+Session:    1
+File    File      Open Hosting               Continuously
+ID      Type      Mode Volume    Share       Available
+------- --------- ---- --------- ----------- ------------
+41      Regular   r    data      data        Yes
+Path: \mytest.rtf
+----
+L'exemple suivant affiche des informations détaillées sur les fichiers SMB ouverts avec l'ID de fichier 82 sur le SVM vs1 :
+
+[listing]
+----
+cluster1::> vserver cifs session file show -vserver vs1 -file-id 82 -instance
+
+                  Node: node1
+               Vserver: vs1
+               File ID: 82
+         Connection ID: 104617
+            Session ID: 1
+             File Type: Regular
+             Open Mode: rw
+Aggregate Hosting File: aggr1
+   Volume Hosting File: data1
+            CIFS Share: data1
+  Path from CIFS Share: windows\win8\test\test.txt
+            Share Mode: rw
+           Range Locks: 1
+Continuously Available: Yes
+           Reconnected: No
+----

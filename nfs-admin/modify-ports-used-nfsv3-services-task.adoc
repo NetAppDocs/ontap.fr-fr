@@ -1,0 +1,117 @@
+---
+permalink: nfs-admin/modify-ports-used-nfsv3-services-task.html 
+sidebar: sidebar 
+keywords: modify, port, nfsv3, service 
+summary: Le serveur NFS du système de stockage utilise des services tels que le démon de montage et Network Lock Manager pour communiquer avec les clients NFS sur des ports réseau par défaut spécifiques. Dans la plupart des environnements NFS, les ports par défaut fonctionnent correctement et ne nécessitent pas de modification, mais si vous souhaitez utiliser différents ports réseau NFS dans votre environnement NFSv3, vous pouvez le faire. 
+---
+= Modifier les ports utilisés pour les services NFSv3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le serveur NFS du système de stockage utilise des services tels que le démon de montage et Network Lock Manager pour communiquer avec les clients NFS sur des ports réseau par défaut spécifiques. Dans la plupart des environnements NFS, les ports par défaut fonctionnent correctement et ne nécessitent pas de modification, mais si vous souhaitez utiliser différents ports réseau NFS dans votre environnement NFSv3, vous pouvez le faire.
+
+La modification des ports NFS sur le système de stockage requiert que tous les clients NFS se connectent au système. Il est donc important de communiquer ces informations aux utilisateurs avant de faire la modification.
+
+Vous pouvez définir les ports utilisés par les services du démon de montage NFS, Network Lock Manager, Network Status Monitor et NFS quota daemon pour chaque machine virtuelle de stockage (SVM). La modification du numéro de port affecte l'accès des clients NFS aux données via TCP et UDP.
+
+Les ports pour NFSv4 et NFSv4.1 ne peuvent pas être modifiés.
+
+.Étapes
+. Définissez le niveau de privilège sur avancé :
++
+`set -privilege advanced`
+
+. Désactivation de l'accès à NFS :
++
+`vserver nfs modify -vserver vserver_name -access false`
+
+. Définissez le port NFS pour le service NFS spécifique :
++
+`vserver nfs modify -vserver vserver_namenfs_port_parameterport_number`
+
++
+[cols="3*"]
+|===
+| Paramètre du port NFS | Description | Port par défaut 
+
+
+ a| 
+`-mountd-port`
+ a| 
+Démon de montage NFS
+ a| 
+658
+
+
+
+ a| 
+`-nlm-port`
+ a| 
+Gestionnaire de verrouillage réseau
+ a| 
+4045
+
+
+
+ a| 
+`-nsm-port`
+ a| 
+Moniteur d'état du réseau
+ a| 
+4046
+
+
+
+ a| 
+`-rquotad-port`
+ a| 
+Démon de quota NFS
+ a| 
+4049
+
+|===
++
+Outre le port par défaut, la plage autorisée de numéros de port est comprise entre 1024 et 65535. Chaque service NFS doit utiliser un port unique.
+
+. Activation de l'accès au NFS :
++
+`vserver nfs modify -vserver vserver_name -access true`
+
+. Utilisez le `network connections listening show` pour vérifier que le numéro de port change.
+. Retour au niveau de privilège admin :
++
+`set -privilege admin`
+
+
+
+Les commandes suivantes définissent le port NFS Mount Daemon sur 1113 sur le SVM nommé vs1 :
+
+....
+vs1::> set -privilege advanced
+Warning: These advanced commands are potentially dangerous; use
+         them only when directed to do so by NetApp personnel.
+Do you want to continue? {y|n}: y
+
+vs1::*> vserver nfs modify -vserver vs1 -access false
+
+vs1::*> vserver nfs modify -vserver vs1 -mountd-port 1113
+
+vs1::*> vserver nfs modify -vserver vs1 -access true
+
+vs1::*> network connections listening show
+Vserver Name     Interface Name:Local Port        Protocol/Service
+---------------- -------------------------------  ----------------
+Node: cluster1-01
+Cluster          cluster1-01_clus_1:7700          TCP/ctlopcp
+vs1              data1:4046                       TCP/sm
+vs1              data1:4046                       UDP/sm
+vs1              data1:4045                       TCP/nlm-v4
+vs1              data1:4045                       UDP/nlm-v4
+vs1              data1:1113                       TCP/mount
+vs1              data1:1113                       UDP/mount
+...
+vs1::*> set -privilege admin
+....

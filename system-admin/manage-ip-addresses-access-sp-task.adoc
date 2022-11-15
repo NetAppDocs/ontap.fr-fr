@@ -1,0 +1,63 @@
+---
+permalink: system-admin/manage-ip-addresses-access-sp-task.html 
+sidebar: sidebar 
+keywords: manage, ip, addresses, access, sp, ssh, connection, node, cluster 
+summary: 'Par défaut, le processeur de service accepte les requêtes de connexion SSH des hôtes d"administration de n"importe quelle adresse IP. Vous pouvez configurer le processeur de service pour qu"il accepte les requêtes de connexion SSH depuis uniquement les hôtes d"administration qui possèdent les adresses IP que vous spécifiez. Les modifications que vous apportez s"appliquent à l"accès SSH au processeur de service de n"importe quel nœud du cluster.' 
+---
+= Gérez les adresses IP pouvant accéder au processeur de service
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Par défaut, le processeur de service accepte les requêtes de connexion SSH des hôtes d'administration de n'importe quelle adresse IP. Vous pouvez configurer le processeur de service pour qu'il accepte les requêtes de connexion SSH depuis uniquement les hôtes d'administration qui possèdent les adresses IP que vous spécifiez. Les modifications que vous apportez s'appliquent à l'accès SSH au processeur de service de n'importe quel nœud du cluster.
+
+.Étapes
+. Accordez au processeur de service l'accès aux adresses IP que vous spécifiez via le `system service-processor ssh add-allowed-addresses` commande avec `-allowed-addresses` paramètre.
++
+** La valeur du `-allowed-addresses` le paramètre doit être spécifié au format de `address`/`netmask`, et multiple `address`/`netmask` les paires doivent être séparées par des virgules, par exemple `10.98.150.10/24, fd20:8b1e:b255:c09b::/64`.
++
+Réglage du `-allowed-addresses` paramètre à `0.0.0.0/0, ::/0` Permet à toutes les adresses IP d'accéder au processeur de service (par défaut).
+
+** Lorsque vous modifiez la valeur par défaut en limitant l'accès au SP aux adresses IP que vous spécifiez, ONTAP vous invite à confirmer que vous souhaitez que les adresses IP spécifiées remplacent le paramètre par défaut « Autoriser tous » (`0.0.0.0/0, ::/0`).
+** Le `system service-processor ssh show` La commande affiche les adresses IP pouvant accéder au processeur de service.
+
+
+. Si vous souhaitez bloquer l'accès au processeur de service à une adresse IP spécifiée, utilisez le `system service-processor ssh remove-allowed-addresses` commande avec `-allowed-addresses` paramètre.
++
+Si vous bloquez l'accès à toutes les adresses IP, le processeur de service devient inaccessible depuis n'importe quel hôte d'administration.
+
+
+
+Les exemples suivants montrent le paramètre par défaut pour l'accès SSH au processeur de service, modifiez la valeur par défaut en limitant l'accès du processeur de service aux adresses IP spécifiées, en supprimant les adresses IP spécifiées de la liste d'accès, puis en restaurant l'accès du processeur de service pour toutes les adresses IP :
+
+[listing]
+----
+cluster1::> system service-processor ssh show
+  Allowed Addresses: 0.0.0.0/0, ::/0
+
+cluster1::> system service-processor ssh add-allowed-addresses -allowed-addresses 192.168.1.202/24, 192.168.10.201/24
+
+Warning: The default "allow all" setting (0.0.0.0/0, ::/0) will be replaced
+         with your changes. Do you want to continue? {y|n}: y
+
+cluster1::> system service-processor ssh show
+  Allowed Addresses: 192.168.1.202/24, 192.168.10.201/24
+
+cluster1::> system service-processor ssh remove-allowed-addresses -allowed-addresses 192.168.1.202/24, 192.168.10.201/24
+
+Warning: If all IP addresses are removed from the allowed address list, all IP
+         addresses will be denied access. To restore the "allow all" default,
+         use the "system service-processor ssh add-allowed-addresses
+         -allowed-addresses 0.0.0.0/0, ::/0" command. Do you want to continue?
+          {y|n}: y
+
+cluster1::> system service-processor ssh show
+  Allowed Addresses: -
+
+cluster1::> system service-processor ssh add-allowed-addresses -allowed-addresses 0.0.0.0/0, ::/0
+
+cluster1::> system service-processor ssh show
+  Allowed Addresses: 0.0.0.0/0, ::/0
+----

@@ -1,0 +1,47 @@
+---
+permalink: volumes/default-tree-quotas-volume-create-concept.html 
+sidebar: sidebar 
+keywords: how, default, tree quotas, flexvol volume, create, derived tree quotas 
+summary: 'Lorsque vous créez un quota Tree par défaut sur un volume FlexVol, les quotas d"arborescence dérivés correspondants sont automatiquement créés pour chaque qtree de ce volume.' 
+---
+= Comment les quotas par défaut des arborescences d'un volume FlexVol créent des quotas d'arborescence dérivés
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Lorsque vous créez un quota Tree par défaut sur un volume FlexVol, les quotas d'arborescence dérivés correspondants sont automatiquement créés pour chaque qtree de ce volume.
+
+Ces quotas d'arborescence dérivés ont les mêmes limites que le quota d'arborescence par défaut. S'il n'existe pas de quotas supplémentaires, les limites ont les effets suivants :
+
+* Les utilisateurs peuvent utiliser autant d'espace dans un qtree qu'ils sont alloués à l'intégralité du volume (à condition qu'ils n'aient pas dépassé la limite du volume en utilisant l'espace à la racine ou à un autre qtree).
+* Chaque qtree peut être davantage de capacité à consommer la totalité du volume.
+
+
+L'existence d'un quota Tree par défaut sur un volume continue d'affecter tous les nouveaux qtrees qui sont ajoutés au volume. Chaque fois qu'un qtree est créé, un quota Tree dérivé est également créé.
+
+Comme tous les quotas dérivés, les quotas d'arborescence dérivés affichent les comportements suivants :
+
+* Sont créés uniquement si la cible ne dispose pas déjà d'un quota explicite.
+* S'affiche dans les rapports de quotas, mais n'apparaît pas lorsque vous affichez les règles de quota avec le `volume quota policy rule show` commande.
+
+
+Vous disposez d'un volume avec trois qtrees (proj1, proj2 et proj3), et le seul quota Tree est un quota explicite sur le qtree proj1 qui limite sa taille de disque à 10 Go. Si vous créez un quota d'arborescence par défaut sur le volume et que vous réinitialisez les quotas sur le volume, le rapport quota contient maintenant quatre quotas d'arborescence :
+
+[listing]
+----
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol1     proj1     tree    1           0B   10GB       1       -   proj1
+vol1               tree    *           0B   20GB       0       -   *
+vol1     proj2     tree    2           0B   20GB       1       -   proj2
+vol1     proj3     tree    3           0B   20GB       1       -   proj3
+...
+----
+La première ligne montre le quota explicite d'origine sur le qtree proj1. Ce quota reste inchangé.
+
+La seconde ligne affiche le nouveau quota Tree par défaut sur le volume. L'astérisque (*) quota Specyfier indique qu'il s'agit d'un quota par défaut. Ce quota est le résultat de la règle de quotas que vous avez créée.
+
+Les deux dernières lignes montrent de nouveaux quotas d'arborescence dérivés pour les qtrees proj2 et proj3. ONTAP a automatiquement créé ces quotas en raison du quota Tree par défaut sur le volume. Ces quotas d'arborescence dérivés ont la même limite de disque de 20 Go que le quota d'arborescence par défaut sur le volume. ONTAP n'a pas créé de quota Tree dérivé pour le qtree proj1 car le qtree proj1 disposait déjà d'un quota explicite.

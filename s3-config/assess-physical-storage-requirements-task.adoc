@@ -1,0 +1,57 @@
+---
+permalink: s3-config/assess-physical-storage-requirements-task.html 
+sidebar: sidebar 
+keywords: s3, assess, physical, storage, requirements, cloud volumes ontap 
+summary: 'Avant de provisionner le stockage S3 pour les clients, vous devez vérifier que l"espace est suffisant dans les agrégats existants pour le nouveau magasin d"objets. Si ce n"est pas le cas, vous pouvez ajouter des disques à des agrégats existants ou créer de nouveaux agrégats du type et de l"emplacement souhaités.' 
+---
+= Évaluer les besoins en matière de stockage physique
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de provisionner le stockage S3 pour les clients, vous devez vérifier que l'espace est suffisant dans les agrégats existants pour le nouveau magasin d'objets. Si ce n'est pas le cas, vous pouvez ajouter des disques à des agrégats existants ou créer de nouveaux agrégats du type et de l'emplacement souhaités.
+
+Lorsque vous créez un compartiment S3 dans un SVM compatible avec S3, un volume FlexGroup est automatiquement créé pour prendre en charge le compartiment. Vous pouvez laisser ONTAP Select les agrégats sous-jacents et les composants FlexGroup automatiquement (par défaut) ou sélectionner les agrégats sous-jacents et les composants FlexGroup vous-même.
+
+Si vous décidez de spécifier les agrégats et les composants FlexGroup, par exemple si vous avez des exigences de performances spécifiques pour les disques sous-jacents, vous devez vous assurer que la configuration de votre agrégat respecte les meilleures pratiques en matière de provisionnement d'un volume FlexGroup. En savoir plus :
+
+* link:../flexgroup/index.html["Gestion des volumes FlexGroup"]
+* https://www.netapp.com/pdf.html?item=/media/17251-tr4571apdf.pdf["Rapport technique NetApp 4571-a : meilleures pratiques relatives au volume NetApp ONTAP FlexGroup"^]
+
+
+Si vous accédez aux compartiments à partir de Cloud Volumes ONTAP, il est fortement recommandé de sélectionner manuellement les agrégats sous-jacents pour vérifier qu'ils n'utilisent qu'un seul nœud. L'utilisation d'agrégats des deux nœuds peut avoir un impact sur les performances, car les nœuds se trouvent dans des zones de disponibilité séparées géographiquement et sont donc sujets aux problèmes de latence. Découvrez link:create-bucket-task.html["Création de compartiments pour Cloud Volumes ONTAP"].
+
+Vous pouvez utiliser le serveur ONTAP S3 pour créer un Tier de capacité FabricPool local, à savoir dans le même cluster que le Tier de performance. Cela peut être utile, par exemple, si des disques SSD sont connectés à une paire haute disponibilité et que vous souhaitez hiérarchiser les données froide_ sur des disques HDD d'une autre paire haute disponibilité. Dans ce cas d'utilisation, le serveur S3 et le compartiment contenant le Tier de capacité locale doivent donc se trouver dans une paire HA différente de celle du Tier de performance. Le Tiering local n'est pas pris en charge sur les clusters à un ou deux nœuds.
+
+.Étapes
+. Afficher l'espace disponible dans les agrégats existants :
++
+`storage aggregate show`
+
++
+Si un agrégat dispose d'un espace suffisant ou si l'emplacement du nœud requis, enregistrez son nom pour votre configuration S3.
+
++
+[listing]
+----
+cluster-1::> storage aggregate show
+Aggregate     Size Available Used% State   #Vols  Nodes  RAID Status
+--------- -------- --------- ----- ------- ------ ------ -----------
+aggr_0     239.0GB   11.13GB   95% online       1 node1  raid_dp,
+                                                         normal
+aggr_1     239.0GB   11.13GB   95% online       1 node1  raid_dp,
+                                                         normal
+aggr_2     239.0GB   11.13GB   95% online       1 node2  raid_dp,
+                                                         normal
+aggr_3     239.0GB   11.13GB   95% online       1 node2  raid_dp,
+                                                         normal
+aggr_4     239.0GB   238.9GB   95% online       5 node3  raid_dp,
+                                                         normal
+aggr_5     239.0GB   239.0GB   95% online       4 node4  raid_dp,
+                                                         normal
+6 entries were displayed.
+----
+. En l'absence d'agrégats disposant d'espace suffisant ou d'emplacement de nœud requis, ajoutez des disques à un agrégat existant en utilisant le `storage aggregate add-disks` ou créez un nouvel agrégat à l'aide de `storage aggregate create` commande.
+

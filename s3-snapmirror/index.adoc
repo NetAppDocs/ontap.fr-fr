@@ -1,0 +1,127 @@
+---
+sidebar: sidebar 
+permalink: s3-snapmirror/index.html 
+keywords: s3 snapmirror buckets, snapmirror buckets SVM, s3 snapmirror data protection, hybrid cloud bundle, s3 snapmirror relationship, VM peering, cluster and storage VM peering, s3 SnapMirror considerations and restrictions, Fan-in deployments, data protection relationships, s3 snapmirror policy, peering 
+summary: 'À partir de ONTAP 9.10.1, vous pouvez protéger les compartiments dans les magasins d"objets ONTAP S3 à l"aide de la fonctionnalité familière de mise en miroir et de sauvegarde de SnapMirror' 
+---
+= Présentation de SnapMirror S3
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+:toc-position: content
+
+
+[role="lead"]
+À partir de ONTAP 9.10.1, vous pouvez protéger les compartiments dans les magasins d'objets ONTAP S3 à l'aide de la fonctionnalité familière de mise en miroir et de sauvegarde de SnapMirror. En outre, contrairement à SnapMirror standard, SnapMirror S3 peut avoir des destinations non NetApp.
+
+S3 SnapMirror prend en charge les miroirs actifs et les tiers de sauvegarde à partir de compartiments ONTAP S3 vers les destinations suivantes :
+
+[cols="50,25,25"]
+|===
+| Cible | Prend en charge les miroirs actifs et le basculement ? | Prend en charge la sauvegarde et la restauration ? 
+
+
+ a| 
+ONTAP S3
+
+* Compartiments dans le même SVM
+* Compartiments dans différents SVM sur le même cluster
+* Compartiments dans les SVM sur différents clusters
+
+| image:status-enabled-perf-config.gif["coche"] | image:status-enabled-perf-config.gif["coche"] 
+
+
+| StorageGRID |  | image:status-enabled-perf-config.gif["coche"] 
+
+
+| AWS S3 |  | image:status-enabled-perf-config.gif["coche"] 
+
+
+| Cloud Volumes ONTAP pour Azure |  | image:status-enabled-perf-config.gif["coche"] 
+|===
+Vous pouvez protéger les compartiments existants sur les serveurs ONTAP S3 ou créer immédiatement des compartiments avec la protection des données activée.
+
+SnapMirror S3 prend en charge les relations « fan-out » et les relations en cascade. Pour une vue d'ensemble, voir link:../data-protection/supported-deployment-config-concept.html["Déploiements de la protection des données en cascade et « Fan-Out »"].
+
+
+
+== Exigences relatives à SnapMirror S3
+
+* ONTAP version ONTAP 9.10.1 ou ultérieure doit exécuter des clusters source et de destination.
+* Une licence est requise pour les systèmes ONTAP source et de destination.
++
+** Bundle principal pour le protocole et le stockage ONTAP S3
+** Bundle de protection des données pour SnapMirror S3 pour cibler d'autres cibles de magasin d'objets NetApp (ONTAP S3, StorageGRID et Cloud Volumes ONTAP).
+** Bundle de protection des données et bundle de cloud hybride pour SnapMirror S3 pour cibler les magasins d'objets tiers (AWS S3).
+
+
+* ONTAP S3
++
+** Les serveurs ONTAP S3 doivent exécuter les SVM source et destination.
+** Il est recommandé, mais pas nécessaire, que des certificats CA pour l'accès TLS soient installés sur des systèmes hébergeant des serveurs S3.
++
+*** Les certificats CA utilisés pour signer les certificats des serveurs S3 doivent être installés sur la VM de stockage admin des clusters hébergeant des serveurs S3.
+*** Vous pouvez utiliser un certificat d'autorité de certification auto-signé ou un certificat signé par un fournisseur d'autorité de certification externe.
+*** Si les VM de stockage source ou cible ne sont pas à l'écoute via HTTPS, il n'est pas nécessaire d'installer des certificats CA.
+
+
+
+
+* Peering (pour les cibles ONTAP S3)
++
+** Les LIFs intercluster doivent être configurées (pour les cibles ONTAP distantes).
+** Les clusters source et de destination sont associés (pour les cibles ONTAP distantes).
+** Les machines virtuelles de stockage source et de destination sont peering (pour toutes les cibles ONTAP).
+
+
+* Règle SnapMirror
++
+** Une règle SnapMirror spécifique au S3 est requise pour toutes les relations SnapMirror S3, mais vous pouvez utiliser la même règle pour plusieurs relations.
+** Vous pouvez créer votre propre stratégie ou accepter la stratégie par défaut *continu*, qui comprend les valeurs suivantes :
++
+*** Accélérateur (limite supérieure sur le débit/bande passante) - illimité.
+*** Délai pour l'objectif de point de restauration : 1 heure (3600 secondes).
+
+
+
+
+* Clés utilisateur root les clés d'accès utilisateur root de la machine virtuelle de stockage sont requises pour les relations SnapMirror S3. ONTAP ne les attribue pas par défaut. Lors de la première création d'une relation SnapMirror S3, vous devez vérifier que les clés existent sur les machines virtuelles de stockage source et de destination, puis les régénérer si ce n'est pas le cas. Si vous devez les régénérer, vous devez vous assurer que tous les clients et toutes les configurations du magasin d'objets SnapMirror utilisant la paire de clés Access et secret sont mis à jour avec les nouvelles clés.
+
+
+Pour plus d'informations sur la configuration d'un serveur S3, consultez les rubriques suivantes :
+
+* link:../task_object_provision_enable_s3_server.html["Activez un serveur S3 sur une machine virtuelle de stockage"]
+* link:../s3-config/index.html["À propos du processus de configuration S3"]
+
+
+Pour plus d'informations sur le cluster et le peering de machine virtuelle de stockage, consultez la rubrique suivante :
+
+* link:../task_dp_prepare_mirror.html["Préparation à la mise en miroir et à l'archivage (System Manager, étapes 1 à 6)"]
+* link:../peering/index.html["Cluster et SVM peering (interface de ligne de commandes)"]
+
+
+
+
+== Considérations et restrictions de S3 SnapMirror
+
+Lorsque vous créez de nouveaux compartiments, vous pouvez contrôler l'accès en créant des utilisateurs et des groupes. Pour plus d'informations, consultez les rubriques suivantes :
+
+* link:../task_object_provision_add_s3_users_groups.html["Ajout d'utilisateurs et de groupes S3 (System Manager)"]
+* link:../s3-config/create-s3-user-task.html["Création d'un utilisateur S3 (interface de ligne de commandes)"]
+* link:../s3-config/create-modify-groups-task.html["Création ou modification de groupes S3 (interface de ligne de commandes)"]
+
+
+La fonctionnalité SnapMirror standard suivante n'est pas prise en charge dans la version actuelle de SnapMirror S3 :
+
+* Déploiements « Fan-In » (relations de protection des données entre plusieurs compartiments source et un compartiment de destination unique)
++
+SnapMirror S3 peut prendre en charge plusieurs miroirs de compartiments depuis plusieurs clusters jusqu'à un seul cluster secondaire, mais chaque compartiment source doit disposer de son propre compartiment de destination sur le cluster secondaire.
+
+

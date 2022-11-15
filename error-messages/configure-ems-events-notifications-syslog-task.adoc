@@ -1,0 +1,51 @@
+---
+permalink: error-messages/configure-ems-events-notifications-syslog-task.html 
+sidebar: sidebar 
+keywords: configuring, important, ems, events, forward, notifications, syslog, server 
+summary: 'Pour enregistrer les notifications des événements les plus graves sur un serveur syslog, vous devez configurer l"EMS pour transférer les notifications des événements qui signalent une activité importante.' 
+---
+= Configuration des événements EMS importants pour transférer des notifications à un serveur syslog
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour enregistrer les notifications des événements les plus graves sur un serveur syslog, vous devez configurer l'EMS pour transférer les notifications des événements qui signalent une activité importante.
+
+Le DNS doit être configuré sur le cluster pour résoudre le nom du serveur syslog.
+
+Si votre environnement ne contient pas encore de serveur syslog pour les notifications d'événements, vous devez d'abord en créer un. Si votre environnement contient déjà un serveur syslog pour la journalisation des événements à partir d'autres systèmes, vous pouvez l'utiliser pour les notifications d'événements importantes.
+
+Vous pouvez effectuer cette tâche à n'importe quel moment du cluster en entrant les commandes sur l'interface de ligne de commandes de ONTAP.
+
+Depuis ONTAP 9.12.1, les événements EMS peuvent être envoyés vers un port désigné sur un serveur syslog distant via le protocole TLS (transport Layer Security). Deux nouveaux paramètres sont disponibles :
+
+`tcp-encrypted`:: Quand `tcp-encrypted` est spécifié pour le `syslog-transport`, ONTAP vérifie l'identité de l'hôte de destination en validant son certificat. La valeur par défaut est `udp-unencrypted`.
+`syslog-port`:: La valeur par défaut `syslog-port` le paramètre dépend du réglage de l' `syslog-transport` paramètre. Si `syslog-transport` est défini sur `tcp-encrypted`, `syslog-port` a la valeur par défaut 6514.
+
+
+Pour plus d'informations, reportez-vous à la `event notification destination create` page de manuel.
+
+.Étapes
+. Créer une destination de serveur syslog pour les événements importants :
++
+`event notification destination create -name _syslog-ems_ -syslog _syslog-server-address_ -syslog-transport {udp-unencrypted|tcp-unencrypted|tcp-encrypted}`
+
++
+À partir de ONTAP 9.12.1, les valeurs suivantes peuvent être spécifiées pour `syslog-transport`:
+
++
+** `udp-unencrypted` - Protocole de datagramme utilisateur sans sécurité
+** `tcp-unencrypted` - Protocole de contrôle de transmission sans sécurité
+** `tcp-encrypted` - Protocole de contrôle de transmission avec TLS (transport Layer Security)
+
+
++
+Le protocole par défaut est `udp-unencrypted``.
+
+. Configurez les événements importants pour transférer des notifications au serveur syslog :
++
+`event notification create -filter-name _important-events_ -destinations _syslog-ems_`
+
+

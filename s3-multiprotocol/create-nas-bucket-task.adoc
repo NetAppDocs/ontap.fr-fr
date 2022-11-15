@@ -1,0 +1,64 @@
+---
+permalink: s3-multiprotocol/create-nas-bucket-task.html 
+sidebar: sidebar 
+keywords: s3, svm, bucket, object, server, versioning, protocol, filesystems, nas, directories 
+summary: Un compartiment NAS S3 est un mappage entre un nom de compartiment S3 et un chemin NAS. 
+---
+= Créez un compartiment NAS S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Un compartiment NAS S3 est un mappage entre un nom de compartiment S3 et un chemin NAS. Les compartiments NAS S3 vous permettent d'offrir un accès S3 à n'importe quelle partie d'un namespace de SVM avec des volumes et une structure de répertoires existants.
+
+.Avant de commencer
+* Un serveur d'objets S3 est configuré dans une SVM contenant des données NAS.
+* Les données NAS sont conformes à la link:nas-data-requirements-client-access-reference.html["Exigences en matière d'accès client S3"].
+
+
+Vous pouvez configurer les compartiments NAS S3 pour spécifier tout ensemble de fichiers et de répertoires dans le répertoire racine de la SVM.
+
+Vous pouvez également définir des règles de compartiment qui permettent ou non l'accès aux données NAS selon n'importe quelle combinaison de ces paramètres :
+
+* Fichiers et répertoires
+* Autorisations utilisateur et groupe
+* Opérations S3
+
+
+Il peut par exemple s'avérer nécessaire de définir des règles de compartiment distinctes pour accorder l'accès aux données en lecture seule à un grand groupe d'utilisateurs, tandis qu'un groupe limité peut effectuer des opérations sur un sous-ensemble de ces données.
+
+Les « compartiments » NAS S3 étant des mappages et non des compartiments S3, les propriétés suivantes des compartiments S3 standard ne s'appliquent pas aux compartiments NAS S3.
+
+* *Aggr-list \ aggr-list-multiplicateur \ Storage-service-niveau \ volume \ taille \ exclude-aggr-list \ qos-policy-group* + aucun volume ou qtree n'est créé lors de la configuration de compartiments NAS S3.
+* *Le rôle \ est -protégé \ est -protégé-sur-ontap \ est -protégé-sur-cloud* + les compartiments NAS S3 ne sont pas protégés ni mis en miroir à l'aide de SnapMirror S3, mais utilise la protection SnapMirror régulière disponible pour la granularité des volumes.
+* *La gestion des versions à l'état* + les volumes NAS disposent généralement de la technologie Snapshot pour enregistrer différentes versions. Cependant, la gestion de version n'est pas disponible dans les compartiments NAS S3.
+* *Logiques-utilisées \ objet-count* + statistiques équivalentes sont disponibles pour les volumes NAS via les commandes de volume.
+
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Ajoutez un nouveau compartiment NAS S3 sur une machine virtuelle de stockage compatible NAS.
+
+. Cliquez sur *stockage > compartiments*, puis sur *Ajouter*.
+. Entrez un nom pour le compartiment NAS S3 et sélectionnez la machine virtuelle de stockage, ne saisissez pas de taille, puis cliquez sur *plus d'options*.
+. Entrez un nom de chemin d'accès valide ou cliquez sur Parcourir pour le sélectionner dans une liste de noms de chemin valides. + lorsque vous saisissez un chemin d'accès valide, les options qui ne sont pas pertinentes pour la configuration NAS S3 sont masquées.
+. Si vous avez déjà mappé des utilisateurs S3 aux utilisateurs NAS et aux groupes créés, vous pouvez configurer leurs autorisations, puis cliquez sur *Enregistrer*. + vous devez avoir déjà mappé des utilisateurs S3 aux utilisateurs NAS avant de configurer les autorisations dans cette étape.
+
+
+Sinon, cliquez sur *Save* pour terminer la configuration du compartiment NAS S3.
+
+--
+.CLI
+--
+Création d'un compartiment NAS S3 dans un SVM contenant des systèmes de fichiers NAS. +
+`vserver object-store-server bucket create -vserver _svm_name_ -bucket _bucket_name_ -type nas -nas-path _junction_path_ [-comment _text_]`
+
+Exemple : +
+`cluster1::> vserver object-store-server bucket create -bucket testbucket -type nas -path /vol1`
+
+--
+====

@@ -1,0 +1,68 @@
+---
+permalink: antivirus/create-on-access-policy-task.html 
+sidebar: sidebar 
+keywords: create, on-access, policy 
+summary: 'Une règle On-Access définit l"étendue d"une analyse on-Access. Vous pouvez spécifier la taille maximale des fichiers à scanner, les extensions des fichiers à inclure dans le scan, ainsi que les extensions et chemins des fichiers à exclure du scan. On peut créer une on-Access policy pour un SVM individuel ou pour tous les SVM d"un cluster.' 
+---
+= Création d'une règle on-Access
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une règle On-Access définit l'étendue d'une analyse on-Access. Vous pouvez spécifier la taille maximale des fichiers à scanner, les extensions des fichiers à inclure dans le scan, ainsi que les extensions et chemins des fichiers à exclure du scan. On peut créer une on-Access policy pour un SVM individuel ou pour tous les SVM d'un cluster.
+
+Par défaut, ONTAP crée une on-Access policy nommée « default_CIFS » et la permet à tous les SVM d'un cluster.
+
+Vous pouvez définir le `scan-mandatory` Option désactivée pour spécifier que l'accès aux fichiers est autorisé lorsqu'aucun serveur Vscan n'est disponible pour l'analyse antivirus. Gardez à l'esprit que tout fichier admissible à l'exclusion de numérisation basée sur le `paths-to-exclude`, `file-ext-to-exclude`, ou `max-file-size` les paramètres ne sont pas pris en compte pour l'acquisition, même si le `scan-mandatory` l'option est activée.
+
+[NOTE]
+====
+Pour les problèmes potentiels liés au `scan-mandatory` option, voir xref:vscan-server-connection-concept.adoc[Problèmes de connectivité potentiels impliquant l'option Scan-obligatoire].
+
+====
+Par défaut, seuls les volumes en lecture-écriture sont analysés. Vous pouvez spécifier des filtres qui permettent la numérisation de volumes en lecture seule ou qui limitent la numérisation aux fichiers ouverts avec l'accès d'exécution.
+
+.Étapes
+. Création d'une règle on-Access :
++
+`vserver vscan on-access-policy create -vserver _data_SVM|cluster_admin_SVM_ -policy-name _policy_name_ -protocol CIFS -max-file-size _max_size_of_files_to_scan_ –filters [scan-ro-volume,][scan-execute-access] -file-ext-to-include _extensions_of_files_to_include_ -file-ext-to-exclude _extensions_of_files_to_exclude_ -scan-files-with-no-ext true|false -paths-to-exclude _paths_of_files_to_exclude_ -scan-mandatory on|off`
+
++
+** Spécifier un SVM de données pour une politique définie pour un SVM individuel, un SVM d'administration du cluster pour une politique définie pour tous les SVM d'un cluster.
+** Le `-file-ext-to-exclude` le réglage remplace le `-file-ext-to-include` réglage.
+** Réglez `-scan-files-with-no-ext` à vrai pour numériser des fichiers sans extensions. La commande suivante crée une on-Access policy nommée `Policy1` sur le ``vs1``SVM :
+
+
++
+[listing]
+----
+cluster1::> vserver vscan on-access-policy create -vserver vs1 -policy-name Policy1 -protocol CIFS -filters scan-ro-volume -max-file-size 3GB -file-ext-to-include “mp*”,"tx*" -file-ext-to-exclude "mp3","txt" -scan-files-with-no-ext false -paths-to-exclude "\vol\a b\","\vol\a,b\"
+----
+. Vérifiez que la stratégie on-Access a été créée : `vserver vscan on-access-policy show -instance _data_SVM|cluster_admin_SVM_ -policy-name policy_name`
++
+Pour obtenir la liste complète des options, consultez la page man de la commande.
+
++
+La commande suivante affiche les détails de `Policy1` règle :
+
++
+[listing]
+----
+cluster1::> vserver vscan on-access-policy show -instance vs1 -policy-name Policy1
+
+                           Vserver: vs1
+                            Policy: Policy1
+                     Policy Status: off
+               Policy Config Owner: vserver
+              File-Access Protocol: CIFS
+                           Filters: scan-ro-volume
+                    Mandatory Scan: on
+Max File Size Allowed for Scanning: 3GB
+            File Paths Not to Scan: \vol\a b\, \vol\a,b\
+       File Extensions Not to Scan: mp3, txt
+           File Extensions to Scan: mp*, tx*
+      Scan Files with No Extension: false
+----
+

@@ -1,0 +1,58 @@
+---
+permalink: tape-backup/ndmp-concept.html 
+sidebar: sidebar 
+keywords: ncmp, considerations, using, service, storage, system 
+summary: Lorsque vous démarrez le service NDMP sur votre système de stockage, vous devez prendre en compte un certain nombre de considérations. 
+---
+= Considérations relatives à l'utilisation de NDMP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Lorsque vous démarrez le service NDMP sur votre système de stockage, vous devez prendre en compte un certain nombre de considérations.
+
+* Chaque nœud prend en charge jusqu'à 16 sauvegardes, restaurations ou combinaisons de les deux à l'aide de lecteurs de bande connectés.
+* Les services NDMP peuvent générer des données d'historique de fichiers à la demande des applications de sauvegarde NDMP.
++
+L'historique des fichiers est utilisé par les applications de sauvegarde pour permettre la restauration optimisée de sous-ensembles de données sélectionnés à partir d'une image de sauvegarde. La génération et le traitement de l'historique des fichiers peuvent s'avérer chronophages et nécessitent beaucoup de ressources CPU pour le système de stockage et l'application de sauvegarde.
+
++
+[NOTE]
+====
+SMTape ne prend pas en charge l'historique des fichiers.
+
+====
++
+Si la protection de vos données est configurée pour la reprise après incident, où l'image de sauvegarde complète sera récupérée, vous pouvez désactiver la génération de l'historique des fichiers pour réduire le temps de sauvegarde. Consultez la documentation de votre application de sauvegarde pour déterminer s'il est possible de désactiver la génération de l'historique du fichier NDMP.
+
+* La politique de pare-feu pour NDMP est activée par défaut sur tous les types LIF.
+* En mode node-scoped NDMP, la sauvegarde d'un volume FlexVol nécessite que vous utilisiez l'application de backup pour initier une sauvegarde sur un nœud propriétaire du volume.
++
+Toutefois, vous ne pouvez pas sauvegarder un volume racine de nœud.
+
+* Vous pouvez effectuer une sauvegarde NDMP à partir de n'importe quelle LIF, comme le permettent les politiques de pare-feu.
++
+Si vous utilisez une LIF de données, vous devez sélectionner une LIF qui n'est pas configurée pour le basculement. Si une LIF de données bascule lors d'une opération NDMP, l'opération NDMP échoue et doit être de nouveau exécutée.
+
+* En mode node-scoped NDMP et Storage Virtual machine (SVM) scoped NDMP sans support d'extension CAB, la connexion de données NDMP utilise le même LIF que la connexion NDMP control.
+* Au cours de la migration de LIF, les opérations régulières de sauvegarde et de restauration sont interrompues.
++
+Vous devez lancer les opérations de sauvegarde et de restauration après la migration LIF.
+
+* Le chemin de sauvegarde NDMP est du format `_/vserver_name/volume_name/path_name_`.
++
+`_path_name_` Est facultatif et spécifie le chemin d'accès au répertoire, au fichier ou à la copie Snapshot.
+
+* Lorsqu'une destination SnapMirror est sauvegardée sur bande à l'aide du moteur de dump, seules les données du volume sont sauvegardées.
++
+Toutefois, lorsqu'une destination SnapMirror est sauvegardée sur bande à l'aide de SMTape, les métadonnées sont également sauvegardées. Les relations SnapMirror et les métadonnées associées ne sont pas sauvegardées sur bande. Dès lors, pendant la restauration, seules les données de ce volume sont restaurées, mais les relations SnapMirror associées ne sont pas restaurées.
+
+
+
+xref:cluster-aware-backup-extension-concept.adoc[Rôle de l'extension Cluster Aware Backup]
+
+link:../concepts/index.html["Concepts relatifs à ONTAP"]
+
+link:../system-admin/index.html["Administration du système"]

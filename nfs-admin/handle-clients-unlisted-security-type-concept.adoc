@@ -1,0 +1,123 @@
+---
+permalink: nfs-admin/handle-clients-unlisted-security-type-concept.html 
+sidebar: sidebar 
+keywords: handle, client, unlist, security, type 
+summary: 'Lorsqu"un client se présente avec un type de sécurité qui n"est pas répertorié dans un paramètre d"accès d"une règle d"exportation, vous avez le choix de refuser l"accès au client ou de le mapper à l"ID utilisateur anonyme au lieu d"utiliser l"option aucun dans le paramètre d"accès.' 
+---
+= Gérez les clients avec un type de sécurité non répertorié
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Lorsqu'un client se présente avec un type de sécurité qui n'est pas répertorié dans un paramètre d'accès d'une règle d'exportation, vous pouvez soit refuser l'accès au client, soit le mapper à l'ID utilisateur anonyme à la place de l'aide de l'option `none` dans le paramètre d'accès.
+
+Un client peut se présenter avec un type de sécurité qui n'est pas répertorié dans un paramètre d'accès car il a été authentifié avec un type de sécurité différent ou n'a pas été authentifié du tout (type de sécurité AUTH_NONE). Par défaut, l'accès au client est automatiquement refusé. Toutefois, vous pouvez ajouter l'option `none` au paramètre d'accès. Par conséquent, les clients dont le style de sécurité n'est pas répertorié sont mappés sur l'ID utilisateur anonyme. Le `-anon` Paramètre détermine quel ID utilisateur est attribué à ces clients. ID utilisateur spécifié pour le `-anon` le paramètre doit être un utilisateur valide configuré avec des autorisations appropriées pour l'utilisateur anonyme.
+
+Valeurs valides pour le `-anon` plage de paramètres de `0` à `65535`.
+
+[cols="2*"]
+|===
+| ID utilisateur attribué à `-anon` | Traitement des demandes d'accès client résultant 
+
+
+ a| 
+`0` - `65533`
+ a| 
+La demande d'accès client est mappée à l'ID utilisateur anonyme et obtient l'accès en fonction des autorisations configurées pour cet utilisateur.
+
+
+
+ a| 
+`65534`
+ a| 
+La demande d'accès client est mappée à l'utilisateur personne et obtient l'accès en fonction des autorisations configurées pour cet utilisateur. Il s'agit de la valeur par défaut.
+
+
+
+ a| 
+`65535`
+ a| 
+La demande d'accès de n'importe quel client est refusée lorsqu'elle est mappée à cet ID et que le client se présente avec le type de sécurité AUTH_NONE. La demande d'accès des clients avec l'ID utilisateur 0 est refusée lorsqu'elle est mappée à cet ID et que le client se présente avec tout autre type de sécurité.
+
+|===
+Lorsque vous utilisez l'option `none`, il est important de se rappeler que le paramètre lecture seule est traité en premier. Lors de la configuration des règles d'exportation pour les clients dont les types de sécurité ne sont pas répertoriés, prenez en compte les consignes suivantes :
+
+[cols="3*"]
+|===
+| La lecture seule inclut `none` | Lecture-écriture incluse `none` | Accès résultant pour les clients avec des types de sécurité non répertoriés 
+
+
+ a| 
+Non
+ a| 
+Non
+ a| 
+Refusée
+
+
+
+ a| 
+Non
+ a| 
+Oui.
+ a| 
+Refusé car la lecture seule est traitée en premier
+
+
+
+ a| 
+Oui.
+ a| 
+Non
+ a| 
+Lecture seule comme anonyme
+
+
+
+ a| 
+Oui.
+ a| 
+Oui.
+ a| 
+Lecture-écriture comme anonyme
+
+|===
+La export policy contient une règle d'exportation avec les paramètres suivants :
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `sys,none`
+* `-rwrule` `any`
+* `-anon` `70`
+
+
+Le client #1 a l'adresse IP 10.1.16.207, envoie une demande d'accès à l'aide du protocole NFSv3 et est authentifié avec Kerberos v5.
+
+Le client #2 a l'adresse IP 10.1.16.211, envoie une demande d'accès à l'aide du protocole NFSv3 et est authentifié avec AUTH_SYS.
+
+Le client #3 a l'adresse IP 10.1.16.234, envoie une demande d'accès à l'aide du protocole NFSv3 et ne s'authentifie pas (ce qui signifie le type de sécurité AUTH_NONE).
+
+Le protocole d'accès client et l'adresse IP correspondent pour les trois clients. Le paramètre lecture seule permet l'accès en lecture seule aux clients avec leur propre ID utilisateur authentifié auprès de AUTH_SYS. Le paramètre lecture seule permet l'accès en lecture seule en tant qu'utilisateur anonyme avec l'ID utilisateur 70 aux clients authentifiés à l'aide de n'importe quel autre type de sécurité. Le paramètre lecture-écriture permet l'accès en lecture-écriture à n'importe quel type de sécurité, mais s'applique uniquement aux clients déjà filtrés par la règle en lecture seule.
+
+Par conséquent, les clients n° 1 et n° 3 bénéficient de l'accès en lecture-écriture uniquement en tant qu'utilisateur anonyme avec l'ID utilisateur 70. Le client #2 obtient un accès en lecture-écriture avec son propre ID utilisateur.
+
+La export policy contient une règle d'exportation avec les paramètres suivants :
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `sys,none`
+* `-rwrule` `none`
+* `-anon` `70`
+
+
+Le client #1 a l'adresse IP 10.1.16.207, envoie une demande d'accès à l'aide du protocole NFSv3 et est authentifié avec Kerberos v5.
+
+Le client #2 a l'adresse IP 10.1.16.211, envoie une demande d'accès à l'aide du protocole NFSv3 et est authentifié avec AUTH_SYS.
+
+Le client #3 a l'adresse IP 10.1.16.234, envoie une demande d'accès à l'aide du protocole NFSv3 et ne s'authentifie pas (ce qui signifie le type de sécurité AUTH_NONE).
+
+Le protocole d'accès client et l'adresse IP correspondent pour les trois clients. Le paramètre lecture seule permet l'accès en lecture seule aux clients avec leur propre ID utilisateur authentifié auprès de AUTH_SYS. Le paramètre lecture seule permet l'accès en lecture seule en tant qu'utilisateur anonyme avec l'ID utilisateur 70 aux clients authentifiés à l'aide de n'importe quel autre type de sécurité. Le paramètre lecture-écriture permet l'accès en lecture-écriture uniquement en tant qu'utilisateur anonyme.
+
+Par conséquent, les clients #1 et le client #3 obtiennent un accès en lecture-écriture uniquement en tant qu'utilisateur anonyme avec l'ID utilisateur 70. Le client #2 obtient un accès en lecture seule avec son propre ID utilisateur, mais il est refusé l'accès en lecture-écriture.

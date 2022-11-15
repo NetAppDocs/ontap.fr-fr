@@ -1,0 +1,173 @@
+---
+sidebar: sidebar 
+permalink: networking/repair_port_reachability.html 
+keywords: port, reachability, repair, fix, error, switch, configuration, cable, cabling, wiring, wire, wired, re-cabled, layer 2, repair port reachability, network port reachability show -detail -node -port, repair reachability decision tree, unexpected ports, unreachable ports, lifs and repaired ports, vlans and repaired ports, interface groups and repaired ports 
+summary: Si un port est recâblé ou que la configuration du commutateur change, il peut être nécessaire de réparer un port dans un domaine de diffusion différent, nouveau ou existant 
+---
+= Réparation de l'accessibilité de l'orifice
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Les domaines de diffusion sont créés automatiquement. Cependant, si un port est recâblage ou si la configuration du commutateur change, un port peut avoir besoin d'être réparé dans un domaine de diffusion différent (nouveau ou existant).
+
+Vous devez être un administrateur de cluster pour effectuer cette tâche.
+
+Une commande est disponible pour réparer automatiquement la configuration du domaine de diffusion pour un port basé sur la capacité d'accessibilité de couche 2 détectée par ONTAP.
+
+.Étapes
+. Vérifiez la configuration et le câblage de votre commutateur.
+. Vérifiez l'accessibilité du port :
++
+`network port reachability show -detail -node -port`
+
++
+La sortie de la commande contient les résultats de l'accessibilité.
+
+. Utilisez l'arbre décisionnel et le tableau ci-dessous pour comprendre les résultats de l'accessibilité et déterminer ce que, le cas échéant, faire ensuite.
++
+image:ontap_nm_image1.png["Réparer l'arbre de décision de l'accessibilité"]
+
+
+
+[cols="20,80"]
+|===
+
+
+| État-accessibilité | Description 
+
+
+ a| 
+ok
+ a| 
+Le port a une capacité de réachbilité de couche 2 à son domaine de diffusion attribué. Si l'état de la capacité d'accessibilité est « ok », mais qu'il y a des « ports inattendus », envisagez de fusionner un ou plusieurs domaines de diffusion. Pour plus d'informations, reportez-vous à la _Unexpected ports_ row suivante.
+
+Si le statut de la capacité d'accessibilité est « ok », mais qu'il y a des « ports inaccessibles », envisagez de diviser un ou plusieurs domaines de diffusion. Pour plus d'informations, reportez-vous à la ligne _ports inaccessibles_ suivante.
+
+Si l'état de la capacité de reprise est « ok » et qu'il n'y a pas de ports inattendus ou inaccessibles, votre configuration est correcte.
+
+
+
+ a| 
+Ports inattendus
+ a| 
+Le port a une capacité de réachbilité de couche 2 à son domaine de diffusion attribué ; cependant, il a également la possibilité de reachcapacité de couche 2 à au moins un autre domaine de broadcast.
+
+Examinez la connectivité physique et la configuration du commutateur pour déterminer si elle est incorrecte ou si le domaine de diffusion attribué au port doit être fusionné avec un ou plusieurs domaines de diffusion.
+
+Pour plus d'informations, voir link:merge_broadcast_domains.html["Fusionner les domaines de diffusion"].
+
+
+
+ a| 
+Ports inaccessibles
+ a| 
+Si un seul domaine de diffusion a été partitionné en deux ensembles de capacité d'accès différents, vous pouvez fractionner un domaine de diffusion pour synchroniser la configuration ONTAP avec la topologie de réseau physique.
+
+En général, la liste des ports inaccessibles définit l'ensemble des ports qui doivent être divisés en un autre domaine de diffusion après avoir vérifié que la configuration physique et du commutateur est exacte.
+
+Pour plus d'informations, voir link:split_broadcast_domains.html["Séparer les domaines de diffusion"].
+
+
+
+ a| 
+mauvaise configuration de la capacité de réachbilité
+ a| 
+Le port n'a pas la capacité de reachcapacité de couche 2 à son domaine de diffusion affecté ; cependant, le port a une capacité de réachcapacité de couche 2 à un domaine de diffusion différent.
+
+Vous pouvez réparer l'accessibilité du port. Lorsque vous exécutez la commande suivante, le système affecte le port au broadcast domain auquel il a la capacité de reachcapacité :
+
+`network port reachability repair -node -port`
+
+
+
+ a| 
+sans trabilité
+ a| 
+Le port n'a pas la possibilité de reachcapacité de couche 2 à un domaine de diffusion existant.
+
+Vous pouvez réparer l'accessibilité du port. Lorsque vous exécutez la commande suivante, le système affecte le port à un nouveau domaine de diffusion créé automatiquement dans l'IPspace par défaut :
+
+`network port reachability repair -node -port`
+
+
+
+ a| 
+accessibilité multi-domaines
+ a| 
+Le port a une capacité de réachbilité de couche 2 à son domaine de diffusion attribué ; cependant, il a également la possibilité de reachcapacité de couche 2 à au moins un autre domaine de broadcast.
+
+Examinez la connectivité physique et la configuration du commutateur pour déterminer si elle est incorrecte ou si le domaine de diffusion attribué au port doit être fusionné avec un ou plusieurs domaines de diffusion.
+
+Pour plus d'informations, voir link:merge_broadcast_domains.html["Fusionner les domaines de diffusion"].
+
+
+
+ a| 
+inconnu
+ a| 
+Si l'état de la capacité d'accessibilité est « inconnu », attendez quelques minutes et essayez à nouveau la commande.
+
+|===
+Après avoir réparé un port, vérifiez s'il y a des LIFs et des VLAN déplacés. Si le port faisait partie d'un groupe d'interfaces, vous devez également connaître ce qui s'est passé pour ce groupe.
+
+
+
+== LIF
+
+Lorsqu'un port est réparé et déplacé dans un autre domaine de diffusion, tous les LIFs configurés sur le port réparé se voient automatiquement attribuer un nouveau port de base. Si possible, ce port home est sélectionné dans le même domaine de diffusion sur le même nœud. Vous pouvez également sélectionner un port home port à partir d'un autre nœud ou, s'il n'existe aucun port home approprié, celui-ci sera effacé.
+
+Si le port de rattachement d'une LIF est déplacé vers un autre nœud ou est effacé, la LIF est considérée comme ayant été « déplacée ». Vous pouvez afficher ces LIFs déplacées à l'aide de la commande suivante :
+
+`displaced-interface show`
+
+Si des LIF sont déplacées, il faut soit :
+
+* Restaurer le domicile de la LIF déplacée :
++
+`displaced-interface restore`
+
+* Définir l'origine du LIF manuellement :
++
+`network interface modify -home-port -home-node`
+
+* Supprimer l’entrée de la table « déplacés-interface » si vous êtes satisfait du domicile actuellement configuré du LIF :
++
+`displaced-interface delete`
+
+
+
+
+
+== VLAN
+
+Si le port réparé comporte des VLAN, ces derniers sont automatiquement supprimés mais sont également enregistrés comme ayant été « déplacés ». Vous pouvez afficher les VLAN déplacés suivants :
+
+`displaced-vlans show`
+
+En cas de déplacement de réseaux locaux virtuels, vous devez :
+
+* Restaurez les VLAN sur un autre port :
++
+`displaced-vlans restore`
+
+* Supprimez l'entrée du tableau « déplacés-vlan » :
++
+`displaced-vlans delete`
+
+
+
+
+
+== Groupes d'interface
+
+Si le port réparé faisait partie d'un groupe d'interfaces, il est retiré de ce groupe d'interfaces. S'il s'agissait du seul port membre attribué au groupe d'interface, le groupe d'interface lui-même est supprimé.
+
+link:https://docs.netapp.com/us-en/ontap/networking/verify_your_network_configuration.html["Vérifiez votre configuration réseau après la mise à niveau"]
+
+link:monitor_the_reachability_of_network_ports.html["Surveiller l'accessibilité des ports réseau"]

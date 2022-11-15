@@ -1,0 +1,173 @@
+---
+permalink: nas-audit/plan-fpolicy-scope-config-concept.html 
+sidebar: sidebar 
+keywords: plan, fpolicy, scope, configuration 
+summary: 'Avant de configurer le cadre FPolicy, vous devez comprendre ce qu"il signifie. Vous devez comprendre le contenu de la configuration du périmètre. Vous devez également comprendre les règles de priorité de la portée. Ces informations peuvent vous aider à planifier les valeurs que vous souhaitez définir.' 
+---
+= Planifier l'présentation de la configuration du cadre FPolicy
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de configurer le cadre FPolicy, vous devez comprendre ce qu'il signifie. Vous devez comprendre le contenu de la configuration du périmètre. Vous devez également comprendre les règles de priorité de la portée. Ces informations peuvent vous aider à planifier les valeurs que vous souhaitez définir.
+
+
+
+== Ce qu'il signifie pour créer une étendue FPolicy
+
+La création du périmètre FPolicy consiste à définir les limites de la règle FPolicy. Le serveur virtuel de stockage (SVM) est la limite de base. Lorsque vous créez un cadre pour une politique FPolicy, vous devez définir la politique FPolicy à laquelle elle s'applique, et vous devez désigner la SVM à laquelle vous souhaitez appliquer le périmètre.
+
+Un certain nombre de paramètres limitent davantage la portée au sein de la SVM spécifiée. Vous pouvez restreindre la portée en spécifiant ce qui doit être inclus dans la portée ou en spécifiant ce qui à exclure de la portée. Après avoir appliqué une portée à une stratégie activée, les vérifications d'événements de stratégie sont appliquées à la portée définie par cette commande.
+
+Des notifications sont générées pour les événements d'accès aux fichiers où des correspondances sont trouvées dans les options « inclure ». Les notifications ne sont pas générées pour les événements d'accès aux fichiers où des correspondances sont trouvées dans les options « exclure ».
+
+La configuration du périmètre FPolicy définit les informations de configuration suivantes :
+
+* Nom du SVM
+* Nom de la règle
+* Les partages à inclure ou à exclure de ce qui est surveillé
+* Les règles d'exportation à inclure ou à exclure de ce qui est surveillé
+* Les volumes à inclure ou à exclure de ce qui est surveillé
+* Les extensions de fichier à inclure ou exclure de ce qui est surveillé
+* Vérification de l'extension de fichier sur les objets de répertoire
+
+
+[NOTE]
+====
+Il existe des considérations spéciales à prendre en compte pour ce qui est des règles FPolicy de cluster. La politique de FPolicy de cluster est une règle que l'administrateur du cluster crée pour le SVM d'admin. Si l'administrateur du cluster crée également le périmètre de cette politique FPolicy de cluster, l'administrateur du SVM ne peut pas créer de étendue pour cette même politique. Toutefois, si l'administrateur du cluster ne crée pas de périmètre pour la politique de FPolicy de cluster, tout administrateur du SVM peut créer le périmètre de cette politique. Si l'administrateur SVM crée un périmètre pour cette politique FPolicy de cluster, l'administrateur du cluster ne peut pas créer par la suite une étendue de cluster pour cette même policy de cluster. En effet, l'administrateur du cluster ne peut pas remplacer la portée de la même politique de cluster.
+
+====
+
+
+== Les règles de priorité de la portée
+
+Les règles de priorité suivantes s'appliquent aux configurations du périmètre :
+
+* Lorsqu'un partage est inclus dans le `-shares-to-include` le paramètre et le volume parent du partage sont inclus dans le `-volumes-to-exclude` paramètre, `-volumes-to-exclude` a priorité sur `-shares-to-include`.
+* Lorsqu'une export-policy est incluse dans le `-export-policies-to-include` et le volume parent de la export policy est inclus dans le `-volumes-to-exclude` paramètre, `-volumes-to-exclude` a priorité sur `-export-policies-to-include`.
+* Un administrateur peut spécifier les deux `-file-extensions-to-include` et `-file-extensions-to-exclude` listes.
++
+Le `-file-extensions-to-exclude` le paramètre est vérifié avant le `-file-extensions-to-include` le paramètre est vérifié.
+
+
+
+
+
+== Contenu de la configuration de l'étendue FPolicy
+
+Pour planifier votre configuration, vous pouvez utiliser la liste suivante des paramètres de configuration du périmètre FPolicy disponibles :
+
+[NOTE]
+====
+Lors de la configuration des partages, des règles d'exportation, des volumes et des extensions de fichiers à inclure ou exclure du périmètre, les paramètres inclure et exclure peuvent contenir des expressions régulières et inclure des métacharacters tels que « »?`" and "`*».
+
+====
+[cols="70,30"]
+|===
+
+
+| Type d'information | Option 
+
+
+ a| 
+_SVM_
+
+Spécifie le nom du SVM sur lequel vous souhaitez créer une étendue FPolicy.
+
+Chaque configuration FPolicy est définie au sein d'un seul SVM. Le moteur externe, l'événement de politique, l'étendue des règles et la politique associés pour créer une configuration de politique FPolicy doivent tous être associés au même SVM.
+ a| 
+`-vserver` `vserver_name`
+
+
+
+ a| 
+_Nom de la politique_
+
+Spécifie le nom de la politique FPolicy à laquelle vous souhaitez associer le périmètre. La politique FPolicy doit déjà exister.
+ a| 
+`-policy-name` `policy_name`
+
+
+
+ a| 
+_Actions à inclure_
+
+Spécifie une liste de partages délimitée par des virgules pour contrôler la politique FPolicy à laquelle le périmètre est appliqué.
+ a| 
+`-shares-to-include` `share_name`, ...
+
+
+
+ a| 
+_Actions à exclure_
+
+Spécifie une liste de partages délimitée par des virgules, à exclure de la surveillance de la politique FPolicy à laquelle le périmètre est appliqué.
+ a| 
+`-shares-to-exclude` `share_name`, ...
+
+
+
+ a| 
+_Volumes à inclure_ Spécifie une liste de volumes séparés par des virgules à surveiller pour la politique FPolicy à laquelle le périmètre est appliqué.
+ a| 
+`-volumes-to-include` `volume_name`, ...
+
+
+
+ a| 
+_Volumes à exclure_
+
+Spécifie une liste de volumes séparés par des virgules à exclure de la surveillance de la politique FPolicy à laquelle le périmètre est appliqué.
+ a| 
+`-volumes-to-exclude` `volume_name`, ...
+
+
+
+ a| 
+_Exporter les stratégies à inclure_
+
+Spécifie une liste des règles d'exportation séparées par des virgules pour surveiller la politique FPolicy à laquelle le périmètre est appliqué.
+ a| 
+`-export-policies-to-include` `export_policy_name`, ...
+
+
+
+ a| 
+_Exporter des stratégies à exclure_
+
+Spécifie une liste de règles d'exportation séparées par des virgules afin d'exclure de la surveillance de la politique FPolicy à laquelle le périmètre est appliqué.
+ a| 
+`-export-policies-to-exclude` `export_policy_name`, ...
+
+
+
+ a| 
+_Extensions de fichier à inclure_
+
+Spécifie une liste d'extensions de fichiers délimitée par des virgules pour surveiller la politique FPolicy à laquelle le périmètre est appliqué.
+ a| 
+`-file-extensions-to-include` `file_extensions`, ...
+
+
+
+ a| 
+_Extension de fichier à exclure_
+
+Spécifie une liste d'extensions de fichiers délimitée par des virgules à exclure de la surveillance de la politique FPolicy à laquelle le périmètre est appliqué.
+ a| 
+`-file-extensions-to-exclude` `file_extensions`, ...
+
+
+
+ a| 
+_La vérification de l'extension de fichier sur le répertoire est-elle activée ?_
+
+Indique si les vérifications d'extension de nom de fichier s'appliquent également aux objets de répertoire. Si ce paramètre est défini sur `true`, les objets de répertoire sont soumis aux mêmes contrôles d'extension que les fichiers normaux. Si ce paramètre est défini sur `false`, les noms de répertoire ne correspondent pas pour les postes et les notifications sont envoyées pour les répertoires même si leurs extensions de nom ne correspondent pas.
+
+Si la politique FPolicy à laquelle l'étendue est affectée est configurée pour utiliser le moteur natif, ce paramètre doit être défini sur `true`.
+ a| 
+`-is-file-extension-check-on-directories-enabled` {`true`| `false`|}
+
+|===

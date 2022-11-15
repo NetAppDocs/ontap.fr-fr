@@ -1,0 +1,133 @@
+---
+permalink: performance-admin/set-throughput-floor-qos-task.html 
+sidebar: sidebar 
+keywords: setting, throughput, floor, qos 
+summary: 'Vous pouvez utiliser le champ min-débit d"un groupe de règles pour définir un étage de débit pour les workloads d"objets de stockage (QoS min). Vous pouvez appliquer le groupe de règles lors de la création ou de la modification de l"objet de stockage. Depuis la version ONTAP 9.8, vous pouvez spécifier le seuil de débit en IOPS ou Mbit/s, ou IOPS et Mbit/s.' 
+---
+= Définissez un seuil de débit avec la QoS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser le `min-throughput` Champ permettant à un groupe de règles de définir un étage de débit pour les workloads d'objets de stockage (QoS min). Vous pouvez appliquer le groupe de règles lors de la création ou de la modification de l'objet de stockage. Depuis la version ONTAP 9.8, vous pouvez spécifier le seuil de débit en IOPS ou Mbit/s, ou IOPS et Mbit/s.
+
+.Ce dont vous avez besoin, 8217;ll
+* Vous devez exécuter ONTAP 9.2 ou version ultérieure. Les étages de débit sont disponibles à partir de ONTAP 9.2.
+* Pour créer une « policy group » il faut être un administrateur de cluster.
+
+
+.Description de la tâche
+* Depuis ONTAP 9.4, vous pouvez utiliser un groupe de règles QoS _non-partagé_ pour spécifier que le niveau de débit défini soit appliqué individuellement à chaque charge de travail membre. C'est la seule condition dans laquelle un groupe de règles pour un étage de débit peut être appliqué à plusieurs charges de travail.
++
+Réglez `-is-shared=false` pour le `qos policy-group create` commande permettant de spécifier une « policy group » non partagée.
+
+* Le débit d'une charge de travail peut tomber en dessous du seuil spécifié si la capacité de performance est insuffisante (marge) sur le nœud ou l'agrégat.
+* Un objet de stockage faisant l'objet d'une limite QoS doit être contenu par le SVM auquel appartient le groupe de règles. Plusieurs « policy group » peuvent appartenir à la même SVM.
+* Il s'agit d'une meilleure pratique de QoS pour appliquer un groupe de règles au même type d'objets de stockage.
+* Un groupe de règles qui définit un étage de débit ne peut pas être appliqué à un SVM.
+
+
+.Étapes
+. Recherchez les capacités de performances adéquates sur le nœud ou l'agrégat, comme décrit dans permalink :Identify-subsistant-performance-Capacity-Task.html[identifiant les capacités de performances restantes].
+. Création d'une « policy group » :
++
+`qos policy-group create -policy group _policy_group_ -vserver _SVM_ -min-throughput _qos_target_ -is-shared true|false`
+
++
+Pour connaître la syntaxe complète de la commande, consultez la page man de votre version de ONTAP. Vous pouvez utiliser le `qos policy-group modify` commande permettant de régler les étages de débit.
+
++
+La commande suivante crée la « policy group » partagée `pg-vs2` Avec un débit minimal de 1,000 000 IOPS :
+
++
+[listing]
+----
+cluster1::> qos policy-group create -policy group pg-vs2 -vserver vs2 -min-throughput 1000iops -is-shared true
+----
++
+La commande suivante crée le « policy group » non partagé `pg-vs4` sans limite de débit :
+
++
+[listing]
+----
+cluster1::> qos policy-group create -policy group pg-vs4 -vserver vs4 -is-shared false
+----
+. Appliquer une « policy group » à un volume ou une LUN :
++
+`_storage_object_ create -vserver _SVM_ -qos-policy-group _policy_group_`
+
++
+Pour connaître la syntaxe complète des commandes, consultez les pages de manuels. Vous pouvez utiliser le `_storage_object_modify` commande pour appliquer un autre groupe de règles à l'objet de stockage.
+
++
+La commande suivante applique la « policy group » `pg-app2` au volume `app2`:
+
++
+[listing]
+----
+cluster1::> volume create -vserver vs2 -volume app2 -aggregate aggr1 -qos-policy-group pg-app2
+----
+. Surveillance des performances des groupes de règles :
++
+`qos statistics performance show`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+[NOTE]
+====
+Contrôle des performances depuis le cluster. N'utilisez pas d'outil sur l'hôte pour surveiller les performances.
+
+====
++
+La commande suivante affiche les performances de « policy group » :
+
++
+[listing]
+----
+cluster1::> qos statistics performance show
+Policy Group           IOPS      Throughput   Latency
+-------------------- -------- --------------- ----------
+-total-                 12316       47.76MB/s  1264.00us
+pg_app2                  7216       28.19MB/s   420.00us
+_System-Best-Effort        62       13.36KB/s     4.13ms
+_System-Background         30           0KB/s        0ms
+----
+. Contrôle de la performance des charges de travail :
++
+`qos statistics workload performance show`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+[NOTE]
+====
+Contrôle des performances depuis le cluster. N'utilisez pas d'outil sur l'hôte pour surveiller les performances.
+
+====
++
+La commande suivante indique les performances des workloads :
+
++
+[listing]
+----
+cluster1::> qos statistics workload performance show
+Workload          ID     IOPS      Throughput    Latency
+--------------- ------ -------- ---------------- ----------
+-total-              -    12320        47.84MB/s  1215.00us
+app2-wid7967      7967     7219        28.20MB/s   319.00us
+vs1-wid12279     12279     5026        19.63MB/s     2.52ms
+_USERSPACE_APPS     14       55        10.92KB/s   236.00us
+_Scan_Backgro..   5688       20            0KB/s        0ms
+----
++
+[NOTE]
+====
+Vous pouvez utiliser le `qos statistics workload latency show` Commande pour afficher les statistiques de latence détaillées pour les workloads de QoS.
+
+====
+

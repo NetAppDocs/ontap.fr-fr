@@ -1,0 +1,101 @@
+---
+permalink: volumes/aggregate-fullness-overallocation-alerts-concept.html 
+sidebar: sidebar 
+keywords: how to, address, aggregate, fullness, overallocation, alerts 
+summary: 'ONTAP émet des messages EMS lorsque les agrégats manquent d"espace afin de mettre en place des actions correctives en fournissant davantage d"espace à l"agrégat complet. Connaître les types d"alertes et leur répondre vous aide à assurer la disponibilité de vos données.' 
+---
+= Adresse des alertes de plénitude et de surallocation des agrégats
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP émet des messages EMS lorsque les agrégats manquent d'espace afin de mettre en place des actions correctives en fournissant davantage d'espace à l'agrégat complet. Connaître les types d'alertes et leur répondre vous aide à assurer la disponibilité de vos données.
+
+Lorsqu'un agrégat est décrit comme _full_, cela signifie que le pourcentage de l'espace de l'agrégat disponible pour une utilisation par volumes est inférieur à un seuil prédéfini. Lorsqu'un agrégat devient _overallocated_, l'espace utilisé par ONTAP pour les métadonnées et pour prendre en charge l'accès aux données de base a été épuisé. Parfois, l'espace réservé normalement à d'autres fins peut être utilisé pour assurer le fonctionnement de l'agrégat, mais il est possible que l'offre de garantie des volumes associés à l'agrégat ou à la disponibilité des données soit menacée.
+
+La surallocation peut être logique ou physique. _La surallocation logique_ signifie que l'espace réservé pour respecter les engagements futurs en matière d'espace, tels que les garanties de volume, a été utilisé dans un autre but. _La surallocation physique_ signifie que l'agrégat manque de blocs physiques à utiliser. Les agrégats présents dans cet état risquent de refuser les écritures, de se mettre hors ligne ou de provoquer une interruption du contrôleur.
+
+Le tableau suivant décrit les alertes de plénitude et de surallocation d'agrégats, les actions que vous pouvez entreprendre pour résoudre le problème et les risques de non-prise d'action.
+
+[cols="5%,5%,5%,35%,25%,25%"]
+|===
+| Type d'alerte | Niveau EMS | Configurable ? | Définition | Façons de traiter | Risque si aucune action n'a été prise 
+
+
+ a| 
+Presque pleine
+ a| 
+Débogage
+ a| 
+N
+ a| 
+La quantité d'espace alloué aux volumes, y compris leurs garanties, a dépassé le seuil défini pour cette alerte (95 %). Le pourcentage est le `Used` Total moins la taille de la réserve Snapshot.
+ a| 
+* Ajout de stockage à l'agrégat
+* Réduction ou suppression de volumes
+* Déplacement de volumes vers un autre agrégat disposant de plus d'espace
+* Suppression des garanties de volume (configuration des garanties sur `none`)
+
+ a| 
+Écriture de données et disponibilité des données simplifiées.
+
+
+
+ a| 
+Pleine
+ a| 
+Débogage
+ a| 
+N
+ a| 
+Le système de fichiers a dépassé le seuil défini pour cette alerte (98 %). Le pourcentage est le `Used` Total moins la taille de la réserve Snapshot.
+ a| 
+* Ajout de stockage à l'agrégat
+* Réduction ou suppression de volumes
+* Déplacement de volumes vers un autre agrégat disposant de plus d'espace
+* Suppression des garanties de volume (configuration des garanties sur `none`)
+
+ a| 
+Les garanties de volumes de l'agrégat peuvent être menacées, ainsi que les opérations d'écriture sur ces volumes.
+
+
+
+ a| 
+Sur-allocation logique
+ a| 
+Erreur SVC
+ a| 
+N
+ a| 
+En plus de l'espace réservé pour les volumes pleins, l'espace de l'agrégat utilisé pour les métadonnées a été épuisé.
+ a| 
+* Ajout de stockage à l'agrégat
+* Réduction ou suppression de volumes
+* Déplacement de volumes vers un autre agrégat disposant de plus d'espace
+* Suppression des garanties de volume (configuration des garanties sur `none`)
+
+ a| 
+Les garanties de volumes de l'agrégat sont menacées, ainsi que les opérations d'écriture de ces volumes.
+
+
+
+ a| 
+Sur-allocation physique
+ a| 
+Erreur de nœud
+ a| 
+N
+ a| 
+L'agrégat manque de blocs physiques sur lequel il peut écrire.
+ a| 
+* Ajout de stockage à l'agrégat
+* Réduction ou suppression de volumes
+* Déplacement de volumes vers un autre agrégat disposant de plus d'espace
+
+ a| 
+Les opérations d'écriture sur les volumes de l'agrégat sont menacées, ainsi que la disponibilité des données ; l'agrégat peut être mis hors ligne. Dans des cas extrêmes, le nœud peut subir une interruption.
+
+|===
+Chaque fois qu'un seuil est franchi pour un agrégat, que le pourcentage de plénitude augmente ou tombe, un message EMS est généré. Lorsque le niveau de remplissage de l'agrégat tombe en dessous d'un seuil, un `aggregate ok` Un message EMS est généré.

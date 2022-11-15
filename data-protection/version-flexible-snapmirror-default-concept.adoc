@@ -1,0 +1,145 @@
+---
+permalink: data-protection/version-flexible-snapmirror-default-concept.html 
+sidebar: sidebar 
+keywords: xdp, replace, dp, snapmirror, default, snap mirror, data protection, replication, replicate, snap lock, snaplock 
+summary: 'Depuis ONTAP 9.3, le mode SnapMirror Extended Data protection (XDP) remplace le mode SnapMirror Data protection (DP) par défaut.' 
+---
+= XDP remplace DP par défaut SnapMirror
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.3, le mode SnapMirror Extended Data protection (XDP) remplace le mode SnapMirror Data protection (DP) par défaut.
+
+Avant de mettre à niveau votre système vers ONTAP 9.12.1, vous devez convertir les relations de type DP en relation XDP avant de pouvoir procéder à une mise à niveau vers ONTAP 9.12.1 et versions ultérieures. Pour plus d'informations, voir link:convert-snapmirror-version-flexible-task.html["Convertir une relation de type DP existante en XDP"].
+
+Jusqu'à ONTAP 9.3, SnapMirror invoqué en mode DP et SnapMirror invoqué en mode XDP utilisait différents moteurs de réplication, avec différentes approches de la dépendance vis-à-vis de la version :
+
+* SnapMirror appelé en mode DP utilisait un moteur de réplication _version-dépendante_ dans lequel la version de ONTAP était requise pour le stockage primaire et secondaire :
++
+[listing]
+----
+cluster_dst::>  snapmirror create -type DP -source-path ... -destination-path ...
+----
+* SnapMirror appelé en mode XDP utilisait un moteur de réplication _version-flexible_ qui prenait en charge différentes versions ONTAP sur le stockage primaire et secondaire :
++
+[listing]
+----
+cluster_dst::>  snapmirror create -type XDP -source-path ... -destination-path ...
+----
+
+
+Grâce aux améliorations des performances, les avantages significatifs de SnapMirror flexible à la version compensent légèrement l'avantage en termes de débit de réplication obtenu avec le mode dépendant de la version. C'est pour cette raison, depuis ONTAP 9.3, le mode XDP est devenu le nouveau paramètre par défaut et toutes les invocations du mode DP sur la ligne de commande ou dans les scripts nouveaux ou existants sont automatiquement converties en mode XDP.
+
+Les relations existantes ne sont pas affectées. Si une relation est déjà de type DP, elle continuera d'être de type DP. Depuis ONTAP 9.5, MirrorAndVault est la nouvelle règle par défaut lorsqu'aucun mode de protection des données n'est spécifié ou lorsque le mode XDP est spécifié comme type de relation. Le tableau ci-dessous montre le comportement auquel vous pouvez vous attendre.
+
+[cols="3*"]
+|===
+
+
+| Si vous spécifiez... | Le type est... | La stratégie par défaut (si vous ne spécifiez pas de règle) est... 
+
+
+ a| 
+DP
+ a| 
+XDP
+ a| 
+MirrorAllsnapshots (reprise après incident SnapMirror)
+
+
+
+ a| 
+Rien
+ a| 
+XDP
+ a| 
+MirrorAndVault (réplication unifiée)
+
+
+
+ a| 
+XDP
+ a| 
+XDP
+ a| 
+MirrorAndVault (réplication unifiée)
+
+|===
+Comme le tableau le montre, les règles par défaut attribuées à XDP dans différentes circonstances garantissent que la conversion conserve l'équivalence fonctionnelle des anciens types. Vous pouvez bien sûr utiliser différentes règles si nécessaire, y compris des règles pour la réplication unifiée :
+
+[cols="3*"]
+|===
+
+
+| Si vous spécifiez... | Et la politique est... | Résultat : 
+
+
+ a| 
+DP
+ a| 
+MirrorAllsnapshots
+ a| 
+Reprise sur incident SnapMirror
+
+
+
+ a| 
+XDPDefault
+ a| 
+SnapVault
+
+
+
+ a| 
+MirrorAndVault
+ a| 
+Réplication unifiée
+
+
+
+ a| 
+XDP
+ a| 
+MirrorAllsnapshots
+ a| 
+Reprise sur incident SnapMirror
+
+
+
+ a| 
+XDPDefault
+ a| 
+SnapVault
+
+
+
+ a| 
+MirrorAndVault
+ a| 
+Réplication unifiée
+
+|===
+Les seules exceptions à la conversion sont les suivantes :
+
+* Les relations de protection des données de SVM continuent à être par défaut en mode DP dans ONTAP 9.3 et versions antérieures.
++
+Depuis ONTAP 9.4, les relations de protection des données du SVM sont définies par défaut en mode XDP
+
+* Les relations de protection des données de partage de la charge du volume racine continuent à être par défaut en mode DP.
+* Les relations de protection des données SnapLock continuent à être par défaut en mode DP dans ONTAP 9.4 et versions antérieures.
++
+Depuis ONTAP 9.5, les relations de protection des données SnapLock se servent par défaut du mode XDP.
+
+* Les invocations explicites de DP continuent à être activées par défaut avec le mode DP si vous définissez l'option d'ensemble du cluster suivante :
++
+[listing]
+----
+options replication.create_data_protection_rels.enable on
+----
++
+Cette option est ignorée si vous n'appelez pas explicitement DP.
+
+

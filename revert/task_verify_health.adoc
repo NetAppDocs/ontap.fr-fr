@@ -1,0 +1,169 @@
+---
+permalink: revert/task_verify_health.html 
+sidebar: sidebar 
+keywords: ontap, revert, reverting, reversion, downgrade, downgrading, verifying, verify, cluster, health 
+summary: Une fois que vous avez repassé un cluster ou que vous le déclasser, vous devez vérifier que les nœuds sont en bon état et peuvent participer au cluster, et que le cluster est au quorum. 
+---
+= Vérification de l'état du cluster et du stockage après une restauration antérieure
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une fois que vous avez déclassés ou repassé un cluster, vérifiez que les nœuds sont en bon état et peuvent participer au cluster, et que le cluster est au quorum. Vous devez également vérifier l'état de vos disques, agrégats et volumes.
+
+
+
+== Vérification de l'état du cluster
+
+. Vérifiez que les nœuds du cluster sont en ligne et peuvent participer au cluster : `cluster show`
++
+[listing]
+----
+cluster1::> cluster show
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node0                 true    true
+node1                 true    true
+----
++
+Si l'un des nœuds est défectueux ou non éligible, vérifiez la présence d'erreurs dans les journaux EMS et effectuez des actions correctives.
+
+. Définissez le niveau de privilège sur avancé : +
+`set -privilege advanced`
++
+Entrez `y` pour continuer.
+
+. Vérifier les détails de configuration pour chaque processus RDB
++
+** L'époque de la base de données relationnelle et les séries de tests de base de données doivent correspondre pour chaque nœud.
+** Le maître de quorum par anneau doit être le même pour tous les nœuds.
++
+Notez que chaque anneau peut avoir un maître de quorum différent.
+
++
+[cols="2*"]
+|===
+| Pour afficher ce processus RDB... | Entrez cette commande... 
+
+
+ a| 
+Application de gestion
+ a| 
+`cluster ring show -unitname mgmt`
+
+
+
+ a| 
+Base de données d'emplacement de volume
+ a| 
+`cluster ring show -unitname vldb`
+
+
+
+ a| 
+Gestionnaire d'interface virtuelle
+ a| 
+`cluster ring show -unitname vifmgr`
+
+
+
+ a| 
+Démon de gestion DU SAN
+ a| 
+`cluster ring show -unitname bcomd`
+
+|===
++
+Cet exemple représente le processus de la base de données d'emplacements de volumes :
+
+
+
++
+[listing]
+----
+cluster1::*> cluster ring show -unitname vldb
+Node      UnitName Epoch    DB Epoch DB Trnxs Master    Online
+--------- -------- -------- -------- -------- --------- ---------
+node0     vldb     154      154      14847    node0     master
+node1     vldb     154      154      14847    node0     secondary
+node2     vldb     154      154      14847    node0     secondary
+node3     vldb     154      154      14847    node0     secondary
+4 entries were displayed.
+----
+. Retour au niveau de privilège admin : `set -privilege admin`
+. Si vous travaillez dans un environnement SAN, vérifiez que chaque nœud se trouve dans un quorum SAN : `event log show  -severity informational -message-name scsiblade.*`
++
+Le message d'événement scsiBlade le plus récent pour chaque nœud doit indiquer que le SCSI-Blade est quorum.
+
++
+[listing]
+----
+cluster1::*> event log show  -severity informational -message-name scsiblade.*
+Time             Node       Severity       Event
+---------------  ---------- -------------- ---------------------------
+MM/DD/YYYY TIME  node0      INFORMATIONAL  scsiblade.in.quorum: The scsi-blade ...
+MM/DD/YYYY TIME  node1      INFORMATIONAL  scsiblade.in.quorum: The scsi-blade ...
+----
+
+
+link:../system-admin/index.html["Administration du système"]
+
+
+
+== Vérification de l'état du stockage
+
+Lorsque vous restaurez ou déclassés un cluster, vous devez vérifier l'état de vos disques, agrégats et volumes.
+
+. Vérification de l'état du disque :
++
+[cols="2*"]
+|===
+| Pour vérifier... | Procédez comme ça... 
+
+
+ a| 
+Disques cassés
+ a| 
+.. Afficher les éventuels disques défectueux : `storage disk show -state broken`
+.. Retirez ou remplacez tout disque endommagé.
+
+
+
+
+ a| 
+Disques soumis à des opérations de maintenance ou de reconstruction
+ a| 
+.. Afficher tous les disques en état de maintenance, en attente ou reconstruction : `storage disk show -state maintenance|pending|reconstructing`
+.. Attendez la fin de l'opération de maintenance ou de reconstruction avant de poursuivre.
+
+
+|===
+. Vérifiez que tous les agrégats sont en ligne en affichant l'état du stockage physique et logique, y compris les agrégats de stockage : `storage aggregate show -state !online`
++
+Cette commande affiche les agrégats qui sont _not_ online. Tous les agrégats doivent être en ligne avant et après avoir effectué une mise à niveau ou une nouvelle version majeure.
+
++
+[listing]
+----
+cluster1::> storage aggregate show -state !online
+There are no entries matching your query.
+----
+. Vérifiez que tous les volumes sont en ligne en affichant les volumes _NOT_ online : `volume show -state !online`
++
+Tous les volumes doivent être en ligne avant et après avoir effectué une mise à niveau ou une nouvelle version majeure.
+
++
+[listing]
+----
+cluster1::> volume show -state !online
+There are no entries matching your query.
+----
+. Vérifiez qu'il n'y a pas de volumes incohérents : `volume show -is-inconsistent true`
++
+Consultez l'article de la base de connaissances link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Volume_Showing_WAFL_Inconsistent["Volume affichant des WAFL incohérentes"] sur la manière de traiter les volumes incohérents.
+
+
+
+link:../disks-aggregates/index.html["Gestion des disques et des agrégats"]

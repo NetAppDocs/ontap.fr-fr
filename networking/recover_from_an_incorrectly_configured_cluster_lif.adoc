@@ -1,0 +1,47 @@
+---
+sidebar: sidebar 
+permalink: networking/recover_from_an_incorrectly_configured_cluster_lif.html 
+keywords: misconfigured, misconfigurations, incorrect, incorrectly, switch, switches, switched, cable, physical, wiring, wired, reachability, port, cluster, ontap 9.8 and later, recover from an incorrectly configured cluster lif, how to identify and correct a cluster that has been misconfigured, cluster create, network port, reachability show -detail, reset the home port 
+summary: Comment identifier et corriger un cluster mal configuré 
+---
+= ONTAP 9.8 et versions ultérieures : récupération depuis une LIF de cluster mal configurée
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Un cluster ne peut pas être créé lorsque le réseau de cluster est câblé à un commutateur, mais tous les ports configurés dans le Cluster IPspace peuvent atteindre les autres ports configurés dans le Cluster IPspace.
+
+Dans un cluster commuté, si une interface réseau de cluster (LIF) est configurée sur le port inapproprié ou si un port de cluster est câblé dans le mauvais réseau, le `cluster create` la commande peut échouer avec l'erreur suivante :
+
+....
+Not all local cluster ports have reachability to one another.
+Use the "network port reachability show -detail" command for more details.
+....
+Les résultats du `network port show` La commande peut montrer que plusieurs ports sont ajoutés au Cluster IPspace car ils sont connectés à un port configuré avec une LIF de cluster. Toutefois, les résultats du `network port` `reachability show -detail` commande permet d'identifier les ports qui ne sont pas en connexion.
+
+Pour restaurer une LIF de cluster configurée sur un port qui n'est pas accessible aux autres ports configurés avec des LIFs de cluster, effectuez les opérations suivantes :
+
+.Étapes
+. Réinitialiser le home port de la LIF de cluster sur le port correct :
++
+....
+network port modify -home-port
+....
+. Retirer les ports qui ne disposent pas de LIFs de cluster configurées sur eux du cluster broadcast domain :
++
+....
+network port broadcast-domain remove-ports
+....
+. Création du cluster :
++
+....
+cluster create
+....
+
+
+Une fois le cluster créé, le système détecte la configuration correcte et place les ports dans les domaines de diffusion appropriés.

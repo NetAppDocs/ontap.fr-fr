@@ -1,0 +1,96 @@
+---
+permalink: san-admin/configure-flexvol-delete-flexclone-files-luns-task.html 
+sidebar: sidebar 
+keywords: configure, flexvol, volume, automatically, delete, flexclone, files, flexclone, luns 
+summary: 'Vous pouvez activer un volume FlexVol pour supprimer automatiquement les fichiers FlexClone et les LUN FlexClone avec la suppression automatique activée lorsque l"espace libre dans le volume diminue en dessous d"un seuil particulier.' 
+---
+= Configurer un volume FlexVol pour supprimer automatiquement les fichiers FlexClone et les LUN FlexClone
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez activer un volume FlexVol pour supprimer automatiquement les fichiers FlexClone et les LUN FlexClone avec la suppression automatique activée lorsque l'espace libre dans le volume diminue en dessous d'un seuil particulier.
+
+.Ce dont vous avez besoin, 8217;ll
+* Le volume FlexVol doit contenir des fichiers FlexClone et des LUN FlexClone, et doit être en ligne.
+* Le volume FlexVol ne doit pas être un volume en lecture seule.
+
+
+.Étapes
+. Activez la suppression automatique des fichiers FlexClone et des LUN FlexClone dans le volume FlexVol à l'aide de la `volume snapshot autodelete modify` commande.
++
+** Pour le `-trigger` vous pouvez spécifier un paramètre `volume` ou `snap_reserve`.
+** Pour le `-destroy-list` paramètre, vous devez toujours spécifier `lun_clone,file_clone` que vous souhaitiez supprimer un seul type de clone ou non. + l'exemple suivant montre comment activer la commande volume vol1 pour déclencher la suppression automatique des fichiers FlexClone et des LUN FlexClone pour réclamer de l'espace jusqu'à 25 % du volume se compose d'espace libre :
++
+[listing]
+----
+cluster1::> volume snapshot autodelete modify -vserver vs1 -volume vol1 -enabled true -commitment disrupt -trigger volume -target-free-space 25 -destroy-list lun_clone,file_clone
+
+Volume modify successful on volume:vol1
+----
++
+[NOTE]
+====
+Lors de l'activation des volumes FlexVol pour la suppression automatique, si vous définissez la valeur de `-commitment` paramètre à `destroy`, Tous les fichiers FlexClone et les LUN FlexClone avec `-autodelete` paramètre défini sur `true` il est possible de supprimer l'espace libre dans le volume lorsque la valeur de seuil spécifiée est inférieure à ce seuil. Mais, les fichiers FlexClone et les LUN FlexClone avec `-autodelete` paramètre défini sur `false` ne sera pas supprimé.
+
+====
+
+
+. Vérifier que la suppression automatique des fichiers FlexClone et des LUN FlexClone est activée dans le volume FlexVol à l'aide de la `volume snapshot autodelete show` commande.
++
+L'exemple suivant montre que le volume vol1 est activé pour la suppression automatique des fichiers FlexClone et des LUN FlexClone :
+
++
+[listing]
+----
+cluster1::> volume snapshot autodelete show -vserver vs1 -volume vol1
+
+         Vserver Name: vs1
+          Volume Name: vol1
+          Enabled: true
+           Commitment: disrupt
+         Defer Delete: user_created
+         Delete Order: oldest_first
+  Defer Delete Prefix: (not specified)*
+    Target Free Space: 25%
+              Trigger: volume
+     Destroy List: lun_clone,file_clone
+Is Constituent Volume: false
+----
+. Assurez-vous que la suppression automatique est activée pour les fichiers FlexClone et les LUN FlexClone dans le volume que vous souhaitez supprimer en effectuant les étapes suivantes :
++
+.. Activez la suppression automatique d'un fichier FlexClone ou d'une LUN FlexClone spécifique à l'aide de `volume file clone autodelete` commande.
++
+Vous pouvez forcer la suppression automatique d'un fichier FlexClone ou d'une LUN FlexClone spécifique à l'aide du `volume file clone autodelete` commande avec `-force` paramètre.
+
++
+L'exemple suivant montre que la suppression automatique de la LUN FlexClone LUN1_clone contenue dans le volume vol1 est activée :
+
++
+[listing]
+----
+cluster1::> volume file clone autodelete -vserver vs1 -clone-path /vol/vol1/lun1_clone -enabled true
+----
++
+Vous pouvez activer la suppression automatique lors de la création de fichiers FlexClone et de LUN FlexClone.
+
+.. Vérifiez que le fichier FlexClone ou la LUN FlexClone est activé pour la suppression automatique à l'aide du `volume file clone show-autodelete` commande.
++
+L'exemple suivant montre que la LUN FlexClone LUN1_clone est activée pour la suppression automatique :
+
++
+[listing]
+----
+cluster1::> volume file clone show-autodelete -vserver vs1 -clone-path vol/vol1/lun1_clone
+															Vserver Name: vs1
+															Clone Path: vol/vol1/lun1_clone
+															**Autodelete Enabled: true**
+----
+
+
++
+Pour plus d'informations sur l'utilisation des commandes, consultez les pages de manuels respectives.
+
+

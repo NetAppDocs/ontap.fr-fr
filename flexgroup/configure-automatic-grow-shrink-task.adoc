@@ -1,0 +1,52 @@
+---
+permalink: flexgroup/configure-automatic-grow-shrink-task.html 
+sidebar: sidebar 
+keywords: configure, flexgroup, volume, automatic, grow, shrink, size 
+summary: 'Depuis ONTAP 9.3, vous pouvez configurer des volumes FlexGroup pour qu"ils puissent croître ou diminuer automatiquement en fonction de l"espace dont ils ont besoin actuellement.' 
+---
+= Configurez les volumes FlexGroup pour qu'ils augmentent ou réduisent automatiquement leur taille
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.3, vous pouvez configurer des volumes FlexGroup pour qu'ils puissent croître ou diminuer automatiquement en fonction de l'espace dont ils ont besoin actuellement.
+
+Le volume FlexGroup doit être en ligne.
+
+Deux modes sont disponibles pour la dimensionnement automatique des volumes FlexGroup :
+
+* Augmentez automatiquement la taille du volume (`grow` mode)
++
+La croissance automatique permet d'éviter que le volume FlexGroup manque d'espace si l'agrégat peut fournir plus d'espace. Vous pouvez configurer la taille maximale du volume. L'augmentation est automatiquement déclenchée en fonction de la quantité de données écrites sur le volume par rapport à la quantité d'espace utilisé actuelle, ainsi que des seuils définis.
+
++
+Par défaut, la taille maximale qu'un volume peut atteindre est de 120 % de la taille à laquelle la croissance automatique est activée. Si vous devez vous assurer que le volume peut augmenter de manière à ce qu'il dépasse, vous devez définir la taille maximale du volume en conséquence.
+
+* Réduisez la taille du volume automatiquement (`grow_shrink` mode)
++
+La réduction automatique empêche la taille d'un volume que nécessaire, ce qui libère de l'espace dans l'agrégat pour les autres volumes.
+
++
+Autoshrink ne peut être utilisé qu'en combinaison avec la croissance automatique pour répondre aux demandes d'espace changeantes et n'est pas disponible seul. Lorsque l'option Autohrink est activée, ONTAP gère automatiquement le comportement de décroissance d'un volume afin d'éviter une boucle infinie d'actions Autohrink et Autoshrink.
+
+
+
+L'augmentation automatique du nombre maximal de fichiers qu'il peut contenir peut s'avérer nécessaire à mesure qu'un volume augmente. Lorsqu'un volume est réduit, le nombre maximal de fichiers qu'il peut contenir reste inchangé et un volume ne peut pas être automatiquement réduit en dessous de la taille qui correspond à son nombre maximal actuel de fichiers. Par conséquent, il est possible qu'il ne soit pas possible de réduire automatiquement un volume jusqu'à sa taille d'origine.
+
+.Étape
+. Configurez le volume pour qu'il augmente ou diminue automatiquement sa taille : `volume autosize -vserver vserver_name -volume vol_name -mode [grow | grow_shrink]`
++
+Vous pouvez également spécifier la taille maximale, la taille minimale et les seuils pour agrandir ou réduire le volume.
+
++
+La commande suivante active les changements de taille automatiques pour un volume appelé fg1. Le volume est configuré pour atteindre une taille maximale de 5 To lorsqu'il est plein à 70 %.
+
++
+[listing]
+----
+cluster1::> volume autosize -volume fg1 -mode grow -maximum-size 5TB -grow-threshold-percent 70
+vol autosize: volume "vs_src:fg1" autosize settings UPDATED.
+----
+

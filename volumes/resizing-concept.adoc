@@ -1,0 +1,70 @@
+---
+permalink: volumes/resizing-concept.html 
+sidebar: sidebar 
+keywords: when to, use, resizing 
+summary: 'Le redimensionnement des quotas étant plus rapide que l"initialisation des quotas, vous devez utiliser le redimensionnement autant que possible. Toutefois, le redimensionnement ne fonctionne que pour certains types de modifications de quotas.' 
+---
+= Lorsque vous pouvez utiliser le redimensionnement
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le redimensionnement des quotas étant plus rapide que l'initialisation des quotas, vous devez utiliser le redimensionnement autant que possible. Toutefois, le redimensionnement ne fonctionne que pour certains types de modifications de quotas.
+
+Vous pouvez redimensionner les quotas en apportez les types de modifications suivants aux règles de quotas :
+
+* Modifier un quota existant.
++
+Par exemple, la modification des limites d'un quota existant.
+
+* Ajout d'un quota pour une cible de quota pour laquelle il existe un quota par défaut ou un quota de suivi par défaut.
+* Suppression d'un quota pour lequel une entrée de quota par défaut ou de quota de suivi par défaut est spécifiée.
+* Combinaison de quotas d'utilisateurs distincts dans un quota multi-utilisateurs.
+
+
+[NOTE]
+====
+Après avoir apporté de nombreuses modifications de quotas, vous devez procéder à une réinitialisation complète pour vous assurer que toutes les modifications prennent effet.
+
+====
+[NOTE]
+====
+Si vous tentez de redimensionner ou non la totalité de vos modifications des quotas peut être incorporée à l'aide d'une opération de redimensionnement, ONTAP émet un avertissement. Vous pouvez déterminer dans le rapport de quotas si votre système de stockage effectue le suivi de l'utilisation de disques pour un utilisateur, un groupe ou un qtree spécifique. Si vous voyez un quota dans le rapport sur les quotas, cela signifie que le système de stockage suit l'espace disque et le nombre de fichiers appartenant à la cible de quota.
+
+====
+Certaines modifications de la règle de quotas peuvent être effectuées efficacement par le redimensionnement. Prenez en compte les quotas suivants :
+
+[listing]
+----
+
+#Quota Target type             disk  files thold sdisk sfile
+#------------ ----             ----  ----- ----- ----- -----
+*             user@/vol/vol2    50M   15K
+*             group@/vol/vol2  750M   85K
+*             tree@/vol/vol2      -     -
+jdoe          user@/vol/vol2/  100M   75K
+kbuck         user@/vol/vol2/  100M   75K
+----
+Supposons que vous apportez les modifications suivantes :
+
+* Augmentez le nombre de fichiers pour la cible utilisateur par défaut.
+* Ajoutez un nouveau quota d'utilisateur pour un nouvel utilisateur, boris, qui a besoin de plus de limite de disque que le quota d'utilisateur par défaut.
+* Supprimez l'entrée de quota explicite de l'utilisateur kbuck ; le nouvel utilisateur n'a désormais besoin que des limites de quota par défaut.
+
+
+Ces modifications entraînent les quotas suivants :
+
+[listing]
+----
+
+#Quota Target type             disk  files thold sdisk sfile
+#------------ ----             ----  ----- ----- ----- -----
+*             user@/vol/vol2    50M   25K
+*             group@/vol/vol2  750M   85K
+*             tree@/vol/vol2      -     -
+jdoe          user@/vol/vol2/  100M   75K
+boris         user@/vol/vol2/  100M   75K
+----
+Le redimensionnement active toutes ces modifications ; une réinitialisation complète du quota n'est pas nécessaire.

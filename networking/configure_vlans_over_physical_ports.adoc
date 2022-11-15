@@ -1,0 +1,154 @@
+---
+sidebar: sidebar 
+permalink: networking/configure_vlans_over_physical_ports.html 
+keywords: configure, configuration, configuring, setup, setting, set, up, vlan, virtual, local, area, network, physical, port, logical, segmentation, configure vlans over physical ports, vlans provide logical segmentation of networks, create a vlan, network port vlan create, delete a vlan, network port vlan delete 
+summary: Les VLAN permettent la segmentation logique des réseaux 
+---
+= Configurez les VLAN sur des ports physiques
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Les VLAN permettent une segmentation logique des réseaux en créant des domaines de diffusion séparés définis sur une base de port de commutateur, par opposition aux domaines de diffusion traditionnels, définis sur des limites physiques.
+
+Un VLAN peut s'étendre sur plusieurs segments de réseau physique. Les stations terminales appartenant à un VLAN sont liés par fonction ou application.
+
+Par exemple, les stations d'extrémité d'un VLAN peuvent être regroupées par des départements, tels que l'ingénierie et la comptabilité, ou par des projets, tels que la release1 et la rele2. Étant donné que la proximité physique des stations de fin n'est pas essentielle dans un VLAN, vous pouvez disperser géographiquement les stations de fin et encore contenir le domaine de diffusion dans un réseau commuté.
+
+Vous pouvez gérer des VLAN en créant, en supprimant ou en affichant des informations les concernant.
+
+
+NOTE: Vous ne devez pas créer de VLAN sur une interface réseau avec le même identifiant que le VLAN natif du commutateur. Par exemple, si l'interface réseau e0b est sur un VLAN 10 natif, vous ne devez pas créer de VLAN e0b-10 sur cette interface.
+
+
+
+== Créez un VLAN
+
+Vous pouvez créer un VLAN pour la maintenance de domaines de diffusion distincts au sein du même domaine réseau en utilisant System Manager ou le `network port vlan create` commande.
+
+Vérifiez que les exigences suivantes ont été respectées :
+
+* Les commutateurs déployés sur le réseau doivent soit être conformes aux normes IEEE 802.1Q, soit disposer d'une implémentation spécifique au fournisseur de VLAN.
+* Pour prendre en charge plusieurs VLAN, une station d'extrémité doit être configurée de manière statique pour appartenir à un ou plusieurs VLAN.
+* Le VLAN n'est pas connecté à un port hébergeant une LIF de cluster.
+* Le VLAN n'est pas connecté aux ports affectés à l'IPspace Cluster.
+* Le VLAN n'est pas créé sur un port de groupe d'interfaces qui ne contient aucun port membre.
+
+
+La création d'un VLAN connecte le VLAN au port réseau d'un nœud spécifié d'un cluster.
+
+Lorsque vous configurez un VLAN sur un port pour la première fois, le port risque de tomber en panne, entraînant une déconnexion temporaire du réseau. Les ajouts de VLAN ultérieurs au même port n'affectent pas l'état du port.
+
+
+NOTE: Vous ne devez pas créer de VLAN sur une interface réseau avec le même identifiant que le VLAN natif du commutateur. Par exemple, si l'interface réseau e0b est sur un VLAN 10 natif, vous ne devez pas créer de VLAN e0b-10 sur cette interface.
+
+La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Utilisez System Manager pour créer un VLAN*
+
+Depuis ONTAP 9.12.0, vous pouvez sélectionner automatiquement le domaine de diffusion ou manuellement sur dans la liste. Auparavant, les domaines de diffusion étaient toujours sélectionnés automatiquement en fonction de la connectivité de couche 2. Si vous sélectionnez manuellement un domaine de diffusion, un avertissement s'affiche pour indiquer que la sélection manuelle d'un domaine de diffusion peut entraîner une perte de connectivité.
+
+.Étapes
+. Sélectionnez *réseau > port Ethernet > + VLAN*.
+. Sélectionnez le nœud dans la liste déroulante.
+. Choisissez parmi les options suivantes :
++
+.. ONTAP à *sélectionne automatiquement le domaine de diffusion (recommandé)*.
+.. Pour sélectionner manuellement un domaine de diffusion dans la liste.
+
+
+. Sélectionnez les ports pour former le VLAN.
+. Spécifiez l'ID du VLAN.
+. Enregistrez les modifications.
+
+
+--
+.CLI
+--
+*Utilisez l'interface de ligne de commande pour créer un VLAN*
+
+Dans certaines circonstances, si vous voulez créer le port VLAN sur un port dégradé sans corriger le problème matériel ou toute mauvaise configuration logicielle, alors vous pouvez définir le `-ignore-health-status` paramètre du `network port modify` commande en tant que `true`.
+
+.Étapes
+. Utilisez le `network port vlan create` Pour créer un VLAN.
+. Vous devez spécifier l' `vlan-name` ou le `port` et `vlan-id` Options lors de la création d'un VLAN. Le nom du VLAN est une combinaison du nom du port (ou du groupe d'interfaces) et de l'identificateur du VLAN du commutateur réseau, avec un tiret entre les deux. Par exemple : `e0c-24` et `e1c-80` Sont des noms de VLAN valides.
+
+
+L'exemple suivant montre comment créer un VLAN `e1c-80` connecté au port réseau `e1c` sur le nœud `cluster-1-01`:
+
+....
+network port vlan create -node cluster-1-01 -vlan-name e1c-80
+....
+Depuis ONTAP 9.8, les VLAN sont automatiquement placés dans des domaines de diffusion appropriés environ une minute après leur création. Si vous ne souhaitez pas que ONTAP le fait, et préférez placer manuellement le VLAN dans un domaine de diffusion, spécifiez le `-skip-broadcast-domain-placement` dans le cadre du `vlan create` commande.
+
+Pour plus d'informations sur cette commande, voir http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes ONTAP 9"^].
+
+--
+====
+
+
+== Modifiez un VLAN
+
+Vous pouvez modifier le domaine de diffusion ou désactiver un VLAN.
+
+Depuis ONTAP 9.12.0, vous pouvez sélectionner automatiquement le domaine de diffusion ou manuellement sur dans la liste. Auparavant, les domaines de diffusion étaient toujours sélectionnés automatiquement en fonction de la connectivité de couche 2. Si vous sélectionnez manuellement un domaine de diffusion, un avertissement s'affiche pour indiquer que la sélection manuelle d'un domaine de diffusion peut entraîner une perte de connectivité.
+
+.Étapes
+. Sélectionnez *réseau > port Ethernet > VLAN*.
+. Sélectionnez l'icône de modification.
+. Effectuez l'une des opérations suivantes :
++
+** Modifiez le domaine de diffusion en sélectionnant un autre domaine dans la liste.
+** Décochez la case *Enabled*.
+
+
+. Enregistrez les modifications.
+
+
+
+
+== Supprimer un VLAN
+
+Vous devrez peut-être supprimer un VLAN avant de retirer une carte réseau de son logement. Lorsque vous supprimez un VLAN, il est automatiquement supprimé de toutes les règles et groupes de basculement qui l'utilisent.
+
+Assurez-vous qu'il n'y a pas de LIFs associées au VLAN.
+
+La suppression du dernier VLAN d'un port peut provoquer une déconnexion temporaire du réseau du port.
+
+La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Utilisez System Manager pour supprimer un VLAN*
+
+.Étapes
+. Sélectionnez *réseau > port Ethernet > VLAN*.
+. Sélectionnez le VLAN à supprimer.
+. Cliquez sur *Supprimer*.
+
+
+--
+.CLI
+--
+*Utilisez l'interface de ligne de commande pour supprimer un VLAN*
+
+Utilisez le `network port vlan delete` Commande de suppression d'un VLAN.
+
+L'exemple suivant montre comment supprimer un VLAN `e1c-80` dans le port réseau `e1c` sur le nœud `cluster-1-01`:
+
+....
+network port vlan delete -node cluster-1-01 -vlan-name e1c-80
+....
+--
+====

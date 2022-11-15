@@ -1,0 +1,60 @@
+---
+permalink: encryption-at-rest/change-encryption-key-volume-92-earlier-task.html 
+sidebar: sidebar 
+keywords: changing, encryption key, volume, volume move start, command 
+summary: 'Il est recommandé de modifier régulièrement la clé de chiffrement d"un volume. Vous pouvez utiliser la commande volume Move start pour changer la clé de chiffrement. Vous devez utiliser le déplacement de volume commençant par ONTAP 9.2 et les versions antérieures. Le volume déplacé peut résider sur le même agrégat ou sur un autre agrégat.' 
+---
+= Modifiez la clé de chiffrement d'un volume à l'aide de la commande volume Move start
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Il est recommandé de modifier régulièrement la clé de chiffrement d'un volume. Vous pouvez utiliser le `volume move start` commande pour changer la clé de chiffrement. Vous devez utiliser `volume move start` Dans ONTAP 9.2 et versions antérieures. Le volume déplacé peut résider sur le même agrégat ou sur un autre agrégat.
+
+Vous devez être un administrateur de cluster pour effectuer cette tâche, ou un administrateur de SVM à qui l'administrateur du cluster a délégué des pouvoirs.
+
+link:delegate-volume-encryption-svm-administrator-task.html["Délégation d'autorité pour exécuter la commande de déplacement de volume"]
+
+Vous ne pouvez pas utiliser `volume move start` Pour reKey un volume SnapLock ou FlexGroup.
+
+.Étapes
+. Déplacer un volume existant et modifier la clé de chiffrement :
++
+`volume move start -vserver SVM_name -volume volume_name -destination-aggregate aggregate_name -generate-destination-key true`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+La commande suivante déplace un volume existant nommé `*vol1*` vers l'agrégat de destination `*aggr2*` et modifie la clé de chiffrement :
+
++
+[listing]
+----
+cluster1::> volume move start -vserver vs1 -volume vol1 -destination-aggregate aggr2 -generate-destination-key true
+----
++
+Une nouvelle clé de chiffrement est créée pour le volume. Les données du volume restent chiffrées.
+
+. Vérifiez que le volume est activé pour le chiffrement :
++
+`volume show -is-encrypted true`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+La commande suivante affiche les volumes chiffrés sur `cluster1`:
+
++
+[listing]
+----
+cluster1::> volume show -is-encrypted true
+
+Vserver  Volume  Aggregate  State  Type  Size  Available  Used
+-------  ------  ---------  -----  ----  -----  --------- ----
+vs1      vol1    aggr2     online    RW  200GB    160.0GB  20%
+----
+

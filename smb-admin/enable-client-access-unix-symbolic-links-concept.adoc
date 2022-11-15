@@ -1,0 +1,49 @@
+---
+permalink: smb-admin/enable-client-access-unix-symbolic-links-concept.html 
+sidebar: sidebar 
+keywords: smybol, link, file, create, unix, environment, reference, directory, client, access, redirect, target, absolute, widelinks, local, file, system, how ontap enables you to provide smb client access to unix symbolic links 
+summary: 'Un lien symbolique est un fichier créé dans un environnement UNIX qui contient une référence à un autre fichier ou répertoire. Si un client accède à un lien symbolique, le client est redirigé vers le fichier ou répertoire cible auquel le lien symbolique fait référence. ONTAP prend en charge les liens symboliques relatifs et absolus, y compris les liens filaires (liens absolus avec des cibles en dehors du système de fichiers local).' 
+---
+= Comment ONTAP vous permet de fournir un accès client SMB aux liens symboliques UNIX
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Un lien symbolique est un fichier créé dans un environnement UNIX qui contient une référence à un autre fichier ou répertoire. Si un client accède à un lien symbolique, le client est redirigé vers le fichier ou répertoire cible auquel le lien symbolique fait référence. ONTAP prend en charge les liens symboliques relatifs et absolus, y compris les liens filaires (liens absolus avec des cibles en dehors du système de fichiers local).
+
+ONTAP permet aux clients SMB de suivre des liens symboliques UNIX configurés sur la SVM. Cette fonction est facultative et vous pouvez la configurer par partage à l'aide de `-symlink-properties` de la `vserver cifs share create` avec l'un des paramètres suivants :
+
+* Accès en lecture/écriture
+* Activé avec accès en lecture seule
+* Désactivé en masquant les liens symboliques des clients SMB
+* Désactivé sans accès aux liens symboliques des clients SMB
+
+
+Si vous activez des liens symboliques sur un partage, les liens symboliques relatifs fonctionnent sans configuration supplémentaire.
+
+Si vous activez des liens symboliques sur un partage, les liens symboliques absolus ne fonctionnent pas immédiatement. Vous devez d'abord créer un mappage entre le chemin UNIX du lien symbolique et le chemin SMB de destination. Lors de la création de mappages de liens symboliques absolus, vous pouvez spécifier s'il s'agit d'un lien local ou d'un _widelink_ ; les liens vers des systèmes de fichiers sur d'autres périphériques de stockage ou des liens vers des systèmes de fichiers hébergés dans des SVM distincts sur le même système ONTAP. Lorsque vous créez un lien, il doit inclure les informations que le client doit suivre, c'est-à-dire que vous créez un point de reanalyse pour que le client puisse découvrir le point de jonction du répertoire. Si vous créez un lien symbolique absolu vers un fichier ou un répertoire en dehors du partage local mais que vous définissez la localité sur local, ONTAP n'autorise pas l'accès à la cible.
+
+[NOTE]
+====
+Si un client tente de supprimer un lien symbolique local (absolu ou relatif), seul le lien symbolique est supprimé, pas le fichier ou le répertoire cible. Toutefois, si un client tente de supprimer un lien vers le fil, il peut supprimer le fichier ou le répertoire cible auquel le lien vers le fil vers le fil. ONTAP n'a pas le contrôle sur cela, car le client peut explicitement ouvrir le fichier ou le répertoire cible en dehors du SVM et le supprimer.
+
+====
+* *Analyse des points et des services de système de fichiers ONTAP*
++
+Un _reparse point_ est un objet système de fichiers NTFS qui peut éventuellement être stocké sur des volumes avec un fichier. Les points de reanalyse permettent aux clients SMB de recevoir des services de système de fichiers améliorés ou étendus lorsqu'ils travaillent avec des volumes de style NTFS. Les points de réanalyse se composent d'étiquettes standard identifiant le type de point de réanalyse et le contenu du point de réanalyse pouvant être récupéré par les clients SMB pour un traitement ultérieur par le client. Parmi les types d'objets disponibles pour la fonctionnalité étendue du système de fichiers, ONTAP met en œuvre la prise en charge des liens symboliques NTFS et des points de jonction de répertoire à l'aide de balises de point de reparse. Les clients SMB qui ne peuvent pas comprendre le contenu d'un point de reanalyse le ignorent et ne fournissent pas le service étendu de système de fichiers que le point de reanalyse peut activer.
+
+* *Prise en charge des points de jonction de répertoire et de ONTAP pour les liens symboliques*
++
+Les points de jonction de répertoire sont des emplacements au sein d'une structure de répertoire de système de fichiers qui peuvent faire référence à des emplacements de remplacement où les fichiers sont stockés, soit sur un chemin différent (liens symboliques), soit sur un périphérique de stockage distinct (liens filaires). Les serveurs ONTAP SMB exposent les points de jonction de répertoire aux clients Windows sous forme de points de reanalyse, ce qui permet aux clients capables d'obtenir le contenu du point de reanalyse à partir de ONTAP lorsqu'un point de jonction de répertoire est en cours de traitement. Ils peuvent ainsi naviguer et se connecter à différents chemins ou périphériques de stockage comme s'ils faisaient partie du même système de fichiers.
+
+* *Activation de la prise en charge wdelink à l'aide des options de point de réanalyse*
++
+Le `-is-use-junctions-as-reparse-points-enabled` Cette option est activée par défaut dans ONTAP 9. Tous les clients SMB ne prennent pas en charge les widelinks. L'option d'activation des informations peut donc être configurée selon la version du protocole, ce qui permet aux administrateurs de prendre en charge à la fois les clients SMB pris en charge et les clients SMB non pris en charge. Dans ONTAP 9.2 et versions ultérieures, vous devez activer cette option `-widelink-as-reparse-point-versions` Pour chaque protocole client qui accède au partage à l'aide de widelinks, la valeur par défaut est SMB1. Dans les versions antérieures, seules les widelinks accessibles à l'aide de SMB1 par défaut ont été signalés et les systèmes utilisant SMB2 ou SMB3 n'ont pas pu accéder aux widelinks.
+
+
+
+Pour plus d'informations, consultez la documentation Microsoft NTFS.
+
+https://docs.microsoft.com/en-us/windows/win32/fileio/reparse-points["Documentation Microsoft : analyse des points"]

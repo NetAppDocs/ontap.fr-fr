@@ -1,0 +1,85 @@
+---
+permalink: system-admin/threshold-based-sp-sensor-readings-status-concept.html 
+sidebar: sidebar 
+keywords: understand, threshold, sp, sensor, readings, status, value, command, output, periodic, operating, conditions 
+summary: Les capteurs à seuils prélèvent des mesures périodiques des différents composants du système. Le SP compare la mesure d’un capteur à seuil aux limites de seuil prédéfinies qui définissent les conditions de fonctionnement acceptables d’un composant. 
+---
+= À propos des mesures du capteur du processeur de service à seuil et des valeurs d'état du résultat de la commande des capteurs du système
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les capteurs à seuils prélèvent des mesures périodiques des différents composants du système. Le processeur de service compare la mesure d'un capteur à seuil par rapport aux limites de seuil prédéfinies qui définissent les conditions de fonctionnement acceptables d'un composant.
+
+En fonction de la mesure du capteur, le processeur de service affiche l'état du capteur pour vous aider à contrôler l'état du composant.
+
+Les capteurs de température, de tension, de courant et de vitesse des ventilateurs du système sont des exemples de capteurs à seuils. La liste spécifique des capteurs à seuils dépend de la plateforme.
+
+Les seuils des capteurs à seuils sont les suivants, affichés dans le résultat du processeur de service `system sensors` commande :
+
+* Valeur critique inférieure (LCR)
+* Valeur non critique inférieure (LNC)
+* Valeur non critique supérieure (UNC)
+* Valeur critique supérieure (UCR)
+
+
+Une mesure de capteur entre LNC et LCR ou entre UNC et UCR indique des signes d'un problème et une panne du système. Par conséquent, vous devez prévoir rapidement un entretien du composant.
+
+Une mesure de capteur inférieure à LCR ou supérieure à UCR indique un dysfonctionnement du composant et une panne imminente du système. Le composant requiert donc une intervention immédiate.
+
+Le schéma suivant illustre les plages de gravité spécifiées par les seuils :
+
+image::../media/sp-sensor-thresholds.png[Ce graphique est décrit par le texte environnant.]
+
+La mesure d'un capteur à seuil se trouve sous le `Current` dans le `system sensors` sortie de la commande. Le `system sensors get` `sensor_name` la commande affiche des détails supplémentaires pour le capteur spécifié. Lorsque la mesure d'un capteur à seuil franchit les plages de seuils non critique et critique, le capteur signale un problème d'augmentation de la gravité. Lorsque la mesure dépasse une limite de seuil, l'état du capteur dans l' `system sensors` la sortie de la commande change de `ok` à `nc` (non critique) ou `cr` (Critique) selon le seuil dépassé et un message d'événement est enregistré dans le journal des événements du journal des événements du système.
+
+Certains capteurs à seuils ne possèdent pas les quatre niveaux de seuil. Les seuils manquants indiquent concernant ces capteurs `na` comme leurs limites dans le `system sensors` Le résultat de la commande, indiquant que le capteur particulier n'a aucune limite ou problème de gravité pour le seuil donné, et que le processeur de service ne surveille pas le capteur pour ce seuil.
+
+L'exemple suivant montre certaines des informations affichées par `system sensors` Commande dans l'interface de ligne de commandes du processeur de service :
+
+[listing]
+----
+SP node1> system sensors
+
+Sensor Name      | Current    | Unit       | Status| LCR       | LNC       | UNC       | UCR
+-----------------+------------+------------+-------+-----------+-----------+-----------+-----------
+CPU0_Temp_Margin | -55.000    | degrees C  | ok    | na        | na        | -5.000    | 0.000
+CPU1_Temp_Margin | -56.000    | degrees C  | ok    | na        | na        | -5.000    | 0.000
+In_Flow_Temp     | 32.000     | degrees C  | ok    | 0.000     | 10.000    | 42.000    | 52.000
+Out_Flow_Temp    | 38.000     | degrees C  | ok    | 0.000     | 10.000    | 59.000    | 68.000
+CPU1_Error       | 0x0        | discrete   | 0x0180| na        | na        | na        | na
+CPU1_Therm_Trip  | 0x0        | discrete   | 0x0180| na        | na        | na        | na
+CPU1_Hot         | 0x0        | discrete   | 0x0180| na        | na        | na        | na
+IO_Mid1_Temp     | 30.000     | degrees C  | ok    | 0.000     | 10.000    | 55.000    | 64.000
+IO_Mid2_Temp     | 30.000     | degrees C  | ok    | 0.000     | 10.000    | 55.000    | 64.000
+CPU_VTT          | 1.106      | Volts      | ok    | 1.028     | 1.048     | 1.154     | 1.174
+CPU0_VCC         | 1.154      | Volts      | ok    | 0.834     | 0.844     | 1.348     | 1.368
+3.3V             | 3.323      | Volts      | ok    | 3.053     | 3.116     | 3.466     | 3.546
+5V               | 5.002      | Volts      | ok    | 4.368     | 4.465     | 5.490     | 5.636
+STBY_1.8V        | 1.794      | Volts      | ok    | 1.678     | 1.707     | 1.892     | 1.911
+…
+----
+L'exemple suivant montre le résultat de la saisie `system sensors get` `sensor_name` Dans l'interface de ligne de commandes du processeur de service pour le capteur à seuil 5V :
+
+[listing]
+----
+SP node1> system sensors get 5V
+
+Locating sensor record...
+Sensor ID              : 5V (0x13)
+ Entity ID             : 7.97
+ Sensor Type (Analog)  : Voltage
+ Sensor Reading        : 5.002 (+/- 0) Volts
+ Status                : ok
+ Lower Non-Recoverable : na
+ Lower Critical        : 4.246
+ Lower Non-Critical    : 4.490
+ Upper Non-Critical    : 5.490
+ Upper Critical        : 5.758
+ Upper Non-Recoverable : na
+ Assertion Events      :
+ Assertions Enabled    : lnc- lcr- ucr+
+ Deassertions Enabled  : lnc- lcr- ucr+
+----

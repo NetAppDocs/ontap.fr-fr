@@ -1,0 +1,114 @@
+---
+permalink: s3-multiprotocol/index.html 
+sidebar: sidebar 
+keywords: multiprotocol, s3, configuration, overview, nfs, smb 
+summary: Depuis ONTAP 9.12.1, vous pouvez activer les clients exécutant le protocole S3 pour accéder aux données qui sont servies aux clients qui utilisent les protocoles NFS et SMB sans nouveau formatage. 
+---
+= Présentation multiprotocole S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.12.1, vous pouvez activer les clients exécutant le protocole S3 pour accéder aux données qui sont servies aux clients qui utilisent les protocoles NFS et SMB sans nouveau formatage. Ainsi, les données NAS peuvent continuer à être servies aux clients NAS, tout en présentant les données d'objet aux clients S3 qui exécutent des applications S3 (par exemple, le data mining et l'intelligence artificielle).
+
+La fonctionnalité multiprotocole S3 répond à deux cas d'utilisation :
+
+. Accès aux données NAS existantes à l'aide de clients S3
++
+Si vos données existantes ont été créées à l'aide de clients NAS classiques (NFS ou SMB) et sont situées sur des volumes NAS (volumes FlexVol ou FlexGroup), vous pouvez désormais utiliser les outils d'analytique des clients S3 pour accéder à ces données.
+
+. Stockage back-end pour les clients modernes capables d'exécuter des E/S avec les protocoles NAS et S3
++
+Vous disposez désormais d'un accès intégré aux applications comme Spark et Kafka, capables de lire et d'écrire les mêmes données à l'aide des protocoles NAS et S3.
+
+
+
+
+
+== Fonctionnement du protocole multiprotocole S3
+
+ONTAP multiprotocole permet de présenter le même jeu de données que la hiérarchie de fichiers ou qu'en tant qu'objets dans un compartiment. Pour ce faire, ONTAP crée des « compartiments NAS S3 » qui permettent aux clients S3 de créer, lire, supprimer et énumérer des fichiers dans le stockage NAS à l'aide de requêtes d'objets S3. Ce mappage est conforme à la configuration de sécurité NAS, en observant les autorisations d'accès aux fichiers et aux répertoires ainsi qu'en écrivant dans la piste d'audit de sécurité si nécessaire.
+
+Ce mappage est effectué en présentant une hiérarchie de répertoires NAS spécifiée comme un compartiment S3. Chaque fichier de la hiérarchie de répertoires est représenté comme un objet S3 dont le nom est relatif à partir du répertoire mappé vers le bas, avec des limites de répertoire représentées par le caractère de barre oblique ('/').
+
+Les utilisateurs standard de ONTAP-defined S3 peuvent accéder à ce stockage, conformément aux règles de compartiment définies pour le compartiment correspondant au répertoire NAS. Pour que cela soit possible, des mappages doivent être définis entre les utilisateurs S3 et SMB/NFS. Les informations d'identification des utilisations SMB/NFS seront utilisées pour la vérification des autorisations NAS et incluses dans tous les enregistrements d'audit résultant de ces accès.
+
+Lorsqu'un fichier est créé par des clients SMB ou NFS, il est immédiatement placé dans un répertoire, et donc visible aux clients, avant l'écriture des données. Les clients S3 s'attendent à une sémantique différente, où le nouvel objet n'est pas visible dans le namespace tant que toutes ses données n'ont pas été écrites. Le mappage de S3 sur le stockage NAS crée des fichiers avec la sémantique S3, afin de rendre les fichiers invisibles en externe jusqu'à la fin de la commande de création S3.
+
+
+
+== Protection des données par compartiments NAS S3
+
+Les « compartiments » NAS S3 sont simplement des mappages des données NAS pour les clients S3, ils ne sont pas des compartiments S3 standard. Par conséquent, il n'est pas nécessaire de protéger les compartiments NAS S3 à l'aide de la fonctionnalité NetApp S3 SnapMirror. Vous pouvez plutôt répliquer des SVM source contenant des compartiments NAS S3 via une relation de protection des données SnapMirror standard avec des SVM de destination.
+
+Découvrez link:../data-protection/snapmirror-svm-replication-concept.html["Réplication de SVM SnapMirror"].
+
+
+
+== Audit des compartiments NAS S3
+
+Les compartiments NAS S3 ne sont pas des compartiments S3 classiques. L'audit S3 ne peut donc pas être configuré pour l'audit de l'accès. En savoir plus sur link:../s3-audit/index.html["Audit S3"].
+
+Cependant, les fichiers et les répertoires NAS mappés dans des compartiments NAS S3 peuvent être audités pour les événements d'accès à l'aide de procédures d'audit ONTAP conventionnelles. Les opérations S3 peuvent ainsi déclencher des événements d'audit NAS, à l'exception de ce qui suit :
+
+* Si l'accès client S3 est refusé par la configuration de la règle S3 (groupe ou règle de compartiment), l'audit NAS pour l'événement n'est pas lancé. En effet, les autorisations S3 sont vérifiées avant la vérification des audits des SVM.
+* Si le fichier cible d'une requête GET S3 est de taille 0, le contenu 0 est renvoyé à la demande GET et l'accès en lecture n'est pas consigné.
+* Si le fichier cible d'une requête GET S3 se trouve dans un dossier pour lequel l'utilisateur n'a pas d'autorisation « traverse », la tentative d'accès échoue et l'événement n'est pas enregistré.
+
+
+Découvrez link:../nas-audit/auditing-events-concept.html["Audit des événements NAS sur les SVM"].
+
+
+
+== Interopérabilité S3 et NAS
+
+Sauf mention contraire, les compartiments NAS ONTAP S3 prennent en charge les fonctionnalités NAS standard et S3.
+
+
+
+=== La fonctionnalité NAS n'est pas prise en charge par les compartiments NAS S3
+
+Un niveau de capacité FabricPool:: Les compartiments NAS S3 ne peuvent pas être configurés en tant que Tier de capacité pour FabricPool.
+
+
+
+
+=== La fonctionnalité S3 n'est pas prise en charge par les compartiments NAS S3
+
+Métadonnées d'utilisateur AWS::
++
+--
+* Les paires de valeurs-clés reçues dans le cadre des métadonnées S3 ne sont pas stockées sur le disque avec les données d'objet dans la version actuelle.
+* Les en-têtes de demande avec le préfixe "x-amz-META" sont ignorés.
+
+
+--
+Balises AWS::
++
+--
+* Sur les demandes d'initialisation D'objet PUT et multipart, les en-têtes avec le préfixe "x-amz-tagging" sont ignorés.
+* Les demandes de mise à jour des balises sur un fichier existant (c'est-à-dire une requête PUT, GET et Delete avec la chaîne de requête ?tagging) sont rejetées par une erreur.
+
+
+--
+Gestion des versions:: Il n'est pas possible de spécifier la gestion des versions dans la configuration du mappage des compartiments.
++
+--
+* Les demandes qui incluent des spécifications de version non nulles (versionID=xyz query-string) reçoivent des réponses d'erreur.
+* Les demandes visant à affecter l'état de gestion des versions d'un compartiment sont rejetées avec des erreurs.
+
+
+--
+Opérations en plusieurs parties:: Les opérations suivantes ne sont pas prises en charge :
++
+--
+* AbortMultipartUpload
+* CompleteMultipartUpload
+* CreateMultipartUpload
+* ListMultipartUpload
+
+
+--
+

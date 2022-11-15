@@ -1,0 +1,133 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_how_automatic_takeover_and_giveback_works.html 
+keywords: ontap, high availability, ha, pair, automatic, takeover, giveback, background, updates, policy, effect, node, panics, what, happens 
+summary: Les opérations de Takeover automatique et giveback peuvent fonctionner ensemble pour réduire et éviter les pannes client. 
+---
+= Fonctionnement du Takeover et Giveback automatique
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Les opérations de Takeover automatique et giveback peuvent fonctionner ensemble pour réduire et éviter les pannes client.
+
+Par défaut, si un nœud de la paire haute disponibilité fonctionne de façon incohérente, redémarre ou s'arrête, le nœud partenaire prend automatiquement le relais, puis renvoie le stockage lors du redémarrage du nœud affecté. La paire HA reprend son état de fonctionnement normal.
+
+Des prises de contrôle automatiques peuvent également se produire si l'un des nœuds ne répond plus.
+
+Le rétablissement automatique est effectué par défaut. Si vous préférez contrôler l'impact du rétablissement sur les clients, vous pouvez désactiver le rétablissement automatique et utiliser le `storage failover modify -auto-giveback false -node <node>` commande. Avant d'effectuer un retour automatique (quel que soit l'origine de l'opération), le nœud partenaire attend une durée fixe, telle que contrôlée par le `-delay- seconds` paramètre du `storage failover modify` commande. Le délai par défaut est de 600 secondes. Avec le report du rétablissement, ce processus provoque deux brèves pannes : une lors du basculement et une lors du rétablissement.
+
+Ce processus permet d'éviter une seule panne prolongée qui inclut le temps nécessaire pour :
+
+* Opération de basculement
+* Le nœud pris-le pour démarrer jusqu'à l'instant où il est prêt pour le rétablissement
+* L'opération de rétablissement
+
+
+Si le rétablissement automatique échoue pour l'un des agrégats non racines, le système effectue automatiquement deux tentatives supplémentaires pour terminer le rétablissement.
+
+
+NOTE: Lors du processus de basculement, le processus de rétablissement automatique démarre avant que le nœud partenaire soit prêt pour le rétablissement. Lorsque la limite de temps du processus de rétablissement automatique expire et que le nœud partenaire n'est pas encore prêt, le compteur redémarre. Par conséquent, le temps entre le nœud partenaire et le rétablissement proprement dit peut être plus court que le délai de rétablissement automatique.
+
+
+
+== Ce qui se passe pendant le basculement
+
+Lorsqu'un nœud prend le relais, il continue à transmettre et à mettre à jour les données dans les agrégats et les volumes du partenaire.
+
+Les étapes suivantes se produisent durant le processus de basculement :
+
+. Si le basculement négocié est initié par l'utilisateur, les données agrégées sont déplacées du nœud partenaire vers le nœud qui effectue le basculement. Une brève panne se produit en tant que le propriétaire actuel de chaque agrégat (à l'exception de l'agrégat root) est remplacé par le nœud Takeover. Cette panne est plus qu'un problème survient lors d'un basculement sans déplacement d'agrégats.
++
+** Vous pouvez contrôler la progression à l'aide de l' `storage failover show‑takeover` commande.
+** Vous pouvez éviter le transfert d'agrégat pendant cette instance de basculement en utilisant le `‑bypass‑optimization` paramètre avec le `storage failover takeover` commande.
++
+
+NOTE: Les agrégats sont transférés en série lors des opérations de basculement planifiées afin de réduire l'interruption des activités du client. Si le transfert d'agrégats est contourné, une panne client plus longue se produit lors d'événements de basculement planifiés.
+
+
+
+. Si le basculement initié par l'utilisateur est un basculement négocié, le nœud cible s'arrête aisément, suivi du basculement de l'agrégat racine du nœud cible et de tout agrégat n'ayant pas été transféré à l'étape 1.
+. Avant que le basculement du stockage ne commence, les LIF de données (interfaces logiques) migrent du nœud cible vers le nœud de basculement, ou vers un autre nœud du cluster en fonction des règles de basculement LIF. Vous pouvez éviter la migration de LIF à l'aide de `‑skip‑lif-migration` paramètre avec le `storage failover takeover` commande.
+. Les sessions SMB existantes sont déconnectées lors du basculement.
++
+
+NOTE: En raison de la nature du protocole SMB, toutes les sessions SMB sont interrompues (à l'exception des sessions SMB 3.0 connectées à des partages avec la propriété Continuous Availability set). Les sessions SMB 1.0 et SMB 2.x ne peuvent pas se reconnecter après un événement de basculement. Par conséquent, le basculement est perturbateur et risque de perte de données.
+
+. Les sessions SMB 3.0 établies pour des partages avec la propriété Continuous Availability activée peuvent se reconnecter aux partages déconnectés après un événement de basculement. Si votre site utilise des connexions SMB 3.0 vers Microsoft Hyper-V et que la propriété Continuous Availability est activée sur les partages associés, les prises de contrôle ne sont pas perturbatrices pour ces sessions.
+
+
+
+
+=== Que se passe-t-il si un nœud exécute un basculement de façon incohérente
+
+Si le nœud exécutant le basculement fonctionne de façon incohérente dans les 60 secondes suivant le lancement du basculement, les événements suivants se produisent :
+
+* Le nœud qui s'est paniqué redémarre.
+* Après le redémarrage, le nœud effectue des opérations de reprise automatique et n'est plus en mode basculement.
+* Le basculement est désactivé.
+* Si le nœud possède toujours certains agrégats du partenaire, après activation du basculement de stockage, retournez ces agrégats au partenaire à l'aide du `storage failover giveback` commande.
+
+
+
+
+== Ce qui se passe pendant le retour
+
+Le nœud local revient à la propriété sur le nœud partenaire lorsque les problèmes sont résolus, lors du démarrage du nœud partenaire ou lors du lancement du retour.
+
+Le processus suivant a lieu dans une opération de rétablissement normale. Dans cette discussion, le nœud A a pris le relais du nœud B. Tout problème sur le nœud B a été résolu et il est prêt à reprendre le service des données.
+
+. Tout problème sur le nœud B est résolu et le message suivant s'affiche : `Waiting for giveback`
+. Le rétablissement est initié par le `storage failover giveback` commande ou par rétablissement automatique si le système est configuré pour celui-ci. Cette opération démarre le processus de retour à la propriété des agrégats et volumes du nœud B, à partir du nœud A, vers le nœud B.
+. Le nœud A renvoie en premier le contrôle de l'agrégat racine.
+. Le nœud B termine le processus de démarrage jusqu'à son état de fonctionnement normal.
+. Dès que le nœud B atteint le point de démarrage où il peut accepter les agrégats non racines, le nœud A renvoie la propriété des autres agrégats, un par un, jusqu'à ce que le rétablissement soit terminé. Vous pouvez surveiller la progression du rétablissement à l'aide de `storage failover show-giveback` commande.
++
+
+NOTE: Le `storage failover show-giveback` la commande ne renvoie pas (ni n'est destinée) affiche les informations relatives à toutes les opérations qui se produisent durant l'opération de rétablissement du basculement du stockage. Vous pouvez utiliser le `storage failover show` commande permettant d'afficher des informations supplémentaires sur l'état de basculement actuel du nœud, par exemple si ce dernier est entièrement fonctionnel, si un basculement est possible et si un retour est terminé.
+
++
+Les E/S sont reprises pour chaque agrégat après le rétablissement de cet agrégat, ce qui réduit la fenêtre de l'interruption globale.
+
+
+
+
+
+== LA politique DE HAUTE DISPONIBILITÉ et ses effets sur le basculement et le rétablissement
+
+ONTAP attribue automatiquement une stratégie de haute disponibilité de CFO (basculement du contrôleur) et de SFO (basculement du stockage) à un agrégat. Cette règle détermine la façon dont des opérations de basculement du stockage se déroulent pour l'agrégat et ses volumes.
+
+Les deux options, CFO et SFO, déterminent la séquence de contrôle de l'agrégat que ONTAP utilise lors des opérations de basculement et de rétablissement du stockage.
+
+Bien que les termes CFO et SFO sont parfois utilisés de manière informelle pour les opérations de basculement de stockage (basculement et rétablissement), ils représentent réellement la politique de haute disponibilité attribuée aux agrégats. Par exemple, les termes agrégat SFO ou agrégat CFO font simplement référence à l'affectation des règles haute disponibilité de l'agrégat.
+
+Les règles HAUTE DISPONIBILITÉ affectent les opérations de basculement et de rétablissement :
+
+* Les agrégats créés sur les systèmes ONTAP (à l'exception de l'agrégat racine qui contient le volume racine) disposent d'une règle de haute disponibilité SFO. Le basculement initié manuellement est optimisé pour les performances en déplaçant des agrégats SFO (non racine) en série vers le partenaire avant le basculement. Lors du processus de rétablissement, les agrégats sont remis en série après le démarrage du système de basculement et les applications de gestion sont en ligne, ce qui permet au nœud de recevoir ses agrégats.
+* Étant donné que les opérations de transfert d'agrégats impliquent la réaffectation de la propriété des disques dans l'agrégat et le transfert du contrôle d'un nœud vers son partenaire, seuls les agrégats disposant d'une politique de haute disponibilité du SFO sont éligibles pour le transfert de ces agrégats.
+* L'agrégat root dispose toujours d'une politique de CFO de haute disponibilité et est redonné au début de l'opération de rétablissement. Ceci est nécessaire pour permettre au système de reprise de démarrer. Tous les autres agrégats sont remis en série une fois le processus de démarrage terminé et les applications de gestion sont en ligne, ce qui permet au nœud de recevoir ses agrégats.
+
+
+
+NOTE: La modification de la politique HA d'un agrégat de SFO vers le CFO est une opération en mode maintenance. Ne modifiez pas ce paramètre à moins d'être invité par un représentant du service clientèle.
+
+
+
+== Comment les mises à jour d'arrière-plan affectent le basculement et le rétablissement
+
+Les mises à jour en arrière-plan du firmware du disque affectent les opérations de basculement, de rétablissement et de transfert d'agrégats HA différemment, selon le mode de lancement de ces opérations.
+
+La liste ci-dessous décrit la manière dont les mises à jour du firmware des disques en arrière-plan affectent le basculement, le rétablissement et le transfert d'agrégats :
+
+* Si la mise à jour du firmware d'un disque en arrière-plan se produit sur un des nœuds, les opérations de basculement lancées manuellement sont retardées jusqu'à ce que la mise à jour du firmware du disque soit terminée sur ce disque. Si la mise à jour du firmware du disque en arrière-plan prend plus de 120 secondes, les opérations de basculement sont abandonnées et doivent être redémarrées manuellement après la fin de la mise à jour du firmware des disques. Si le basculement a été initié par le `‑bypass‑optimization` paramètre du `storage failover takeover` commande définie sur `true`, la mise à jour du micrologiciel du disque en arrière-plan effectuée sur le nœud de destination n'affecte pas le basculement.
+* Si une mise à jour du firmware du disque en arrière-plan est effectuée sur un disque du nœud source (ou basculement), et l'acquisition a été lancée manuellement avec le `‑options` paramètre du `storage failover takeover` commande définie sur `immediate`, les opérations de basculement commencent immédiatement.
+* Si la mise à jour du firmware d'un disque en arrière-plan se produit sur un nœud et qu'elle fonctionne de façon incohérente, le basculement du nœud mis à niveau commence immédiatement.
+* Si une mise à jour du firmware du disque en arrière-plan est effectuée sur un disque sur un des nœuds, le rétablissement d'agrégats de données est retardé jusqu'à ce que la mise à jour du firmware du disque soit terminée sur ce disque.
+* Si la mise à jour du firmware du disque en arrière-plan prend plus de 120 secondes, les opérations de rétablissement sont abandonnées et doivent être redémarrées manuellement une fois la mise à jour du firmware du disque terminée.
+* Si une mise à jour du firmware du disque en arrière-plan se produit sur un disque de l'un des nœuds, les opérations de transfert des agrégats sont retardées jusqu'à ce que la mise à jour du firmware du disque soit terminée sur ce disque. Si la mise à jour du firmware du disque en arrière-plan prend plus de 120 secondes, les opérations de transfert d'agrégats sont abandonnées et doivent être redémarrées manuellement après la fin de la mise à jour du firmware des disques. Si le transfert d'agrégats a été initié avec le `-override-destination-checks` du `storage aggregate relocation` commande définie sur `true`, la mise à jour du firmware du disque en arrière-plan effectuée sur le nœud de destination n'affecte pas le transfert d'agrégats.
+

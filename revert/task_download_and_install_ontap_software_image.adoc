@@ -1,0 +1,106 @@
+---
+permalink: revert/task_download_and_install_ontap_software_image.html 
+sidebar: sidebar 
+keywords: ontap, software, image, download, downloading, install, installing 
+summary: 'Vous devez d"abord télécharger le logiciel ONTAP, puis l"installer.' 
+---
+= Téléchargez et installez l'image du logiciel ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devez d'abord télécharger le logiciel ONTAP sur le site de support NetApp, puis l'installer.
+
+
+
+== Téléchargez l'image du logiciel
+
+Pour revenir à une version antérieure (ou version ultérieure) de ONTAP 9.4 ou ultérieure, vous pouvez copier l'image du logiciel ONTAP depuis le site de support NetApp vers un dossier local. Pour une restauration vers une version antérieure ou antérieure à ONTAP 9.3, vous devez copier l'image du logiciel ONTAP sur un serveur HTTP ou FTP de votre réseau.
+
+Notez les informations importantes suivantes :
+
+* Les images logicielles sont spécifiques aux modèles de plate-forme.
++
+Vous devez obtenir l'image correcte pour votre cluster. Le site de support NetApp propose les images logicielles, les informations de version du firmware et la dernière version du firmware pour votre modèle de plateforme.
+
+* Les images logicielles incluent la dernière version du micrologiciel système disponible lorsqu'une version donnée de ONTAP a été publiée.
+* Si vous déclassé un système avec NetApp Volume Encryption depuis ONTAP 9.5 ou une version ultérieure, vous devez télécharger l'image logicielle ONTAP pour les pays non soumis à des restrictions, notamment NetApp Volume Encryption.
++
+Si vous utilisez l'image logicielle ONTAP pour les pays où vous restrictions, vous pouvez revenir à une version antérieure ou annuler un système avec NetApp Volume Encryption, le système fonctionne de façon incohérente et l'accès à vos volumes est perdu.
+
++
+.. Recherchez le logiciel ONTAP cible dans le link:http://mysupport.netapp.com/NOW/cgi-bin/software["Téléchargements de logiciels"] Domaine du site de support NetApp.
+.. Copiez l'image logicielle.
++
+*** Pour ONTAP 9.3 ou version antérieure, copiez l'image logicielle (par exemple, 93_q_image.tgz) du site de support NetApp dans le répertoire du serveur HTTP ou du serveur FTP à partir duquel l'image sera traitée.
+*** Pour ONTAP 9.4 ou version ultérieure, copiez l'image logicielle (par exemple, 97_q_image.tgz) du site de support NetApp vers le répertoire du serveur HTTP ou FTP à partir duquel l'image sera traitée ou dans un dossier local.
+
+
+
+
+
+
+
+
+== Installez l'image logicielle
+
+Vous devez installer l'image logicielle cible sur les nœuds du cluster.
+
+* Si vous déclassé ou que vous restaurez un système avec NetApp Volume Encryption depuis ONTAP 9.5 ou une version ultérieure, vous devez avoir téléchargé l'image logicielle ONTAP pour les pays non soumis à des restrictions, notamment NetApp Volume Encryption.
++
+Si vous utilisez l'image logicielle ONTAP pour les pays où vous restrictions, vous pouvez revenir à une version antérieure ou annuler un système avec NetApp Volume Encryption, le système fonctionne de façon incohérente et l'accès à vos volumes est perdu.
+
++
+.. Définissez le niveau de privilège sur avancé, en entrant *y* lorsque vous êtes invité à continuer : `set -privilege advanced`
++
+L'invite avancée (`*>`) s'affiche.
+
+.. Installez l'image logicielle sur les nœuds.
++
+Cette commande télécharge et installe l'image logicielle sur tous les nœuds simultanément. Pour télécharger et installer l'image un par un sur chaque nœud, ne spécifiez pas le paramètre -background.
+
++
+*** Si vous restaurez une configuration non MetroCluster ou une configuration MetroCluster à deux nœuds :``system node image update -node * -package location -replace-package true -setdefault true -background true``
++
+Cette commande utilise une requête étendue pour modifier l'image du logiciel cible, qui est installée comme image secondaire, comme image par défaut pour le nœud.
+
+*** Si vous restaurez une configuration MetroCluster à quatre ou huit nœuds, vous devez lancer la commande suivante sur les deux clusters : `system node image update -node * -package location -replace-package true true -background true -setdefault false`
++
+Cette commande utilise une requête étendue pour modifier l'image du logiciel cible, qui est installée comme image alternative sur chaque nœud.
+
+
+
+.. Entrez `y` pour continuer lorsque vous y êtes invité.
+.. Vérifiez que l'image logicielle est téléchargée et installée sur chaque nœud : `system node image show-update-progress -node *`
++
+Cette commande affiche l'état actuel du téléchargement et de l'installation de l'image logicielle. Vous devez continuer à exécuter cette commande jusqu'à ce que tous les nœuds signalent un état d'exécution de fermeture et un état de sortie réussi.
+
++
+La commande de mise à jour de l'image du nœud système peut échouer et afficher des messages d'erreur ou d'avertissement. Après avoir résolu les erreurs ou les avertissements, vous pouvez relancer la commande.
+
++
+Cet exemple montre un cluster à deux nœuds dans lequel l'image logicielle est téléchargée et installée correctement sur les deux nœuds :
+
++
+[listing]
+----
+cluster1::*> system node image show-update-progress -node *
+There is no update/install in progress
+Status of most recent operation:
+        Run Status:     Exited
+        Exit Status:    Success
+        Phase:          Run Script
+        Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node0.
+There is no update/install in progress
+Status of most recent operation:
+        Run Status:     Exited
+        Exit Status:    Success
+        Phase:          Run Script
+        Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node1.
+2 entries were acted on.
+----
+
+
+

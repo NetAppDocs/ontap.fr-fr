@@ -1,0 +1,55 @@
+---
+sidebar: sidebar 
+permalink: smbc/index.html 
+keywords: SM-BC, SMBC, overview, benefits, use cases, architecture 
+summary: 'Depuis ONTAP 9.8, vous pouvez utiliser SnapMirror Business Continuity (SM-BC) pour protéger les applications avec des LUN. Les applications peuvent ainsi basculer en toute transparence, assurant ainsi la continuité de l"activité en cas d"incident.' 
+---
+= Présentation
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.8, vous pouvez utiliser SnapMirror Business Continuity (SM-BC) pour protéger les applications avec des LUN. Les applications peuvent ainsi basculer en toute transparence, assurant ainsi la continuité de l'activité en cas d'incident. SM-BC est pris en charge sur les clusters AFF ou sur tous les clusters SAN Array (ASA), dans lesquels les clusters principaux et secondaires peuvent être AFF ou ASA. SM-BC protège les applications avec des LUN iSCSI ou FCP.
+
+
+
+== Avantages
+
+La continuité de l'activité SnapMirror offre les avantages suivants :
+
+* Assure une disponibilité sans interruption pour les applications stratégiques
+* Possibilité d'héberger les applications stratégiques en alternance depuis les sites principal et secondaire
+* Gestion des applications simplifiée grâce à des groupes de cohérence pour assurer la cohérence des écritures dépendantes
+* Possibilité de tester le basculement pour chaque application
+* Création instantanée de clones miroir sans impact sur la disponibilité des applications
+* À partir de ONTAP 9.11.1, SM-BC prend en charge xref:../data-protection/restore-single-file-snapshot-task.html[SnapRestore pour un seul fichier].
+
+
+
+
+== Cas d'utilisation courants
+
+
+
+=== Déploiement d'applications pour un RTO nul ou un basculement transparent des applications
+
+Le basculement transparent des applications repose sur le basculement de chemin logiciel MPIO (Multipath I/O) des hôtes pour garantir un accès sans interruption au stockage. Les copies LUN, par exemple copie primaire(L1P) et miroir (L1S), ont la même identité (numéro de série) et sont signalées comme lues-inscriptibles vers l'hôte. Toutefois, les lectures et écritures sont uniquement gérées par le volume primaire. Les E/S émises vers la copie miroir sont proxyés à la copie principale. Le chemin privilégié de l'hôte pour L1 est VS1:N1 basé sur l'état d'accès ALUA (Asymmetric Logical Unit Access) Active Optimized (A/O). Un médiateur est recommandé dans le cadre du déploiement, principalement afin d'effectuer un basculement en cas de panne du stockage primaire.
+
+
+
+=== Scénario d'incident
+
+Le site hébergeant le cluster principal subit un incident. Le logiciel de chemins d'accès multiples de l'hôte marque tous les chemins dans le cluster comme étant hors service et utilise les chemins depuis le cluster secondaire. Il en résulte un basculement non disruptif vers la copie miroir de la LUN L1. LES 1S sont convertis d'une copie miroir vers une copie active de la LUN L1. Le basculement se produit automatiquement lorsqu'un médiateur externe est configuré. Le chemin préféré de l'hôte vers L1 devient VS2:N1.
+
+
+
+== Architecture
+
+La figure suivante illustre le fonctionnement général de la fonctionnalité de continuité de l'activité SnapMirror.
+
+image:workflow_san_snapmirror_business_continuity.png["Flux de travail de continuité de l'activité SnapMirror"]

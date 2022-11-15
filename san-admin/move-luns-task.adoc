@@ -1,0 +1,86 @@
+---
+permalink: san-admin/move-luns-task.html 
+sidebar: sidebar 
+keywords: system manager, ontap 9.2, move, lun 
+summary: 'Vous pouvez déplacer une LUN entre des volumes au sein d"un SVM, mais il n"est pas possible de déplacer une LUN entre ces SVM. Les LUN déplacées entre les volumes d"un SVM sont immédiatement déplacés et sans perte de connectivité.' 
+---
+= Déplacer une LUN
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez déplacer une LUN entre des volumes au sein d'un SVM, mais il n'est pas possible de déplacer une LUN entre ces SVM. Les LUN déplacées entre les volumes d'un SVM sont immédiatement déplacés et sans perte de connectivité.
+
+Si votre LUN utilise le mappage de LUN sélectif (SLM), les nœuds de reporting SLM doivent avoir été modifiés pour inclure le nœud de destination et son partenaire HA.
+
+Les fonctionnalités d'efficacité du stockage, telles que la déduplication, la compression et la compaction, ne sont pas conservées pendant un déplacement de LUN. Elles doivent être de nouveau appliquées une fois le déplacement de LUN terminé.
+
+La protection des données via les copies Snapshot s'effectue au niveau du volume. Par conséquent, lorsque vous déplacez une LUN, elle tombe sous le schéma de protection des données du volume de destination. Si aucune copie Snapshot n'est établie pour le volume de destination, les copies Snapshot de la LUN ne sont pas créées. Par ailleurs, toutes les copies Snapshot de la LUN restent dans le volume d'origine jusqu'à ce que ces copies soient supprimées.
+
+Vous ne pouvez pas déplacer une LUN vers les volumes suivants :
+
+* Volume de destination SnapMirror
+* Root volume du SVM
+
+
+Vous ne pouvez pas déplacer les types de LUN suivants :
+
+* LUN créée à partir d'un fichier
+* LUN en état NVFail
+* LUN faisant partie d'une relation de partage de charge
+* LUN de classe terminal-protocole
+
+
+[NOTE]
+====
+Pour les LUN Solaris de type os qui sont de 1 To ou plus, l'hôte peut connaître un délai d'expiration lors du déplacement de LUN. Pour ce type de LUN, vous devez démonter la LUN avant d'initier la migration.
+
+====
+[role="tabbed-block"]
+.Étapes
+====
+.System Manager
+--
+Déplacez une LUN avec ONTAP System Manager (9.7 et versions ultérieures).
+
+Depuis ONTAP 9.10.1, vous pouvez utiliser System Manager pour créer un volume lorsque vous déplacez un seul LUN. Dans ONTAP 9.8 et 9.9.1, le volume vers lequel vous déplacez le LUN doit exister avant de lancer le déplacement de LUN.
+
+Étapes
+
+. Dans System Manager, cliquez sur *stockage> LUN*.
+. Cliquez avec le bouton droit de la souris sur la LUN à déplacer, puis cliquez sur image:icon_kabob.gif["Icône Kabob"] Et sélectionnez *déplacer LUN*.
++
+Dans ONTAP 9.10.1, sélectionnez pour déplacer le LUN vers *un volume existant* ou vers *Nouveau volume*.
+
++
+Si vous choisissez de créer un nouveau volume, indiquez les spécifications du volume.
+
+. Cliquez sur *déplacer*.
+
+
+--
+.CLI
+--
+Déplacez une LUN avec l'interface de ligne de commandes de ONTAP.
+
+. Déplacer la LUN :
++
+`lun move start`.
+
++
+Pendant une très brève période, la LUN est visible à la fois sur le volume d'origine et sur le volume de destination. Ceci est prévu et résolu à la fin de la transition.
+
+. Suivre l'état du déplacement et vérifier que l'opération a bien été effectuée :
++
+`lun move show`.
+
+
+
+--
+====
+.Informations associées
+* link:selective-lun-map-concept.html["Mappage de LUN sélectif"]
+* link:modify-slm-reporting-nodes-task.html["Modification de la liste des noeuds-rapports SLM"]
+

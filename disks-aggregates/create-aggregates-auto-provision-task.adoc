@@ -1,0 +1,150 @@
+---
+permalink: disks-aggregates/create-aggregates-auto-provision-task.html 
+sidebar: sidebar 
+keywords: ontap 9, create, aggregates, auto-provision, add, local tier, automatic, automatically 
+summary: 'Si les recommandations relatives aux meilleures pratiques recommandées par ONTAP pour l"ajout automatique d"un niveau local (création d"un agrégat avec provisionnement automatique) sont appropriées dans votre environnement, vous pouvez accepter les recommandations et laisser ONTAP ajouter le niveau local.' 
+---
+= Ajout automatique de niveaux locaux (création d'agrégats avec provisionnement automatique)
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si les recommandations relatives aux meilleures pratiques recommandées par ONTAP pour l'ajout automatique d'un niveau local (création d'un agrégat avec provisionnement automatique) sont appropriées dans votre environnement, vous pouvez accepter les recommandations et laisser ONTAP ajouter le niveau local.
+
+La procédure de suivi dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Utilisez System Manager pour ajouter automatiquement un niveau local*
+
+.Étapes
+. Dans System Manager, cliquez sur *stockage > niveaux*.
+. Dans la page *tiers*, cliquez sur image:icon-add-local-tier.png["Icône Ajouter un niveau local"] pour créer un nouveau niveau local :
++
+La page *Ajouter un niveau local* affiche le nombre recommandé de niveaux locaux qui peuvent être créés sur les nœuds et le stockage utilisable disponible.
+
+. Cliquez sur *Détails recommandés* pour afficher la configuration recommandée par System Manager.
++
+System Manager affiche les informations suivantes à partir de ONTAP 9.8 :
+
++
+** *Nom de niveau local* (vous pouvez modifier le nom de niveau local à partir de ONTAP 9.10.1)
+** *Nom du noeud*
+** *Taille utilisable*
+** *Type de stockage*
+
+
++
+À partir de ONTAP 9.10.1, des informations supplémentaires s'affichent :
+
++
+** *Disques* : indique le nombre, la taille et le type des disques
+** *Layout* : affiche la disposition du groupe RAID, y compris les disques de parité ou de données et les emplacements inutilisés.
+** *Disques de rechange* : indique le nom du nœud, le nombre et la taille des disques de secours et le type de stockage.
+
+
+. Effectuez l'une des opérations suivantes :
++
+|===
+
+
+| Si vous voulez… | Puis faites cela… 
+
+
+ a| 
+Acceptez les recommandations de System Manager.
+ a| 
+Passez à la section ,Étape de configuration du gestionnaire de clés intégré pour le chiffrement.
+
+
+
+ a| 
+Configurez manuellement les niveaux locaux et *_NOT_* utilisez les recommandations de System Manager.
+ a| 
+Passez à la section link:create-aggregates-manual-task.html["Ajout manuel d'un niveau local (création d'agrégat"]:
+
+** Pour ONTAP 9.10.1 et versions antérieures, suivez la procédure d'utilisation de l'interface de ligne de commandes.
+** Depuis ONTAP 9.11.1, suivez la procédure pour utiliser System Manager.
+
+
+|===
+. [[step5-okm-crypt]] (facultatif) : si le gestionnaire de clés intégré a été installé, vous pouvez le configurer pour le chiffrement. Cochez la case *configurer le gestionnaire de clés intégré pour le chiffrement*.
++
+.. Saisissez une phrase de passe.
+.. Saisissez de nouveau la phrase de passe pour la confirmer.
+.. Enregistrez la phrase de passe pour une utilisation ultérieure au cas où le système doit être restauré.
+.. Sauvegarder la base de données clé pour une utilisation ultérieure.
+
+
+. Cliquez sur *Enregistrer* pour créer le niveau local et l'ajouter à votre solution de stockage.
+
+
+--
+.CLI
+--
+*Utilisez l'interface de ligne de commande pour créer un agrégat avec auto-provisioning*
+
+Vous exécutez le `storage aggregate auto-provision` commande permettant de générer des recommandations de disposition des agrégats. Vous pouvez ensuite créer des agrégats après la vérification et l'approbation des recommandations ONTAP.
+
+ONTAP 9.2 ou version ultérieure doit être exécuté sur le cluster.
+
+Le récapitulatif par défaut généré avec le `storage aggregate auto-provision` commande répertorie les agrégats recommandés à créer, y compris les noms et la taille utilisable. Vous pouvez afficher la liste et déterminer si vous souhaitez créer les agrégats recommandés lorsque vous y êtes invité.
+
+Vous pouvez également afficher un récapitulatif détaillé à l'aide de `-verbose` qui affiche les rapports suivants :
+
+* Un récapitulatif par nœud des nouveaux agrégats permet de créer, découvrir des unités de rechange et les disques et partitions de rechange restants après la création de l'agrégat
+* Nouveaux agrégats de données à créer avec le nombre de disques et de partitions à utiliser
+* Disposition des groupes RAID montrant comment les disques et partitions de rechange seront utilisés dans les nouveaux agrégats de données à créer
+* Détails sur les disques de spare et partitions restants après la création d'un agrégat
+
+
+Si vous connaissez bien la méthode de provisionnement automatique et que votre environnement est correctement préparé, vous pouvez utiliser le `-skip-confirmation` option pour créer l'agrégat recommandé sans afficher ni confirmation. Le `storage aggregate auto-provision` La commande n'est pas affectée par la session de l'interface de ligne de commande `-confirmations` réglage.
+
+Le `storage aggregate auto-provision` la page man contient plus d'informations sur les recommandations de disposition globale.
+
+.Étapes
+. Exécutez le `storage aggregate auto-provision` commande avec les options d'affichage souhaitées.
++
+** Aucune option : afficher le résumé standard
+** `-verbose` Option : affiche un récapitulatif détaillé
+** `-skip-confirmation` Option : créez des agrégats recommandés sans afficher ni confirmation
+
+
+. Effectuez l'une des opérations suivantes :
++
+[cols="35,65"]
+|===
+
+
+| Si vous voulez… | Puis faites cela… 
+
+
+ a| 
+Acceptez les recommandations de ONTAP.
+ a| 
+Vérifiez l'affichage des agrégats recommandés, puis répondez à l'invite pour créer les agrégats recommandés.
+
+[listing]
+----
+Do you want to create recommended aggregates? {y|n}:y
+
+Info: Creating node1_SSD_1 ...
+      Creating node2_SSD_1 ...
+----
+
+
+ a| 
+Configurez manuellement les niveaux locaux et *_NOT_* utilisez les recommandations de ONTAP.
+ a| 
+Passez à la section link:create-aggregates-manual-task.html["Ajout manuel d'un niveau local (création d'agrégat"].
+
+|===
+
+
+--
+====
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes de ONTAP 9"^]

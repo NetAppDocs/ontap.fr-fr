@@ -1,0 +1,74 @@
+---
+permalink: smb-admin/add-home-directory-share-task.html 
+sidebar: sidebar 
+keywords: smb, home, directory, feature, add, property, share, properties, property, add a home directory share 
+summary: Si vous souhaitez utiliser la fonction de répertoire de base SMB, vous devez ajouter au moins un partage avec la propriété de répertoire de base incluse dans les propriétés de partage. 
+---
+= Ajouter un partage de répertoire de base
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous souhaitez utiliser la fonction de répertoire de base SMB, vous devez ajouter au moins un partage avec la propriété de répertoire de base incluse dans les propriétés de partage.
+
+Vous pouvez créer un partage de répertoire personnel au moment de la création du partage en utilisant le `vserver cifs share create` vous pouvez également modifier un partage existant en un partage de répertoire personnel à tout moment à l'aide de l' `vserver cifs share modify` commande.
+
+Pour créer un partage de répertoire personnel, vous devez inclure le `homedirectory` valeur dans le `-share-properties` lorsque vous créez ou modifiez un partage. Vous pouvez spécifier le nom du partage et le chemin du partage à l'aide de variables développées dynamiquement lorsque les utilisateurs se connectent à leurs répertoires locaux. Les variables disponibles que vous pouvez utiliser dans le chemin sont `%w`, `%d`, et `%u`, Correspondant respectivement au nom d'utilisateur Windows, au domaine et au nom d'utilisateur UNIX mappé.
+
+.Étapes
+. Ajouter un partage de répertoire de base : +
+`vserver cifs share create -vserver _vserver_name_ -share-name _share_name_ -path _path_ -share-properties homedirectory[,...]`
++
+`-vserver` `vserver` Spécifie la machine virtuelle de stockage (SVM) compatible CIFS sur laquelle ajouter le chemin de recherche.
+
++
+`-share-name _share-name_` spécifie le nom de partage du répertoire racine.
+
++
+En plus de contenir l'une des variables requises, si le nom du partage contient l'une des chaînes littérales `%w`, `%u`, ou `%d`, Vous devez faire précéder la chaîne littérale d'un caractère % (pourcentage) pour empêcher ONTAP de traiter la chaîne littérale comme une variable (par exemple, `%%w`).
+
++
+** Le nom du partage doit contenir soit le `%w` ou le `%u` variable.
+** Le nom du partage peut également contenir le `%d` variable (par exemple, `%d`/`%w`) ou une partie statique dans le nom du partage (par exemple, home1_/`%w`).
+** Si le partage est utilisé par les administrateurs pour se connecter aux répertoires d'accueil d'autres utilisateurs ou pour permettre aux utilisateurs de se connecter aux répertoires d'accueil d'autres utilisateurs, le modèle de nom de partage dynamique doit être précédé d'un tilde (~).
++
+Le `vserver cifs home-directory modify` est utilisé pour activer cet accès en configurant le `-is-home-dirs-access-for-admin-enabled` option à `true`) ou en définissant l'option avancée `-is-home-dirs-access-for-public-enabled` à `true`.
+
+
+
++
+`-path` `path` spécifie le chemin relatif vers le répertoire de base.
+
+
+
+`-share-properties homedirectory[,...]` spécifie les propriétés de partage pour ce partage. Vous devez spécifier le `homedirectory` valeur. Vous pouvez spécifier d'autres propriétés de partage à l'aide d'une liste délimitée par des virgules.
+
+. Vérifiez que vous avez correctement ajouté le partage du répertoire personnel à l'aide de l' `vserver cifs share show` commande.
+
+
+La commande suivante crée un partage de répertoire personnel nommé `%w`. Le `oplocks`, `browsable`, et `changenotify` les propriétés de partage sont définies en plus de la configuration du `homedirectory` propriété de partage.
+
+[NOTE]
+====
+Cet exemple n'affiche pas les valeurs de sortie de tous les partages du SVM. La sortie est tronquée.
+
+====
+[listing]
+----
+cluster1::> vserver cifs share create -vserver vs1 -share-name %w -path %w -share-properties oplocks,browsable,changenotify,homedirectory
+
+vs1::> vserver cifs share show -vserver vs1
+Vserver    Share    Path         Properties     Comment  ACL
+---------- -------- ------------ -------------- -------- -----------
+vs1        %w       %w           oplocks        -        Everyone / Full Control
+                                 browsable
+                                 changenotify
+                                 homedirectory
+----
+xref:add-home-directory-search-path-task.adoc[Ajout d'un chemin de recherche de répertoire personnel]
+
+xref:requirements-automatic-node-referrals-concept.adoc[Exigences et directives pour l'utilisation de référencements de nœuds automatiques]
+
+xref:manage-accessibility-users-home-directories-task.adoc[Gestion de l'accessibilité aux répertoires locaux des utilisateurs]

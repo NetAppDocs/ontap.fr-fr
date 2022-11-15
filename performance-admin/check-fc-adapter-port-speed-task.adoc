@@ -1,0 +1,46 @@
+---
+permalink: performance-admin/check-fc-adapter-port-speed-task.html 
+sidebar: sidebar 
+keywords: check, fc, adapter, port, speed 
+summary: 'La vitesse du port cible de l"adaptateur doit correspondre à la vitesse du périphérique auquel il se connecte, afin d"optimiser les performances. Si le port est défini sur négociation automatique, il peut prendre plus de temps pour vous reconnecter après un basculement et un rétablissement ou une autre interruption.' 
+---
+= Vérifiez la vitesse du port de l'adaptateur FC
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La vitesse du port cible de l'adaptateur doit correspondre à la vitesse du périphérique auquel il se connecte, afin d'optimiser les performances. Si le port est défini sur négociation automatique, il peut prendre plus de temps pour vous reconnecter après un basculement et un rétablissement ou une autre interruption.
+
+Toutes les LIFs qui utilisent cet adaptateur comme port de home port doivent être hors ligne.
+
+.Étapes
+. Mettez l'adaptateur hors ligne :
++
+`network fcp adapter modify -node _nodename_ -adapter _adapter_ -state _down_`
+
+. Vérifiez la vitesse maximale de l'adaptateur de port :
++
+`fcp adapter show -instance`
+
+. Modifiez la vitesse du port, si nécessaire :
++
+`network fcp adapter modify -node _nodename_ -adapter _adapter_ -speed {1|2|4|8|10|16|auto}`
+
+. Mettez la carte en ligne :
++
+`network fcp adapter modify -node _nodename_ -adapter _adapter_ -state up`
+
+. Mettre en ligne toutes les LIFs sur l'adaptateur :
++
+`network interface modify -vserver * -lif * { -home-node node1 -home-port e0c } -status-admin up`
+
+
+
+L'exemple suivant modifie la vitesse du port de l'adaptateur `0d` marche `node1` Jusqu'à 2 Gbits/s :
+
+[listing]
+----
+cluster1::> network fcp adapter modify -node node1 -adapter 0d -speed 2
+----

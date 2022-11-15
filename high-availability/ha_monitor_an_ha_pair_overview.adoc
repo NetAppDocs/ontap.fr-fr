@@ -1,0 +1,291 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_monitor_an_ha_pair_overview.html 
+keywords: ontap, high, availability, ha, pair, monitor 
+summary: 'Vous pouvez utiliser des commandes ONTAP pour contrôler l"état de la paire HA.' 
+---
+= Commandes permettant de contrôler une paire HA
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Vous pouvez utiliser des commandes ONTAP pour contrôler l'état de la paire HA. En cas de basculement, vous pouvez également déterminer l'origine du basculement.
+
+|===
+
+
+| Si vous voulez vérifier | Utilisez cette commande 
+
+
+| Si le basculement est activé ou s'est produit, ou si la raison pour laquelle le basculement n'est pas possible pour le moment | `storage failover show` 
+
+
+| Afficher les nœuds sur lesquels le paramètre de basculement de stockage HA est activé, vous devez définir la valeur sur HA pour que le nœud participe à une configuration de basculement de stockage (paire HA). Le `non-ha` la valeur est utilisée uniquement dans une configuration de cluster autonome ou à un seul nœud. | `storage failover show -fields mode` 
+
+
+| Indique si le basculement assisté par matériel est activé | `storage failover hwassist show` 
+
+
+| Historique des événements de basculement assisté par matériel qui se sont produits | `storage failover hwassist stats show` 
+
+
+| La progression d'une opération de basculement lorsque les agrégats du partenaire sont déplacés vers le nœud faisant le basculement | `storage failover show‑takeover` 
+
+
+| Progression d'une opération de rétablissement visant à renvoyer les agrégats au nœud partenaire | `storage failover show‑giveback` 
+
+
+| Qu'un agrégat soit en hébergement lors des opérations de basculement ou de rétablissement | `aggregate show ‑fields home‑id,owner‑id,home‑name,owner‑name,is‑home` 
+
+
+| Si la haute disponibilité du cluster est activée (s'applique uniquement aux clusters à deux nœuds) | `cluster ha show` 
+
+
+| L'état de haute disponibilité des composants d'une paire haute disponibilité (sur les systèmes qui utilisent l'état HA) | `ha‑config show`Il s'agit d'une commande du mode maintenance. 
+|===
+
+
+== État du nœud affiché par les commandes Storage failover show-type
+
+La liste suivante décrit l'état du nœud `storage failover show` affichage des commandes.
+
+|===
+
+
+| État du nœud | Description 
+
+
+ a| 
+Connecté à Partner_name, basculement automatique désactivé.
+ a| 
+L'interconnexion haute disponibilité est active et peut transmettre des données au nœud partenaire. Le basculement automatique du partenaire est désactivé.
+
+
+
+ a| 
+En attente de Partner_name, Giveback des disques de spare du partenaire en attente.
+ a| 
+Le nœud local ne peut pas échanger d'informations avec le nœud partenaire via l'interconnexion haute disponibilité. Le rétablissement des agrégats SFO vers le partenaire s'effectue, mais les disques de spare du partenaire sont toujours la propriété du nœud local.
+
+* Exécutez le `storage failover show-giveback` commande pour plus d'informations.
+
+
+
+
+ a| 
+En attente de Partner_name. En attente de synchronisation du verrouillage partenaire.
+ a| 
+Le nœud local ne peut pas échanger d'informations avec le nœud partenaire via l'interconnexion haute disponibilité et attend que la synchronisation de verrouillage partenaire se produise.
+
+
+
+ a| 
+En attente de Partner_name. Attente de la mise en ligne des applications de cluster sur le nœud local.
+ a| 
+Le nœud local ne peut pas échanger d'informations avec le nœud partenaire via l'interconnexion haute disponibilité, et attend que les applications de cluster soient en ligne.
+
+
+
+ a| 
+Basculement planifié. Le nœud cible replace ses agrégats SFO en préparation du basculement.
+ a| 
+Le traitement de basculement a commencé. Le nœud cible délocalise la propriété de ses agrégats SFO en préparation au basculement.
+
+
+
+ a| 
+Basculement planifié. Le nœud cible a déplacé ses agrégats SFO en préparation du basculement.
+ a| 
+Le traitement de basculement a commencé. Le nœud cible a déplacé la propriété de ses agrégats SFO en préparation pour le basculement.
+
+
+
+ a| 
+Basculement planifié. Attente de désactivation des mises à jour du firmware du disque en arrière-plan sur le nœud local. Une mise à jour du firmware est en cours sur le nœud.
+ a| 
+Le traitement de basculement a commencé. Le système attend que les opérations de mise à jour du firmware du disque en arrière-plan soient terminées sur le nœud local.
+
+
+
+ a| 
+Déplacement des agrégats SFO vers le transfert du nœud en préparation du basculement.
+ a| 
+Le nœud local réinstalle la propriété de ses agrégats SFO vers le nœud « pré-basculement » pour la préparation du basculement.
+
+
+
+ a| 
+Transfert des agrégats SFO vers le basculement du nœud. Attente du basculement du nœud.
+ a| 
+Le déplacement de la propriété des agrégats SFO du nœud local vers le nœud de prise en charge est terminé. Le système attend le basculement par le nœud de prise de contrôle.
+
+
+
+ a| 
+Déplacement des agrégats SFO vers Partner_name. En attente de désactiver les mises à jour du firmware du disque en arrière-plan sur le nœud local. Une mise à jour du firmware est en cours sur le nœud.
+ a| 
+La relocalisation de la propriété des agrégats SFO du nœud local vers le nœud de prise en charge est en cours. Le système attend que les opérations de mise à jour du firmware du disque en arrière-plan soient terminées sur le nœud local.
+
+
+
+ a| 
+Déplacement des agrégats SFO vers Partner_name. Attente de désactivation des mises à jour du firmware du disque en arrière-plan sur Partner_name. Une mise à jour du firmware est en cours sur le nœud.
+ a| 
+La relocalisation de la propriété des agrégats SFO du nœud local vers le nœud de prise en charge est en cours. Le système attend que les opérations de mise à jour du firmware du disque en arrière-plan soient effectuées sur le nœud partenaire.
+
+
+
+ a| 
+Connecté à Partner_name. La tentative précédente de basculement a été abandonnée en raison de cette raison. Le nœud local possède certains agrégats SFO du partenaire. Réémettez un basculement du partenaire avec le `‑bypass-optimization` paramètre défini sur true pour le basculement des agrégats restants ou du rétablissement d'un partenaire pour le retour des agrégats transférés.
+ a| 
+L'interconnexion haute disponibilité est active et peut transmettre des données au nœud partenaire. La tentative de basculement précédente a été abandonnée en raison de la raison affichée sous Reason. Le nœud local possède certains agrégats SFO de son partenaire.
+
+* Vous pouvez soit réémettre un basculement du nœud partenaire, en définissant le paramètre d'optimisation ‑sur la valeur true pour le basculement des agrégats SFO restants ou procéder à un rétablissement du partenaire pour renvoyer les agrégats transférés.
+
+
+
+
+ a| 
+Connecté à Partner_name. La tentative précédente de basculement a été abandonnée. Le nœud local possède certains agrégats SFO du partenaire. Réémettez un basculement du partenaire avec le `‑bypass-optimization` paramètre défini sur true pour le basculement des agrégats restants ou du rétablissement d'un partenaire pour le retour des agrégats transférés.
+ a| 
+L'interconnexion haute disponibilité est active et peut transmettre des données au nœud partenaire. La tentative de basculement précédente a été abandonnée. Le nœud local possède certains agrégats SFO de son partenaire.
+
+* Vous pouvez soit réémettre un basculement du nœud partenaire, en définissant le paramètre d'optimisation ‑sur la valeur true pour le basculement des agrégats SFO restants ou procéder à un rétablissement du partenaire pour renvoyer les agrégats transférés.
+
+
+
+
+ a| 
+En attente de Partner_name. La tentative précédente de basculement a été abandonnée en raison de cette raison. Le nœud local possède certains agrégats SFO du partenaire. Refaites le basculement du partenaire avec le paramètre « contournement-optimisation » défini sur « true » pour le basculement d'agrégats restants ou exécutez un retour du partenaire pour renvoyer les agrégats transférés.
+ a| 
+Le nœud local ne peut pas échanger d'informations avec le nœud partenaire via l'interconnexion haute disponibilité. La tentative de basculement précédente a été abandonnée en raison de la raison affichée sous Reason. Le nœud local possède certains agrégats SFO de son partenaire.
+
+* Vous pouvez soit réémettre un basculement du nœud partenaire, en définissant le paramètre d'optimisation ‑sur la valeur true pour le basculement des agrégats SFO restants ou procéder à un rétablissement du partenaire pour renvoyer les agrégats transférés.
+
+
+
+
+ a| 
+En attente de Partner_name. La tentative précédente de basculement a été abandonnée. Le nœud local possède certains agrégats SFO du partenaire. Refaites le basculement du partenaire avec le paramètre « contournement-optimisation » défini sur « true » pour le basculement d'agrégats restants ou exécutez un retour du partenaire pour renvoyer les agrégats transférés.
+ a| 
+Le nœud local ne peut pas échanger d'informations avec le nœud partenaire via l'interconnexion haute disponibilité. La tentative de basculement précédente a été abandonnée. Le nœud local possède certains agrégats SFO de son partenaire.
+
+* Vous pouvez soit réémettre un basculement du nœud partenaire, en définissant le paramètre d'optimisation ‑sur la valeur true pour le basculement des agrégats SFO restants ou procéder à un rétablissement du partenaire pour renvoyer les agrégats transférés.
+
+
+
+
+ a| 
+Connecté à Partner_name. La tentative de basculement précédente a été abandonnée car la mise à jour du micrologiciel du disque en arrière-plan (BDFU) sur le nœud local a échoué.
+ a| 
+L'interconnexion haute disponibilité est active et peut transmettre des données au nœud partenaire. La tentative de basculement précédente a été abandonnée car la mise à jour du firmware du disque en arrière-plan sur le nœud local n'a pas été désactivée.
+
+
+
+ a| 
+Connecté à Partner_name. La tentative précédente de basculement a été abandonnée en raison de cette raison.
+ a| 
+L'interconnexion haute disponibilité est active et peut transmettre des données au nœud partenaire. La tentative de basculement précédente a été abandonnée en raison de la raison affichée sous Reason.
+
+
+
+ a| 
+En attente de Partner_name. La tentative précédente de basculement a été abandonnée en raison de cette raison.
+ a| 
+Le nœud local ne peut pas échanger d'informations avec le nœud partenaire via l'interconnexion haute disponibilité. La tentative de basculement précédente a été abandonnée en raison de la raison affichée sous Reason.
+
+
+
+ a| 
+Connecté à Partner_name. La tentative précédente de basculement par Partner_name a été abandonnée car elle a été interrompue.
+ a| 
+L'interconnexion haute disponibilité est active et peut transmettre des données au nœud partenaire. La tentative de basculement précédente par le nœud partenaire a été abandonnée en raison de la raison affichée sous Reason.
+
+
+
+ a| 
+Connecté à Partner_name. La tentative précédente de basculement par Partner_name a été abandonnée.
+ a| 
+L'interconnexion haute disponibilité est active et peut transmettre des données au nœud partenaire. La précédente tentative de basculement par le nœud partenaire a été abandonnée.
+
+
+
+ a| 
+En attente de Partner_name. La tentative précédente de basculement par Partner_name a été abandonnée car elle a été interrompue.
+ a| 
+Le nœud local ne peut pas échanger d'informations avec le nœud partenaire via l'interconnexion haute disponibilité. La tentative de basculement précédente par le nœud partenaire a été abandonnée en raison de la raison affichée sous Reason.
+
+
+
+ a| 
+Échec du retour précédent dans le module : nom du module. Le rétablissement automatique est lancé en quelques secondes.
+ a| 
+La tentative de retour précédente a échoué dans le module nom_module. Le rétablissement automatique est lancé en quelques secondes.
+
+* Exécutez le `storage failover show-giveback` commande pour plus d'informations.
+
+
+
+
+ a| 
+Le nœud est propriétaire des agrégats du partenaire dans le cadre de la procédure de mise à niveau du contrôleur sans interruption.
+ a| 
+Le nœud possède les agrégats de ses partenaires, car la procédure de mise à niveau du contrôleur sans interruption est en cours d'exécution.
+
+
+
+ a| 
+Connecté à Partner_name. Le nœud est propriétaire d'agrégats appartenant à un autre nœud du cluster.
+ a| 
+L'interconnexion haute disponibilité est active et peut transmettre des données au nœud partenaire. Le nœud possède des agrégats appartenant à un autre nœud du cluster.
+
+
+
+ a| 
+Connecté à Partner_name. En attente de synchronisation du verrouillage partenaire.
+ a| 
+L'interconnexion haute disponibilité est active et peut transmettre des données au nœud partenaire. Le système attend la fin de la synchronisation du verrouillage partenaire.
+
+
+
+ a| 
+Connecté à Partner_name. Attente de la mise en ligne des applications de cluster sur le nœud local.
+ a| 
+L'interconnexion haute disponibilité est active et peut transmettre des données au nœud partenaire. Le système attend que les applications de cluster soient mises en ligne sur le nœud local.
+
+
+
+ a| 
+En mode non HA, redémarrez le système pour utiliser la mémoire NVRAM complète.
+ a| 
+Le basculement du stockage n'est pas possible. L'option mode HA est configurée en tant que non_ha.
+
+* Vous devez redémarrer le nœud pour utiliser l'ensemble de sa mémoire NVRAM.
+
+
+
+
+ a| 
+Mode non HA. Redémarrez le nœud pour activer la haute disponibilité.
+ a| 
+Le basculement du stockage n'est pas possible.
+
+* Le nœud doit être redémarré pour activer la fonctionnalité haute disponibilité.
+
+
+
+
+ a| 
+Mode non HA.
+ a| 
+Le basculement du stockage n'est pas possible. L'option mode HA est configurée en tant que non_ha.
+
+* Vous devez exécuter le `storage failover modify ‑mode ha ‑node nodename` Commande sur les deux nœuds de la paire HA, puis redémarrage des nœuds pour activer la fonctionnalité HA.
+
+
+|===

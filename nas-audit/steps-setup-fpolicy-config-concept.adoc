@@ -1,0 +1,56 @@
+---
+permalink: nas-audit/steps-setup-fpolicy-config-concept.html 
+sidebar: sidebar 
+keywords: steps, setting, fpolicy configuration 
+summary: 'Avant de pouvoir surveiller l"accès aux fichiers, FPolicy doit être créé et activé sur la machine virtuelle de stockage (SVM) pour laquelle les services FPolicy sont requis.' 
+---
+= Quelles sont les étapes de configuration d'une configuration FPolicy
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Avant de pouvoir surveiller l'accès aux fichiers, FPolicy doit être créé et activé sur la machine virtuelle de stockage (SVM) pour laquelle les services FPolicy sont requis.
+
+Les étapes de configuration et d'activation d'une configuration FPolicy sur le SVM sont les suivantes :
+
+. Créer un moteur externe FPolicy.
++
+Le moteur externe FPolicy identifie les serveurs FPolicy externes associés à une configuration FPolicy spécifique. Si le moteur interne FPolicy « natif » est utilisé pour créer une configuration native de blocage de fichiers, il n'est pas nécessaire de créer un moteur externe FPolicy.
+
+. Créez un événement FPolicy.
++
+Un événement FPolicy décrit ce que la règle FPolicy doit surveiller. Les événements consistent en des protocoles et des opérations de fichiers à surveiller et peuvent contenir une liste de filtres. Les événements utilisent des filtres pour restreindre la liste des événements surveillés pour lesquels le moteur externe FPolicy doit envoyer des notifications. Les événements spécifient également si la règle surveille les opérations de volume.
+
+. Créez une règle FPolicy.
++
+Il incombe à la politique FPolicy d'associer, au périmètre approprié, l'ensemble des événements à surveiller et pour lesquels des notifications d'événements surveillés doivent être envoyées au serveur FPolicy désigné (ou au moteur natif si aucun serveur FPolicy n'est configuré). Cette politique définit également si le serveur FPolicy possède des droits d'accès privilégiés aux données pour lesquelles il reçoit des notifications. Un serveur FPolicy a besoin d'un accès privilégié si le serveur doit accéder aux données. Les cas d'utilisation classiques où un accès privilégié est nécessaire comprennent le blocage de fichiers, la gestion des quotas et la gestion hiérarchique du stockage. C'est l'endroit où vous spécifiez si la configuration de cette règle utilise un serveur FPolicy ou le serveur FPolicy interne « natif ».
+
++
+Une stratégie spécifie si le filtrage est obligatoire. Si le filtrage est obligatoire et que tous les serveurs FPolicy sont en panne ou qu'aucune réponse n'est reçue des serveurs FPolicy dans une période de temporisation définie, l'accès aux fichiers est refusé.
+
++
+Les limites d'une politique sont le SVM. Une politique ne peut s'appliquer à plusieurs SVM. Cependant, un SVM spécifique peut avoir plusieurs règles FPolicy, avec chacune des combinaisons de périmètre, d'événements et de configurations de serveur externes mêmes ou différentes.
+
+. Configuration de la portée de la règle
++
+Le périmètre FPolicy détermine quels volumes, partages ou règles d'exportation agissent ou excluent par la surveillance. L'étendue détermine également quelles extensions de fichier doivent être incluses ou exclues de la surveillance FPolicy.
+
++
+[NOTE]
+====
+Les listes d'exclusion ont priorité sur les listes d'inclusion.
+
+====
+. Activez la règle FPolicy.
++
+Lorsque la stratégie est activée, les canaux de contrôle et, éventuellement, les canaux de données privilégiés sont connectés. Le processus FPolicy dédié aux nœuds sur lesquels le SVM participe à la surveillance de l'accès aux fichiers et aux dossiers. Pour les événements correspondant aux critères configurés, il envoie des notifications aux serveurs FPolicy (ou au moteur natif si aucun serveur FPolicy n'est configuré).
+
+
+
+[NOTE]
+====
+Si la stratégie utilise un blocage de fichiers natif, un moteur externe n'est pas configuré ou associé à la stratégie.
+
+====

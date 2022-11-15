@@ -1,0 +1,110 @@
+---
+permalink: encryption-at-rest/enable-onboard-key-management-95-earlier-nse-task.html 
+sidebar: sidebar 
+keywords: enabling, onboard key management, ontap 9.5, earlier 
+summary: Vous pouvez utiliser le gestionnaire de clés intégré pour sécuriser les clés que le cluster utilise pour accéder aux données chiffrées. Vous devez activer le gestionnaire de clés intégré sur chaque cluster qui accède à un volume chiffré ou à un disque auto-chiffré. 
+---
+= Activez la gestion intégrée des clés dans ONTAP 9.5 et versions antérieures
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez utiliser le gestionnaire de clés intégré pour authentifier les nœuds de cluster sur un lecteur FIPS ou SED. Le gestionnaire de clés intégré est un outil intégré qui sert des clés d'authentification aux nœuds du même système de stockage que vos données. Le gestionnaire de clés intégré est conforme à la norme FIPS-140-2 de niveau 1.
+
+Vous pouvez utiliser le gestionnaire de clés intégré pour sécuriser les clés que le cluster utilise pour accéder aux données chiffrées. Vous devez activer le gestionnaire de clés intégré sur chaque cluster qui accède à un volume chiffré ou à un disque auto-chiffré.
+
+.Ce dont vous avez besoin, 8217;ll
+* Si vous utilisez NSE avec un serveur de gestion externe des clés (KMIP), vous devez avoir supprimé la base de données de gestionnaire de clés externe.
++
+link:delete-key-management-database-task.html["Transition vers la gestion intégrée des clés à partir d'une gestion externe des clés"]
+
+* Vous devez être un administrateur de cluster pour effectuer cette tâche.
+* Vous devez configurer l'environnement MetroCluster avant que le gestionnaire de clés intégré ne soit configuré.
+
+
+Vous devez exécuter le `security key-manager setup` commande à chaque ajout d'un nœud au cluster.
+
+Si vous disposez d'une configuration MetroCluster, consultez les consignes suivantes :
+
+* Dans ONTAP 9.5, vous devez exécuter `security key-manager setup` sur le cluster local et `security key-manager setup -sync-metrocluster-config yes` sur le cluster distant, en utilisant la même phrase de passe sur chacun d'eux.
+* Avant ONTAP 9.5, vous devez exécuter `security key-manager setup` sur le cluster local, attendez environ 20 secondes, puis exécutez `security key-manager setup` sur le cluster distant, en utilisant la même phrase de passe sur chacun d'eux.
+
+
+Par défaut, vous n'êtes pas tenu de saisir la phrase de passe du gestionnaire de clés lors du redémarrage d'un nœud. Vous pouvez utiliser ONTAP 9.4 à partir de `-enable-cc-mode yes` option pour exiger que les utilisateurs saisissent la phrase de passe après un redémarrage.
+
+Pour NVE, si vous définissez `-enable-cc-mode yes`, volumes que vous créez avec `volume create` et `volume move start` les commandes sont automatiquement chiffrées. Pour `volume create`, vous n'avez pas besoin de spécifier `-encrypt true`. Pour `volume move start`, vous n'avez pas besoin de spécifier `-encrypt-destination true`.
+
+[NOTE]
+====
+Après une tentative de phrase de passe, vous devez redémarrer le nœud.
+
+====
+.Étapes
+. Lancez la configuration du gestionnaire de clés :
++
+`security key-manager setup -enable-cc-mode yes|no`
+
++
+[NOTE]
+====
+Vous pouvez utiliser ONTAP 9.4 à partir de `-enable-cc-mode yes` option permettant aux utilisateurs de saisir la phrase de passe du gestionnaire de clés après un redémarrage. Pour NVE, si vous définissez `-enable-cc-mode yes`, volumes que vous créez avec `volume create` et `volume move start` les commandes sont automatiquement chiffrées.
+
+====
++
+L'exemple suivant commence à configurer le gestionnaire de clés sur le cluster 1 sans que la phrase de passe ne soit saisie après chaque redémarrage :
+
++
+[listing]
+----
+cluster1::> security key-manager setup
+Welcome to the key manager setup wizard, which will lead you through
+the steps to add boot information.
+
+...
+
+Would you like to use onboard key-management? {yes, no} [yes]:
+Enter the cluster-wide passphrase:    <32..256 ASCII characters long text>
+Reenter the cluster-wide passphrase:    <32..256 ASCII characters long text>
+----
+. Entrez `yes` à l'invite, configurez la gestion intégrée des clés.
+. À l'invite de phrase de passe, entrez une phrase de passe comprise entre 32 et 256 caractères, ou une phrase de passe entre 64 et 256 caractères pour « mode CC ».
++
+[NOTE]
+====
+Si la phrase de passe « CC-mode » spécifiée est inférieure à 64 caractères, il y a un délai de cinq secondes avant que l'opération de configuration du gestionnaire de clés n'affiche à nouveau l'invite de phrase de passe.
+
+====
+. À l'invite de confirmation de la phrase de passe, saisissez à nouveau la phrase de passe.
+. Vérifier que les clés sont configurées pour tous les nœuds :
++
+`security key-manager key show`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+[listing]
+----
+cluster1::> security key-manager key show
+
+Node: node1
+Key Store: onboard
+Key ID                                                           Used By
+---------------------------------------------------------------- --------
+0000000000000000020000000000010059851742AF2703FC91369B7DB47C4722 NSE-AK
+000000000000000002000000000001008C07CC0AF1EF49E0105300EFC83004BF NSE-AK
+
+Node: node2
+Key Store: onboard
+Key ID                                                           Used By
+---------------------------------------------------------------- --------
+0000000000000000020000000000010059851742AF2703FC91369B7DB47C4722 NSE-AK
+000000000000000002000000000001008C07CC0AF1EF49E0105300EFC83004BF NSE-AK
+----
+
+
+Toutes les informations de gestion des clés sont automatiquement sauvegardées dans la base de données répliquée (RDB) pour le cluster.
+
+Chaque fois que vous configurez la phrase secrète Onboard Key Manager, vous devez également sauvegarder les informations manuellement dans un emplacement sécurisé en dehors du système de stockage afin de les utiliser en cas d'incident. Voir link:backup-key-management-information-manual-task.html["Sauvegardez manuellement les informations intégrées de gestion des clés"].

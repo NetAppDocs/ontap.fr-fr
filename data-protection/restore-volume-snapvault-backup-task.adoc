@@ -1,0 +1,106 @@
+---
+permalink: data-protection/restore-volume-snapvault-backup-task.html 
+sidebar: sidebar 
+keywords: restore, content, volume, snapmirror, destination, snap mirror, snapshot, vault, snapvault, read-write, incremental 
+summary: 'Vous pouvez restaurer le contenu d"un volume entier à partir d"une copie Snapshot dans un volume de destination SnapMirror. Vous pouvez restaurer le contenu du volume vers le volume source d"origine ou vers un volume différent.' 
+---
+= Restaurer le contenu d'un volume à partir d'une destination SnapMirror
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez restaurer le contenu d'un volume entier à partir d'une copie Snapshot dans un volume de destination SnapMirror. Vous pouvez restaurer le contenu du volume vers le volume source d'origine ou vers un volume différent.
+
+Le volume de destination de l'opération de restauration doit être l'un des suivants :
+
+* Un volume de lecture/écriture, dans lequel cas SnapMirror exécute une _restauration incrémentielle_, à condition que les volumes source et de destination aient une copie Snapshot commune (comme c'est généralement le cas lors de la restauration vers le volume source d'origine).
++
+[NOTE]
+====
+La commande échoue si une copie Snapshot commune n'est pas disponible. Vous ne pouvez pas restaurer le contenu d'un volume sur un volume en lecture-écriture vide.
+
+====
+* Un volume de protection des données vide, dans lequel cas SnapMirror exécute une _restauration de base_, dans lequel la copie Snapshot spécifiée et tous les blocs de données qui lui font référence sont transférés vers le volume source.
+
+
+La restauration du contenu d'un volume constitue une opération perturbateur. Lors de l'exécution d'une opération de restauration, le trafic SMB ne doit pas être exécuté sur le volume primaire SnapVault.
+
+Si la compression est activée sur le volume de destination pour l'opération de restauration et que la compression n'est pas activée sur le volume source, désactivez la compression sur le volume de destination. Vous devez réactiver la compression une fois l'opération de restauration terminée.
+
+Toute règle de quotas définie pour le volume de destination est désactivée avant la restauration effectuée. Vous pouvez utiliser le `volume quota modify` commande permettant de réactiver les règles de quota une fois l'opération de restauration terminée.
+
+.Étapes
+. Lister les copies Snapshot dans le volume de destination :
++
+`volume snapshot show -vserver _SVM_ -volume _volume_`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+L'exemple suivant montre les copies Snapshot sur le `vserverB:secondary1` destination :
+
++
+[listing]
+----
+
+cluster_dst::> volume snapshot show -vserver vserverB -volume secondary1
+
+Vserver     Volume      Snapshot                State    Size  Total% Used%
+-------     ------      ---------- ----------- ------   -----  ------ -----
+vserverB    secondary1  hourly.2013-01-25_0005  valid   224KB     0%    0%
+                        daily.2013-01-25_0010   valid   92KB      0%    0%
+                        hourly.2013-01-25_0105  valid   228KB     0%    0%
+                        hourly.2013-01-25_0205  valid   236KB     0%    0%
+                        hourly.2013-01-25_0305  valid   244KB     0%    0%
+                        hourly.2013-01-25_0405  valid   244KB     0%    0%
+                        hourly.2013-01-25_0505  valid   244KB     0%    0%
+
+7 entries were displayed.
+----
+. Restaurer le contenu d'un volume à partir d'une copie Snapshot dans un volume de destination SnapMirror :
++
+`snapmirror restore -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ... -source-snapshot _snapshot_`
+
++
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
++
+[NOTE]
+====
+On doit exécuter cette commande depuis le SVM de destination ou le cluster destination.
+
+====
++
+La commande suivante restaure le contenu du volume source d'origine `primary1` A partir de la copie Snapshot `daily.2013-01-25_0010` dans le volume de destination d'origine `secondary1`:
+
++
+[listing]
+----
+cluster_dst::> snapmirror restore -source-path vserverB:secondary1 -destination-path vserverA:primary1 -source-snapshot daily.2013-01-25_0010
+
+Warning: All data newer than Snapshot copy daily.2013-01-25_0010 on volume vserverA:primary1 will be deleted.
+
+Do you want to continue? {y|n}: y
+
+[Job 34] Job is queued: snapmirror restore from source vserverB:secondary1 for the snapshot daily.2013-01-25_0010.
+----
+. Remontez le volume restauré et redémarrez toutes les applications qui utilisent le volume.
+
+
+
+
+== D'autres façons de le faire dans ONTAP
+
+[cols="2"]
+|===
+| Pour effectuer ces tâches avec... | Voir ce contenu... 
+
+
+| System Manager redessiné (disponible avec ONTAP 9.7 et versions ultérieures) | link:https://docs.netapp.com/us-en/ontap/task_dp_restore_from_vault.html["Restaurez un volume à partir d'une copie Snapshot antérieure"^] 
+
+
+| System Manager Classic (disponible avec ONTAP 9.7 et versions antérieures) | link:https://docs.netapp.com/us-en/ontap-sm-classic/volume-restore-snapvault/index.html["Présentation de la restauration de volume à l'aide de SnapVault"^] 
+|===

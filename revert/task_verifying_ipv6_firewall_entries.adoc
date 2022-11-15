@@ -1,0 +1,61 @@
+---
+permalink: revert/task_verifying_ipv6_firewall_entries.html 
+sidebar: sidebar 
+keywords: revert, reverting, reversion, ipv6, firewall, entries, verify 
+summary: 'Une nouvelle version à partir de n"importe quelle version de ONTAP 9 peut entraîner l"absence d"entrées de pare-feu IPv6 par défaut pour certains services dans les politiques de pare-feu. Vous devez vérifier que les entrées de pare-feu requises ont été restaurées sur votre système.' 
+---
+= Vérifiez les entrées du pare-feu IPv6
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une nouvelle version à partir de n'importe quelle version de ONTAP 9 peut entraîner l'absence d'entrées de pare-feu IPv6 par défaut pour certains services dans les politiques de pare-feu. Vous devez vérifier que les entrées de pare-feu requises ont été restaurées sur votre système.
+
+. Vérifiez que toutes les politiques de pare-feu sont correctes en les comparant aux politiques par défaut : `system services firewall policy show`
++
+L'exemple suivant montre les règles par défaut :
+
++
+[listing]
+----
+cluster1::*> system services firewall policy show
+Policy           Service    Action IP-List
+---------------- ---------- ------ --------------------
+cluster
+                 dns        allow  0.0.0.0/0
+                 http       allow  0.0.0.0/0
+                 https      allow  0.0.0.0/0
+                 ndmp       allow  0.0.0.0/0
+                 ntp        allow  0.0.0.0/0
+                 rsh        allow  0.0.0.0/0
+                 snmp       allow  0.0.0.0/0
+                 ssh        allow  0.0.0.0/0
+                 telnet     allow  0.0.0.0/0
+data
+                 dns        allow  0.0.0.0/0, ::/0
+                 http       deny   0.0.0.0/0, ::/0
+                 https      deny   0.0.0.0/0, ::/0
+                 ndmp       allow  0.0.0.0/0, ::/0
+                 ntp        deny   0.0.0.0/0, ::/0
+                 rsh        deny   0.0.0.0/0, ::/0
+.
+.
+.
+----
+. Ajoutez manuellement toutes les entrées de pare-feu IPv6 par défaut manquantes en créant une nouvelle politique de pare-feu : `system services firewall policy create`
++
+[listing]
+----
+cluster1::*> system services firewall policy create -policy newIPv6
+-service ssh -action allow -ip-list ::/0
+----
+. Appliquer la nouvelle policy à la LIF pour autoriser l'accès à un service réseau : `network interface modify`
++
+[listing]
+----
+cluster1::*> network interface modify -vserver VS1 -lif LIF1
+-firewall-policy newIPv6
+----
+

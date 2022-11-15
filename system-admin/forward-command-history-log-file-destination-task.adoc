@@ -1,0 +1,71 @@
+---
+permalink: system-admin/forward-command-history-log-file-destination-task.html 
+sidebar: sidebar 
+keywords: forward, audit, log, destination, cluster, forwarding, splunk 
+summary: 'Vous pouvez transférer le journal d"audit vers un maximum de 10 destinations. Par exemple, vous pouvez transférer le journal vers un serveur Splunk ou syslog à des fins de surveillance, d"analyse ou de sauvegarde.' 
+---
+= Gérer les destinations du journal d'audit
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez transférer le journal d'audit vers un maximum de 10 destinations. Par exemple, vous pouvez transférer le journal vers un serveur Splunk ou syslog à des fins de surveillance, d'analyse ou de sauvegarde.
+
+Pour configurer le transfert, vous devez fournir l'adresse IP de l'hôte syslog ou Splunk, son numéro de port, un protocole de transmission et la fonction syslog à utiliser pour les journaux transférés. https://datatracker.ietf.org/doc/html/rfc5424["En savoir plus sur les installations de syslog"^].
+
+Vous pouvez sélectionner l'une des valeurs de transmission suivantes :
+
+UDP non crypté:: Protocole de datagramme utilisateur sans sécurité (par défaut)
+TCP non crypté:: Protocole de contrôle de transmission sans sécurité
+TCP chiffré:: Protocole de contrôle de transmission avec TLS (transport Layer Security) + une option *Verify Server* est disponible lorsque le protocole TCP chiffré est sélectionné.
+
+
+Vous pouvez transférer les journaux d'audit depuis l'interface de ligne de commandes de ONTAP et depuis ONTAP 9.11.1 depuis System Manager.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+* Pour afficher les destinations du journal d'audit, sélectionnez *Cluster > Paramètres*. + Un nombre de destinations de journaux est affiché dans la vignette *gestion des notifications*. Cliquez sur image:../media/icon_kabob.gif["icône kebab"] pour afficher les détails.
+* Pour ajouter, modifier ou supprimer des destinations du journal d'audit, sélectionnez *Evénements et travaux > journaux d'audit*, puis cliquez sur *gérer destinations d'audit* dans le coin supérieur droit de l'écran. + cliquez sur image:icon_add.gif["ajouter une icône"]ou cliquez sur image:../media/icon_kabob.gif["icône kebab"] Dans la colonne *adresse hôte* pour modifier ou supprimer des entrées.
+
+
+--
+.CLI
+--
+. Pour chaque destination vers laquelle vous souhaitez transférer le journal d'audit, spécifiez l'adresse IP ou le nom d'hôte de destination et les options de sécurité.
++
+[listing]
+----
+cluster1::> cluster log-forwarding create -destination 192.168.123.96
+-port 514 -facility user
+
+cluster1::> cluster log-forwarding create -destination 192.168.123.98
+-port 514 -protocol tcp-encrypted -facility user
+----
++
+** Si le `cluster log-forwarding create` la commande ne peut pas envoyer de requête ping à l'hôte de destination pour vérifier la connectivité, la commande échoue avec une erreur. Bien qu'il ne soit pas recommandé, utiliser le `-force` le paramètre utilisé avec la commande ignore la vérification de connectivité.
+** Lorsque vous définissez le `-verify-server` paramètre à `true`, l'identité de la destination de transfert de journal est vérifiée en validant son certificat. Vous pouvez définir la valeur sur `true` uniquement lorsque vous sélectionnez `tcp-encrypted` valeur dans le `-protocol` légale.
+
+
+. Vérifiez que les enregistrements de destination sont corrects à l'aide du `cluster log-forwarding show` commande.
++
+[listing]
+----
+cluster1::> cluster log-forwarding show
+
+                                                 Verify Syslog
+Destination Host          Port   Protocol        Server Facility
+------------------------- ------ --------        ------ --------
+192.168.123.96            514    udp-unencrypted false  user
+192.168.123.98            514    tcp-encrypted   true   user
+2 entries were displayed.
+----
+
+
+Consultez les pages de manuel pour plus de détails.
+
+--
+====

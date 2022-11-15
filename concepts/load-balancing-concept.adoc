@@ -1,0 +1,75 @@
+---
+permalink: concepts/load-balancing-concept.html 
+sidebar: sidebar 
+keywords: 'load balance, workload, latency, overload, reduce load, ceiling, limits, iops, "mb/s", qos, min, max, policy group, throughput, headroom, floor, adaptive qos' 
+summary: 'Les performances des charges de travail commencent à être affectées par la latence lorsque le volume de travail d"un nœud dépasse les ressources disponibles. Vous pouvez gérer un nœud surchargé en augmentant les ressources disponibles (mise à niveau des disques ou du processeur) ou en réduisant la charge (déplacement de volumes ou de LUN vers des nœuds différents selon les besoins).' 
+---
+= Équilibrage de la charge
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les performances des charges de travail commencent à être affectées par la latence lorsque le volume de travail d'un nœud dépasse les ressources disponibles. Vous pouvez gérer un nœud surchargé en augmentant les ressources disponibles (mise à niveau des disques ou du processeur) ou en réduisant la charge (déplacement de volumes ou de LUN vers des nœuds différents selon les besoins).
+
+Vous pouvez également utiliser la qualité de service (QoS) du stockage ONTAP_ pour garantir que les performances des workloads stratégiques ne sont pas dégradées par des charges de travail concurrentes :
+
+* Vous pouvez fixer un plafond _de_ de débit QoS pour une charge de travail concurrente afin de limiter son impact sur les ressources système (QoS Max).
+* Vous pouvez définir un débit QoS _sol_ pour une charge de travail stratégique, afin de vous assurer qu'il répond aux objectifs de débit minimaux indépendamment de la demande des charges de travail concurrentes (QoS min).
+* Vous pouvez définir un plafond et un sol QoS pour la même charge de travail.
+
+
+
+
+== Plafonds de débit
+
+Un plafond de débit limite le débit d'une charge de travail à un nombre maximal d'IOPS ou de Mo/s. Dans la figure ci-dessous, le plafond de débit pour la charge de travail 2 garantit qu'il ne s'agit pas de charges de travail « dominantes » 1 et 3.
+
+Un _policy group_ définit le plafond de débit pour une ou plusieurs charges de travail. Une charge de travail représente les opérations d'E/S pour un objet de _stockage :_ un volume, un fichier ou une LUN, ou tous les volumes, fichiers ou LUN d'un SVM. Vous pouvez spécifier le plafond lorsque vous créez le groupe de règles ou attendre jusqu'à ce que vous contrôdiez les charges de travail pour les spécifier.
+
+[NOTE]
+====
+Le débit des charges de travail peut dépasser jusqu'à 10 % le plafond spécifié, en particulier si une charge de travail a des variations rapides du débit. Le plafond peut être dépassé de 50 % pour gérer les rafales.
+
+====
+image::../media/qos-ceiling-concepts.gif[concepts de plafond qos]
+
+
+
+== Le niveau de débit
+
+Un étage de débit garantit que le débit d'une charge de travail ne se trouve pas en dessous du nombre minimal d'IOPS. Dans la figure ci-dessous, les niveaux de débit pour la charge de travail 1 et la charge de travail 3 s'assurent qu'ils répondent aux objectifs de débit minimum, indépendamment de la demande par charge de travail 2.
+
+[TIP]
+====
+Comme le suggèrent les exemples, un plafond de débit accélère directement le débit. Un plancher de débit accélère indirectement le débit en donnant la priorité aux charges de travail pour lesquelles le sol a été défini.
+
+====
+Une charge de travail représente les opérations d'E/S d'un volume, d'une LUN ou, en commençant par un fichier ONTAP 9.3. Un groupe de règles qui définit un étage de débit ne peut pas être appliqué à un SVM. Vous pouvez spécifier l'étage lors de la création du groupe de règles ou attendre jusqu'à ce que vous surveilliez les charges de travail pour le spécifier.
+
+[NOTE]
+====
+Le débit d'une charge de travail peut tomber en dessous du seuil spécifié si la capacité de performance est insuffisante (marge) sur le nœud ou l'agrégat, ou lors des opérations stratégiques comme `volume move trigger-cutover`. Même lorsque vous disposez d'une capacité suffisante et que vos opérations stratégiques ne sont pas effectuées, le débit d'une charge de travail peut tomber en dessous du seuil spécifié de 5 %.
+
+====
+image::../media/qos-floor-concepts.gif[concepts au niveau de la qos]
+
+
+
+== La QoS adaptative
+
+En principe, la valeur du groupe de règles que vous attribuez à un objet de stockage est fixe. Vous devez modifier la valeur manuellement lorsque la taille de l'objet de stockage change. Une augmentation de l'espace utilisé sur un volume, par exemple, nécessite généralement une augmentation correspondante du plafond de débit spécifié pour le volume.
+
+_Adaptive QoS_ ajuste automatiquement la valeur du groupe de règles en fonction de la taille de la charge de travail, en maintenant le rapport IOPS/To|Go en fonction de la taille des modifications de la charge de travail. C'est un avantage considérable pour la gestion de centaines, voire de milliers de charges de travail dans le cadre d'un déploiement à grande échelle.
+
+Généralement, vous utilisez la QoS adaptative pour ajuster les plafonds de débit, mais vous pouvez également l'utiliser pour gérer le débit (en cas d'augmentation de la taille des charges de travail). La taille du workload est exprimée en espace alloué à l'objet de stockage ou en espace utilisé par l'objet de stockage.
+
+[NOTE]
+====
+L'espace utilisé est disponible pour les étages de débit dans ONTAP 9.5 et versions ultérieures. Elle n'est pas prise en charge pour les étages de débit dans ONTAP 9.4 et les versions antérieures.
+
+====
+* Une politique _Alocated space_ maintient le ratio IOPS/To|Go en fonction de la taille nominale de l'objet de stockage. Si le rapport est de 100 IOPS/Go, un volume de 150 Go plafonné à 15,000 IOPS, tant que la taille du volume reste celle-ci. Si le volume a été redimensionné de façon à 300 Go, la QoS adaptative ajuste le débit au plafond à 30,000 000 IOPS.
+* Une règle _Used space_ (par défaut) maintient le ratio IOPS/To|Go en fonction de la quantité de données réelles stockées avant le stockage efficace. Si le rapport est de 100 IOPS/Go, un volume de 150 Go contenant 100 Go de données stockées aurait un débit plafond de 10,000 000 IOPS. À mesure que la quantité d'espace utilisée change, la QoS adaptative ajuste le plafond de débit en fonction du rapport.
+

@@ -1,0 +1,153 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/respond-abnormal-task.html 
+keywords: Respond to abnormal activity, anti-ransomware abnormal activity, data entropy, unusual file extensions, potential ransomware attack, false positive, suspected ransomware attack, abnormal activity notification, security, ransomware alert message, detected abnormal volume, suspected file types, attack report, anti-ransomware attack, autonomous, ransomware, protection, arp 
+summary: 'Lorsque la protection autonome contre les attaques par ransomware (ARP) détecte une activité anormale dans un volume protégé, elle émet un avertissement. Vous devez évaluer la notification pour déterminer si l"activité est attendue et acceptable, ou si une attaque est en cours.' 
+---
+= Réagir à une activité anormale.
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+Lorsque la protection autonome contre les attaques par ransomware (ARP) détecte une activité anormale dans un volume protégé, elle émet un avertissement. Vous devez évaluer la notification pour déterminer si l'activité est attendue et acceptable, ou si une attaque est en cours.
+
+.Ce dont vous aurez besoin
+* ARP s'exécute en mode actif.
+
+
+ARP affiche une liste des fichiers suspects lorsqu'il détecte une combinaison de données entropie élevée, une activité de volume anormale avec chiffrement des données et des extensions de fichier inhabituelles.
+
+Lorsque l'avertissement est émis, vous pouvez répondre en marquant l'activité du fichier de l'une des deux façons suivantes :
+
+* Faux positif
++
+Le type de fichier identifié est attendu dans votre charge de travail et peut être ignoré.
+
+* Attaque par ransomware potentielle
++
+Le type de fichier identifié est inattendu dans votre charge de travail et doit être traité comme une attaque potentielle.
+
+
+
+Dans les deux cas, la surveillance normale reprend après la mise à jour et la suppression des avis ; ARP enregistre votre évaluation ; les journaux sont mis à jour avec les nouveaux types de fichiers et les utilisent pour une analyse future. Cependant, dans le cas d'une attaque suspectée, vous devez déterminer s'il s'agit d'une attaque, y répondre si c'est le cas et restaurer les données protégées avant de supprimer les avis. link:index.html#how-to-recover-hdata-in-ontap-after-a-ransomware-attack["En savoir plus sur la manière de procéder à une reprise après une attaque par ransomware"].
+
+
+NOTE: Il n'y a aucun avertissement à effacer si vous avez restauré un volume entier.
+
+[role="tabbed-block"]
+.Étapes
+====
+.System Manager
+--
+. Lorsque vous recevez une notification “activité anormale”, cliquez sur le lien ou accédez à l’onglet *sécurité* de la présentation *volumes*.
++
+Les avertissements s'affichent dans le volet vue d'ensemble de la fenêtre événements.
+
+. Lorsqu'un message "activité de volume anormale détectée" s'affiche, consultez les fichiers suspects.
++
+Dans l'onglet *sécurité*, cliquez sur Afficher *types de fichiers suspects*.
+
+. Dans la boîte de dialogue *types de fichiers suspects*, examinez chaque type de fichier et marquez-le comme “Faux positif” ou “attaque par ransomware potentielle”.
+
+
+[cols="25,75"]
+|===
+
+
+| Si vous avez sélectionné cette valeur... | Prendre cette action… 
+
+
+| Faux positif | Cliquez sur *mettre à jour* et *Effacer les types de fichiers suspects* pour enregistrer votre décision et reprendre la surveillance normale contre les attaques par ransomware. 
+
+
+| Attaques par ransomware potentielles | Répondez aux attaques et restaurez les données protégées. Cliquez ensuite sur *Update* et *Effacer les types de fichiers suspects* pour enregistrer votre décision et reprendre la surveillance ARP normale. + il n'y a pas de types de fichiers suspects à effacer si vous avez restauré un volume entier. 
+|===
+--
+.CLI
+--
+. Lorsque vous recevez une notification d'attaque par ransomware suspectée, vérifiez l'heure et la gravité de l'attaque :
++
+`security anti-ransomware volume show -vserver _svm_name_ -volume _vol_name_`
+
++
+Sortie d'échantillon :
+
++
+....
+Vserver Name: vs0
+Volume Name: vol1
+State: enabled
+Attack Probability: moderate
+Attack Timeline: 9/14/2021 01:03:23
+Number of Attacks: 1
+....
++
+Vous pouvez également vérifier les messages EMS :
+
++
+`event log show -message-name callhome.arw.activity.seen`
+
+. Générez un rapport d'attaque et notez l'emplacement de sortie :
++
+`security anti-ransomware volume attack generate-report -volume _vol_name_ -dest-path _file_location_/`
+
++
+Sortie d'échantillon :
+
++
+`Report "report_file_vs0_vol1_14-09-2021_01-21-08" available at path "vs0:vol1/"`
+
+. Afficher le rapport sur un système client d'administration. Par exemple :
++
+....
+[root@rhel8 mnt]# cat report_file_vs0_vol1_14-09-2021_01-21-08
+
+19  "9/14/2021 01:03:23"   test_dir_1/test_file_1.jpg.lckd
+20  "9/14/2021 01:03:46"   test_dir_2/test_file_2.jpg.lckd
+21  "9/14/2021 01:03:46"   test_dir_3/test_file_3.png.lckd`
+....
+. Suivez l'une des actions suivantes en fonction de votre évaluation des extensions de fichier :
++
+** Faux positif
++
+Entrez la commande suivante pour enregistrer votre décision (ajout d'une nouvelle extension à la liste des personnes autorisées) et reprendre la surveillance normale anti-ransomware :
+`anti-ransomware volume attack clear-suspect -vserver _svm_name_ -volume _vol_name_ [_extension identifiers_] -false-positive true`
+
++
+Utilisez l'un des paramètres suivants pour identifier les extensions :
+`[-seq-no _integer_]` Numéro de séquence du fichier dans la liste des suspects.
+`[-extension _text_, … ]` Extensions de fichier
+`[-start-time _date_time_ -end-time _date_time_]` Heures de début et de fin pour la plage de fichiers à effacer, sous la forme "MM/JJ/AAAA HH:MM:SS".
+
+** Attaque par ransomware potentielle
++
+Répondez aux attaques et restaurez les données. Entrez ensuite la commande suivante pour enregistrer votre décision et reprendre la surveillance ARP normale :
+
++
+`anti-ransomware volume attack clear-suspect -vserver _svm_name_ -volume _vol_name_ [_extension identifiers_] -false-positive false`
+
++
+Utilisez l'un des paramètres suivants pour identifier les extensions :
+`[-seq-no _integer_]` Numéro de séquence du fichier dans la liste des suspects
+`[-extension _text_, … ]` Extension de fichier
+`[-start-time _date_time_ -end-time _date_time_]` Heures de début et de fin pour la plage de fichiers à effacer, sous la forme "MM/JJ/AAAA HH:MM:SS".
+
++
+Il n'existe aucun type de fichier suspect à effacer si vous avez restauré un volume entier.
+
+
+
+
+
+--
+====

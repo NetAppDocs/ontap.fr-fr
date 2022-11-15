@@ -1,0 +1,63 @@
+---
+permalink: ndmp/enable-node-scoped-ndmp-cluster-task.html 
+sidebar: sidebar 
+keywords: enable, node, scope, ndmp, cluster 
+summary: 'Vous pouvez configurer node-scoped NDMP en activant node-scoped NDMP sur le cluster et le service NDMP sur tous les nœuds du cluster. On doit également configurer l"utilisateur root pour NDMP lors de l"activation du service NDMP.' 
+---
+= Activez NDMP node-scoped sur le cluster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez sauvegarder des volumes hébergés sur un nœud en activant NDMP node-scoped, en configurant le mot de passe pour l'utilisateur root et en configurant une LIF pour les données et la connexion de contrôle.
+
+Vous pouvez configurer node-scoped NDMP en activant node-scoped NDMP sur le cluster et le service NDMP sur tous les nœuds du cluster. Vous devez également configurer le `root` Utilisateur pour NDMP lors de l'activation du service NDMP.
+
+.Étapes
+. Activer le mode node-scoped NDMP en utilisant le `system services ndmp` commande avec `node-scope-mode` paramètre.
++
+[listing]
+----
+cluster1::> system services ndmp node-scope-mode on
+NDMP node-scope-mode is enabled.
+----
+. Activez le service NDMP sur tous les nœuds du cluster à l'aide de `system services ndmp on` commande.
++
+L'utilisation du caractère générique "`*`" permet le service NDMP sur tous les nœuds en même temps.
+
++
+Vous devez spécifier un mot de passe pour l'authentification de la connexion NDMP par l'application de backup.
+
++
+[listing]
+----
+cluster1::> system services ndmp on -node *
+
+Please enter password:
+Confirm password:
+2 entries were modified.
+----
+. Désactivez le `-clear-text` Option pour une communication sécurisée du mot de passe NDMP à l'aide de `system services ndmp modify` commande.
++
+Utilisation du caractère générique "`*`" disables the `-clear-text` option sur tous les nœuds simultanément.
+
++
+[listing]
+----
+cluster1::> system services ndmp modify -node * -clear-text false
+2 entries were modified.
+----
+. Vérifiez que le service NDMP est activé et que `-clear-text` cette option est désactivée à l'aide du `system services ndmp show` commande.
++
+[listing]
+----
+cluster1::> system services ndmp show
+Node                  Enabled   Clear text  User Id
+--------------------- --------- ----------- ---------
+cluster1-1            true      false        root
+cluster1-2            true      false        root
+2 entries were displayed.
+----
+

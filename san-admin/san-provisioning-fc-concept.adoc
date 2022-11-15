@@ -1,0 +1,84 @@
+---
+permalink: san-admin/san-provisioning-fc-concept.html 
+sidebar: sidebar 
+keywords:  
+summary: Vous devez connaître les concepts importants requis pour comprendre comment ONTAP met en œuvre un FC SAN. 
+---
+= Provisionnement SAN avec FC
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devez connaître les concepts importants requis pour comprendre comment ONTAP met en œuvre un FC SAN.
+
+
+
+== Comment les nœuds cibles FC se connectent au réseau
+
+Les systèmes de stockage et les hôtes ont des adaptateurs afin qu'ils puissent être connectés aux commutateurs FC avec des câbles.
+
+Lorsqu'un nœud est connecté au SAN FC, chaque SVM enregistre le WWPN (World Wide Port Name) de sa LIF avec le service Switch Fabric Name. Le WWNN du SVM et le WWPN de chaque LIF sont automatiquement affectés par le ONTAP.
+
+[NOTE]
+====
+La connexion directe aux nœuds des hôtes avec FC n'est pas prise en charge, NPIV est requis et un commutateur doit être utilisé.avec les sessions iSCSI, la communication fonctionne avec les connexions soit acheminées par le réseau, soit à connexion directe. Cependant, ces deux méthodes sont prises en charge par ONTAP.
+
+====
+
+
+== Identification des nœuds FC
+
+Chaque SVM configuré avec FC est identifié par un nom de nœud mondial (WWNN).
+
+
+
+== Comment les WWPN sont utilisés
+
+Les WWPN identifient chaque LIF dans un SVM configuré pour prendre en charge FC. Ces LIF utilisent les ports FC physiques de chaque nœud du cluster, qui peuvent être des cartes cibles FC, UTA ou UTA2 configurées en tant que FC ou FCoE dans les nœuds.
+
+* Création d'un groupe initiateur
++
+Les WWPN des HBA de l'hôte servent à créer un groupe initiateur. Un groupe initiateur permet de contrôler l'accès des hôtes à des LUN spécifiques. Vous pouvez créer un groupe initiateur en spécifiant une collection de WWPN des initiateurs dans un réseau FC. Lorsque vous mappez une LUN sur un système de stockage sur un groupe initiateur, vous pouvez accorder à tous les initiateurs de ce groupe l'accès à cette LUN. Si le WWPN d'un hôte ne se trouve pas dans un groupe initiateur mappé sur une LUN, cet hôte n'a pas accès à la LUN. Cela signifie que les LUN n'apparaissent pas comme des disques sur cet hôte.
+
++
+Vous pouvez également créer des jeux de ports pour rendre une LUN visible uniquement sur des ports cibles spécifiques. Un ensemble de ports se compose d'un groupe de ports FC target. Vous pouvez lier un groupe initiateur à un ensemble de ports. N'importe quel hôte du groupe initiateur peut accéder aux LUN qu'en vous connectant aux ports cibles de l'ensemble de ports.
+
+* Identification unique des LIF FC
++
+Les WWPN identifient de manière unique chaque interface logique FC. Le système d'exploitation hôte utilise la combinaison de WWNN et de WWPN pour identifier les SVM et les LIF FC. Certains systèmes d'exploitation nécessitent une liaison permanente pour s'assurer que la LUN apparaît au même ID cible sur l'hôte.
+
+
+
+
+
+== Fonctionnement des affectations de noms à l'échelle mondiale
+
+Les noms dans le monde sont créés de manière séquentielle dans ONTAP. Cependant, en raison de la manière dont ONTAP les affecte, ils peuvent sembler être affectés dans un ordre non séquentiel.
+
+Chaque adaptateur possède un WWPN et un WWNN préconfigurés, mais ONTAP n'utilise pas ces valeurs préconfigurées. En revanche, ONTAP attribue ses propres WWPN ou WWN, en fonction des adresses MAC des ports Ethernet intégrés.
+
+Les noms mondiaux peuvent sembler non séquentiels lorsqu'ils sont affectés pour les raisons suivantes :
+
+* Des noms mondiaux sont attribués à l'ensemble des nœuds et des SVM (Storage Virtual machine) dans le cluster.
+* Les noms partout dans le monde libérés sont recyclés et ajoutés au pool de noms disponibles.
+
+
+
+
+== Identification des commutateurs FC
+
+Les switchs Fibre Channel possèdent un nom de nœud mondial (WWNN) pour le périphérique lui-même et un WWPN (World Port Name) pour chacun de ses ports.
+
+Le diagramme suivant montre par exemple comment les WWPN sont affectés à chacun des ports d'un commutateur Brocade à 16 ports. Pour plus de détails sur le numéro des ports pour un commutateur particulier, reportez-vous à la documentation fournie par le fournisseur pour ce commutateur.
+
+image::../media/drw-fcswitch-scrn-en-noscale.gif[interrupteur à bascule drw]
+
+Port *0*, WWPN 20:** 00:00:60:69:51:06:b4
+
+Port *1*, WWPN 20:** 01:00:60:69:51:06:b4
+
+Port *14*, WWPN 20:** 0e**:00:60:69:51:06:b4
+
+Port *15*, WWPN 20:**:00:60:69:51:06:b4

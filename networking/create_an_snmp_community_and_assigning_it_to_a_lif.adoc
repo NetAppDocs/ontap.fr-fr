@@ -1,0 +1,116 @@
+---
+sidebar: sidebar 
+permalink: networking/create_an_snmp_community_and_assigning_it_to_a_lif.html 
+keywords: create, creation, creating, add, adding, snmp, community, assign, assigning, lif, logical, interface, create an snmp community and assigning it to a lif, snmpwalk, snmpget, snmp community add 
+summary: 'Créer une communauté SNMP qui agit comme un mécanisme d"authentification entre la station de gestion et la SVM' 
+---
+= Créer une communauté SNMP et l'attribuer à une LIF
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Vous pouvez créer une communauté SNMP qui agit comme un mécanisme d'authentification entre le poste de gestion et le SVM (Storage Virtual machine) en cas d'utilisation des protocoles SNMPv1 et SNMPv2c.
+
+En créant des communautés SNMP dans un SVM de données, vous pouvez exécuter des commandes telles que `snmpwalk` et `snmpget` Sur les LIF de données.
+
+.Description de la tâche
+* Dans les nouvelles installations de ONTAP, SNMPv1 et SNMPv2c sont désactivés par défaut.
++
+Les protocoles SNMPv1 et SNMPv2c sont activés après la création d'une communauté SNMP.
+
+* ONTAP prend en charge les communautés en lecture seule.
+* Par défaut la politique de pare-feu « données » qui est attribuée aux LIFs de données a le service SNMP défini sur `deny`.
++
+Vous devez créer une nouvelle politique de pare-feu avec le service SNMP défini sur `allow` Lors de la création d'un utilisateur SNMP pour un SVM de données.
+
+* Vous pouvez créer des communautés SNMP pour les utilisateurs SNMPv1 et SNMPv2c pour la SVM d'administration et la SVM de données.
+* Comme un SVM ne fait pas partie de la norme SNMP, les requêtes relatives aux LIF de données doivent inclure l'OID racine NetApp (1.3.6.1.4.1.789), par exemple `snmpwalk -v 2c -c snmpNFS 10.238.19.14 1.3.6.1.4.1.789`.
+
+
+.Étapes
+. Créez une communauté SNMP en utilisant le `system snmp community add` commande. La commande suivante montre comment créer une communauté SNMP dans le SVM admin cluster-1 :
++
+....
+system snmp community add -type ro -community-name comty1 -vserver cluster-1
+....
++
+La commande suivante montre comment créer une communauté SNMP dans le SVM de données vs1 :
+
++
+....
+system snmp community add -type ro -community-name comty2 -vserver vs1
+....
+. Vérifiez que les communautés ont été créées à l'aide de la commande system snmp community show.
++
+La commande suivante présente les deux communautés créées pour SNMPv1 et SNMPv2c :
+
++
+....
+system snmp community show
+cluster-1
+rocomty1
+vs1
+rocomty2
+....
+. Vérifier si SNMP est autorisé en tant que service dans la politique de pare-feu « data » en utilisant le `system services firewall policy` `show` commande.
++
+La commande suivante indique que le service snmp n'est pas autorisé dans la politique de pare-feu « data » par défaut (le service snmp est autorisé dans la politique de pare-feu « mgmt » uniquement) :
+
++
+....
+system services firewall policy show
+Vserver Policy       Service    Allowed
+------- ------------ ---------- -------------------
+cluster-1
+        data
+                     dns        0.0.0.0/0
+                     ndmp       0.0.0.0/0
+                     ndmps      0.0.0.0/0
+cluster-1
+        intercluster
+                     https      0.0.0.0/0
+                     ndmp       0.0.0.0/0
+                     ndmps      0.0.0.0/0
+cluster-1
+        mgmt
+                     dns        0.0.0.0/0
+                     http       0.0.0.0/0
+                     https      0.0.0.0/0
+                     ndmp       0.0.0.0/0
+                     ndmps      0.0.0.0/0
+                     ntp        0.0.0.0/0
+                     snmp       0.0.0.0/0
+                     ssh        0.0.0.0/0
+....
+. Créez une nouvelle politique de pare-feu qui autorise l'accès à l'aide du système `snmp` service à l'aide du `system services firewall policy create` commande.
++
+Les commandes suivantes créent une nouvelle politique de pare-feu de données nommée « data1 » qui autorise le `snmp`
+
++
+....
+system services firewall policy create -policy data1 -service snmp -vserver  vs1 -allow-list 0.0.0.0/0
+
+cluster-1::> system services firewall policy show -service snmp
+Vserver  Policy       Service    Allowed
+-------  ------------ ---------- -------------------
+cluster-1
+         mgmt
+                      snmp       0.0.0.0/0
+vs1
+         data1
+                      snmp       0.0.0.0/0
+....
+. Appliquer la politique de pare-feu à une LIF de données à l'aide de la commande `network interface modify `avec le paramètre -firewall-policy.
++
+La commande suivante attribue la nouvelle politique de pare-feu « data1 » à LIF « datalif1 » :
+
++
+....
+network interface modify -vserver vs1 -lif datalif1 -firewall-policy data1
+....
+

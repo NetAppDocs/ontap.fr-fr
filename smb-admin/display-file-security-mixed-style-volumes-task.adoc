@@ -1,0 +1,146 @@
+---
+permalink: smb-admin/display-file-security-mixed-style-volumes-task.html 
+sidebar: sidebar 
+keywords: display, information, file, directory, security, mix, security-style, volume, style, unix, owner, group, result, troubleshoot, display information about file security, on mixed security-style volumes 
+summary: 'Vous pouvez afficher des informations sur la sécurité des fichiers et des répertoires sur des volumes de style de sécurité mixtes, y compris le style de sécurité et les styles de sécurité efficaces, les autorisations appliquées et les informations sur les propriétaires et groupes UNIX. Les résultats vous permettent de valider votre configuration de sécurité ou de résoudre les problèmes d"accès aux fichiers.' 
+---
+= Affiche des informations sur la sécurité des fichiers sur des volumes de style de sécurité mixtes
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez afficher des informations sur la sécurité des fichiers et des répertoires sur des volumes de style de sécurité mixtes, y compris le style de sécurité et les styles de sécurité efficaces, les autorisations appliquées et les informations sur les propriétaires et groupes UNIX. Les résultats vous permettent de valider votre configuration de sécurité ou de résoudre les problèmes d'accès aux fichiers.
+
+Vous devez fournir le nom de la machine virtuelle de stockage (SVM) et le chemin d'accès aux données dont vous souhaitez afficher les informations de sécurité des fichiers ou des dossiers. Vous pouvez afficher les valeurs de sortie sous forme de récapitulatif ou sous forme de liste détaillée.
+
+* Les qtrees et volumes de style de sécurité mixtes peuvent contenir certains fichiers et dossiers qui utilisent des autorisations de fichier UNIX, soit les bits de mode ou les ACL NFSv4, ainsi que certains fichiers et répertoires utilisant les autorisations de fichier NTFS.
+* Le niveau supérieur d'un volume de type sécurité mixte peut avoir une sécurité efficace UNIX ou NTFS.
+* Les valeurs de sortie ACL s'affichent uniquement pour les fichiers et les dossiers avec sécurité NTFS ou NFSv4.
++
+Ce champ est vide pour les fichiers et les répertoires utilisant la sécurité UNIX qui n'ont que des autorisations de bit de mode appliquées (pas de listes de contrôle d'accès NFSv4).
+
+* Les champs de sortie propriétaire et groupe de la sortie ACL ne s'appliquent que dans le cas des descripteurs de sécurité NTFS.
+* Étant donné que la sécurité de Storage-Level Access Guard peut être configurée sur un volume mixte de style de sécurité, même si le style de sécurité efficace de la racine du volume ou de qtree est UNIX, La sortie d'un chemin de volume ou qtree dans lequel Storage-Level Access Guard est configuré peut afficher à la fois les autorisations de fichiers UNIX et les listes de contrôle d'accès Storage-Level Access Guard.
+* Si le chemin entré dans la commande est de données avec la sécurité effective NTFS, la sortie affiche également des informations sur les ACE de contrôle d'accès dynamique si le contrôle d'accès dynamique est configuré pour le chemin de fichier ou de répertoire donné.
+
+
+.Étape
+. Afficher les paramètres de sécurité des fichiers et des répertoires avec le niveau de détail souhaité :
++
+|===
+| Pour afficher les informations... | Saisissez la commande suivante... 
+
+
+ a| 
+Sous forme récapitulative
+ a| 
+`vserver security file-directory show -vserver vserver_name -path path`
+
+
+
+ a| 
+Avec détails étendus
+ a| 
+`vserver security file-directory show -vserver vserver_name -path path -expand-mask true`
+
+|===
+
+
+L'exemple suivant affiche les informations de sécurité relatives au chemin d'accès `/projects` Dans le SVM vs1 sous forme de masque étendu. Ce chemin de sécurité mixte possède une sécurité efficace UNIX.
+
+[listing]
+----
+cluster1::> vserver security file-directory show -vserver vs1 -path /projects -expand-mask true
+
+                Vserver: vs1
+              File Path: /projects
+      File Inode Number: 78
+         Security Style: mixed
+        Effective Style: unix
+         DOS Attributes: 10
+ DOS Attributes in Text: ----D---
+Expanded Dos Attributes: 0x10
+     ...0 .... .... .... = Offline
+     .... ..0. .... .... = Sparse
+     .... .... 0... .... = Normal
+     .... .... ..0. .... = Archive
+     .... .... ...1 .... = Directory
+     .... .... .... .0.. = System
+     .... .... .... ..0. = Hidden
+     .... .... .... ...0 = Read Only
+           Unix User Id: 0
+          Unix Group Id: 1
+         Unix Mode Bits: 700
+ Unix Mode Bits in Text: rwx------
+                   ACLs: -
+----
+L'exemple suivant affiche les informations de sécurité relatives au chemin d'accès `/data` Au SVM vs1. Ce chemin de sécurité mixte dispose d'une sécurité NTFS efficace.
+
+[listing]
+----
+cluster1::> vserver security file-directory show -vserver vs1 -path /data
+
+                                 Vserver: vs1
+                               File Path: /data
+                       File Inode Number: 544
+                          Security Style: mixed
+                         Effective Style: ntfs
+                          DOS Attributes: 10
+                  DOS Attributes in Text: ----D---
+                 Expanded Dos Attributes: -
+                            Unix User Id: 0
+                           Unix Group Id: 0
+                          Unix Mode Bits: 777
+                  Unix Mode Bits in Text: rwxrwxrwx
+                                    ACLs: NTFS Security Descriptor
+                                          Control:0x8004
+                                          Owner:BUILTIN\Administrators
+                                          Group:BUILTIN\Administrators
+                                          DACL - ACEs
+                                            ALLOW-Everyone-0x1f01ff
+                                            ALLOW-Everyone-0x10000000-OI|CI|IO
+----
+L'exemple suivant affiche les informations de sécurité relatives au volume sur le chemin d'accès `/datavol5` Au SVM vs1. Le niveau supérieur de ce volume de type sécurité mixte dispose d'une sécurité effective UNIX. Le volume est doté de la sécurité Storage-Level Access Guard.
+
+[listing]
+----
+cluster1::> vserver security file-directory show -vserver vs1 -path /datavol5
+                Vserver: vs1
+              File Path: /datavol5
+      File Inode Number: 3374
+         Security Style: mixed
+        Effective Style: unix
+         DOS Attributes: 10
+ DOS Attributes in Text: ----D---
+Expanded Dos Attributes: -
+           Unix User Id: 0
+          Unix Group Id: 0
+         Unix Mode Bits: 755
+ Unix Mode Bits in Text: rwxr-xr-x
+                   ACLs: Storage-Level Access Guard security
+                         SACL (Applies to Directories):
+                           AUDIT-EXAMPLE\Domain Users-0x120089-FA
+                           AUDIT-EXAMPLE\engineering-0x1f01ff-SA
+                           AUDIT-EXAMPLE\market-0x1f01ff-SA
+                         DACL (Applies to Directories):
+                           ALLOW-BUILTIN\Administrators-0x1f01ff
+                           ALLOW-CREATOR OWNER-0x1f01ff
+                           ALLOW-EXAMPLE\Domain Users-0x120089
+                           ALLOW-EXAMPLE\engineering-0x1f01ff
+                           ALLOW-EXAMPLE\market-0x1f01ff
+                         SACL (Applies to Files):
+                           AUDIT-EXAMPLE\Domain Users-0x120089-FA
+                           AUDIT-EXAMPLE\engineering-0x1f01ff-SA
+                           AUDIT-EXAMPLE\market-0x1f01ff-SA
+                         DACL (Applies to Files):
+                           ALLOW-BUILTIN\Administrators-0x1f01ff
+                           ALLOW-CREATOR OWNER-0x1f01ff
+                           ALLOW-EXAMPLE\Domain Users-0x120089
+                           ALLOW-EXAMPLE\engineering-0x1f01ff
+                           ALLOW-EXAMPLE\market-0x1f01ff
+----
+xref:display-file-security-ntfs-style-volumes-task.adoc[Affichage d'informations sur la sécurité des fichiers sur les volumes de style de sécurité NTFS]
+
+xref:display-file-security-unix-style-volumes-task.adoc[Affichage d'informations sur la sécurité des fichiers sur des volumes de style de sécurité UNIX]

@@ -1,0 +1,116 @@
+---
+permalink: nfs-admin/security-types-client-access-levels-concept.html 
+sidebar: sidebar 
+keywords: security, type, determine, client, access, level 
+summary: 'Le type de sécurité auquel le client s"est authentifié joue un rôle particulier dans les règles d"exportation. Vous devez comprendre la manière dont le type de sécurité détermine les niveaux d"accès du client à un volume ou à un qtree.' 
+---
+= Comment les types de sécurité déterminent les niveaux d'accès client
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le type de sécurité auquel le client s'est authentifié joue un rôle particulier dans les règles d'exportation. Vous devez comprendre la manière dont le type de sécurité détermine les niveaux d'accès du client à un volume ou à un qtree.
+
+Les trois niveaux d'accès possibles sont les suivants :
+
+. Lecture seule
+. Lecture-écriture
+. Super-utilisateur (pour les clients ayant l'ID utilisateur 0)
+
+
+Dans la mesure où le niveau d'accès par type de sécurité est évalué dans cet ordre, vous devez respecter les règles suivantes lors de la construction de paramètres de niveau d'accès dans les règles d'exportation :
+
+[cols="2*"]
+|===
+| Pour qu'un client puisse obtenir le niveau d'accès... | Ces paramètres d'accès doivent correspondre au type de sécurité du client... 
+
+
+ a| 
+Lecture seule normale par l'utilisateur
+ a| 
+Lecture seule (`-rorule`)
+
+
+
+ a| 
+Lecture-écriture utilisateur normale
+ a| 
+Lecture seule (`-rorule`) et lecture-écriture (`-rwrule`)
+
+
+
+ a| 
+Super-utilisateur en lecture seule
+ a| 
+Lecture seule (`-rorule`) et `-superuser`
+
+
+
+ a| 
+Super-utilisateur lecture-écriture
+ a| 
+Lecture seule (`-rorule`) et lecture-écriture (`-rwrule`) et `-superuser`
+
+|===
+Les types de sécurité suivants sont valides pour chacun de ces trois paramètres d'accès :
+
+* `any`
+* `none`
+* `never`
++
+Ce type de sécurité n'est pas valide pour une utilisation avec `-superuser` paramètre.
+
+* `krb5`
+* `krb5i`
+* `krb5p`
+* `ntlm`
+* `sys`
+
+
+Lorsque vous faites correspondre le type de sécurité d'un client à chacun des trois paramètres d'accès, trois résultats sont possibles :
+
+[cols="2*"]
+|===
+| Si le type de sécurité du client... | Ensuite, le client... 
+
+
+ a| 
+Correspond à celui spécifié dans le paramètre d'accès.
+ a| 
+Obtient l'accès à ce niveau avec son propre ID utilisateur.
+
+
+
+ a| 
+Ne correspond pas à celui spécifié, mais le paramètre d'accès inclut l'option `none`.
+ a| 
+Obtient l'accès pour ce niveau, mais en tant qu'utilisateur anonyme avec l'ID utilisateur spécifié par le `-anon` paramètre.
+
+
+
+ a| 
+Ne correspond pas à celui spécifié et le paramètre d'accès n'inclut pas l'option `none`.
+ a| 
+Ne dispose d'aucun accès pour ce niveau.cela ne s'applique pas à l' `-superuser` paramètre car il inclut toujours `none` même si elle n'est pas spécifiée.
+
+|===
+La export policy contient une règle d'exportation avec les paramètres suivants :
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `any`
+* `-rwrule` `sys,krb5`
+* `-superuser` `krb5`
+
+
+Le client #1 a l'adresse IP 10.1.16.207, a l'ID utilisateur 0, envoie une demande d'accès à l'aide du protocole NFSv3 et authentifiée avec Kerberos v5.
+
+Le client #2 a l'adresse IP 10.1.16.211, a l'ID utilisateur 0, envoie une demande d'accès à l'aide du protocole NFSv3 et authentifiée avec AUTH_SYS.
+
+Le client #3 a l'adresse IP 10.1.16.234, a l'ID utilisateur 0, envoie une demande d'accès à l'aide du protocole NFSv3 et n'a pas authentifié (AUTH_NONE).
+
+Le protocole d'accès client et l'adresse IP correspondent aux trois clients. Le paramètre lecture seule permet un accès en lecture seule à tous les clients, quel que soit leur type de sécurité. Le paramètre lecture-écriture permet l'accès en lecture-écriture aux clients avec leur propre ID utilisateur authentifié par AUTH_SYS ou Kerberos v5. Le paramètre superuser permet un accès superuser aux clients avec l'ID utilisateur 0 authentifié avec Kerberos v5.
+
+Par conséquent, le client #1 obtient l'accès en lecture-écriture superutilisateur car il correspond aux trois paramètres d'accès. Le client #2 obtient un accès en lecture-écriture mais pas un accès super-utilisateur. Le client #3 obtient un accès en lecture seule mais pas un accès super-utilisateur.

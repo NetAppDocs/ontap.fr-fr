@@ -1,0 +1,78 @@
+---
+permalink: fabricpool/replace-mirror-mcc-task.html 
+sidebar: sidebar 
+keywords: replacing, fabricpool, mirror, metrocluster, configuration 
+summary: 'Si l"un des magasins d"objets d"un miroir FabricPool est détruit ou devient définitivement indisponible dans une configuration MetroCluster, vous pouvez faire du magasin d"objets le miroir s"il ne s"agit pas déjà du miroir, supprimer le magasin d"objets endommagé du miroir FabricPool, Puis ajoutez un nouveau miroir de magasin d"objets à FabricPool.' 
+---
+= Remplacement d'un miroir FabricPool sur une configuration MetroCluster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si l'un des magasins d'objets d'un miroir FabricPool est détruit ou devient définitivement indisponible dans une configuration MetroCluster, vous pouvez faire du magasin d'objets le miroir s'il ne s'agit pas déjà du miroir, supprimer le magasin d'objets endommagé du miroir FabricPool, Puis ajoutez un nouveau miroir de magasin d'objets à FabricPool.
+
+.Étapes
+. Si le magasin d'objets endommagés n'est pas déjà le miroir, faites stocker l'objet avec le `storage aggregate object-store modify` commande.
++
+[listing]
+----
+storage aggregate object-store modify -aggregate -aggregate fp_aggr1_A01 -name mcc1_ostore1 -mirror-type mirror
+----
+. Retirez le miroir du magasin d'objets de l'FabricPool à l'aide du `storage aggregate object-store unmirror` commande.
++
+[listing]
+----
+storage aggregate object-store unmirror -aggregate <aggregate name> -name mcc1_ostore1
+----
+. Vous pouvez forcer la hiérarchisation pour reprendre le magasin de données primaire après la suppression du magasin de données en miroir à l'aide de `storage aggregate object-store modify` avec le `-force-tiering-on-metrocluster true` option.
++
+L'absence de miroir interfère sur les exigences de réplication d'une configuration MetroCluster.
+
++
+[listing]
+----
+storage aggregate object-store modify -aggregate <aggregate name> -name mcc1_ostore1 -force-tiering-on-metrocluster true
+----
+. Créez un magasin d'objets de remplacement à l'aide du `storage aggregate object-store config create` commande.
++
+[listing]
+----
+storage aggregate object-store config create -object-store-name mcc1_ostore3 -cluster clusterA -provider-type SGWS -server <SGWS-server-1> -container-name <SGWS-bucket-1> -access-key <key> -secret-password <password> -encrypt <true|false> -provider <provider-type> -is-ssl-enabled <true|false> ipspace <IPSpace>
+----
+. Ajoutez le miroir du magasin d'objets au miroir FabricPool à l'aide de `storage aggregate object-store mirror` commande.
++
+[listing]
+----
+storage aggregate object-store mirror -aggregate aggr1 -name mcc1_ostore3-mc
+----
+. Afficher les informations du magasin d'objets à l'aide du `storage aggregate object-store show` commande.
++
+[listing]
+----
+storage aggregate object-store show -fields mirror-type,is-mirror-degraded
+----
++
+[listing]
+----
+aggregate      object-store-name mirror-type     is-mirror-degraded
+-------------- ----------------- ------------- ------------------
+aggr1          mcc1_ostore1-mc    primary           -
+               mcc1_ostore3-mc    mirror          true
+----
+. Surveillez l'état de resynchronisation du miroir à l'aide du `storage aggregate object-store show-resync-status` commande.
++
+[listing]
+----
+storage aggregate object-store show-resync-status -aggregate aggr1
+----
++
+[listing]
+----
+                                                  Complete
+      Aggregate    Primary        Mirror          Percentage
+      ---------    -----------    ----------      ----------
+      aggr1        mcc1_ostore1-mc mcc1_ostore3-mc   40%
+----
+

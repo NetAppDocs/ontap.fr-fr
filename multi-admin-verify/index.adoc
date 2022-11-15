@@ -1,0 +1,181 @@
+---
+sidebar: sidebar 
+permalink: multi-admin-verify/index.html 
+keywords: ontap, mav, RBAC, protected, operation, multi-admin, administrator, verification, approval, rules 
+summary: 'Depuis ONTAP 9.11.1, vous pouvez utiliser la vérification multi-administration (MAV) pour vous assurer que certaines opérations, telles que la suppression de volumes ou de copies Snapshot, ne peuvent être exécutées qu"après approbation d"administrateurs désignés.' 
+---
+= Présentation de la vérification multi-administrateur
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.11.1, vous pouvez utiliser la vérification multi-administration (MAV) pour vous assurer que certaines opérations, telles que la suppression de volumes ou de copies Snapshot, ne peuvent être exécutées qu'après approbation d'administrateurs désignés. Cela empêche les administrateurs compromis, malveillants ou peu expérimentés d'effectuer des modifications ou de supprimer des données indésirables.
+
+La configuration de la vérification multi-administrateurs comprend :
+
+* link:manage-groups-task.html["Création d'un ou plusieurs groupes d'approbation administrateur."]
+* link:enable-disable-task.html["Activation de la fonctionnalité de vérification multi-administrateurs."]
+* link:manage-rules-task.html["Ajout ou modification de règles."]
+
+
+Après la configuration initiale, ces éléments ne peuvent être modifiés que par les administrateurs d'un groupe d'approbation MAV (administrateurs MAV).
+
+Lorsque la vérification multi-administrateur est activée, chaque opération protégée nécessite trois étapes :
+
+* Lorsqu'un utilisateur lance l'opération, un link:request-operation-task.html["la demande a été générée."]
+* Avant de pouvoir être exécuté, au moins un link:manage-requests-task.html["L'administrateur MAV doit approuver."]
+* Après approbation, l'utilisateur termine l'opération.
+
+
+La vérification multi-administrateurs n'est pas destinée aux volumes ou aux flux de travail nécessitant une automatisation élevée, car chaque tâche automatisée nécessite une approbation avant que l'opération ne puisse être terminée. Si vous souhaitez utiliser l'automatisation et le MAV ensemble, il est recommandé d'utiliser des requêtes pour des opérations MAV spécifiques. Vous pouvez, par exemple, appliquer `volume delete` MAV ne règle que les volumes où l'automatisation n'est pas impliquée et vous pouvez désigner ces volumes avec un schéma de nommage particulier.
+
+
+NOTE: Si vous avez besoin de désactiver la fonctionnalité de vérification multi-administrateurs sans l'approbation de l'administrateur MAV, contactez le support NetApp et mentionnez l'article suivant de la base de connaissances : https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_to_disable_Multi-Admin_Verification_if_MAV_admin_is_unavailable["Comment désactiver la vérification multi-administrateur si MAV admin n'est pas disponible"^].
+
+
+
+== Fonctionnement de la vérification multi-administration
+
+La vérification multi-administrateurs comprend les éléments suivants :
+
+* Groupe d'un ou plusieurs administrateurs ayant des pouvoirs d'approbation et de veto.
+* Un ensemble d'opérations ou de commandes protégées dans une table _rules_.
+* Un _moteur de règles_ pour identifier et contrôler l'exécution des opérations protégées.
+
+
+Les règles MAV sont évaluées après les règles de contrôle d'accès basé sur des rôles (RBAC). Par conséquent, les administrateurs qui exécutent ou approuvent les opérations protégées doivent déjà posséder le minimum de privilèges RBAC pour ces opérations. link:../authentication/manage-access-control-roles-concept.html["En savoir plus sur le RBAC."]
+
+Lorsque la vérification multi-admin est activée, les règles définies par le système (également appelées règles _Guard-rail_) établissent un ensemble d'opérations MAV pour contenir le risque de contournement du processus MAV lui-même. Ces opérations ne peuvent pas être supprimées de la table des règles. Une fois MAV activé, les opérations désignées par un astérisque ( * ) nécessitent l'approbation d'un ou de plusieurs administrateurs avant l'exécution, à l'exception des commandes * show*.
+
+* `security multi-admin-verify modify*`
++
+Contrôle la configuration de la fonctionnalité de vérification multi-administrateur.
+
+* `security multi-admin-verify approval-group` opérations*
++
+Contrôlez l'appartenance à un ensemble d'administrateurs avec des informations d'identification de vérification multi-administrateur.
+
+* `security multi-admin-verify rule` opérations*
++
+Contrôler le jeu de commandes qui nécessitent une vérification multi-administrateur.
+
+* `security multi-admin-verify request` exploitation
++
+Contrôler le processus d'approbation.
+
+
+
+Outre les commandes définies par le système, les commandes suivantes sont protégées par défaut lorsque la vérification multi-admin est activée, mais vous pouvez modifier les règles afin de supprimer la protection de ces commandes.
+
+* `security login password`
+* `security login unlock`
+* `set`
+
+
+Les commandes suivantes peuvent être protégées dans ONTAP 9.11.1 et versions ultérieures.
+
+[cols="2*"]
+|===
+
+
+ a| 
+`cluster peer delete`
+
+`event config modify`
+
+`security login create`
+
+`security login delete`
+
+`security login modify`
+
+`system node run`
+
+`system node systemshell`
+
+`volume delete`
+
+`volume flexcache delete`
+
+`volume snaplock modify`
+ a| 
+`volume snapshot autodelete modify`
+
+`volume snapshot delete`
+
+`volume snapshot policy add-schedule`
+
+`volume snapshot policy create`
+
+`volume snapshot policy delete`
+
+`volume snapshot policy modify`
+
+`volume snapshot policy modify-schedule`
+
+`volume snapshot policy remove-schedule`
+
+`volume snapshot restore`
+
+`vserver peer delete`
+
+|===
+
+
+== Fonctionnement de l'approbation multi-admin
+
+Chaque fois qu'une opération protégée est saisie sur un cluster protégé par MAV, une demande d'exécution d'opération est envoyée au groupe d'administrateurs MAV désigné.
+
+Vous pouvez configurer :
+
+* Les noms, les coordonnées et le nombre d'administrateurs du groupe MAV.
++
+Un administrateur MAV doit avoir un rôle RBAC avec des privilèges d'administrateur de cluster.
+
+* Nombre de groupes d'administrateurs MAV.
++
+** Un groupe MAV est attribué pour chaque règle d'opération protégée.
+** Pour plusieurs groupes MAV, vous pouvez configurer quel groupe MAV approuve une règle donnée.
+
+
+* Nombre d'approbations MAV nécessaires à l'exécution d'une opération protégée.
+* Période_d'expiration_ de l'approbation au cours de laquelle un administrateur MAV doit répondre à une demande d'approbation.
+* Période_d'expiration_ de l'exécution pendant laquelle l'administrateur demandeur doit effectuer l'opération.
+
+
+Une fois ces paramètres configurés, l'approbation MAV est requise pour les modifier.
+
+Les administrateurs MAV ne peuvent pas approuver leurs propres demandes d'exécution d'opérations protégées. Par conséquent :
+
+* MAV ne doit pas être activé sur les clusters avec un seul administrateur.
+* S'il n'y a qu'une seule personne dans le groupe MAV, cet administrateur MAV ne peut pas entrer d'opérations protégées ; les administrateurs réguliers doivent les entrer et l'administrateur MAV ne peut approuver que.
+* Si vous souhaitez que les administrateurs MAV puissent exécuter des opérations protégées, le nombre d'administrateurs MAV doit être supérieur d'un au nombre d'approbations requises. Par exemple, si deux approbations sont requises pour une opération protégée et que vous voulez que les administrateurs MAV les exécutent, il doit y avoir trois personnes dans le groupe administrateurs MAV.
+
+
+Les administrateurs MAV peuvent recevoir des demandes d'approbation dans des alertes par e-mail (à l'aide d'EMS) ou interroger la file d'attente des requêtes. Lorsqu'ils reçoivent une demande, ils peuvent effectuer l'une des trois actions suivantes :
+
+* Approuver
+* Rejet (veto)
+* Ignorer (aucune action)
+
+
+Les notifications par e-mail sont envoyées à tous les approbateurs associés à une règle MAV lorsque :
+
+* Une demande est créée.
+* Une demande est approuvée ou vetotée.
+* Une requête approuvée est exécutée.
+
+
+Si le demandeur se trouve dans le même groupe d'approbation pour l'opération, il recevra un e-mail lorsque sa demande est approuvée.
+
+*Remarque :* Un demandeur ne peut approuver ses propres demandes, même si elles font partie du groupe d'approbation. Mais ils peuvent obtenir les notifications par e-mail. Les demandeurs qui ne sont pas dans les groupes d'approbation (c'est-à-dire qui ne sont pas des administrateurs MAV) ne reçoivent pas de notifications par e-mail.
+
+
+
+== Fonctionnement de l'exécution des opérations protégées
+
+Si l'exécution est approuvée pour une opération protégée, l'utilisateur demandeur continue avec l'opération à l'invite. Si l'opération est mise au veto, l'utilisateur requérant doit supprimer la demande avant de continuer.
+
+Les règles MAV sont évaluées après les autorisations RBAC. Par conséquent, un utilisateur sans autorisations RBAC suffisantes pour l'exécution de l'opération ne peut pas lancer le processus de requête MAV.

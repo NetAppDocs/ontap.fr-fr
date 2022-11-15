@@ -1,0 +1,62 @@
+---
+permalink: asa/support-limitations.html 
+sidebar: sidebar 
+keywords: all san array, asa, san, array, software, configuration, configure, configuring, setup, set up, limitations, restrictions, nvme, mcc ip, persistent ports, host, settings, utilities, ways to identify 
+summary: 'Utilisez les procédures suivantes pour configurer une matrice SAN à l"aide de System Manager.' 
+---
+= Prise en charge de toutes les limites de configuration et de toutes les baies SAN
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+:toc-position: content
+
+
+[role="lead"]
+Vous devez utiliser les limites de configuration maximales testées et prises en charge établies pour les contrôleurs ASA (All SAN Array) de AFF.
+
+Pour des opérations fiables, vous ne devez pas dépasser les limites actuellement testées et prises en charge répertoriées dans le link:https://hwu.netapp.com/["NetApp Hardware Universe"^].
+
+
+
+== Limites de configuration ASA
+
+Depuis la version ONTAP 9.9.1, les contrôleurs AFF ASA peuvent prendre en charge jusqu'à 12 nœuds pour les configurations IP non MetroCluster et jusqu'à 8 nœuds pour les configurations IP MetroCluster.
+
+Depuis la version ONTAP 9.9.1, le protocole NVMe-of est également pris en charge sur tous les contrôleurs AFF ASA, à l'exception de ceux configurés pour MetroCluster. Les configurations MetroCluster ne prennent pas en charge NVMe-of.
+
+
+
+== Prise en charge des ports persistants
+
+Depuis ONTAP 9.8, les ports persistants sont activés par défaut sur toutes les baies SAN (ASAS) configurées pour utiliser le protocole FC. Les ports persistants sont uniquement disponibles pour FC et requièrent l'appartenance de zone identifiée par WWPN (World Wide Port Name).
+
+Les ports persistants réduisent l'impact des conversions en créant une LIF « shadow » sur le port physique correspondant du partenaire de haute disponibilité. Lorsqu'un nœud est repris, la LIF shadow sur le nœud partenaire assume l'identité du LIF d'origine, y compris le WWPNe. Avant que le chemin d'accès au nœud mis en service ne soit modifié en défectueux, le shadow LIF apparaît sous la forme d'un chemin actif-optimisé vers la pile MPIO hôte, ainsi que de transferts d'E/S. Cela réduit les perturbations d'E/S car l'hôte voit toujours le même nombre de chemins vers la cible, même lors des opérations de basculement de stockage.
+
+Pour les ports persistants, les caractéristiques de port FCP suivantes doivent être identiques dans la paire haute disponibilité :
+
+* Nombre de ports FCP
+* Noms des ports FCP
+* Vitesses du port FCP
+* Segmentation basée sur le WWPN FCP LIF
+
+
+Si l'une de ces caractéristiques n'est pas identique au sein de la paire HA, le message EMS suivant est généré :
+
+`EMS : scsiblade.lif.persistent.ports.fcp.init.error`
+
+Pour plus d'informations sur les ports persistants, voir link:http://www.netapp.com/us/media/tr-4080.pdf["Rapport technique de NetApp 4080 : meilleures pratiques pour les environnements SAN évolutifs ONTAP 9"^].
+
+
+
+== Prise en charge du protocole NVMe-of
+
+Depuis la version ONTAP 9.9.1, toutes les baies SAN prennent en charge le protocole NVMe-of.
+
+Depuis ONTAP 9.12.1, les configurations IP MetroCluster à 4 nœuds prennent en charge NVMe/FC. Les configurations MetroCluster ne sont pas prises en charge pour NVMe avant la version 9.12.1.

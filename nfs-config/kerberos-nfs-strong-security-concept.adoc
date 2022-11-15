@@ -1,0 +1,47 @@
+---
+permalink: nfs-config/kerberos-nfs-strong-security-concept.html 
+sidebar: sidebar 
+keywords: use, kerberos, nfs, strong, security 
+summary: Si Kerberos est utilisé dans votre environnement pour une authentification renforcée, vous devez travailler avec votre administrateur Kerberos pour déterminer les exigences et les configurations de système de stockage appropriées, puis activer la SVM en tant que client Kerberos. 
+---
+= Présentation de l'utilisation de Kerberos avec NFS pour une sécurité renforcée
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si Kerberos est utilisé dans votre environnement pour une authentification renforcée, vous devez travailler avec votre administrateur Kerberos pour déterminer les exigences et les configurations de système de stockage appropriées, puis activer la SVM en tant que client Kerberos.
+
+Votre environnement doit respecter les consignes suivantes :
+
+* Votre déploiement de site doit respecter les bonnes pratiques en matière de configuration du serveur Kerberos et du client avant de configurer Kerberos pour ONTAP.
+* Si possible, utilisez NFSv4 ou une version ultérieure si l'authentification Kerberos est requise.
++
+NFSv3 peut être utilisé avec Kerberos. Toutefois, les avantages de la sécurité totale de Kerberos ne sont réalisés que dans les déploiements ONTAP de NFSv4 ou versions ultérieures.
+
+* Pour promouvoir un accès serveur redondant, Kerberos doit être activé sur plusieurs LIFs de données sur plusieurs nœuds du cluster à l'aide du même SPN.
+* Lorsque Kerberos est activé sur le SVM, l'une des méthodes de sécurité suivantes doit être spécifiée dans des règles d'exportation pour les volumes ou les qtrees, en fonction de votre configuration client NFS.
++
+** `krb5` (Protocole Kerberos v5)
+** `krb5i` (Protocole Kerberos v5 avec contrôle d'intégrité à l'aide de checksums)
+** `krb5p` (Protocole Kerberos v5 avec service de confidentialité)
+
+
+
+
+En plus du serveur Kerberos et des clients, les services externes suivants doivent être configurés pour ONTAP afin de prendre en charge Kerberos :
+
+* Service d'annuaire
++
+Vous devez utiliser un service d'annuaire sécurisé dans votre environnement, tel qu'Active Directory ou OpenLDAP, configuré pour utiliser LDAP sur SSL/TLS. N'utilisez pas NIS, dont les demandes sont envoyées en clair et ne sont donc pas sécurisées.
+
+* NTP
++
+Vous devez disposer d'un serveur de temps de travail exécutant NTP. Cette opération est nécessaire pour éviter l'échec de l'authentification Kerberos en raison de l'inclinaison du temps.
+
+* Résolution des noms de domaine (DNS)
++
+Chaque client UNIX et chaque LIF de SVM doivent avoir un enregistrement de service (SRV) correct enregistré auprès du KDC dans des zones de recherche avant et arrière. Tous les participants doivent être résolus correctement via DNS.
+
+

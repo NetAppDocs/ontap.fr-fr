@@ -1,0 +1,51 @@
+---
+permalink: smb-hyper-v-sql/verify-security-style-svm-root-volume-ntfs-task.html 
+sidebar: sidebar 
+keywords: verify, security, style, svm, root, volume, ntfs, storage, virtual, machine 
+summary: 'Pour assurer la continuité de l"activité pour Hyper-V et SQL Server sur SMB, des volumes doivent être créés avec le style de sécurité NTFS. Étant donné que le style de sécurité du volume root est appliqué par défaut aux volumes créés sur la machine virtuelle de stockage (SVM), le style de sécurité du volume root doit être défini sur NTFS.' 
+---
+= Vérifier que le style de sécurité du volume root du SVM est défini sur NTFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour assurer la continuité de l'activité pour Hyper-V et SQL Server sur SMB, des volumes doivent être créés avec le style de sécurité NTFS. Comme le style de sécurité du volume root est appliqué par défaut aux volumes créés sur la machine virtuelle de stockage (SVM), le style de sécurité du volume root doit être défini sur NTFS.
+
+.Description de la tâche
+* Vous pouvez spécifier le style de sécurité du volume root au moment de la création de la SVM.
+* Si le SVM n'est pas créé avec le volume root défini sur le style de sécurité NTFS, vous pouvez changer le style de sécurité plus tard en utilisant le `volume modify` commande.
+
+
+.Étapes
+. Déterminer la méthode de sécurité actuelle du volume root du SVM :
++
+`*volume show -vserver _vserver_name_ -fields vserver,volume,security-style*`
+
+. Si le volume racine n'est pas un volume de style de sécurité NTFS, remplacez le style de sécurité par NTFS :
++
+`*volume modify -vserver _vserver_name_ -volume root_volume_name -security-style ntfs*`
+
+. Vérifier que le volume root du SVM est défini sur le style de sécurité NTFS :
++
+`*volume show -vserver _vserver_name_ -fields vserver,volume,security-style*`
+
+
+
+Les commandes suivantes vérifient que le style de sécurité du volume root est NTFS sur le SVM vs1 :
+
+[listing]
+----
+cluster1::> volume show -vserver vs1 -fields vserver,volume,security-style
+vserver  volume     security-style
+-------- ---------- --------------
+vs1      vs1_root   unix
+
+cluster1::> volume modify -vserver vs1 -volume vs1_root -security-style ntfs
+
+cluster1::> volume show -vserver vs1 -fields vserver,volume,security-style
+vserver  volume     security-style
+-------- ---------- --------------
+vs1      vs1_root   ntfs
+----

@@ -1,0 +1,124 @@
+---
+permalink: s3-config/create-svm-s3-task.html 
+sidebar: sidebar 
+keywords: create, svm, s3 
+summary: 'Bien que S3 puisse coexister dans un SVM avec d"autres protocoles, il est possible de créer un nouveau SVM afin d"isoler l"espace de noms et la charge de travail.' 
+---
+= Création d'un SVM pour S3
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Bien que S3 puisse coexister avec d'autres protocoles dans un SVM, il peut être nécessaire de créer un nouveau SVM afin d'isoler le namespace et les workloads.
+
+Si vous fournit uniquement le stockage objet S3 à partir d'un SVM, le serveur S3 ne nécessite aucune configuration DNS. Toutefois, il peut être nécessaire de configurer le DNS sur le SVM si d'autres protocoles sont utilisés.
+
+Lorsque vous configurez l'accès S3 à une nouvelle machine virtuelle de stockage à l'aide de System Manager, vous êtes invité à saisir des informations de certificat et de mise en réseau, et la machine virtuelle de stockage et le serveur de stockage objet S3 sont créés en une seule opération.
+
+[role="tabbed-block"]
+.Étapes
+====
+.CLI
+--
+. Vérifiez que la licence S3 est disponible sur votre cluster :
++
+`system license show -package s3`
+
++
+Si ce n'est pas le cas, contactez votre représentant commercial.
+
+. Création d'un SVM :
++
+`vserver create -vserver _svm_name_ -rootvolume _root_volume_name_ -aggregate _aggregate_name_ -rootvolume-security-style unix -language C.UTF-8 -ipspace _ipspace_name_`
+
++
+** Utilisez le paramètre UNIX pour le `-rootvolume-security-style` option.
+** Utilisez le paramètre par défaut C.UTF-8 `-language` option.
+** Le `ipspace` le paramètre est facultatif.
+
+
+. Vérifier la configuration et le statut du nouveau SVM :
++
+`vserver show -vserver _svm_name_`
+
++
+Le `Vserver Operational State` le champ doit afficher `running` état. S'il affiche le `initializing` État, cela signifie qu'une opération intermédiaire telle que la création du volume root a échoué, et vous devez supprimer la SVM et la recréer.
+
+
+
+La commande suivante crée un SVM pour l'accès aux données dans l'IPspace ipspaceA :
+
+[listing]
+----
+cluster-1::> vserver create -vserver svm1.example.com -rootvolume root_svm1 -aggregate aggr1 -rootvolume-security-style unix -language C.UTF-8 -ipspace ipspaceA
+
+[Job 2059] Job succeeded:
+Vserver creation completed
+----
+La commande suivante montre qu'un SVM a été créé avec un volume root de 1 Go, il a été démarré automatiquement et qu'il est en `running` état. Le volume root dispose d'une export policy par défaut qui n'inclut aucune règle et qui ne précise donc pas l'exportation du volume root au moment de sa création. Par défaut, le compte utilisateur vsadmin est créé et est dans le `locked` état. Le rôle vsadmin est attribué au compte utilisateur par défaut vsadmin.
+
+[listing]
+----
+cluster-1::> vserver show -vserver svm1.example.com
+                                    Vserver: svm1.example.com
+                               Vserver Type: data
+                            Vserver Subtype: default
+                               Vserver UUID: b8375669-19b0-11e5-b9d1-00a0983d9736
+                                Root Volume: root_svm1
+                                  Aggregate: aggr1
+                                 NIS Domain: -
+                 Root Volume Security Style: unix
+                                LDAP Client: -
+               Default Volume Language Code: C.UTF-8
+                            Snapshot Policy: default
+                                    Comment:
+                               Quota Policy: default
+                List of Aggregates Assigned: -
+ Limit on Maximum Number of Volumes allowed: unlimited
+                        Vserver Admin State: running
+                  Vserver Operational State: running
+   Vserver Operational State Stopped Reason: -
+                          Allowed Protocols: nfs, cifs
+                       Disallowed Protocols: -
+                           QoS Policy Group: -
+                                Config Lock: false
+                               IPspace Name: ipspaceA
+----
+--
+.System Manager
+--
+Vous devez préparer à saisir le nom du serveur S3 en tant que nom de domaine complet (FQDN) que les clients utiliseront pour l'accès S3. Le FQDN du serveur S3 ne doit pas commencer par un nom de compartiment.
+
+Vous devez être prêt à saisir des adresses IP pour les données de rôle d'interface.
+
+Si vous utilisez un certificat signé par une autorité de certification externe, vous serez invité à le saisir au cours de cette procédure ; vous avez également la possibilité d'utiliser un certificat généré par le système.
+
+. Activez S3 sur une VM de stockage.
++
+.. Ajouter une nouvelle machine virtuelle de stockage : cliquez sur *stockage > machines virtuelles de stockage*, puis sur *Ajouter*.
++
+S'il s'agit d'un nouveau système sans machines virtuelles de stockage existantes : cliquez sur *Tableau de bord > configurer les protocoles*.
+
++
+Si vous ajoutez un serveur S3 à une machine virtuelle de stockage existante : cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez une machine virtuelle de stockage, cliquez sur *Paramètres*, puis cliquez sur image:icon_gear.gif["icône paramètres"] Sous *S3*.
+
+.. Cliquez sur *Activer S3*, puis entrez le nom du serveur S3.
+.. Sélectionnez le type de certificat.
++
+Que vous sélectionniez un certificat généré par le système ou l'un de vos propres certificats, il sera nécessaire d'accéder au client.
+
+.. Saisissez les interfaces réseau.
+
+
+. Si vous avez sélectionné le certificat généré par le système, les informations de certificat s'affichent lorsque la création de la nouvelle machine virtuelle de stockage est confirmée. Cliquez sur *Download* et enregistrez-le pour accéder au client.
++
+** La clé secrète ne s'affiche plus.
+** Si vous avez besoin de nouveau des informations de certificat : cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez la machine virtuelle de stockage, puis cliquez sur *Paramètres*.
+
+
+
+
+--
+====

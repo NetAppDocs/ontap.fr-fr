@@ -1,0 +1,26 @@
+---
+permalink: nfs-admin/access-cache-concept.html 
+sidebar: sidebar 
+keywords: access, cache 
+summary: 'ONTAP utilise un cache d"accès pour stocker les résultats de l"évaluation de la règle d"export policy pour les opérations d"accès client à un volume ou à un qtree. Il en résulte une amélioration des performances, car les informations peuvent être récupérées beaucoup plus rapidement depuis le cache d"accès qu"un processus d"évaluation des règles d"export-policy à chaque fois qu"un client envoie une requête d"E/S.' 
+---
+= Fonctionnement du cache d'accès
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP utilise un cache d'accès pour stocker les résultats de l'évaluation de la règle d'export policy pour les opérations d'accès client à un volume ou à un qtree. Il en résulte une amélioration des performances, car les informations peuvent être récupérées beaucoup plus rapidement depuis le cache d'accès qu'un processus d'évaluation des règles d'export-policy à chaque fois qu'un client envoie une requête d'E/S.
+
+Lorsqu'un client NFS envoie une requête d'E/S pour accéder aux données d'un volume ou qtree, ONTAP doit évaluer chaque demande d'E/S afin de déterminer s'il faut accorder ou refuser la demande d'E/S. Cette évaluation implique de vérifier chaque règle d'export policy de la export policy associée au volume ou à qtree. Si le chemin vers le volume ou qtree implique de franchir un ou plusieurs points de jonction, cette vérification peut s'avérer nécessaire pour rechercher plusieurs règles d'exportation le long du chemin.
+
+Notez que cette évaluation est effectuée pour chaque demande d'E/S envoyée depuis un client NFS, par exemple pour la lecture, l'écriture, la liste, la copie et d'autres opérations. Il ne s'agit pas uniquement de demandes de montage initiales.
+
+Une fois que ONTAP a identifié les règles d'export policy applicables et a décidé d'autoriser ou de refuser la requête, ONTAP crée ensuite une entrée dans le cache d'accès pour stocker ces informations.
+
+Lorsqu'un client NFS envoie une requête d'E/S, ONTAP note l'adresse IP du client, l'ID de la SVM et la export policy associée au volume cible ou au qtree, et recherche d'abord une entrée correspondante dans le cache d'accès. S'il existe une entrée correspondante dans le cache d'accès, ONTAP utilise les informations stockées pour autoriser ou refuser la demande d'E/S. Si aucune entrée correspondante n'existe, ONTAP passe par le processus normal d'évaluation de toutes les règles de politique applicables, comme expliqué ci-dessus.
+
+Les entrées du cache d'accès qui ne sont pas utilisées activement ne sont pas actualisées. Cela permet de réduire les communications inutiles et inutiles avec des services de noms externes.
+
+La récupération des informations à partir du cache d'accès est bien plus rapide qu'au cours de l'intégralité du processus d'évaluation des règles des règles d'export-policy pour chaque demande d'E/S. Par conséquent, l'utilisation du cache d'accès améliore nettement les performances en réduisant la surcharge liée aux vérifications d'accès client.

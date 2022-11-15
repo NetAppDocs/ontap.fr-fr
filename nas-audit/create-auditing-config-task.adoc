@@ -1,0 +1,82 @@
+---
+permalink: nas-audit/create-auditing-config-task.html 
+sidebar: sidebar 
+keywords: create, audit, configuration 
+summary: 'Avant de pouvoir commencer l"audit des événements de fichiers et de répertoires, vous devez créer une configuration d"audit sur la machine virtuelle de stockage (SVM).' 
+---
+= Créez la configuration d'audit
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La création d'une configuration d'audit de fichier et de répertoire sur votre SVM (Storage Virtual machine) comprend les options de configuration disponibles, la planification de la configuration, puis la configuration et l'activation de la configuration. Vous pouvez ensuite afficher des informations sur la configuration d'audit pour confirmer que la configuration résultante est la configuration souhaitée.
+
+Avant de pouvoir commencer l'audit des événements de fichiers et de répertoires, vous devez créer une configuration d'audit sur la machine virtuelle de stockage (SVM).
+
+Si vous prévoyez de créer une configuration d'audit pour la mise en attente des règles d'accès central, un serveur SMB doit exister sur le SVM.
+
+[NOTE]
+====
+* Bien que vous puissiez activer le staging de stratégie d'accès central dans la configuration d'audit sans activer le contrôle d'accès dynamique sur le serveur SMB, les événements de staging de stratégie d'accès central ne sont générés que si le contrôle d'accès dynamique est activé.
++
+Le contrôle d'accès dynamique est activé par le biais d'une option de serveur SMB. Elle n'est pas activée par défaut.
+
+* Si les arguments d'un champ d'une commande ne sont pas valides, par exemple des entrées non valides pour les champs, des entrées dupliquées et des entrées non existantes, la commande échoue avant la phase d'audit.
++
+Ces échecs ne génèrent pas d'enregistrement d'audit.
+
+
+
+====
+Si le SVM est une source de reprise d'activité du SVM, le chemin de destination ne peut pas se trouver sur le volume root.
+
+.Étape
+. À l'aide des informations de la fiche de planification, créez la configuration d'audit pour faire pivoter les journaux d'audit en fonction de la taille du journal ou d'une planification :
++
+[cols="30,70"]
+|===
+
+
+| Si vous souhaitez faire pivoter les journaux d'audit en... | Entrer... 
+
+
+ a| 
+Taille du journal
+ a| 
+`vserver audit create -vserver vserver_name -destination path -events [{file-ops|cifs-logon-logoff|cap-staging|file-share|audit-policy-change|user-account|security-group|authorization-policy-change}] [-format {xml|evtx}] [-rotate-limit integer] [-rotate-size {integer[KB|MB|GB|TB|PB]}]`
+
+
+
+ a| 
+Un planning
+ a| 
+`vserver audit create -vserver vserver_name -destination path -events [{file-ops|cifs-logon-logoff|cap-staging}] [-format {xml|evtx}] [-rotate-limit integer] [-rotate-schedule-month chron_month] [-rotate-schedule-dayofweek chron_dayofweek] [-rotate-schedule-day chron_dayofmonth] [-rotate-schedule-hour chron_hour] -rotate-schedule-minute chron_minute`
+
+[NOTE]
+====
+Le `-rotate-schedule-minute` le paramètre est requis si vous configurez la rotation du journal d'audit basée sur le temps.
+
+====
+|===
+
+
+L'exemple suivant crée une configuration d'audit qui vérifie les opérations de fichiers et les événements de connexion et de déconnexion SMB (par défaut) à l'aide de la rotation basée sur la taille. Le format du journal est `EVTX` (valeur par défaut). Les journaux sont stockés dans le `/audit_log` répertoire. La taille limite du fichier journal est de `200 MB`. Les journaux pivotent lorsqu'ils atteignent 200 Mo de taille :
+
+[listing]
+----
+cluster1::> vserver audit create -vserver vs1 -destination /audit_log -rotate-size 200MB
+----
+L'exemple suivant crée une configuration d'audit qui vérifie les opérations de fichiers et les événements de connexion et de déconnexion SMB (par défaut) à l'aide de la rotation basée sur la taille. Le format du journal est `EVTX` (valeur par défaut). La taille limite du fichier journal est de `100 MB` (valeur par défaut) et la limite de rotation du journal est `5`:
+
+[listing]
+----
+cluster1::> vserver audit create -vserver vs1 -destination /audit_log -rotate-limit 5
+----
+L'exemple suivant crée une configuration d'audit qui audite les opérations de fichiers, les événements de connexion et de déconnexion CIFS, ainsi que les événements d'activation de stratégie d'accès central à l'aide d'une rotation basée sur le temps. Le format du journal est `EVTX` (valeur par défaut). Les journaux d'audit sont pivotés tous les mois, à 12:30 tous les jours de la semaine. La limite de rotation du log est de `5`:
+
+[listing]
+----
+cluster1::> vserver audit create -vserver vs1 -destination /audit_log -events file-ops,cifs-logon-logoff,file-share,audit-policy-change,user-account,security-group,authorization-policy-change,cap-staging -rotate-schedule-month all -rotate-schedule-dayofweek all -rotate-schedule-hour 12 -rotate-schedule-minute 30 -rotate-limit 5
+----

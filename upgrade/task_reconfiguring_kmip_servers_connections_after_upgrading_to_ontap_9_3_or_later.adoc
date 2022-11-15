@@ -1,0 +1,34 @@
+---
+permalink: upgrade/task_reconfiguring_kmip_servers_connections_after_upgrading_to_ontap_9_3_or_later.html 
+sidebar: sidebar 
+keywords: ontap, upgrade, reconfigure, reconfiguring, kmip, server, connections, 9.3, later 
+summary: 'Après avoir effectué une mise à niveau vers ONTAP 9.3 ou une version ultérieure, vous devez reconfigurer vos connexions de serveur de gestion externe des clés (KMIP).' 
+---
+= Reconfiguration des connexions du serveur KMIP après la mise à niveau vers ONTAP 9.3 ou version ultérieure
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Après avoir effectué une mise à niveau vers ONTAP 9.3 ou une version ultérieure, vous devez reconfigurer vos connexions de serveur de gestion externe des clés (KMIP).
+
+. Configurez la connectivité du gestionnaire de clés :``security key-manager setup``
+. Ajoutez vos serveurs KMIP : `security key-manager add -address key_management_server_ip_address`
+. Vérifiez que les serveurs KMIP sont connectés : `security key-manager show -status`
+. Interroger les serveurs de clés : `security key-manager query`
+. Créez une nouvelle clé d'authentification et une nouvelle phrase secrète : `security key-manager create-key -prompt-for-key true`
++
+La phrase de passe doit comporter au moins 32 caractères.
+
+. Interroger la nouvelle clé d'authentification : `security key-manager query`
+. Attribuez la nouvelle clé d'authentification à vos disques à autochiffrement (SED) : `storage encryption disk modify -disk disk_ID -data-key-id key_ID`
++
+
+NOTE: Assurez-vous d'utiliser la nouvelle clé d'authentification de votre requête.
+
+. Si nécessaire, attribuez une clé FIPS aux disques SED : `storage encryption disk modify -disk disk_id -fips-key-id fips_authentication_key_id`
++
+Si votre configuration de sécurité exige que vous utilisiez des clés différentes pour l'authentification des données et l'authentification FIPS 140-2, vous devez créer une clé distincte pour chacune d'elles. Si ce n'est pas le cas, vous pouvez utiliser la même clé d'authentification pour la conformité FIPS que celle utilisée pour l'accès aux données.
+
+

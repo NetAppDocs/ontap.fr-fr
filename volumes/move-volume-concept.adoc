@@ -1,0 +1,34 @@
+---
+permalink: volumes/move-volume-concept.html 
+sidebar: sidebar 
+keywords: how, move, flexvol, volume, works 
+summary: 'Connaître le fonctionnement du déplacement d"un volume FlexVol vous permet de déterminer si ce déplacement de volume respecte les contrats de niveau de service et de déterminer où il se trouve lors du déplacement d"un volume.' 
+---
+= Déplacer la présentation d'un volume FlexVol
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez déplacer ou copier des volumes pour optimiser l'utilisation de la capacité, améliorer les performances et respecter les contrats de niveau de service.
+
+Connaître le fonctionnement du déplacement d'un volume FlexVol vous permet de déterminer si ce déplacement de volume respecte les contrats de niveau de service et de déterminer où il se trouve lors du déplacement d'un volume.
+
+Les volumes FlexVol sont déplacés d'un agrégat ou d'un nœud vers un autre au sein d'un même SVM. Un déplacement de volumes n'interrompt pas l'accès client pendant le déplacement.
+
+Le déplacement d'un volume se produit en plusieurs phases :
+
+* Un nouveau volume est établi sur l'agrégat de destination.
+* Les données du volume d'origine sont copiées vers le nouveau volume.
++
+Pendant ce temps, le volume d'origine est intact et accessible pour les clients.
+
+* À la fin du processus de déplacement, l'accès client est temporairement bloqué.
++
+Pendant ce temps, le système exécute une réplication finale du volume source vers le volume de destination, permute les identités des volumes source et de destination, puis change le volume de destination vers le volume source.
+
+* Une fois le déplacement terminé, le système achemine le trafic client vers le nouveau volume source et rétablit l'accès client.
+
+
+La transition n'engendre pas d'interruption de l'accès aux clients, car l'heure à laquelle l'accès aux clients est bloqué est terminée avant que les clients n'aient constaté une interruption ou une expiration de délai. L'accès client est bloqué pendant 35 secondes par défaut. Si l'opération de déplacement de volume ne peut pas se terminer au moment où l'accès est refusé, le système interrompt cette dernière phase de l'opération de déplacement de volume et autorise l'accès client. Le système tente trois fois la phase finale par défaut. Après la troisième tentative, le système attend une heure avant de tenter à nouveau la séquence de phase finale. Le système exécute la phase finale de l'opération de déplacement de volume jusqu'à ce que le déplacement de volume soit terminé.

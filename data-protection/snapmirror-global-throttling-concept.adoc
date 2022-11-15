@@ -1,0 +1,81 @@
+---
+permalink: data-protection/snapmirror-global-throttling-concept.html 
+sidebar: sidebar 
+keywords: using snapmirror, global, throttling 
+summary: La limitation du réseau globale est disponible pour tous les transferts SnapMirror et SnapVault au niveau de chaque nœud. 
+---
+= Utilisez l'accélération globale de SnapMirror
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+La limitation du réseau globale est disponible pour tous les transferts SnapMirror et SnapVault au niveau de chaque nœud.
+
+La limitation globale de SnapMirror restreint la bande passante utilisée par les transferts SnapMirror et SnapVault entrants et/ou sortants. La restriction est appliquée à l'échelle du cluster sur tous les nœuds du cluster.
+
+Par exemple, si l'accélérateur sortant est réglé sur 100 Mbit/s, la bande passante sortante est définie sur 100 Mbit/s. Si l'accélération globale est désactivée, celle-ci est désactivée sur tous les nœuds.
+
+[NOTE]
+====
+L'accélérateur n'a aucun effet sur `volume move` transferts ou transferts entre miroirs de partage de charge. Bien que les taux de transfert de données soient souvent exprimés en bits par seconde (bit/s), les valeurs de l'accélérateur doivent être saisies en kilo-octets par seconde (Kbit/s).
+
+====
+La régulation globale fonctionne à l'aide de la fonction de régulation de la relation pour les transferts SnapMirror et SnapVault. Le papillon par relation est appliqué jusqu'à ce que la bande passante combinée des transferts par relation dépasse la valeur de l'accélérateur global, après quoi l'accélérateur global est appliqué. Une valeur d'accélérateur `0` implique que la régulation globale est désactivée.
+
+[NOTE]
+====
+La régulation globale de SnapMirror n'a aucun effet sur les relations SnapMirror synchrone lorsqu'elles sont In-Sync. Cependant, le papillon affecte les relations SnapMirror synchrone lorsqu'ils effectuent une phase de transfert asynchrone comme une opération d'initialisation ou après un événement hors synchronisation. Il n'est donc pas recommandé d'activer la régulation globale avec les relations SnapMirror synchrone.
+
+====
+.Étapes
+. Activation de l'accélération globale :
++
+`options -option-name replication.throttle.enable on|off`
+
++
+L'exemple suivant montre comment activer la régulation globale de SnapMirror `cluster_dst`:
+
++
+[listing]
+----
+cluster_dst::> options -option-name replication.throttle.enable on
+----
+. Spécifiez la bande passante totale maximale utilisée par les transferts entrants sur le cluster de destination :
++
+`options -option-name replication.throttle.incoming.max_kbs _KBps_`
+
++
+La bande passante minimale recommandée de l'accélérateur est de 4 kbit/s et la largeur maximale est de 2 Tbit/s. La valeur par défaut de cette option est `unlimited`, ce qui signifie qu'il n'y a pas de limite sur la bande passante totale utilisée.
+
++
+L'exemple suivant montre comment définir la bande passante totale maximale utilisée par les transferts entrants sur 100 Mbit/s :
+
++
+[listing]
+----
+cluster_dst::> options -option-name replication.throttle.incoming.max_kbs 12500
+----
++
+[NOTE]
+====
+100 Mbit/s = 12500 Kbit/s
+
+====
+. Spécifiez la bande passante totale maximale utilisée par les transferts sortants sur le cluster source :
++
+`options -option-name replication.throttle.outgoing.max_kbs _KBps_`
+
++
+Kbits/s est la vitesse de transfert maximale en kilo-octets par seconde. Les valeurs de taux de transfert valides sont de 1 à 125000. La valeur par défaut de cette option est `unlimited`, ce qui signifie qu'il n'y a pas de limite sur la bande passante totale utilisée.
+
++
+L'exemple suivant montre comment définir la bande passante totale maximale utilisée par les transferts sortants sur 100 Mbit/s :
+
++
+[listing]
+----
+cluster_src::> options -option-name replication.throttle.outgoing.max_kbs 12500
+----
+

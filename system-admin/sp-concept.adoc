@@ -1,0 +1,79 @@
+---
+permalink: system-admin/sp-concept.html 
+sidebar: sidebar 
+keywords: understand, sp, service, processor, remote, management, device, access, monitor, troubleshoot, node 
+summary: 'Le processeur de service (SP) est un périphérique de gestion à distance qui vous permet d"accéder à, de contrôler et de dépanner un nœud à distance.' 
+---
+= À propos du processeur de service
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le processeur de service (SP) est un périphérique de gestion à distance qui vous permet d'accéder à, de contrôler et de dépanner un nœud à distance.
+
+Le processeur de service offre les fonctionnalités suivantes :
+
+* Le processeur de service permet d'accéder à un nœud à distance pour diagnostiquer, arrêter, mettre hors/sous tension ou redémarrer le nœud, quel que soit l'état du contrôleur.
++
+Le processeur de service est alimenté par une tension de veille, disponible tant qu'au moins une de ses alimentations est alimentée.
+
++
+Vous pouvez vous connecter au processeur de service à l'aide d'une application cliente Secure Shell sur un hôte d'administration. Vous pouvez ensuite utiliser l'interface de ligne de commande du processeur de service pour surveiller et dépanner le nœud à distance. Vous pouvez également utiliser le processeur de service pour accéder à la console série et exécuter des commandes ONTAP à distance.
+
++
+Vous pouvez accéder au processeur de service à partir de la console série de ou accéder à la console série à partir du processeur de service. Le processeur de service vous permet d'ouvrir simultanément une session d'interface de ligne de commandes du processeur de service et une autre session de console.
+
++
+Par exemple, lorsqu'un capteur de température devient critique ou faible, ONTAP déclenche l'arrêt normal du processeur de service de la carte mère. La console série ne répond plus, mais vous pouvez tout de même utiliser la combinaison de touches Ctrl-G sur la console pour accéder à l'interface de ligne de commandes du processeur de service. Vous pouvez ensuite utiliser le `system power on` ou `system power cycle` Commande du processeur de service pour mettre le nœud sous tension ou hors tension.
+
+* Le processeur de service surveille les capteurs environnementaux et les journaux d'événements pour vous aider à prendre des mesures de service efficaces et en temps opportun.
++
+Le processeur de service surveille les capteurs environnementaux tels que les températures des nœuds, les tensions, les courants et la vitesse des ventilateurs. Lorsqu'un capteur environnemental a atteint un état anormal, le processeur de service consigne les lectures anormales, informe ONTAP du problème et envoie des alertes et des notifications « système propre » si nécessaire via un message AutoSupport, que le nœud puisse envoyer des messages AutoSupport ou non.
+
++
+Le processeur de service consigne également des événements tels que la progression du démarrage, les modifications des unités remplaçables sur site, les événements générés par ONTAP et l'historique des commandes du processeur de service. Vous pouvez appeler manuellement un message AutoSupport pour inclure les fichiers journaux du processeur de service collectés à partir d'un nœud spécifié.
+
++
+Autre que la génération de ces messages pour le compte d'un nœud qui est en panne et la connexion d'informations de diagnostic supplémentaires aux messages AutoSupport, le processeur de service n'a aucun impact sur la fonctionnalité AutoSupport. Les paramètres de configuration de AutoSupport et le comportement du contenu des messages sont hérités de ONTAP.
+
++
+[NOTE]
+====
+Le processeur de service ne repose pas sur le `-transport` paramètre du `system node autosupport modify` commande permettant d'envoyer des notifications. Le processeur de service utilise uniquement le protocole SMTP (simple Mail transport Protocol) et requiert la configuration AutoSupport de son hôte pour inclure les informations relatives à l'hôte de messagerie.
+
+====
++
+Si le protocole SNMP est activé, le processeur de service génère des interruptions SNMP vers des hôtes d'interruption configurés pour tous les événements "système propriétaire".
+
+* Le processeur de service dispose d'un tampon de mémoire non volatile qui stocke jusqu'à 4,000 événements dans un journal des événements du système (SEL) pour vous aider à diagnostiquer les problèmes.
++
+Le journal des événements système enregistre chaque entrée du journal d'audit en tant qu'événement d'audit. Il est stocké dans la mémoire flash intégrée sur le processeur de service. La liste des événements du journal des événements est automatiquement envoyée par le processeur de service aux destinataires spécifiés via un message AutoSupport.
+
++
+Le journal des événements du système contient les informations suivantes :
+
++
+** Événements matériels détectés par le processeur de service --par exemple, statut d'un capteur concernant les alimentations, la tension ou d'autres composants
+** Erreurs détectées par le processeur de service--par exemple, une erreur de communication, une panne de ventilateur ou une erreur de la mémoire ou de l'UC
+** Événements logiciels critiques envoyés au SP par le nœud--par exemple, une panique, une panne de communication, une panne de démarrage ou un "système propre" déclenché par l'utilisateur à la suite de l'émission du SP `system reset` ou `system power cycle` commande
+
+
+* Le processeur de service surveille la console série, que les administrateurs soient connectés ou non à la console, que ce soit.
++
+Lorsque des messages sont envoyés à la console, le processeur de service les stocke dans le journal de la console. Le journal de la console est conservé tant que le processeur de service est alimenté à partir d'une des alimentations du nœud. Du fait que le processeur de service fonctionne avec une alimentation de veille, il demeure disponible même lorsque le nœud est mis hors tension puis sous tension ou lorsqu'il est arrêté.
+
+* Le basculement assisté par matériel est disponible si le SP est configuré.
+* Le service d'API du processeur de service permet à ONTAP de communiquer avec le processeur de service sur le réseau.
++
+Le service améliore la gestion ONTAP du processeur de service en prenant en charge des fonctionnalités réseau telles que l'interface réseau de la mise à jour du firmware du processeur de service, ce qui permet à un nœud d'accéder à la fonctionnalité du processeur de service ou à la console système d'un autre nœud, et de charger le journal du processeur de service à partir d'un autre nœud.
+
++
+Vous pouvez modifier la configuration du service API SP en modifiant le port utilisé par le service, en renouvelant les certificats SSL et SSH utilisés par le service pour une communication interne ou en désactivant entièrement le service.
+
+
+
+Le schéma suivant illustre l'accès à ONTAP et au processeur de service d'un nœud. L'interface du processeur de service est accessible via le port Ethernet (indiqué par une icône de clé anglaise à l'arrière du châssis) :
+
+image::../media/drw-sp-netwk.gif[Ce graphique est décrit par le texte environnant.]

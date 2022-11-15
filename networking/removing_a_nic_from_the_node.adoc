@@ -1,0 +1,51 @@
+---
+sidebar: sidebar 
+permalink: networking/removing_a_nic_from_the_node.html 
+keywords: delete, deleting, remove, removing, nic, network, interface, card, slot, maintenance, faulty, error, bad, failed, fail, node, remove a faulty NIC from its slot or move the NIC to another slot for maintenance purposes, removing a nic from the node on ontap 9.8 or later, controller-replacement, network displaced-vlans, displaced-vlans show, displaced-vlans restore, 
+summary: ONTAP 9.8 et versions ultérieures, retirez une carte réseau défectueuse de son logement ou déplacez-la vers un autre emplacement pour des raisons de maintenance 
+---
+= Suppression d'une carte réseau du nœud sous ONTAP 9.8 ou version ultérieure
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Cette rubrique s'applique à ONTAP 9.8 ou version ultérieure. Vous devrez peut-être retirer une carte réseau défectueuse de son logement ou la déplacer vers un autre emplacement pour des raisons de maintenance.
+
+.Étapes
+. Mettez le nœud hors tension.
+. Retirez physiquement la carte réseau de son logement.
+. Mettez le nœud sous tension.
+. Vérifiez que le port a été supprimé :
++
+....
+network port show
+....
++
+
+NOTE: ONTAP supprime automatiquement le port de n'importe quel groupe d'interfaces. Si le port était le seul membre d'un groupe d'interfaces, le groupe d'interfaces est supprimé.
+
+. Si des VLAN y sont configurés sur le port, ils sont déplacés. Vous pouvez afficher les VLAN déplacés à l'aide de la commande suivante :
++
+....
+cluster controller-replacement network displaced-vlans show
+....
++
+
+NOTE: Le `displaced-interface show`, `displaced-vlans show`, et `displaced-vlans restore` les commandes sont uniques et ne nécessitent pas le nom de la commande entièrement qualifié, qui commence par `cluster controller-replacement network`.
+
+. Ces VLAN sont supprimés, mais peuvent être restaurés à l'aide de la commande suivante :
++
+....
+displaced-vlans restore
+....
+. Si des LIFs de type port y sont configurées, ONTAP sélectionne automatiquement de nouveaux ports d'accueil pour ces LIFs sur un autre port du même broadcast domain. Si aucun port domestique approprié n'est trouvé sur le même filer, ces LIF sont considérées comme déplacées. Vous pouvez afficher les LIFs déplacées à l'aide de la commande suivante :
++
+`displaced-interface show`
+
+. Lorsqu'un nouveau port est ajouté au broadcast domain sur le même node, les home ports des LIFs sont automatiquement restaurés. Vous pouvez également définir le port d'accueil à l'aide de `network interface modify -home-port -home-node or use the displaced- interface restore` commande.
+

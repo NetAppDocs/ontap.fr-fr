@@ -1,0 +1,117 @@
+---
+permalink: error-messages/convert-ems-routing-to-notifications-task.html 
+sidebar: sidebar 
+keywords: update, ems, mapping, notification, filter, event 
+summary: 'Mettre à jour le mappage des événements EMS à partir des commandes ONTAP obsolètes à l"aide de la ligne de commande.' 
+---
+= Mettre à jour le mappage des événements EMS à partir des commandes ONTAP obsolètes
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si votre mappage d'événements EMS est actuellement configuré à l'aide des jeux de commandes ONTAP obsolètes (`event destination`, `event route`), vous devez suivre cette procédure pour mettre à jour votre mappage pour utiliser l' `event filter`, `event notification`, et `event notification destination` jeux de commandes.
+
+.Étapes
+. Répertorie toutes les destinations d'événements du système à l'aide du `event destination show` commande.
++
+[listing]
+----
+cluster-1::event*> destination show
+                                                                         Hide
+Name             Mail Dest.        SNMP Dest.         Syslog Dest.       Params
+---------------- ----------------- ------------------ ------------------ ------
+allevents        -                 -                  -                  false
+asup             -                 -                  -                  false
+criticals        -                 -                  -                  false
+pager            -                 -                  -                  false
+test             test@xyz.com      -                  -                  false
+traphost         -                 -                  -                  false
+6 entries were displayed.
+----
+. Pour chaque destination, répertoriez les événements qui lui sont mappés à l'aide de l'  `event route show -destinations <destination name>` commande.
++
+[listing]
+----
+cluster-1::event*> route show -destinations test
+                                                               Freq    Time
+Message                          Severity       Destinations   Threshd Threshd
+-------------------------------- -------------- -------------- ------- -------
+raid.aggr.autoGrow.abort         NOTICE         test           0       0
+raid.aggr.autoGrow.success       NOTICE         test           0       0
+raid.aggr.lock.conflict          INFORMATIONAL  test           0       0
+raid.aggr.log.CP.count           DEBUG          test           0       0
+4 entries were displayed.
+----
+. Créer un correspondant `event filter` qui inclut tous ces sous-ensembles d'événements. Par exemple, si vous souhaitez inclure uniquement le `raid.aggr.`* les événements, utilisez un caractère générique pour le `message-name` paramètre lors de la création du filtre. Vous pouvez également créer des filtres pour des événements uniques.
++
+
+NOTE: Vous pouvez créer jusqu'à 50 filtres d'événements.
+
++
+[listing]
+----
+cluster-1::event*> filter create -filter-name test_events
+
+cluster-1::event*> filter rule add -filter-name test_events -type include -message-name raid.aggr.*
+
+cluster-1::event*> filter show -filter-name test_events
+Filter Name Rule     Rule      Message Name           SNMP Trap Type  Severity
+            Position Type
+----------- -------- --------- ---------------------- --------------- --------
+test_events
+            1        include   raid.aggr.*            *               *
+            2        exclude   *                      *               *
+2 entries were displayed.
+----
+. Créez un `event notification destination` pour chacune des `event destination` Terminaux (SMTP/SNMP/syslog)
++
+[listing]
+----
+cluster-1::event*> notification destination create -name dest1 -email test@xyz.com
+
+cluster-1::event*> notification destination show
+Name            Type        Destination
+--------------  ----------  ---------------------
+dest1           email       test@xyz.com (via "localhost" from "admin@localhost", configured in "event config")
+snmp-traphost   snmp        - (from "system snmp traphost")
+2 entries were displayed.
+----
+. Créez une notification d'événement en mappant le filtre d'événement à la destination de notification d'événement.
++
+[listing]
+----
+cluster-1::event*> notification create -filter-name asup_events -destinations dest1
+
+cluster-1::event*> notification show
+ID   Filter Name                     Destinations
+---- ------------------------------  -----------------
+1    default-trap-events             snmp-traphost
+2    asup_events                     dest1
+2 entries were displayed.
+----
+. Répétez les étapes 1 à 1-5 pour chaque `event destination` cela a un `event route` mappage.
++
+
+NOTE: Les événements routés vers des destinations SNMP doivent être mappés à l' `snmp-traphost` destination de la notification d'événement. La destination de Traphost SNMP utilise le Traphost configuré par le système.
+
++
+[listing]
+----
+cluster-1::event*> system snmp traphost add 10.234.166.135
+
+cluster-1::event*> system snmp traphost show
+        scspr2410142014.gdl.englab.netapp.com (scspr2410142014.gdl.englab.netapp.com) <10.234.166.135>    Community: public
+
+cluster-1::event*> notification destination show -name snmp-traphost
+
+                Destination Name: snmp-traphost
+             Type of Destination: snmp
+                     Destination: 10.234.166.135 (from "system snmp traphost")
+ Server CA Certificates Present?: -
+   Client Certificate Issuing CA: -
+Client Certificate Serial Number: -
+       Client Certificate Valid?: -
+----
+

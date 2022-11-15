@@ -1,0 +1,69 @@
+---
+permalink: snaplock/create-audit-log-task.html 
+sidebar: sidebar 
+keywords: create, audit, log, snaplock, protected, administrator, accounts 
+summary: 'Vous devez créer un journal d"audit protégé par SnapLock avant d"effectuer une suppression privilégiée ou un déplacement de volume SnapLock. Le journal d"audit enregistre la création et la suppression de comptes administrateur SnapLock, les modifications du volume du journal, si la suppression privilégiée est activée, les opérations de suppression privilégiée et les opérations de déplacement de volume SnapLock.' 
+---
+= Créer un journal d'audit
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devez créer un journal d'audit protégé par SnapLock avant d'effectuer une suppression privilégiée ou un déplacement de volume SnapLock. Le journal d'audit enregistre la création et la suppression de comptes administrateur SnapLock, les modifications du volume du journal, si la suppression privilégiée est activée, les opérations de suppression privilégiée et les opérations de déplacement de volume SnapLock.
+
+Pour créer un agrégat SnapLock, vous devez être un administrateur de cluster.
+
+Vous ne pouvez pas supprimer un journal d'audit tant que la période de conservation du fichier journal n'est pas écoulée. Vous ne pouvez pas modifier un journal d'audit même après la période de conservation écoulée. Ceci est vrai pour les modes SnapLock Compliance et Enterprise.
+
+[NOTE]
+====
+Dans ONTAP 9.4 et versions antérieures, vous ne pouvez pas utiliser un volume SnapLock Enterprise pour la journalisation des audits. Vous devez utiliser un volume SnapLock Compliance. Dans ONTAP 9.5 et versions ultérieures, vous pouvez utiliser un volume SnapLock Enterprise ou un volume SnapLock Compliance pour la journalisation des audits. Dans tous les cas, le volume du journal d'audit doit être monté sur le Junction path `/snaplock_audit_log`. Aucun autre volume ne peut utiliser cette Junction path
+
+====
+Les journaux d'audit SnapLock sont disponibles dans le `/snaplock_log` répertoire sous la racine du volume du journal de vérification, dans les sous-répertoires nommés `privdel_log` (opérations de suppression privilégiée) et `system_log` (autres). Les noms des fichiers journaux d'audit contiennent l'horodatage de la première opération consignée, ce qui facilite la recherche des enregistrements en fonction de l'heure approximative d'exécution des opérations.
+
+* Vous pouvez utiliser le `snaplock log file show` commande pour afficher les fichiers journaux sur le volume du journal d'audit.
+* Vous pouvez utiliser le `snaplock log file archive` commande pour archiver le fichier journal actuel et en créer un nouveau, ce qui est utile dans les cas où vous devez enregistrer les informations du journal d'audit dans un fichier distinct.
+
+
+Pour plus d'informations, consultez les pages de manuels des commandes.
+
+[NOTE]
+====
+Un volume de protection des données ne peut pas être utilisé comme volume de journal d'audit SnapLock.
+
+====
+.Étapes
+. Créer un agrégat SnapLock.
++
+xref:create-snaplock-aggregate-task.adoc[Créer un agrégat SnapLock]
+
+. Sur le SVM que vous voulez configurer pour la journalisation d'audit, créez un volume SnapLock.
++
+xref:create-snaplock-volume-task.adoc[Créer un volume SnapLock]
+
+. Configuration du SVM pour la journalisation d'audit :
++
+`*snaplock log create -vserver _SVM_name_ -volume _snaplock_volume_name_ -max-file-size _size_ -retention-period _default_retention_period_*`
+
++
+[NOTE]
+====
+La période de conservation minimale par défaut des fichiers journaux d'audit est de six mois. Si la période de conservation d'un fichier affecté est supérieure à la période de conservation du journal d'audit, la période de conservation du journal hérite de la période de conservation du fichier. Ainsi, si la période de conservation d'un fichier supprimé avec suppression privilégiée est de 10 mois et que la période de conservation du journal d'audit est de 8 mois, la période de conservation du journal est étendue à 10 mois.
+
+====
++
+La commande suivante configure `SVM1` Pour la journalisation des audits à l'aide du volume SnapLock `logVol`. Le journal d'audit a une taille maximale de 20 Go et est conservé pendant huit mois.
+
++
+[listing]
+----
+SVM1::> snaplock log create -vserver SVM1 -volume logVol -max-file-size 20GB -retention-period 8months
+----
+. Sur le SVM que vous avez configuré pour la journalisation d'audit, montez le volume SnapLock sur la Junction path `/snaplock_audit_log`.
++
+xref:mount-snaplock-volume-task.adoc[Montez un volume SnapLock]
+
+

@@ -1,0 +1,102 @@
+---
+permalink: disks-aggregates/correct-misaligned-spare-partitions-task.html 
+sidebar: sidebar 
+keywords: correct, misaligned, partition, disk 
+summary: 'Lorsque vous ajoutez des disques partitionnés à un niveau local (agrégat), vous devez laisser un disque dont la partition racine et la partition de données sont disponibles en tant que réserve pour chaque nœud. Si ce n"est pas le cas et que le nœud subit une perturbation, ONTAP ne peut pas transférer le « core » vers la partition de données de secours.' 
+---
+= Corrigez les partitions de rechange mal alignées
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Lorsque vous ajoutez des disques partitionnés à un niveau local (agrégat), vous devez laisser un disque dont la partition racine et la partition de données sont disponibles en tant que réserve pour chaque nœud. Si ce n'est pas le cas et que le nœud subit une perturbation, ONTAP ne peut pas transférer le « core » vers la partition de données de secours.
+
+Vous devez disposer d'une partition de données libre et d'une partition racine libre sur le même type de disque appartenant au même noeud.
+
+.Étapes
+. À l'aide de l'interface de ligne de commande, affichez les partitions de rechange pour le nœud :
++
+`storage aggregate show-spare-disks -original-owner _node_name_`
+
++
+Notez quel disque dispose d'une partition de données libre (données_réserve) et quel disque dispose d'une partition racine libre (source_réserve). La partition de rechange affiche une valeur différente de zéro sous `Local Data Usable` ou `Local Root Usable` colonne.
+
+. Remplacez le disque par une partition de données de rechange par le disque avec la partition racine de rechange :
++
+`storage disk replace -disk _spare_data_ -replacement _spare_root_ -action start`
+
++
+Vous pouvez copier les données dans un sens ou dans l'autre. Toutefois, la copie de la partition racine prend moins de temps.
+
+. Surveillez la progression du remplacement des disques :
++
+`storage aggregate show-status -aggregate _aggr_name_`
+
+. Une fois l'opération de remplacement terminée, affichez à nouveau les pièces de rechange pour confirmer que vous disposez d'un disque de secours complet :
++
+`storage aggregate show-spare-disks -original-owner _node_name_`
+
++
+Vous devriez voir un disque de secours avec de l'espace utilisable sous « données locales utilisables » et `Local Root Usable`.
+
+
+
+Vous affichez vos partitions de rechange pour le nœud c1-01 et voyez que vos partitions de rechange ne sont pas alignées :
+
+[listing]
+----
+c1::> storage aggregate show-spare-disks -original-owner c1-01
+
+Original Owner: c1-01
+ Pool0
+  Shared HDD Spares
+                              Local    Local
+                               Data     Root  Physical
+ Disk    Type   RPM Checksum Usable   Usable      Size
+ ------- ----- ---- -------- ------- ------- --------
+ 1.0.1   BSAS  7200 block    753.8GB     0B   828.0GB
+ 1.0.10  BSAS  7200 block         0B 73.89GB  828.0GB
+----
+Vous lancez la tâche de remplacement de disque :
+
+[listing]
+----
+c1::> storage disk replace -disk 1.0.1 -replacement 1.0.10 -action start
+----
+Pendant que vous attendez la fin de l'opération de remplacement, vous affichez la progression de l'opération :
+
+[listing]
+----
+c1::> storage aggregate show-status -aggregate aggr0_1
+
+Owner Node: c1-01
+ Aggregate: aggr0_1 (online, raid_dp) (block checksums)
+  Plex: /aggr0_1/plex0 (online, normal, active, pool0)
+   RAID Group /aggr0_1/plex0/rg0 (normal, block checksums)
+                                    Usable Physical
+ Position Disk    Pool Type   RPM     Size     Size Status
+ -------- ------- ---- ---- ----- -------- -------- ----------
+ shared   1.0.1    0   BSAS  7200  73.89GB  828.0GB (replacing,copy in progress)
+ shared   1.0.10   0   BSAS  7200  73.89GB  828.0GB (copy 63% completed)
+ shared   1.0.0    0   BSAS  7200  73.89GB  828.0GB (normal)
+ shared   1.0.11   0   BSAS  7200  73.89GB  828.0GB (normal)
+ shared   1.0.6    0   BSAS  7200  73.89GB  828.0GB (normal)
+ shared   1.0.5    0   BSAS  7200  73.89GB  828.0GB (normal)
+----
+Une fois l'opération de remplacement terminée, vérifiez que vous disposez d'un disque de secours complet :
+
+[listing]
+----
+ie2220::> storage aggregate show-spare-disks -original-owner c1-01
+
+Original Owner: c1-01
+ Pool0
+  Shared HDD Spares
+                             Local    Local
+                              Data     Root  Physical
+ Disk   Type   RPM Checksum Usable   Usable      Size
+ ------ ----- ---- -------- -------- ------- --------
+ 1.0.1  BSAS  7200 block    753.8GB  73.89GB  828.0GB
+----

@@ -1,0 +1,67 @@
+---
+permalink: volumes/rehost-san-task.html 
+sidebar: sidebar 
+keywords: rehost, san volumes 
+summary: 'Vous pouvez réhéberger les volumes ayant des LUN mappées. Une fois le groupe initiateur (igroup) créé sur le SVM de destination, le nouvel hôte de volume peut automatiquement remappage le volume sur la même SVM.' 
+---
+= Réhébergement de volumes SAN
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez réhéberger les volumes ayant des LUN mappées. Une fois le groupe initiateur (igroup) créé sur le SVM de destination, le nouvel hôte de volume peut automatiquement remappage le volume sur la même SVM.
+
+.Ce dont vous avez besoin, 8217;ll
+* Le volume doit être en ligne.
+* Les opérations de gestion de volumes, telles que les déplacements de volumes ou de LUN, ne doivent pas être en cours d'exécution.
+* Aucune E/S active ne doit être constatée sur les volumes ou les LUN.
+* Vous devez avoir vérifié que le SVM de destination ne dispose pas d'un groupe initiateur du même nom, mais que des initiateurs différents.
++
+Si le groupe initiateur porte le même nom, vous devez l'avoir renommé dans l'un des SVM (source ou destination).
+
+* Vous devez avoir activé `force-unmap-luns` option.
++
+** La valeur par défaut du `force-unmap-luns` l'option est `false`.
+** Aucun message d'avertissement ou de confirmation ne s'affiche lorsque vous avez défini le `force-unmap-luns` option à `true`.
+
+
+
+
+.Description de la tâche
+* Le réhébergement représente aussi une opération disruptive.
+* En cas d'échec de l'opération de réhébergement, vous devrez peut-être reconfigurer les stratégies de volume et les règles associées sur le volume source.
+* Une fois le réhébergement, les règles, règles et configurations de volume suivantes perdues du volume source et doivent être reconfigurées manuellement sur le volume hébergé :
++
+** Politiques antivirus
+** Règle d'efficacité du volume
+** Règles de qualité de services
+** Règles relatives aux snapshots
+** règle et règles d'exportation de la configuration des services de noms et de commutateur ns
+** ID d'utilisateur et de groupe
+
+
+
+
+.Étapes
+. Enregistrer les informations de mappage de LUN sur le volume cible :
++
+`lun mapping show–volume volume to be rehosted-vserver source vserver`
+
++
+Cette étape de précaution permet d'éviter de perdre des informations sur le mappage de LUN en cas de défaillance du réhébergement de volume.
+
+. Supprimez les igroups associés avec le volume cible.
+. Réhébergement le volume cible auprès du SVM de destination :
++
+`volume rehost -vserver source_svm -volume vol_name -destination-vserver destination_svm`
+
+. Mapper les LUN sur le volume cible sur les igroups appropriés.
++
+** Le réhébergement de volumes préserve les LUN sur le volume cible, mais le mappage des LUN reste inchangé.
+** Utiliser l'ensemble du port SVM de destination lors du mappage des LUN.
+** Si le `auto-remap-luns` l'option est définie sur `true`, Les LUN sont mappées automatiquement après le réhébergement.
+
+
+

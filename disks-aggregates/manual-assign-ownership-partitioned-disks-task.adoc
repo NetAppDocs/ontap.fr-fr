@@ -1,0 +1,134 @@
+---
+permalink: disks-aggregates/manual-assign-ownership-partitioned-disks-task.html 
+sidebar: sidebar 
+keywords: manual, assign, disk, ownership, partition, disks 
+summary: 'Vous pouvez définir la propriété du disque de conteneur ou des partitions manuellement ou à l"aide de l"affectation automatique, comme pour les disques non partitionnés.' 
+---
+= Affectation manuelle de la propriété des disques partitionnés
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À l'aide de l'interface de ligne de commande, vous pouvez définir la propriété du disque de conteneur ou des partitions manuellement ou en utilisant l'affectation automatique, comme pour les disques non partitionnés.
+
+[NOTE]
+====
+Si un disque de conteneur tombe en panne dans un tiroir à moitié rempli et est remplacé, ONTAP n'affecte pas automatiquement la propriété. Dans ce cas, toute assignation de nouveaux disques devra être réalisée manuellement. Pour effectuer une affectation automatique sur des tiroirs à moitié remplis, placez les disques de la même manière sur la moitié inférieure et les disques 6 sur des baies tout à droite. C'est-à-dire 6 disques des baies 0-5 et 6 disques des baies 18-23. Une fois le disque conteneur affecté dans un système configuré par ADP, le logiciel ONTAP gère toutes les assignations de partitionnement et de partition requises, sans intervention de l'utilisateur.
+
+====
+Vous pouvez effectuer les tâches suivantes dans l'interface de ligne de commande :
+
+.Affectez manuellement des disques avec le partitionnement données-racines
+====
+Pour le partitionnement données-racines, trois entités détenues sont détenues collectivement (le disque de conteneur et les deux partitions) par la paire haute disponibilité.
+
+Le disque de conteneur et les deux partitions ne doivent pas toutes être détenues par le même nœud de la paire haute disponibilité, tant qu'elles appartiennent à un des nœuds de la paire haute disponibilité. Toutefois, lorsque vous utilisez une partition dans un niveau local (agrégat), elle doit être détenue par le même nœud qui possède le niveau local.
+
+.Étapes
+. Utilisez l'interface de ligne de commande pour afficher la propriété actuelle du disque partitionné :
++
+`storage disk show -disk _disk_name_ -partition-ownership`
+
+. Définissez le niveau de privilège de l'interface de ligne de commande sur avancé :
++
+`set -privilege advanced`
+
+. Entrez la commande appropriée, en fonction de l'entité de propriété pour laquelle vous souhaitez affecter la propriété :
++
+[cols="25,75"]
+|===
+
+
+| Si vous souhaitez attribuer la propriété à... | Utilisez cette commande... 
+
+
+ a| 
+Disque de conteneur
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_`
+
+
+
+ a| 
+Partition de données
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_ -data true`
+
+
+
+ a| 
+Partition racine
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_ -root true`
+
+|===
++
+Si l'une des entités de propriété est déjà détenue, vous devez inclure l'option « force ».
+
+
+
+====
+.Affectez manuellement des disques avec le partitionnement données-racines
+====
+Pour le partitionnement données-racines, quatre entités détenues par le système (le disque de conteneur et les trois partitions) sont détenues collectivement par la paire haute disponibilité.
+
+Le partitionnement données-racines crée une petite partition en tant que partition racine et deux partitions de taille supérieure égale pour les données.
+
+Les paramètres doivent être utilisés avec le `disk assign` commande permettant d'attribuer la partition appropriée d'un disque partitionné données-racines. Vous ne pouvez pas utiliser ces paramètres avec des disques faisant partie d'un pool de stockage. La valeur par défaut est « FALSE ».
+
+* Le `-data1 true` paramètre attribue la partition "data1" d'un disque partitionné root-data1-data2.
+* Le `-data2 true` paramètre attribue la partition "data2" d'un disque partitionné root-data1-data2.
+
+
+.Étapes
+. Utilisez l'interface de ligne de commande pour afficher la propriété actuelle du disque partitionné :
++
+`storage disk show -disk _disk_name_ -partition-ownership`
+
+. Définissez le niveau de privilège de l'interface de ligne de commande sur avancé :
++
+`set -privilege advanced`
+
+. Entrez la commande appropriée, en fonction de l'entité de propriété pour laquelle vous souhaitez affecter la propriété :
++
+[cols="25,75"]
+|===
+
+
+| Si vous souhaitez attribuer la propriété à... | Utilisez cette commande... 
+
+
+ a| 
+Disque de conteneur
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_`
+
+
+
+ a| 
+Partition de données 1
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_ -data1 true`
+
+
+
+ a| 
+Partition Data2
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_ -data2 true`
+
+
+
+ a| 
+Partition racine
+ a| 
+`storage disk assign -disk _disk_name_ -owner _owner_name_ -root true`
+
+|===
+
+
+Si l'une des entités de propriété est déjà détenue, vous devez inclure l'option « force ».
+
+====

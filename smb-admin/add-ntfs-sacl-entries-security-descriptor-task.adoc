@@ -1,0 +1,55 @@
+---
+permalink: smb-admin/add-ntfs-sacl-entries-security-descriptor-task.html 
+sidebar: sidebar 
+keywords: add, sacl, system, access, control, list, entires, aces, ntfs, audit, policies, policy, file, folder, svm, add ntfs sacl access control entries to the ntfs security descriptor 
+summary: 'L"ajout d"entrées de contrôle d"accès (ACE) SACL (System Access Control list) au descripteur de sécurité NTFS est la deuxième étape de création des politiques d"audit NTFS pour les fichiers ou les dossiers des SVM. Chaque entrée identifie l"utilisateur ou le groupe que vous souhaitez auditer. L"entrée SACL définit si vous souhaitez auditer les tentatives d"accès réussies ou échouées.' 
+---
+= Ajoutez des entrées de contrôle d'accès NTFS SACL au descripteur de sécurité NTFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+L'ajout d'entrées de contrôle d'accès (ACE) SACL (System Access Control list) au descripteur de sécurité NTFS est la deuxième étape de création des politiques d'audit NTFS pour les fichiers ou les dossiers des SVM. Chaque entrée identifie l'utilisateur ou le groupe que vous souhaitez auditer. L'entrée SACL définit si vous souhaitez auditer les tentatives d'accès réussies ou échouées.
+
+Vous pouvez ajouter un ou plusieurs ACE au SACL du descripteur de sécurité.
+
+Si le descripteur de sécurité contient une SACL comportant des ACE existants, la commande ajoute la nouvelle ACE à la SACL. Si le descripteur de sécurité ne contient pas de SACL, la commande crée la SACL et y ajoute la nouvelle ACE.
+
+Vous pouvez configurer les entrées SACL en spécifiant les droits que vous souhaitez auditer pour les événements de réussite ou d'échec du compte spécifié dans `-account` paramètre. Il existe trois méthodes mutuellement exclusives de définition des droits :
+
+* Droits
+* Droits avancés
+* Droits bruts (privilège avancé)
+
+
+[NOTE]
+====
+Si vous ne spécifiez pas de droits pour l'entrée SACL, le paramètre par défaut est `Full Control`.
+
+====
+Vous pouvez personnaliser des entrées SACL en spécifiant la façon d'appliquer l'héritage à l' `apply to` paramètre. Si vous ne spécifiez pas ce paramètre, la valeur par défaut est d'appliquer cette entrée SACL à ce dossier, sous-dossiers et fichiers.
+
+.Étapes
+. Ajouter une entrée SACL à un descripteur de sécurité : `vserver security file-directory ntfs sacl add -vserver vserver_name -ntfs-sd SD_name -access-type {failure|success} -account name_or_SIDoptional_parameters`
++
+`vserver security file-directory ntfs sacl add -ntfs-sd sd1 -access-type failure -account domain\joe -rights full-control -apply-to this-folder -vserver vs1`
+
+. Vérifier que l'entrée SACL est correcte : `vserver security file-directory ntfs sacl show -vserver vserver_name -ntfs-sd SD_name -access-type {failure|success} -account name_or_SID`
++
+`vserver security file-directory ntfs sacl show -vserver vs1 -ntfs-sd sd1 -access-type deny -account domain\joe`
+
++
+[listing]
+----
+                                  Vserver: vs1
+                        Security Descriptor Name: sd1
+         Access type for Specified Access Rights: failure
+                             Account Name or SID: DOMAIN\joe
+                                   Access Rights: full-control
+                          Advanced Access Rights: -
+                                        Apply To: this-folder
+                                   Access Rights: full-control
+----
+

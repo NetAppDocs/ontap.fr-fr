@@ -1,0 +1,73 @@
+---
+permalink: flexgroup/fabricpool-aggregates-existing-volumes-task.html 
+sidebar: sidebar 
+keywords: aggregate, fabricpool, flexgroup, volume 
+summary: FabricPool est pris en charge par les volumes FlexGroup depuis la version ONTAP 9.5. Si vous souhaitez utiliser les agrégats du FabricPool pour vos volumes FlexGroup existants, vous pouvez soit convertir les agrégats sur lesquels réside le volume FlexGroup en agrégats du FabricPool, soit migrer les composants de volume FlexGroup vers des agrégats du FabricPool. 
+---
+= Utilisation d'agrégats dans FabricPool pour les volumes FlexGroup existants
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+FabricPool est pris en charge par les volumes FlexGroup depuis la version ONTAP 9.5. Si vous souhaitez utiliser les agrégats du FabricPool pour vos volumes FlexGroup existants, vous pouvez soit convertir les agrégats sur lesquels réside le volume FlexGroup en agrégats du FabricPool, soit migrer les composants de volume FlexGroup vers des agrégats du FabricPool.
+
+.Ce dont vous avez besoin, 8217;ll
+* Le volume FlexGroup doit être défini sur avec la garantie d'espace `none`.
+* Si vous souhaitez convertir les agrégats sur lesquels réside le volume FlexGroup en agrégats du FabricPool, tous les agrégats doivent utiliser des disques SSD.
+
+
+Si un volume FlexGroup existant se trouve sur des agrégats non SSD, vous devez migrer les composants de volume FlexGroup vers des agrégats dans FabricPool.
+
+.Choix
+* Pour convertir les agrégats sur lesquels se trouve le volume FlexGroup vers des agrégats dans FabricPool, effectuez la procédure suivante :
++
+.. Définissez la règle de Tiering sur le volume FlexGroup existant : `volume modify -volume flexgroup_name -tiering-policy [auto|snapshot|none|backup]`
++
+[listing]
+----
+cluster-2::> volume modify -volume fg1 -tiering-policy auto
+----
+.. Identifiez les agrégats sur lesquels réside le volume FlexGroup : `volume show -volume flexgroup_name -fields aggr-list`
++
+[listing]
+----
+cluster-2::> volume show -volume fg1 -fields aggr-list
+vserver volume aggr-list
+------- ------ -----------
+vs1     fg1    aggr1,aggr3
+----
+.. Reliez un magasin d'objets à chaque agrégat répertorié dans la liste agrégat : `storage aggregate object-store attach -aggregate aggregate name -name object-store-name -allow-flexgroup true`
++
+Vous devez attacher tous les agrégats à un magasin d'objets.
+
+
+
++
+[listing]
+----
+cluster-2::> storage aggregate object-store attach -aggregate aggr1 -object-store-name Amazon01B1
+----
+* Pour migrer les composants de volume FlexGroup vers des agrégats dans FabricPool, effectuez les opérations suivantes :
++
+.. Définissez la règle de Tiering sur le volume FlexGroup existant : `volume modify -volume flexgroup_name -tiering-policy [auto|snapshot|none|backup]`
++
+[listing]
+----
+cluster-2::> volume modify -volume fg1 -tiering-policy auto
+----
+.. Déplacer chaque composant du volume FlexGroup vers un agrégat d'FabricPool dans le même cluster : `volume move start -volume constituent-volume -destination-aggregate FabricPool_aggregate -allow-mixed-aggr-types true`
++
+Vous devez déplacer tous les composants de volume FlexGroup vers des agrégats dans FabricPool (si les composants du volume FlexGroup se trouvent sur des types d'agrégats mixtes) et assurer l'équilibrage de l'ensemble des composants sur les nœuds du cluster.
+
++
+[listing]
+----
+cluster-2::> volume move start -volume fg1_001 -destination-aggregate FP_aggr1 -allow-mixed-aggr-types true
+----
+
+
+
+
+link:../disks-aggregates/index.html["Gestion des disques et des agrégats"]

@@ -1,0 +1,527 @@
+---
+sidebar: sidebar 
+permalink: networking/lifs_and_service_policies96.html 
+keywords: service policies for system svms, lif service policies, lif, logical, interface, service, policy, policies, lifs and service policies in ontap 9.6 and later, assign service policies to lifs to specify the supported traffic, service policies for system svms, service policies for data svms, data-core service 
+summary: Attribuez des stratégies de service aux LIF afin de spécifier le trafic pris en charge 
+---
+= LIF et politiques de services dans ONTAP 9.6 et versions ultérieures
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Vous pouvez attribuer des politiques de service (au lieu de rôles LIF ou de politiques de pare-feu) aux LIF qui déterminent le type de trafic pris en charge pour les LIF. Les stratégies de service définissent une collection de services réseau prise en charge par une LIF. ONTAP fournit un ensemble de règles de service intégrées qui peuvent être associées à une LIF.
+
+Vous pouvez afficher les stratégies de service et leurs détails à l'aide de la commande suivante :
+`network interface service-policy show`
+
+
+
+== Règles de service pour les SVM système
+
+Le SVM d'administration et tout SVM système contiennent des politiques de service qui peuvent être utilisées pour les LIF au sein de ce SVM, y compris les LIFs de type management et intercluster. Ces règles sont automatiquement créées par le système lorsqu'un IPspace est créé.
+
+Le tableau suivant répertorie les règles intégrées pour les LIF dans les SVM système à partir de ONTAP 9.12.1. Pour les autres versions, afficher les politiques de service et leurs détails à l'aide de la commande suivante :
+
+`network interface service-policy show`
+
+[cols="20,20,20,40"]
+|===
+
+
+| Politique | Services inclus | Rôle équivalent | Description 
+
+
+ a| 
+valeur-par-défaut intercluster
+ a| 
+intercluster-core, management-https
+ a| 
+intercluster
+ a| 
+Utilisé par les LIFs transportant le trafic intercluster. Attention : le service intercluster est disponible depuis le ONTAP 9.5 avec le nom net-intercluster service policy.
+
+
+
+ a| 
+annonce-route-par-défaut
+ a| 
+gestion-bgp
+ a| 
+-
+ a| 
+Utilisé par les LIF transportant des connexions BGP Remarque : disponible de ONTAP 9.5 avec le nom net-route-annonce politique de service.
+
+
+
+ a| 
+gestion par défaut
+ a| 
+management-core, management-https, management-http, management-ssh, management-autosupport, management-ems, management-dns-client, management-ad-client, management-ldap-client, management-nis-client, management-ntp-client, transfert-journalisation-gestion
+ a| 
+nœuds de gestion et de gestion de cluster
+ a| 
+Utilisez cette politique de gestion étendue du système pour créer des LIFs de gestion du type node-and-cluster détenues par un SVM système. Ces LIF peuvent être utilisées pour les connexions sortantes vers des serveurs DNS, AD, LDAP ou NIS, ainsi que pour prendre en charge des connexions supplémentaires pour prendre en charge les applications s'exécutant pour le compte de l'ensemble du système. À partir de ONTAP 9.12.1, vous pouvez utiliser le `management-log-forwarding` Service pour contrôler les LIFs utilisées pour transférer les journaux d'audit à un serveur syslog distant.
+
+|===
+Le tableau suivant répertorie les services que les LIFs peuvent utiliser sur un SVM système à partir de ONTAP 9.11.1 :
+
+[cols="25,25,50"]
+|===
+
+
+| Service | Limites du basculement | Description 
+
+
+ a| 
+intercluster-core
+ a| 
+home-node-uniquement
+ a| 
+Services intercluster de base
+
+
+
+ a| 
+cœur de gestion
+ a| 
+-
+ a| 
+Services de gestion centrale
+
+
+
+ a| 
+management-ssh
+ a| 
+-
+ a| 
+Services d'accès à la gestion SSH
+
+
+
+ a| 
+gestion-http
+ a| 
+-
+ a| 
+Services pour l'accès à la gestion HTTP
+
+
+
+ a| 
+gestion-https
+ a| 
+-
+ a| 
+Services pour l'accès à la gestion HTTPS
+
+
+
+ a| 
+gestion-autosupport
+ a| 
+-
+ a| 
+Services liés à l'imputation de charges utiles AutoSupport
+
+
+
+ a| 
+gestion-bgp
+ a| 
+port d'origine uniquement
+ a| 
+Services liés aux interactions BGP par les pairs
+
+
+
+ a| 
+backup-ndmp-control
+ a| 
+-
+ a| 
+Services pour les commandes de sauvegarde NDMP
+
+
+
+ a| 
+gestion-ems
+ a| 
+-
+ a| 
+Services d'accès à la messagerie de gestion
+
+
+
+ a| 
+client-ntp-management
+ a| 
+-
+ a| 
+Introduit dans ONTAP 9.10.1. Services pour l'accès client NTP.
+
+
+
+ a| 
+serveur-ntp-management
+ a| 
+-
+ a| 
+Introduit dans ONTAP 9.11.1. Services pour l'accès à la gestion de serveurs NTP
+
+
+
+ a| 
+management-portmap
+ a| 
+-
+ a| 
+Services de gestion de portmap
+
+
+
+ a| 
+serveur-rsh de gestion
+ a| 
+-
+ a| 
+Services de gestion de serveur rsh
+
+
+
+ a| 
+serveur-gestion-snmp
+ a| 
+-
+ a| 
+Services de gestion de serveur SNMP
+
+
+
+ a| 
+serveur-telnet-gestion
+ a| 
+-
+ a| 
+Services de gestion de serveur telnet
+
+
+
+ a| 
+transfert de journaux de gestion
+ a| 
+-
+ a| 
+Introduit dans ONTAP 9.12.1. Services de transfert de journaux d'audit
+
+|===
+
+
+== Règles de service pour les SVM de données
+
+Tous les SVM de données contiennent des règles de service qui peuvent être utilisées par les LIF de ce SVM.
+
+Le tableau suivant répertorie les règles intégrées pour les LIF dans des SVM de données à partir de ONTAP 9.11.1. Pour les autres versions, afficher les politiques de service et leurs détails à l'aide de la commande suivante :
+
+`network interface service-policy show`
+
+[cols="20,20,20,40"]
+|===
+
+
+| Politique | Services inclus | Protocole de données équivalent | Description 
+
+
+ a| 
+gestion par défaut
+ a| 
+management-https, management-http, management-ssh, management-dns-client, management-ad-client, gestion-ldap-client, gestion-nis-client
+ a| 
+Aucune
+ a| 
+Utiliser cette politique de gestion « SVM-scoped » pour créer des LIFs de management du SVM détenues par un SVM de données. Ces LIF peuvent fournir un accès SSH ou HTTPS aux administrateurs du SVM. Lorsque nécessaire, ces LIF peuvent être utilisées pour des connexions sortantes vers des serveurs DNS externes, AD, LDAP ou NIS.
+
+
+
+ a| 
+blocs de données par défaut
+ a| 
+cœur de données, iscsi
+ a| 
+iscsi
+ a| 
+Utilisée par les LIF transportant un trafic de données SAN orienté bloc. Depuis ONTAP 9.10.1, la politique « blocs de données par défaut » est obsolète. Utilisez plutôt la stratégie de service « default-data-iscsi ».
+
+
+
+ a| 
+fichiers-données-par-défaut
+ a| 
+client data-fpolicy, serveur-dns, data-flexcache, données-cifs, data-nfs, gestion-dns-client, gestion-ad-client, gestion-ldap-client, gestion-nis-client
+ a| 
+nfs, cifs, fcache
+ a| 
+Utilisez la stratégie par défaut-data-Files pour créer des LIF NAS qui prennent en charge des protocoles de données basés sur des fichiers. Parfois, il n'y a qu'une seule LIF présente au SVM, donc cette politique permet à la LIF d'être utilisée pour les connexions sortantes vers un serveur DNS externe, AD, LDAP ou NIS. Vous pouvez supprimer ces services de cette règle si vous préférez que ces connexions utilisent uniquement des LIF de gestion.
+
+
+
+ a| 
+iscsi-données-par-défaut
+ a| 
+cœur de données, iscsi
+ a| 
+iscsi
+ a| 
+Utilisé par les LIF transportant le trafic de données iSCSI.
+
+
+
+ a| 
+données-défaut-nvme-tcp
+ a| 
+cœur de données, nvme-tcp
+ a| 
+nvme-tcp
+ a| 
+Utilisé par les LIF transportant du trafic de données NVMe/TCP.
+
+|===
+Le tableau suivant répertorie les services qui peuvent être utilisés sur un SVM de données et les restrictions que chaque service impose à la politique de basculement d'une LIF à partir de ONTAP 9.11.1 :
+
+[cols="25,25,50"]
+|===
+
+
+| Service | Restrictions de basculement | Description 
+
+
+ a| 
+management-ssh
+ a| 
+-
+ a| 
+Services d'accès à la gestion SSH
+
+
+
+ a| 
+gestion-http
+ a| 
+-
+ a| 
+Introduit dans les services ONTAP 9.10.1 pour l'accès à la gestion HTTP
+
+
+
+ a| 
+gestion-https
+ a| 
+-
+ a| 
+Services pour l'accès à la gestion HTTPS
+
+
+
+ a| 
+management-portmap
+ a| 
+-
+ a| 
+Services d'accès à la gestion de portmap
+
+
+
+ a| 
+serveur-gestion-snmp
+ a| 
+-
+ a| 
+Introduit dans les services ONTAP 9.10.1 pour l'accès à la gestion des serveurs SNMP
+
+
+
+ a| 
+cœur des données
+ a| 
+-
+ a| 
+Services de données centrales
+
+
+
+ a| 
+nfs-données
+ a| 
+-
+ a| 
+Service de données NFS
+
+
+
+ a| 
+cifs-données
+ a| 
+-
+ a| 
+Service de données CIFS
+
+
+
+ a| 
+flexcache
+ a| 
+-
+ a| 
+Service de données FlexCache
+
+
+
+ a| 
+iscsi données
+ a| 
+port d'origine uniquement
+ a| 
+Service de données iSCSI
+
+
+
+ a| 
+backup-ndmp-control
+ a| 
+-
+ a| 
+Introduit dans ONTAP 9.10.1 Backup NDMP contrôle le service de données
+
+
+
+ a| 
+serveur-données-dns
+ a| 
+-
+ a| 
+Introduit dans le service de données du serveur DNS ONTAP 9.10.1
+
+
+
+ a| 
+client-données fpolicy
+ a| 
+-
+ a| 
+Service de données de stratégie de filtrage de fichiers
+
+
+
+ a| 
+tcp-nvme-données
+ a| 
+port d'origine uniquement
+ a| 
+Introduit dans le service de données TCP NVMe de ONTAP 9.10.1
+
+
+
+ a| 
+serveur data s3
+ a| 
+-
+ a| 
+Service de données des serveurs simple Storage Service (S3)
+
+|===
+Vous devez savoir comment les règles de service sont attribuées aux LIF dans les SVM de données :
+
+* Lorsqu'un SVM de données est créé avec une liste de services de données, les règles de service « fichiers de données par défaut » et « blocs de données par défaut » intégrées à ce SVM sont créées à l'aide des services spécifiés.
+* Si un SVM de données est créé sans spécifier une liste de services de données, les règles de service « fichiers de données par défaut » et « blocs de données par défaut » intégrées à ce SVM sont créées à l'aide d'une liste de services de données par défaut.
++
+La liste des services de données par défaut comprend les services iSCSI, NFS, NVMe, SMB et FlexCache.
+
+* Lorsqu'une LIF est créée avec une liste de protocoles de données, une politique de service équivalente aux protocoles de données spécifiés est assignée à la LIF.
+* Si aucune stratégie de service équivalente n'existe, une stratégie de service personnalisée est créée.
+* Lorsqu'une LIF est créée sans une policy de service ou une liste de protocoles de données, la politique de service default-data-Files est assignée à la LIF par défaut.
+
+
+
+
+== Service Data-core
+
+Le service « Data-core » permet à des composants qui utilisaient auparavant les LIF avec le rôle de données de fonctionner comme prévu sur les clusters mis à niveau pour gérer les LIF à l'aide de politiques de service plutôt que de rôles LIF (qui sont obsolètes dans ONTAP 9.6).
+
+La spécification data-core en tant que service n'ouvre aucun port du pare-feu, mais le service doit être inclus dans toute politique de service d'un SVM de données. Par exemple, la règle de service Default-data-Files contient les services suivants par défaut :
+
+* cœur des données
+* nfs-données
+* cifs-données
+* flexcache
+
+
+Le service « data-core » doit être inclus dans la règle afin de garantir que toutes les applications utilisant la LIF comme prévu, mais que les trois autres services peuvent être supprimés, si nécessaire.
+
+
+
+== Service LIF côté client
+
+Depuis ONTAP 9.10.1, ONTAP fournit des services LIF côté client pour de nombreuses applications. Ces services permettent de contrôler les LIFs utilisées pour les connexions sortantes pour le compte de chaque application.
+
+Les nouveaux services suivants permettent aux administrateurs de contrôler la liste des LIF utilisées comme adresses source pour certaines applications.
+
+[cols="25,25,50"]
+|===
+
+
+| Service | Restrictions des SVM | Description 
+
+
+ a| 
+client-annonce-gestion
+ a| 
+-
+ a| 
+Depuis ONTAP 9.11.1, ONTAP fournit un service client Active Directory pour les connexions sortantes vers un serveur AD externe.
+
+
+
+| client-dns-gestion  a| 
+-
+ a| 
+À partir de ONTAP 9.11.1, ONTAP fournit un service client DNS pour les connexions sortantes vers un serveur DNS externe.
+
+
+
+| gestion-ldap-client  a| 
+-
+ a| 
+Depuis ONTAP 9.11.1, ONTAP fournit un service client LDAP pour les connexions sortantes vers un serveur LDAP externe.
+
+
+
+| gestion-nis-client  a| 
+-
+ a| 
+Depuis ONTAP 9.11.1, ONTAP fournit un service client NIS pour les connexions sortantes vers un serveur NIS externe.
+
+
+
+ a| 
+client-ntp-management
+ a| 
+système uniquement
+ a| 
+Depuis ONTAP 9.10.1, ONTAP fournit un service client NTP pour les connexions sortantes vers un serveur NTP externe.
+
+
+
+ a| 
+client-données fpolicy
+ a| 
+données uniquement
+ a| 
+Depuis ONTAP 9.8, ONTAP fournit un service client pour les connexions FPolicy de sortie.
+
+|===
+Chacun des services est automatiquement inclus dans certaines règles de service intégrées, mais les administrateurs peuvent les supprimer des règles intégrées ou les ajouter à des règles personnalisées afin de contrôler les LIF utilisées pour les connexions sortantes pour le compte de chaque application.

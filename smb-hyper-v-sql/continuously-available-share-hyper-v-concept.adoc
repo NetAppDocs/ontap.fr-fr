@@ -1,0 +1,62 @@
+---
+permalink: smb-hyper-v-sql/continuously-available-share-hyper-v-concept.html 
+sidebar: sidebar 
+keywords: share, requirements, continuously, share, consideration, hyper, v, smb, nondiruptive, operation 
+summary: 'Vous devez connaître certaines exigences et considérations relatives à la configuration de partages disponibles en continu pour les configurations Hyper-V sur SMB qui prennent en charge la continuité de l"activité.' 
+---
+= Exigences de partage constamment disponibles et considérations pour Hyper-V sur SMB
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devez connaître certaines exigences et considérations relatives à la configuration de partages disponibles en continu pour les configurations Hyper-V sur SMB qui prennent en charge la continuité de l'activité.
+
+
+
+== Exigences en matière de partage
+
+* Les partages utilisés par les serveurs d'applications doivent être configurés avec le jeu de propriétés disponible en continu.
++
+Les serveurs d'application qui se connectent aux partages disponibles en permanence sont dotés de pointeurs permanents qui leur permettent de se reconnecter sans interruption aux partages SMB et de récupérer les verrouillages de fichiers après des événements perturbateurs, tels que le basculement, le rétablissement et le transfert d'agrégats.
+
+* Si vous souhaitez utiliser les services de sauvegarde Remote VSS-enabled, vous ne pouvez pas placer de fichiers Hyper-V dans des partages contenant des jonctions.
++
+Dans le cas de la récupération automatique, la création de clichés instantanés échoue si une jonction est détectée lors du déplacement du partage. Dans le cas non auto-Recovery, la création de la copie en double ne échoue pas, mais la jonction ne pointe en rien.
+
+* Si vous souhaitez utiliser les services de sauvegarde Remote VSS-enabled avec auto-Recovery, vous ne pouvez pas placer les fichiers Hyper-V dans des partages contenant les éléments suivants :
++
+** Symlinks, liens rigides ou widelinks
+** Fichiers non standard
++
+La création de la copie en double échoue si des liens ou des fichiers non standard se trouvent dans le partage vers copie en double. Cette exigence s'applique uniquement aux clichés instantanés avec la restauration automatique.
+
+** Pour que les opérations de clichés instantanés réussisse, vous devez disposer d'un espace disponible suffisant sur le volume (pour Hyper-V sur SMB uniquement).
++
+L'espace disponible doit être au moins aussi grand que l'espace combiné utilisé par tous les fichiers, répertoires et sous-répertoires contenus dans les partages inclus dans le jeu de sauvegarde Shadow Copy. Cette exigence s'applique uniquement aux clichés instantanés avec la restauration automatique.
+
+
+
+* Les propriétés de partage suivantes ne doivent pas être définies sur les partages disponibles en continu utilisés par les serveurs d'applications :
++
+** Répertoire de base
+** Mise en cache des attributs
+** BranchCache
+
+
+
+
+
+
+== Considérations
+
+* Les quotas sont pris en charge par les partages disponibles en permanence.
+* La fonctionnalité suivante n'est pas prise en charge pour les configurations Hyper-V sur SMB :
++
+** Audit
+** FPolicy
+
+
+* L'analyse antivirus n'est pas réalisée sur les partages SMB avec le `continuously-availability` paramètre défini sur `Yes`.
+

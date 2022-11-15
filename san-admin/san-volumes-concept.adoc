@@ -1,0 +1,121 @@
+---
+permalink: san-admin/san-volumes-concept.html 
+sidebar: sidebar 
+keywords: understand, san volumes 
+summary: 'ONTAP propose trois options de provisionnement de base : le provisionnement fin, le provisionnement fin et le provisionnement semi-lourd. Chaque option utilise différentes méthodes pour gérer l"espace volume et les besoins en espace pour les technologies de partage de blocs ONTAP. Comprendre le fonctionnement des options vous permet de choisir la meilleure option pour votre environnement.' 
+---
+= Présentation des volumes SAN
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+ONTAP propose trois options de provisionnement de base : le provisionnement fin, le provisionnement fin et le provisionnement semi-lourd. Chaque option utilise différentes méthodes pour gérer l'espace volume et les besoins en espace pour les technologies de partage de blocs ONTAP. Comprendre le fonctionnement des options vous permet de choisir la meilleure option pour votre environnement.
+
+[NOTE]
+====
+Il n'est pas recommandé d'installer des LUN SAN et des partages NAS dans le même volume FlexVol. Vous devez provisionner des volumes FlexVol distincts pour vos LUN SAN, et vous devez en particulier provisionner des volumes FlexVol distincts pour vos partages NAS. Cela simplifie les déploiements de gestion et de réplication, tout en parallèle à la prise en charge des volumes FlexVol dans Active IQ Unified Manager (anciennement OnCommand Unified Manager).
+
+====
+
+
+== Provisionnement fin pour les volumes
+
+Lors de la création d'un volume à provisionnement fin, ONTAP ne réserve aucun espace supplémentaire lors de la création du volume. Au fur et à mesure de l'écriture des données sur le volume, le volume demande le stockage dont il a besoin depuis l'agrégat pour prendre en charge l'opération d'écriture. L'utilisation de volumes à provisionnement fin vous permet d'effectuer un surengagement de votre agrégat. Ce dernier risque donc de ne pas pouvoir sécuriser l'espace requis lorsqu'il vient à manquer d'espace.
+
+Vous créez un volume FlexVol à provisionnement fin en paramétrant son unité `-space-guarantee` option à `none`.
+
+
+
+== Provisionnement lourd pour les volumes
+
+Lorsqu'un volume à provisionnement lourd est créé, la mémoire ONTAP réserve suffisamment de stockage de l'agrégat pour garantir l'écriture à tout moment de n'importe quel bloc du volume. Lorsque vous configurez un volume pour utiliser le provisionnement lourd, vous pouvez utiliser n'importe quelle fonction d'efficacité du stockage ONTAP, comme la compression et la déduplication, pour ainsi compenser les plus importantes besoins en stockage initial.
+
+Vous créez un volume FlexVol à provisionnement lourd en définissant sa valeur `-space-slo` (objectif de niveau de service) à `thick`.
+
+
+
+== Provisionnement semi-lourd pour les volumes
+
+Lorsqu'un volume utilisant un provisionnement semi-lourd est créé, ONTAP met de côté l'espace de stockage de l'agrégat pour tenir compte de la taille du volume. Si le volume manque d'espace disponible parce que les blocs sont utilisés par les technologies de partage de blocs, ONTAP supprime un effort de suppression des objets de protection (copies Snapshot et fichiers FlexClone et LUN) afin de libérer l'espace qu'ils conservent. Tant que la ONTAP peut supprimer les objets de données de protection assez rapidement pour prendre en charge l'espace requis pour les écrasements, les opérations d'écriture sont continues. Il s'agit là d'une garantie d'écriture « meilleur effort ».
+
+*Remarque :* la fonctionnalité suivante n'est pas prise en charge sur les volumes qui utilisent le provisionnement semi-épais :
+
+* des technologies d'efficacité du stockage telles que la déduplication, la compression et la compaction
+* Microsoft Offloaded Data Transfer (ODX)
+
+
+Vous créez un volume FlexVol à provisionnement semi-lourd en paramétrant son option `-space-slo` (objectif de niveau de service) à `semi-thick`.
+
+
+
+== À utiliser avec des fichiers et des LUN réservés en espace
+
+Une LUN ou un fichier réservé à l'espace est un fichier pour lequel le stockage est alloué lors de sa création. Par le passé, NetApp a utilisé le terme « LUN à provisionnement fin » pour désigner une LUN dont la réservation d'espace est désactivée (LUN non réservée d'espace).
+
+*Remarque :* les fichiers non réservés à l'espace ne sont généralement pas appelés « fichiers à provisionnement fin ».
+
+Le tableau suivant récapitule les principales différences de manière à utiliser les trois options de provisionnement de volumes avec des fichiers et des LUN réservés à l'espace :
+
+[cols="5*"]
+|===
+| Provisionnement de volume | Réservation d'espace LUN/fichier | Écrasements | Données de protection^2^ | Efficacité du stockage^3^ 
+
+
+ a| 
+Épais
+ a| 
+Pris en charge
+ a| 
+Garanti^1^
+ a| 
+Résultats garantis
+ a| 
+Pris en charge
+
+
+
+ a| 
+Fin
+ a| 
+Aucun effet
+ a| 
+Aucune
+ a| 
+Résultats garantis
+ a| 
+Pris en charge
+
+
+
+ a| 
+Semi-épais
+ a| 
+Pris en charge
+ a| 
+Meilleur effort^1^
+ a| 
+Meilleur effort
+ a| 
+Non pris en charge
+
+|===
+*Notes*
+
+. Pour garantir le remplacement ou fournir une garantie de remplacement sans effort, la réservation d'espace est activée sur la LUN ou le fichier.
+. Les données de protection incluent des copies Snapshot, ainsi que les fichiers FlexClone et les LUN marqués pour la suppression automatique (clones de sauvegarde).
+. L'efficacité du stockage inclut la déduplication, la compression, tous les fichiers FlexClone et LUN non marqués pour la suppression automatique (clones actifs) et les sous-fichiers FlexClone (utilisés pour le déchargement des copies).
+
+
+
+
+== Prise en charge des LUN SCSI à provisionnement fin
+
+ONTAP prend en charge les LUN T10 SCSI à provisionnement fin ainsi que les LUN NetApp à provisionnement fin. Le provisionnement fin SCSI T10 permet aux applications hôtes de prendre en charge les fonctionnalités SCSI, notamment la récupération d'espace LUN et la surveillance de l'espace LUN pour les environnements en blocs. Le provisionnement fin SCSI T10 doit être pris en charge par votre logiciel hôte SCSI.
+
+Vous utilisez ONTAP `space-allocation` Paramètre permettant d'activer/de désactiver la prise en charge du provisionnement fin T10 sur une LUN. Vous utilisez ONTAP `space-allocation enable` Paramètre permettant d'activer le provisionnement fin SCSI T10 sur une LUN.
+
+Le `[-space-allocation {enabled|disabled}]` Commande dans le manuel de référence des commandes ONTAP contient plus d'informations pour activer/désactiver la prise en charge du provisionnement fin T10 et activer le provisionnement fin SCSI T10 sur un LUN.
+
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html["Commandes ONTAP 9"^]

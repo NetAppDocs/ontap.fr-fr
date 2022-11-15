@@ -1,0 +1,100 @@
+---
+permalink: smb-admin/create-home-directory-config-w-d-variables-task.html 
+sidebar: sidebar 
+keywords: 'create, home, directory, configuration, variable, user, connect, share, dynamic, create, share, %w, %d, create a home directory configuration using the %w and %d variables' 
+summary: 'Vous pouvez créer une configuration de répertoire personnel à l"aide des variables %w et %d. Les utilisateurs peuvent ensuite se connecter à leur partage personnel à l"aide de partages créés de manière dynamique.' 
+---
+= Créez une configuration de répertoire personnel à l'aide des variables %w et %d
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez créer une configuration de répertoire personnel à l'aide de l' `%w` et `%d` variables. Les utilisateurs peuvent ensuite se connecter à leur partage personnel à l'aide de partages créés de manière dynamique.
+
+.Étapes
+. Créer un qtree pour contenir les home directories de l'utilisateur : `volume qtree create -vserver vserver_name -qtree-path qtree_path`
+. Vérifier que le qtree utilise le style de sécurité approprié : `volume qtree show`
+. Si le qtree n'utilise pas le style de sécurité souhaité, modifiez le style de sécurité à l'aide de `volume qtree security` commande.
+. Ajouter un partage de répertoire de base : `+vserver cifs share create -vserver vserver -share-name %w -path %d/%w -share-properties homedirectory\[,...\]+`
++
+`-vserver` `vserver` Spécifie la machine virtuelle de stockage (SVM) compatible CIFS sur laquelle ajouter le chemin de recherche.
+
++
+`-share-name` `%w` spécifie le nom de partage du répertoire racine. ONTAP crée dynamiquement le nom du partage lorsque chaque utilisateur se connecte à son répertoire de base. Le nom du partage sera sous la forme _Windows_user_name_.
+
++
+`-path` `%d/%w` spécifie le chemin relatif vers le répertoire de base. Le chemin relatif est créé de façon dynamique au fur et à mesure que chaque utilisateur se connecte à son répertoire de départ et sera sous la forme _domain/Windows_user_name_.
+
++
+`-share-properties homedirectory[,...]+` spécifie les propriétés de partage pour ce partage. Vous devez spécifier le `homedirectory` valeur. Vous pouvez spécifier d'autres propriétés de partage à l'aide d'une liste délimitée par des virgules.
+
+. Vérifiez que le partage dispose de la configuration souhaitée à l'aide du `vserver cifs share show` commande.
+. Ajouter un chemin de recherche de répertoire de base : `vserver cifs home-directory search-path add -vserver vserver -path path`
++
+`-vserver _vserver-name_` Spécifie le SVM activé sur CIFS sur lequel ajouter le chemin de recherche.
+
++
+`-path _path_` spécifie le chemin absolu du répertoire vers le chemin de recherche.
+
+. Vérifiez que vous avez correctement ajouté le chemin de recherche à l'aide de l' `vserver cifs home-directory search-path show` commande.
+. Pour les utilisateurs disposant d'un home Directory, créez un répertoire correspondant dans le qtree ou le volume désigné pour contenir des home directories.
++
+Par exemple, si vous avez créé un qtree avec le chemin d'accès du groupe `/vol/vol1/users` et le nom d'utilisateur dont vous souhaitez créer le répertoire est mydomain\user1, vous devez créer un répertoire avec le chemin suivant : `/vol/vol1/users/mydomain/user1`.
+
++
+Si vous avez créé un volume nommé « home1 » monté à `/home1`, vous créeriez un répertoire avec le chemin suivant : `/home1/mydomain/user1`.
+
+. Vérifiez qu'un utilisateur peut se connecter avec succès au partage d'accueil en mappant un lecteur ou en vous connectant à l'aide du chemin UNC.
++
+Par exemple, si l'utilisateur mydomain\user1 souhaite se connecter au répertoire créé à l'étape 8 situé sur le SVM vs1, l'utilisateur 1 se connecte à l'aide du chemin UNC `\\vs1\user1`.
+
+
+
+Dans l'exemple suivant, les commandes permettent de créer une configuration de home Directory avec les paramètres suivants :
+
+* Le nom du partage est %w.
+* Le chemin relatif du répertoire d'accueil est %d/%w.
+* Le chemin de recherche utilisé pour contenir les répertoires locaux, `/home1`, Est un volume configuré avec le style de sécurité NTFS.
+* La configuration est créée sur le SVM vs1.
+
+
+Vous pouvez utiliser ce type de configuration de répertoire personnel lorsque les utilisateurs accèdent à leurs répertoires personnels à partir d'hôtes Windows. Vous pouvez également utiliser ce type de configuration lorsque les utilisateurs accèdent à leurs répertoires personnels à partir d'hôtes Windows et UNIX et que l'administrateur du système de fichiers utilise des utilisateurs et des groupes Windows pour contrôler l'accès au système de fichiers.
+
+[listing]
+----
+cluster::> vserver cifs share create -vserver vs1 -share-name %w -path %d/%w -share-properties oplocks,browsable,changenotify,homedirectory
+
+cluster::> vserver cifs share show -vserver vs1 -share-name %w
+
+                      Vserver: vs1
+                        Share: %w
+     CIFS Server NetBIOS Name: VS1
+                         Path: %d/%w
+             Share Properties: oplocks
+                               browsable
+                               changenotify
+                               homedirectory
+           Symlink Properties: enable
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+
+cluster::> vserver cifs home-directory search-path add -vserver vs1 ‑path /home1
+
+cluster::> vserver cifs home-directory search-path show
+Vserver     Position Path
+----------- -------- -----------------
+vs1         1        /home1
+----
+xref:configure-home-directories-u-variable-task.adoc[Configuration des répertoires d'accueil à l'aide de la variable %u]
+
+xref:home-directory-config-concept.adoc[Configurations supplémentaires des home Directory]
+
+xref:display-user-home-directory-path-task.adoc[Affichage des informations sur le chemin du répertoire local d'un utilisateur SMB]

@@ -1,0 +1,41 @@
+---
+permalink: san-admin/move-san-lifs-task.html 
+sidebar: sidebar 
+keywords: move, san, lifs 
+summary: 'Si un nœud doit être mis hors ligne, vous pouvez déplacer une LIF SAN afin de préserver ses informations de configuration, telles que son WWPN, et éviter de resegmentation de la structure du commutateur. Comme une LIF SAN doit être mise hors ligne avant de pouvoir être déplacée, le trafic hôte doit utiliser un logiciel de chemins d"accès multiples sur l"hôte pour assurer un accès sans interruption à la LUN. Vous pouvez déplacer des LIF SAN vers n"importe quel nœud d"un cluster, mais vous ne pouvez pas déplacer ces LIF entre des SVM (Storage Virtual machine).' 
+---
+= Déplacer une LIF SAN
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si un nœud doit être mis hors ligne, vous pouvez déplacer une LIF SAN afin de préserver ses informations de configuration, telles que son WWPN, et éviter de resegmentation de la structure du commutateur. Comme une LIF SAN doit être mise hors ligne avant de pouvoir être déplacée, le trafic hôte doit utiliser un logiciel de chemins d'accès multiples sur l'hôte pour assurer un accès sans interruption à la LUN. Vous pouvez déplacer des LIF SAN vers n'importe quel nœud d'un cluster, mais vous ne pouvez pas déplacer ces LIF entre des SVM (Storage Virtual machine).
+
+Si le LIF est membre d'un port set, il faut que la LIF ait été supprimée du port set avant de pouvoir déplacer la LIF vers un autre nœud.
+
+Le nœud de destination et le port physique d'une LIF que vous souhaitez déplacer doivent se trouver sur la même structure FC ou sur un même réseau Ethernet. Si vous déplacez une LIF vers une autre structure qui n'a pas été correctement zonée ou si vous déplacez la LIF vers un réseau Ethernet qui n'a pas de connectivité entre l'initiateur iSCSI et la cible, la LUN sera inaccessible lorsque vous la remettez en ligne.
+
+.Étapes
+. Afficher le statut administratif et opérationnel de la LIF :
++
+`network interface show -vserver _vserver_name_`
+
+. Modifiez le statut de la LIF en `down` (hors ligne) :
++
+`network interface modify -vserver _vserver_name_ -lif _LIF_name_ -status-admin down`
+
+. Assigner le LIF à un nouveau nœud et port :
++
+`network interface modify -vserver _vserver_name_ -lif _LIF_name_ -home-node _node_name_ -home-port _port_name_`
+
+. Modifiez le statut de la LIF en `up` (en ligne) :
++
+`network interface modify -vserver _vserver_name_ -lif _LIF_name_ -status-admin up`
+
+. Vérifiez les modifications :
++
+`network interface show -vserver _vserver_name_`
+
+

@@ -1,0 +1,124 @@
+---
+sidebar: sidebar 
+permalink: high-availability/ha_manual_takeover.html 
+keywords: ontap, high, availability, ha, pair, manual, takeover, moving, move, epislon, manually, initiated 
+summary: 'Vous pouvez effectuer un basculement manuellement lorsque des opérations de maintenance sont requises sur le partenaire et dans d"autres cas similaires.' 
+---
+= Commandes de basculement manuel
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Vous pouvez effectuer un basculement manuellement lorsque des opérations de maintenance sont requises sur le partenaire et dans d'autres cas similaires. En fonction de l'état du partenaire, la commande que vous utilisez pour effectuer le basculement varie.
+
+|===
+
+
+| Les fonctions que vous recherchez... | Utilisez cette commande... 
+
+
+| Reprendre le nœud partenaire | `storage failover takeover` 
+
+
+| Surveillez la progression du basculement lorsque les agrégats du partenaire sont déplacés vers le nœud qui prend le relais | `storage failover show‑takeover` 
+
+
+| Afficher l'état du basculement de stockage pour tous les nœuds du cluster | `storage failover show` 
+
+
+| Reprendre le nœud partenaire sans migrer les LIF | `storage failover takeover ‑skip‑lif‑migration‑before‑takeover true` 
+
+
+| Reprendre le nœud partenaire même en cas de non-concordance de disque | `storage failover takeover ‑skip‑lif‑migration‑before‑takeover true` 
+
+
+| Reprendre le nœud partenaire même en cas de non-concordance de version de ONTAP *Remarque :* cette option n'est utilisée que lors du processus de mise à niveau de ONTAP sans interruption. | `storage failover takeover ‑option allow‑version‑mismatch` 
+
+
+| Reprendre le nœud partenaire sans effectuer de transfert d'agrégats | `storage failover takeover ‑bypass‑optimization true` 
+
+
+| Prenez le relais avant que le partenaire n'ait le temps de fermer ses ressources de stockage en toute élégance | `storage failover takeover ‑option immediate` 
+|===
+[NOTE]
+====
+Avant d'exécuter la commande Storage Failover avec l'option immédiate, vous devez migrer les LIFs de données vers un autre nœud à l'aide de la commande suivante : `network interface migrate-all -node _node_`
+
+Si vous spécifiez le `storage failover takeover ‑option immediate` Commande sans migrer au préalable les LIFs de données, la migration de LIF de données depuis le nœud est considérablement retardée, même si le `skip‑lif‑migration‑before‑takeover` option non spécifiée.
+
+De même, si vous spécifiez l'option immédiate, l'optimisation du basculement négocié est contournée même si l'option Bypass‑optimisation est définie sur _false_.
+
+====
+
+
+== Déplacement d'epsilon pour certaines prises de contrôle initiées manuellement
+
+Vous devez déplacer epsilon si vous prévoyez que les transferts initiés manuellement peuvent entraîner une panne de nœud inattendue du système de stockage à l'écart d'une perte du quorum au niveau du cluster.
+
+Pour effectuer la maintenance planifiée, vous devez prendre le relais d'un des nœuds d'une paire haute disponibilité. Le quorum à l'échelle du cluster doit être maintenu afin d'éviter les interruptions non planifiées des données client pour les nœuds restants. Dans certains cas, l'exécution du basculement peut entraîner la perte du quorum au niveau du cluster qui est une panne de nœud inattendue.
+
+Cela peut se produire si le nœud pris sur epsilon ou si le nœud avec epsilon n'est pas sain. Pour maintenir un cluster plus résilient, vous pouvez transférer epsilon vers un nœud sain qui n'est pas pris en charge. Il s'agit généralement du partenaire de haute disponibilité.
+
+Seuls les noeuds sains et admissibles participent au vote du quorum. Pour maintenir le quorum à l'échelle du cluster, plus de votes N/2 sont nécessaires (où _N_ représente la somme des nœuds en ligne sains et admissibles). Dans les clusters avec un nombre même de nœuds en ligne, epsilon ajoute un poids supplémentaire de vote afin de maintenir le quorum pour le nœud auquel il est affecté.
+
+
+NOTE: Bien que le vote de formation de groupe puisse être modifié à l'aide du `cluster modify ‑eligibility false` sauf dans le cas contraire, vous devez restaurer la configuration du nœud ou procéder à une maintenance prolongée du nœud. Si vous définissez un nœud comme non éligible, il cesse de transmettre les données SAN jusqu'à ce que le nœud soit réinitialisé à sa valeur éligible et à son redémarrage. L'accès aux données NAS au nœud peut également être affecté lorsque ce dernier n'est pas éligible.
+
+.Étapes
+. Vérifier l'état du cluster et confirmer qu'epsilon est maintenu par un nœud sain qui n'est pas pris en charge :
++
+.. Passer au niveau de privilège avancé, en confirmant que vous souhaitez continuer lorsque l'invite du mode avancé s'affiche (*>) :
++
+`set -privilege advanced`
+
+.. Déterminer quel nœud contient epsilon :
++
+`cluster show`
+
++
+Dans l'exemple suivant, Node1 possède epsilon :
+
++
+|===
+
+
+| Nœud | Santé | Éligibilité | Epsilon 
+
+
+ a| 
+Nœud 1 nœud 2
+ a| 
+vrai
+ a| 
+vrai
+ a| 
+vrai faux
+
+|===
++
+Si le nœud que vous souhaitez prendre le relais ne contient pas epsilon, passer à l'étape 4.
+
+
+
+. Supprimer epsilon du nœud que vous souhaitez prendre le contrôle :
++
+`cluster modify -node Node1 -epsilon false`
+
+. Assigner epsilon au nœud partenaire (dans cet exemple, Node4) :
++
+`cluster modify -node Node2 -epsilon true`
+
+. Effectuez l'opération de basculement :
++
+`storage failover takeover -ofnode _node_name_`
+
+. Retour au niveau de privilège admin :
++
+`set -privilege admin`
+
+

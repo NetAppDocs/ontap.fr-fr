@@ -2,36 +2,49 @@
 permalink: ndmp/configure-backup-user-cluster-task.html 
 sidebar: sidebar 
 keywords: configure, backup, user, cluster 
-summary: 'Pour authentifier NDMP à partir de l"application de sauvegarde, vous devez créer un utilisateur de sauvegarde local, ou un utilisateur NIS ou LDAP pour le cluster ayant le rôle admin ou backup, et générer un mot de passe NDMP pour l"utilisateur backup.' 
+summary: 'Pour authentifier SVM-scoped NDMP depuis l"application de backup, un utilisateur administratif doit disposer des privilèges suffisants et d"un mot de passe NDMP.' 
 ---
-= Configurer un utilisateur de sauvegarde pour le cluster
+= Activez un utilisateur de sauvegarde pour l'authentification NDMP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Pour authentifier NDMP à partir de l'application de sauvegarde, vous devez créer un utilisateur de sauvegarde local, ou un utilisateur NIS ou LDAP pour le cluster ayant le rôle admin ou backup, et générer un mot de passe NDMP pour l'utilisateur backup.
+Pour authentifier SVM-scoped NDMP depuis l'application de backup, un utilisateur administratif doit disposer des privilèges suffisants et d'un mot de passe NDMP.
 
-Si vous utilisez un utilisateur NIS ou LDAP, l'utilisateur doit être créé sur le serveur correspondant. Vous ne pouvez pas utiliser un utilisateur Active Directory.
+Vous devez générer un mot de passe NDMP pour les utilisateurs admin de sauvegarde. Vous pouvez activer les utilisateurs admin de sauvegarde au niveau du cluster ou de la SVM et, si nécessaire, vous pouvez créer un nouvel utilisateur. Par défaut, les utilisateurs disposant des rôles suivants peuvent s'authentifier pour la sauvegarde NDMP :
+
+* Au niveau du cluster : `admin` ou `backup`
+* SVM individuels : `vsadmin` ou `vsadmin-backup`
+
+
+Si vous utilisez un utilisateur NIS ou LDAP, l'utilisateur doit exister sur le serveur respectif. Vous ne pouvez pas utiliser un utilisateur Active Directory.
 
 .Étapes
-. Créez un utilisateur de sauvegarde avec le `admin` ou `backup` rôle à l'aide du `security login create` commande.
+. Afficher les utilisateurs et autorisations admin actuels :
++
+`security login show`
+
+. Si nécessaire, créez un nouvel utilisateur de sauvegarde NDMP avec le `security login create` Commande et le rôle approprié pour les privilèges des SVM au niveau du cluster ou individuels.
 +
 Vous pouvez spécifier un nom d'utilisateur de sauvegarde locale ou un nom d'utilisateur NIS ou LDAP pour l' `-user-or-group-name` paramètre.
 
 +
-La commande suivante crée l'utilisateur de sauvegarde backup_admin1 avec le `backup` rôle :
+La commande suivante crée l'utilisateur de sauvegarde `backup_admin1` avec le `backup` rôle pour l'ensemble du cluster :
 
 +
-[listing]
-----
-cluster1::> security login create -user-or-group-name backup_admin1 -application ssh
--authmethod password -role backup
+`cluster1::> security login create -user-or-group-name backup_admin1 -application ssh -authmethod password -role backup`
 
-Please enter a password for user 'backup_admin1':
-Please enter it again:
-----
++
+La commande suivante crée l'utilisateur de sauvegarde `vsbackup_admin1` avec le `vsadmin-backup` Rôle d'un SVM individuel :
+
++
+`cluster1::> security login create -user-or-group-name vsbackup_admin1 -application ssh -authmethod password -role vsadmin-backup`
+
++
+Entrez un mot de passe pour le nouvel utilisateur et confirmez.
+
 . Générer un mot de passe pour la SVM d'admin via le `vserver services ndmp generate password` commande.
 +
 Le mot de passe généré doit être utilisé pour authentifier la connexion NDMP par l'application de sauvegarde.

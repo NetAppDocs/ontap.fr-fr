@@ -174,9 +174,6 @@ Le tableau suivant répertorie la `storage failover modify` paramètres de comma
 |===
 Le tableau suivant explique comment les combinaisons de paramètres de l' `storage failover modify` la commande affecte le retour automatique dans les situations de panique.
 
-
-NOTE: Notez que le basculement peut se produire pour d'autres raisons en cas de problème affectant un nœud. Par exemple, si un nœud fonctionne de façon incohérente mais que le paquet panique n'est pas reçu par son partenaire, le partenaire peut effectuer un basculement par perte de signal de détection. Dans ce cas, le rétablissement ne serait pas contrôlé par le `-auto-giveback-after-panic` mais serait contrôlé par le `-onfailure` paramètre.
-
 [cols="60,40"]
 |===
 
@@ -206,20 +203,10 @@ NOTE: Notez que le basculement peut se produire pour d'autres raisons en cas de 
 
 | `-onpanic false`Si `-onpanic` est défini sur `false`, le basculement/retour ne se produit pas, quelle que soit la valeur définie pour `-auto-giveback` ou `-auto-giveback-after-panic` | Non 
 |===
-[NOTE]
-====
-Si vous modifiez les paramètres par défaut, le `-onpanic` paramètre peut annuler le retour automatique, comme indiqué dans le tableau ci-dessus.
 
-* Si le `-onpanic` le paramètre est défini sur `true`, le retour automatique est toujours effectué si une panique se produit, sauf si vous avez modifié les paramètres par défaut de l' `-auto-giveback` et `-auto-giveback-after-panic` paramètres. Si ces deux paramètres sont modifiés par défaut  `true`) à `false`, alors un retour automatique ne se produira pas après une panique, même si le `-onpanic` le paramètre est défini sur `true`.
-* Si le `-onpanic` le paramètre est défini sur `false`, Aucun basculement ne se produit et les clients subissent une interruption des services de données ONTAP. Par conséquent, le rétablissement automatique ne peut pas se produire, même si le `-auto-giveback-after-panic` le paramètre est défini sur `true`.
+NOTE: Le basculement peut résulter d'un échec non associé à un problème de panique. Un _échec_ se produit lorsque la communication est perdue entre un nœud et son partenaire, également appelée _heartbeat loss_. En cas de basculement à cause d'une défaillance, le rétablissement est contrôlé par le `-onfailure` paramètre au lieu du `-auto-giveback-after-panic parameter`.
 
 
-====
-[NOTE]
-====
-* Le basculement peut avoir lieu pour d'autres raisons pendant le problème du nœud. Dans ce cas, le rétablissement n'est pas contrôlé par le `auto-giveback-after-panic` réglage.
-* Si le `-onpanic` le paramètre est défini sur `true`, le retour automatique est toujours effectué si une panique se produit, sauf si vous avez modifié les paramètres par défaut de l' `-auto-giveback` et `-auto-giveback-after-panic` paramètres. Si ces deux paramètres sont modifiés par défaut  `true`) à `false`, alors un retour automatique ne se produira pas après une panique, même si le `-onpanic` le paramètre est défini sur `true`.
-* Si le `-onpanic` le paramètre est défini sur `false`, le basculement n'a pas lieu. Par conséquent, le rétablissement automatique ne peut pas se produire, même si le `-auto-giveback-after-panic` le paramètre est défini sur `true`. Une interruption du client se produit.
+NOTE: Lorsqu'un nœud fonctionne de façon incohérente, il envoie un pack renvoie à son nœud partenaire. Si, pour une raison quelconque, le pack panique n'est pas reçu par le nœud partenaire, le problème peut être interprété incorrectement comme une défaillance. Sans reçu du pack panique, le nœud partenaire sait uniquement que la communication a été perdue et ne sait pas qu'un problème s'est produit. Dans ce cas, le nœud partenaire traite la perte de communication en tant que défaillance au lieu d'une panique, et le rétablissement est contrôlé par le `-onfailure` paramètre (et non pas par `-auto-giveback-after-panic parameter`).
 
-
-====
+Pour plus de détails sur tous `storage failover modify` paramètres, voir link:https://docs.netapp.com/us-en/ontap-cli-9121/storage-failover-modify.html["Pages de manuel ONTAP"].

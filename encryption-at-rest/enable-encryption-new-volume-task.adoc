@@ -1,7 +1,7 @@
 ---
 permalink: encryption-at-rest/enable-encryption-new-volume-task.html 
 sidebar: sidebar 
-keywords: enabling, encryption, new, volume 
+keywords: encryption, new volume, NAE, NVE, volume create 
 summary: Vous pouvez utiliser la commande volume create pour activer le chiffrement sur un nouveau volume. 
 ---
 = Activer le chiffrement sur un nouveau volume
@@ -13,15 +13,22 @@ summary: Vous pouvez utiliser la commande volume create pour activer le chiffrem
 [role="lead"]
 Vous pouvez utiliser le `volume create` commande permettant d'activer le chiffrement sur un nouveau volume.
 
-Depuis ONTAP 9.2, vous pouvez activer le chiffrement sur un volume SnapLock.
+Vous pouvez chiffrer les volumes à l'aide de NetApp Volume Encryption (NVE) et, à partir de ONTAP 9.6, NetApp Aggregate Encryption (NAE). Pour en savoir plus sur NAE et NVE, consultez le xref:configure-netapp-volume-encryption-concept[présentation du chiffrement de volume].
 
-Depuis ONTAP 9.4, si vous activez « cc-mode » lors de la configuration du gestionnaire de clés intégré, les volumes que vous créez avec le système `volume create` la commande est automatiquement chiffrée, que vous spécifiez ou non `-encrypt true`.
+La procédure d'activation du chiffrement dans ONTAP varie en fonction de la version de ONTAP que vous utilisez et de votre configuration spécifique :
 
-Depuis ONTAP 9.6, vous pouvez utiliser le chiffrement au niveau de l'agrégat pour attribuer des clés à l'agrégat contenant afin de chiffrer les volumes. Les volumes que vous créez dans l'agrégat sont chiffrés par défaut. Vous pouvez utiliser le `-encrypt` option permettant de remplacer la valeur par défaut lorsque vous créez le volume.
+* À partir de ONTAP 9.4, si vous l'activez `cc-mode` Lorsque vous configurez le gestionnaire de clés intégré, les volumes que vous créez avec le `volume create` la commande est automatiquement chiffrée, que vous spécifiez ou non `-encrypt true`.
+* Dans ONTAP 9.6 et les versions antérieures, vous devez utiliser `-encrypt true` avec `volume create` commandes permettant d'activer le chiffrement (à condition que vous n'ayez pas activé `cc-mode`).
+* Si vous utilisez NAE dans la ONTAP 9.6, vous devez en activer au niveau des agrégats. Reportez-vous à la section xref:enable-aggregate-level-encryption-nve-license-task.html[Activation du chiffrement au niveau de l'agrégat avec la licence VE] pour plus de détails sur cette tâche.
+* Depuis ONTAP 9.7, les volumes nouvellement créés sont cryptés par défaut lorsque vous disposez de la licence VE et de la gestion intégrée ou externe des clés.
++
+** Dans ONTAP 9.7 et versions ultérieures, si vous utilisez `-encrypt true` Pour créer un volume dans un agrégat NAE, le volume dispose d'un chiffrement NVE au lieu de NAE. Tous les volumes d'un agrégat NAE doivent être chiffrés avec NVE ou NAE.
 
-Depuis ONTAP 9.7, les volumes nouvellement créés sont cryptés par défaut lorsque vous disposez de la licence VE et de la gestion intégrée ou externe des clés.
 
-Un volume chiffré avec une clé unique est appelé un _volume NVE_. Un volume chiffré avec une clé au niveau de l'agrégat est appelé agrégat _NAE_ (pour le chiffrement d'agrégat NetApp). Les volumes en texte brut ne sont pas pris en charge dans les agrégats NAE.
+
+
+
+NOTE: Les volumes en texte brut ne sont pas pris en charge dans les agrégats NAE.
 
 .Étapes
 . Créer un nouveau volume et spécifier si le chiffrement est activé sur le volume :
@@ -34,101 +41,41 @@ Un volume chiffré avec une clé unique est appelé un _volume NVE_. Un volume c
 
 
  a| 
-Un volume ONTAP 9.7 ou NAE plus récent
+Volume NAE
  a| 
-`volume create -vserver SVM_name -volume volume_name -aggregate aggregate_name`
+`volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_` +
 
 
-
- a| 
-Un volume NAE ONTAP 9.6 (en supposant un chiffrement au niveau des agrégats)
- a| 
-`volume create -vserver SVM_name -volume volume_name -aggregate aggregate_name`
+NOTE: Dans ONTAP 9.6, il faut activer NAE au niveau des agrégats pour créer un volume NAE.
 
 
 
  a| 
-Un volume NVE ONTAP 9.7 ou version ultérieure
+Un volume NVE
  a| 
-`volume create -vserver SVM_name -volume volume_name -aggregate aggregate_name`
+`volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_` +
 
 
-
- a| 
-Un volume ONTAP 9.6 ou NVE antérieur
- a| 
-`volume create -vserver SVM_name -volume volume_name -aggregate aggregate_name -encrypt true`
+NOTE: Si vous utilisez ONTAP 9.6 et des versions antérieures, ajoutez `-encrypt true` à la commande. En utilisant ce paramètre dans ONTAP 9.7 ou version ultérieure avec le chiffrement NAE sur l'agrégat, le volume utilise NVE.
 
 
 
  a| 
 Volume de texte brut
  a| 
-`volume create -vserver SVM_name -volume volume_name -aggregate aggregate_name -encrypt false`
+`volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -encrypt false`
 
 |===
 +
-Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+Pour connaître la syntaxe complète de la commande, reportez-vous à la page de référence de la commande LINK:https://docs.netapp.com/us-en/ontap-cli-9121/volume-create.html[`volume create`^].
 
-+
-Depuis la version ONTAP 9.7 ou ultérieure, la commande suivante crée un volume NAE nommé `vol1` marche `aggr1`:
-
-+
-[listing]
-----
-cluster1::> volume create -vserver vs1 -volume vol1 -aggregate aggr1
-----
-+
-Avec ONTAP 9.6, dans la mesure où le chiffrement au niveau des agrégats est activé, la commande suivante crée un volume NAE nommé `vol1` marche `aggr1`:
-
-+
-[listing]
-----
-cluster1::> volume create -vserver vs1 -volume vol1 -aggregate aggr1
-----
-+
-Depuis la version ONTAP 9.7 ou ultérieure, la commande suivante crée un volume NVE nommé `vol2` marche `aggr1`:
-
-+
-[listing]
-----
-cluster1::> volume create -vserver vs1 -volume vol2 -aggregate aggr1
-----
-+
-Avec ONTAP 9.6 ou version antérieure, la commande suivante crée un volume NVE nommé `vol2` marche `aggr1`:
-
-+
-[listing]
-----
-cluster1::> volume create -vserver vs1 -volume vol2 -aggregate aggr1 -encrypt true
-----
-+
-La commande suivante crée un volume en texte brut nommé `vol3` marche `aggr1`:
-
-+
-[listing]
-----
-cluster1::> volume create -vserver vs1 -volume vol3 -aggregate aggr1 -encrypt false
-----
 . Vérifiez que les volumes sont activés pour le chiffrement :
 +
 `volume show -is-encrypted true`
 
 +
-Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
-
-+
-La commande suivante affiche les volumes chiffrés sur `cluster2`:
-
-+
-[listing]
-----
-cluster2::> volume show -is-encrypted true
-
-Vserver  Volume  Aggregate  State  Type  Size  Available  Used
--------  ------  ---------  -----  ----  -----  --------- ----
-vs1      vol1    aggr2     online    RW  200GB    160.0GB  20%
-----
+Pour connaître la syntaxe complète de la commande, reportez-vous au link:https://docs.netapp.com/us-en/ontap-cli-9121/volume-show.html["référence de commande"^].
 
 
-Si vous utilisez un serveur KMIP pour stocker les clés de cryptage d'un nœud, ONTAP « transfère » automatiquement une clé de cryptage vers le serveur lorsque vous chiffrez un volume.
+
+Si vous utilisez un serveur KMIP pour stocker les clés de chiffrement d'un nœud, ONTAP « transmet automatiquement » une clé de chiffrement au serveur lorsque vous chiffrez un volume.

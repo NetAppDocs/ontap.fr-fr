@@ -16,14 +16,14 @@ Vous pouvez utiliser le `volume create` commande permettant d'activer le chiffre
 .Description de la tâche
 Vous pouvez chiffrer les volumes à l'aide de NetApp Volume Encryption (NVE) et, à partir de ONTAP 9.6, NetApp Aggregate Encryption (NAE). Pour en savoir plus sur NAE et NVE, consultez le xref:configure-netapp-volume-encryption-concept[présentation du chiffrement de volume].
 
-La procédure d'activation du chiffrement dans ONTAP varie en fonction de la version de ONTAP que vous utilisez et de votre configuration spécifique :
+La procédure d'activation du chiffrement sur un nouveau volume dans ONTAP varie en fonction de la version de ONTAP que vous utilisez et de votre configuration spécifique :
 
 * À partir de ONTAP 9.4, si vous l'activez `cc-mode` Lorsque vous configurez le gestionnaire de clés intégré, les volumes que vous créez avec le `volume create` la commande est automatiquement chiffrée, que vous spécifiez ou non `-encrypt true`.
 * Dans ONTAP 9.6 et les versions antérieures, vous devez utiliser `-encrypt true` avec `volume create` commandes permettant d'activer le chiffrement (à condition que vous n'ayez pas activé `cc-mode`).
-* Si vous utilisez NAE dans la ONTAP 9.6, vous devez en activer au niveau des agrégats. Reportez-vous à la section xref:enable-aggregate-level-encryption-nve-license-task.html[Activation du chiffrement au niveau de l'agrégat avec la licence VE] pour plus de détails sur cette tâche.
-* Depuis ONTAP 9.7, les volumes nouvellement créés sont cryptés par défaut lorsque vous disposez de la licence VE et de la gestion intégrée ou externe des clés.
+* Si vous voulez créer un volume NAE dans ONTAP 9.6, vous devez activer NAE au niveau des agrégats. Reportez-vous à la section xref:enable-aggregate-level-encryption-nve-license-task.html[Activation du chiffrement au niveau de l'agrégat avec la licence VE] pour plus de détails sur cette tâche.
+* Depuis ONTAP 9.7, les volumes nouvellement créés sont cryptés par défaut lorsque vous disposez de la licence VE et de la gestion intégrée ou externe des clés. Par défaut, les nouveaux volumes créés dans un agrégat NAE seront de type NAE plutôt que NVE.
 +
-** Dans ONTAP 9.7 et versions ultérieures, si vous utilisez `-encrypt true` Pour créer un volume dans un agrégat NAE, le volume dispose d'un chiffrement NVE au lieu de NAE. Tous les volumes d'un agrégat NAE doivent être chiffrés avec NVE ou NAE.
+** Dans ONTAP 9.7 et versions ultérieures, si vous ajoutez `-encrypt true` à la `volume create` Commande de création d'un volume dans un agrégat NAE, au lieu de NAE pour le volume le chiffrement NVE. Tous les volumes d'un agrégat NAE doivent être chiffrés avec NVE ou NAE.
 
 
 
@@ -32,7 +32,7 @@ La procédure d'activation du chiffrement dans ONTAP varie en fonction de la ver
 NOTE: Les volumes en texte brut ne sont pas pris en charge dans les agrégats NAE.
 
 .Étapes
-. Créer un nouveau volume et spécifier si le chiffrement est activé sur le volume :
+. Créez un nouveau volume et spécifiez si le chiffrement est activé sur le volume. Si le nouveau volume se trouve dans un agrégat NAE, le volume en est par défaut un volume NAE :
 +
 [cols="25,75"]
 |===
@@ -44,20 +44,17 @@ NOTE: Les volumes en texte brut ne sont pas pris en charge dans les agrégats NA
  a| 
 Volume NAE
  a| 
-`volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_` +
-
-
-NOTE: Dans ONTAP 9.6, il faut activer NAE au niveau des agrégats pour créer un volume NAE.
+`volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_`
 
 
 
  a| 
 Un volume NVE
  a| 
-`volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_` +
+`volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -encrypt true` +
 
 
-NOTE: Si vous utilisez ONTAP 9.6 et des versions antérieures, ajoutez `-encrypt true` à la commande. En utilisant ce paramètre dans ONTAP 9.7 ou version ultérieure avec le chiffrement NAE sur l'agrégat, le volume utilise NVE.
+NOTE: Dans les versions ONTAP 9.6 et antérieures, où NAE n'est pas pris en charge, `-encrypt true` Spécifie que le volume doit être chiffré avec NVE. Dans ONTAP 9.7 et versions ultérieures, où les volumes sont créés dans des agrégats NAE, `-encrypt true` Remplace le type de chiffrement par défaut de NAE pour créer un volume NVE.
 
 
 

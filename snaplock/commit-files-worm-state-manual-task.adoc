@@ -1,16 +1,22 @@
 ---
 permalink: snaplock/commit-files-worm-state-manual-task.html 
 sidebar: sidebar 
-keywords: commit, file, worm, manually, nfs, cifs, read, only 
-summary: 'Vous devez valider manuellement un fichier en mode WORM en le rendant en lecture seule. Vous pouvez utiliser n"importe quelle commande ou programme approprié sur NFS ou CIFS pour changer l"attribut lecture-écriture d"un fichier en lecture seule.' 
+keywords: commit, file, worm, manually, nfs, cifs, read, only, automatically, program, appendable, nfs, cifs, chunk, vam 
+summary: 'Vous pouvez archiver les fichiers en mode WORM (write once, read many) manuellement ou automatiquement. Vous pouvez également créer des fichiers modifiables WORM.' 
 ---
-= Archivage manuel des fichiers en mode WORM
+= Archivage des fichiers en mode WORM
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
+Vous pouvez archiver les fichiers en mode WORM (write once, read many) manuellement ou automatiquement. Vous pouvez également créer des fichiers modifiables WORM.
+
+
+
+== Archivage manuel des fichiers en mode WORM
+
 Vous devez valider manuellement un fichier en mode WORM en le rendant en lecture seule. Vous pouvez utiliser n'importe quelle commande ou programme approprié sur NFS ou CIFS pour changer l'attribut lecture-écriture d'un fichier en lecture seule.
 
 .Ce dont vous avez besoin
@@ -39,4 +45,218 @@ Dans un shell Windows, utilisez la commande suivante pour créer un fichier nomm
 ----
 attrib +r document.txt
 ----
+
+
+
+
+== Archivage automatique des fichiers sur WORM
+
+La fonctionnalité d'autovalidation de SnapLock vous permet d'allouer automatiquement les fichiers en mode WORM.
+
+.Ce dont vous avez besoin
+* Les fichiers que vous souhaitez effectuer une validation automatique doivent résider sur un volume SnapLock.
+* Le volume SnapLock doit être en ligne.
+* Le volume SnapLock doit être un volume en lecture/écriture.
+
+
+[NOTE]
+====
+La fonction SnapLock autocommit analyse tous les fichiers du volume et valide un fichier s'il répond à l'exigence d'autocommit. Il peut y avoir un intervalle de temps entre le moment où le fichier est prêt pour la validation automatique et celui où il est réellement engagé par le scanner SnapLock autocommit. Cependant, le fichier est toujours protégé contre les modifications et la suppression par le système de fichiers dès qu'il est éligible à l'auto-validation.
+
+====
+.Description de la tâche
+Le paramètre _autocommit Period_ spécifie le temps pendant lequel les fichiers doivent rester inchangés avant leur validation automatique. La modification d'un fichier avant que la période de validation automatique ne soit écoulée entraîne le redémarrage de la période de validation automatique du fichier.
+
+Le tableau suivant présente les valeurs possibles pour la période de validation automatique :
+
+|===
+| Valeur | Unité | Remarques 
+
+
+ a| 
+Aucune
+ a| 
+-
+ a| 
+La valeur par défaut.
+
+
+
+ a| 
+5 - 5256000
+ a| 
+quelques minutes
+ a| 
+-
+
+
+
+ a| 
+1 - 87600
+ a| 
+heures
+ a| 
+-
+
+
+
+ a| 
+1 - 3650
+ a| 
+jours
+ a| 
+-
+
+
+
+ a| 
+1 - 120
+ a| 
+mois
+ a| 
+-
+
+
+
+ a| 
+1 - 10
+ a| 
+années
+ a| 
+-
+
+|===
+[NOTE]
+====
+La valeur minimale est de 5 minutes et la valeur maximale est de 10 ans.
+
+====
+.Étapes
+. Validation automatique des fichiers sur un volume SnapLock vers WORM :
++
+`*volume snaplock modify -vserver _SVM_name_ -volume _volume_name_ -autocommit-period _autocommit_period_*`
+
++
+Pour obtenir la liste complète des options, consultez la page man de la commande.
+
++
+La commande suivante valide automatiquement les fichiers sur le volume `vol1` Du SVM vs1, tant que les fichiers restent inchangés pendant 5 heures :
+
++
+[listing]
+----
+cluster1::>volume snaplock modify -vserver vs1 -volume vol1 -autocommit-period 5hours
+----
+
+
+
+
+== Créez un fichier d'ajout WORM
+
+Un fichier WORM fiable conserve les données écrites de manière incrémentielle, comme les entrées de journal. Vous pouvez utiliser n'importe quelle commande ou programme approprié pour créer un fichier compatible WORM, ou vous pouvez utiliser la fonction SnapLock _volume append mode_ pour créer des fichiers compatibles WORM par défaut.
+
+
+
+== Utilisez une commande ou un programme pour créer un fichier inscriptible WORM
+
+Vous pouvez utiliser n'importe quelle commande ou programme appropriée sur NFS ou CIFS pour créer un fichier compatible WORM. Un fichier WORM fiable conserve les données écrites de manière incrémentielle, comme les entrées de journal. Les données sont ajoutées au fichier par blocs de 256 Ko. Au fur et à mesure que chaque bloc est écrit, le bloc précédent devient protégé par WORM. Vous ne pouvez pas supprimer le fichier tant que la période de conservation n'est pas écoulée.
+
+.Ce dont vous avez besoin
+Le fichier fiable WORM doit résider sur un volume SnapLock.
+
+.Description de la tâche
+Les données n'ont pas besoin d'être écrites de manière séquentielle dans le bloc actif de 256 Ko. Lorsque les données sont écrites sur l'octet n×256 Ko+1 du fichier, le segment 256 Ko précédent devient protégé par WORM.
+
+.Étapes
+. Utilisez une commande ou un programme approprié pour créer un fichier de longueur nulle avec le temps de rétention souhaité.
++
+Dans un shell UNIX, utilisez la commande suivante pour définir un temps de rétention de 21 novembre 2020 6 h 00 sur un fichier de longueur zéro nommé `document.txt`:
+
++
+[listing]
+----
+touch -a -t 202011210600 document.txt
+----
+. Utilisez une commande ou un programme approprié pour modifier l'attribut lecture-écriture du fichier en lecture seule.
++
+Dans un shell UNIX, utilisez la commande suivante pour créer un fichier nommé `document.txt` lecture seule :
+
++
+[listing]
+----
+chmod 444 document.txt
+----
+. Utilisez une commande ou un programme approprié pour remettre l'attribut de lecture-écriture du fichier en inscriptible.
++
+[NOTE]
+====
+Cette étape n'est pas considérée comme un risque de conformité, car aucune donnée n'est présente dans le fichier.
+
+====
++
+Dans un shell UNIX, utilisez la commande suivante pour créer un fichier nommé `document.txt` inscriptible :
+
++
+[listing]
+----
+chmod 777 document.txt
+----
+. Utilisez une commande ou un programme approprié pour commencer à écrire des données dans le fichier.
++
+Dans un shell UNIX, utiliser la commande suivante pour écrire des données sur `document.txt`:
+
++
+[listing]
+----
+echo test data >> document.txt
+----
++
+[NOTE]
+====
+Rétablissez les autorisations de fichier en lecture seule lorsque vous n'avez plus besoin d'ajouter des données au fichier.
+
+====
+
+
+
+
+== Utilisez le mode d'ajout de volumes pour créer des fichiers d'ajout WORM
+
+Depuis ONTAP 9.3, vous pouvez utiliser la fonctionnalité SnapLock _volume append mode_ (VAM) pour créer par défaut des fichiers WORM utilisables. Un fichier WORM fiable conserve les données écrites de manière incrémentielle, comme les entrées de journal. Les données sont ajoutées au fichier par blocs de 256 Ko. Au fur et à mesure que chaque bloc est écrit, le bloc précédent devient protégé par WORM. Vous ne pouvez pas supprimer le fichier tant que la période de conservation n'est pas écoulée.
+
+.Ce dont vous avez besoin
+* Le fichier fiable WORM doit résider sur un volume SnapLock.
+* Le volume SnapLock doit être démonté et vide des copies Snapshot et des fichiers créés par l'utilisateur.
+
+
+.Description de la tâche
+Les données n'ont pas besoin d'être écrites de manière séquentielle dans le bloc actif de 256 Ko. Lorsque les données sont écrites sur l'octet n×256 Ko+1 du fichier, le segment 256 Ko précédent devient protégé par WORM.
+
+Si vous spécifiez une période de validation automatique pour le volume, les fichiers modifiables WORM qui ne sont pas modifiés pour une période supérieure à la période de validation automatique sont validés en mode WORM.
+
+[NOTE]
+====
+Le mode VAM n'est pas pris en charge sur les volumes des journaux d'audit SnapLock.
+
+====
+.Étapes
+. Activer VAM :
++
+`*volume snaplock modify -vserver _SVM_name_ -volume _volume_name_ -is-volume-append-mode-enabled true|false*`
+
++
+Pour obtenir la liste complète des options, consultez la page man de la commande.
+
++
+La commande suivante active le mode VAM sur le volume `vol1` De SVM``vs1``:
+
++
+[listing]
+----
+cluster1::>volume snaplock modify -vserver vs1 -volume vol1 -is-volume-append-mode-enabled true
+----
+. Utilisez une commande ou un programme approprié pour créer des fichiers avec des autorisations d'écriture.
++
+Les fichiers sont par défaut modifiables.
+
 

@@ -1,10 +1,10 @@
 ---
 permalink: snaplock/set-retention-period-task.html 
 sidebar: sidebar 
-keywords: snaplock, set, retention, time, default, file, volume, period 
+keywords: snaplock, set, retention, time, default, explicit, file, modify, volume, period 
 summary: 'Vous pouvez définir explicitement la durée de conservation d"un fichier ou utiliser la période de rétention par défaut pour le volume afin de définir la durée de conservation. Sauf si vous définissez explicitement la durée de conservation, SnapLock utilise la période de conservation par défaut pour calculer la durée de conservation.' 
 ---
-= Définissez l'aperçu de la durée de conservation
+= Définissez la durée de rétention
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -13,10 +13,7 @@ summary: 'Vous pouvez définir explicitement la durée de conservation d"un fich
 [role="lead"]
 Vous pouvez définir explicitement la durée de conservation d'un fichier ou utiliser la période de rétention par défaut pour le volume afin de définir la durée de conservation. Sauf si vous définissez explicitement la durée de conservation, SnapLock utilise la période de conservation par défaut pour calculer la durée de conservation.
 
-
-
-== À propos de la période de conservation et de la durée de conservation
-
+.À propos de la période de conservation et de la durée de conservation
 Le paramètre _rétention_période_ pour un fichier WORM spécifie la durée pendant laquelle le fichier doit être conservé après son activation à l'état WORM. Le _temps de rétention_ pour un fichier WORM est le temps après lequel le fichier n'a plus besoin d'être conservé. Une période de conservation de 20 ans pour un dossier engagé à l'état WORM le 10 novembre 2020 6 h 00, par exemple, entraînerait un temps de rétention de 10 novembre 2040 6 h 00
 
 image::../media/retention.gif[la conservation]
@@ -26,22 +23,13 @@ image::../media/retention.gif[la conservation]
 Depuis ONTAP 9.10.1, vous pouvez définir une durée de conservation allant jusqu'au 26 octobre 3058 et une période de conservation pouvant aller jusqu'à 100 ans. Lorsque vous prolongez les dates de conservation, les anciennes règles sont automatiquement converties. Dans ONTAP 9.9.1 et versions antérieures, sauf si vous avez défini la période de conservation par défaut sur infinie, la durée maximale de conservation prise en charge est de janvier 19 2071 (GMT).
 
 ====
-
-
-== Considérations importantes relatives à la réplication
-
+.Considérations importantes relatives à la réplication
 Lorsque vous définissez une relation SnapMirror avec un volume source SnapLock à une date de conservation postérieure au 19 janvier 2071 (GMT), le cluster de destination doit exécuter ONTAP 9.10.1 ou version ultérieure, sinon le transfert SnapMirror échoue.
 
-
-
-== Considérations importantes concernant la restauration
-
+.Considérations importantes concernant la restauration
 ONTAP vous empêche de restaurer un cluster depuis ONTAP 9.10.1 vers une version antérieure de ONTAP lorsqu'il y a des fichiers avec une période de conservation postérieure à « janvier 19, 2071 8:44:07 ».
 
-
-
-== Compréhension des périodes de conservation par défaut
-
+.Compréhension des périodes de conservation par défaut
 Un volume SnapLock Compliance ou Enterprise a quatre périodes de conservation :
 
 * Durée de conservation minimale (`min`), avec une valeur par défaut de 0
@@ -62,3 +50,198 @@ Depuis ONTAP 9.12.1, les fichiers WORM dont la période de conservation est déf
 
 
 Ainsi, si vous ne définissez pas explicitement la durée de rétention avant de valider un fichier en mode conformité à l'état WORM et que vous ne modifiez pas les valeurs par défaut, le fichier sera conservé pendant 30 ans. De même, si vous ne définissez pas explicitement la durée de rétention avant de valider un fichier Enterprise-mode à l'état WORM et que vous ne modifiez pas les valeurs par défaut, le fichier sera conservé pendant 0 ans, ou, de manière efficace, pas du tout.
+
+
+
+== Définir la période de conservation par défaut
+
+Vous pouvez utiliser le `volume snaplock modify` Commande pour définir la période de conservation par défaut pour les fichiers d'un volume SnapLock.
+
+.Ce dont vous avez besoin
+Le volume SnapLock doit être en ligne.
+
+.Description de la tâche
+Le tableau suivant indique les valeurs possibles pour l'option de période de conservation par défaut :
+
+[NOTE]
+====
+La période de conservation par défaut doit être supérieure ou égale à (>=) la période de rétention minimale et inférieure ou égale à (\<=) la période de rétention maximale.
+
+====
+|===
+| Valeur | Unité | Remarques 
+
+
+ a| 
+0 - 65535
+ a| 
+secondes
+ a| 
+
+
+
+ a| 
+0 - 24
+ a| 
+heures
+ a| 
+
+
+
+ a| 
+0 - 365
+ a| 
+jours
+ a| 
+
+
+
+ a| 
+0 - 12
+ a| 
+mois
+ a| 
+
+
+
+ a| 
+0 - 100
+ a| 
+années
+ a| 
+À partir d'ONTAP 9.10.1. Pour les versions antérieures de ONTAP, la valeur est comprise entre 0 et 70.
+
+
+
+ a| 
+capacité
+ a| 
+-
+ a| 
+Utilisez la période de rétention maximale.
+
+
+
+ a| 
+minimum
+ a| 
+-
+ a| 
+Utilisez la période de rétention minimale.
+
+
+
+ a| 
+illimitée
+ a| 
+-
+ a| 
+Conservez toujours les fichiers.
+
+
+
+ a| 
+non spécifié
+ a| 
+-
+ a| 
+Conservez les fichiers jusqu'à ce qu'une période de conservation absolue soit définie.
+
+|===
+Les valeurs et les plages des périodes de rétention maximale et minimale sont identiques, sauf pour `max` et `min`, qui ne sont pas applicables. Pour plus d'informations sur cette tâche, voir link:set-retention-period-task.html["Définissez l'aperçu de la durée de conservation"].
+
+Vous pouvez utiliser le `volume snaplock show` commande pour afficher les paramètres de la période de rétention du volume. Pour plus d'informations, consultez la page man de la commande
+
+[NOTE]
+====
+Une fois qu'un fichier a été engagé à l'état WORM, vous pouvez prolonger mais pas raccourcir la période de rétention.
+
+====
+.Étapes
+. Définissez la période de conservation par défaut pour les fichiers d'un volume SnapLock :
++
+`*volume snaplock modify -vserver _SVM_name_ -volume _volume_name_ -default-retention-period _default_retention_period_ -minimum-retention-period _min_retention_period_ -maximum-retention-period _max_retention_period_*`
+
++
+Pour obtenir la liste complète des options, consultez la page man de la commande.
+
++
+[NOTE]
+====
+Les exemples suivants supposent que les périodes de rétention minimale et maximale n'ont pas été modifiées auparavant.
+
+====
++
+La commande suivante définit la période de conservation par défaut pour un volume Compliance ou Enterprise sur 20 jours :
+
++
+[listing]
+----
+cluster1::> volume snaplock modify -vserver vs1 -volume vol1 -default-retention-period 20days
+----
++
+La commande suivante définit la période de conservation par défaut pour un volume Compliance sur 70 ans :
+
++
+[listing]
+----
+cluster1::> volume snaplock modify -vserver vs1 -volume vol1 -maximum-retention-period 70years
+----
++
+La commande suivante définit la période de conservation par défaut pour un volume entreprise sur 10 ans :
+
++
+[listing]
+----
+cluster1::> volume snaplock modify -vserver vs1 -volume vol1 -default-retention-period max -maximum-retention-period 10years
+----
++
+Les commandes suivantes définissent la période de conservation par défaut pour un volume entreprise sur 10 jours :
+
++
+[listing]
+----
+cluster1::> volume snaplock modify -vserver vs1 -volume vol1 -minimum-retention-period 10days
+cluster1::> volume snaplock modify -vserver vs1 -volume vol1 -default-retention-period min
+----
++
+La commande suivante définit la période de conservation par défaut d'un volume Compliance sur infinie :
+
++
+[listing]
+----
+cluster1::> volume snaplock modify -vserver vs1 -volume vol1 -default-retention-period infinite -maximum-retention-period infinite
+----
+
+
+
+
+== Définissez explicitement la durée de rétention d'un fichier
+
+Vous pouvez définir explicitement la durée de conservation d'un fichier en modifiant son heure de dernier accès. Vous pouvez utiliser n'importe quelle commande ou programme approprié via NFS ou CIFS pour modifier l'heure du dernier accès.
+
+.Description de la tâche
+Une fois qu'un fichier a été enregistré sur WORM, vous pouvez prolonger mais pas réduire la durée de conservation. La durée de rétention est stockée dans le `atime` champ du fichier.
+
+[NOTE]
+====
+Vous ne pouvez pas définir explicitement la durée de conservation d'un fichier sur `infinite`. Cette valeur n'est disponible que lorsque vous utilisez la période de rétention par défaut pour calculer la durée de rétention.
+
+====
+.Étapes
+. Utilisez une commande ou un programme approprié pour modifier l'heure du dernier accès pour le fichier dont vous souhaitez définir la durée de rétention.
++
+Dans un shell UNIX, utilisez la commande suivante pour définir un temps de rétention de 21 novembre 2020 6 h 00 sur un fichier nommé `document.txt`:
+
++
+[listing]
+----
+touch -a -t 202011210600 document.txt
+----
++
+[NOTE]
+====
+Vous pouvez utiliser n'importe quelle commande ou programme approprié pour modifier l'heure du dernier accès dans Windows.
+
+====
+

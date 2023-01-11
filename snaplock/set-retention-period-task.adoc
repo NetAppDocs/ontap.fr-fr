@@ -1,8 +1,8 @@
 ---
 permalink: snaplock/set-retention-period-task.html 
 sidebar: sidebar 
-keywords: snaplock, set, retention, time, default, explicit, file, modify, volume, period 
-summary: 'Vous pouvez définir explicitement la durée de conservation d"un fichier ou utiliser la période de rétention par défaut pour le volume afin de définir la durée de conservation. Sauf si vous définissez explicitement la durée de conservation, SnapLock utilise la période de conservation par défaut pour calculer la durée de conservation.' 
+keywords: snaplock, set, retention, time, default, explicit, file, modify, volume, period, ebr, event, based 
+summary: 'Vous pouvez définir explicitement la durée de conservation d"un fichier ou utiliser la période de rétention par défaut pour le volume afin de définir la durée de conservation. Sauf si vous définissez explicitement la durée de conservation, SnapLock utilise la période de conservation par défaut pour calculer la durée de conservation. Vous pouvez également définir la conservation des fichiers après un événement.' 
 ---
 = Définissez la durée de rétention
 :allow-uri-read: 
@@ -11,7 +11,7 @@ summary: 'Vous pouvez définir explicitement la durée de conservation d"un fich
 
 
 [role="lead"]
-Vous pouvez définir explicitement la durée de conservation d'un fichier ou utiliser la période de rétention par défaut pour le volume afin de définir la durée de conservation. Sauf si vous définissez explicitement la durée de conservation, SnapLock utilise la période de conservation par défaut pour calculer la durée de conservation.
+Vous pouvez définir explicitement la durée de conservation d'un fichier ou utiliser la période de rétention par défaut pour le volume afin de définir la durée de conservation. Sauf si vous définissez explicitement la durée de conservation, SnapLock utilise la période de conservation par défaut pour calculer la durée de conservation. Vous pouvez également définir la conservation des fichiers après un événement.
 
 .À propos de la période de conservation et de la durée de conservation
 Le paramètre _rétention_période_ pour un fichier WORM spécifie la durée pendant laquelle le fichier doit être conservé après son activation à l'état WORM. Le _temps de rétention_ pour un fichier WORM est le temps après lequel le fichier n'a plus besoin d'être conservé. Une période de conservation de 20 ans pour un dossier engagé à l'état WORM le 10 novembre 2020 6 h 00, par exemple, entraînerait un temps de rétention de 10 novembre 2040 6 h 00
@@ -244,4 +244,74 @@ touch -a -t 202011210600 document.txt
 Vous pouvez utiliser n'importe quelle commande ou programme approprié pour modifier l'heure du dernier accès dans Windows.
 
 ====
+
+
+
+
+== Définissez la période de rétention des fichiers après un événement
+
+[role="lead"]
+À partir de ONTAP 9.3, vous pouvez définir la durée de conservation d'un fichier après un événement en utilisant la fonction SnapLock _Event Based Retention (EBR)_.
+
+.Ce dont vous avez besoin
+* Vous devez être un administrateur SnapLock pour effectuer cette tâche.
++
+link:create-compliance-administrator-account-task.html["Créez un compte d'administrateur SnapLock"]
+
+* Vous devez vous connecter à une connexion sécurisée (SSH, console ou ZAPI).
+
+
+.Description de la tâche
+La stratégie _Event Retention_ définit la période de rétention du fichier après l'événement. La règle peut être appliquée à un seul fichier ou à tous les fichiers d'un répertoire.
+
+* Si un fichier n'est pas un fichier WORM, il est mis à l'état WORM pour la période de conservation définie dans la stratégie.
+* Si un fichier est un fichier WORM ou un fichier inscriptible WORM, sa période de conservation sera prolongée par la période de conservation définie dans la stratégie.
+
+
+Vous pouvez utiliser un volume Compliance-mode ou Enterprise-mode.
+
+[NOTE]
+====
+Les politiques EBR ne peuvent pas être appliquées aux fichiers en attente légale.
+
+====
+Pour une utilisation avancée, voir link:https://www.netapp.com/us/media/tr-4526.pdf["Stockage WORM conforme avec NetApp SnapLock"].
+
+|===
+
+
+| *_utilisation d'EBR pour prolonger la période de conservation des fichiers WORM déjà existants_* 
+
+
+ a| 
+EBR est pratique lorsque vous souhaitez prolonger la période de conservation des fichiers WORM existants. Par exemple, votre entreprise a peut-être pour politique de conserver les enregistrements W-4 des employés sous forme non modifiée pendant trois ans après que l'employé change de retenue d'impôt. Une autre politique de l'entreprise pourrait exiger que les enregistrements W-4 soient conservés pendant cinq ans après la cessation d'emploi de l'employé.
+
+Dans ce cas, vous pouvez créer une police EBR avec une période de rétention de cinq ans. Une fois l'employé résilié (l'« événement »), vous appliqueriez la politique de l'EBR au registre W-4 de l'employé, ce qui entraînerait la prolongation de sa période de conservation. Ce processus est généralement plus simple que de prolonger manuellement la période de conservation, en particulier lorsqu'un grand nombre de fichiers sont impliqués.
+
+|===
+.Étapes
+. Créer une règle EBR :
++
+`*snaplock event-retention policy create -vserver _SVM_name_ -name _policy_name_ -retention-period _retention_period_*`
+
++
+La commande suivante crée la règle EBR `employee_exit` marche `vs1` avec une période de rétention de dix ans :
+
++
+[listing]
+----
+cluster1::>snaplock event-retention policy create -vserver vs1 -name employee_exit -retention-period 10years
+----
+. Appliquer une politique EBR :
++
+`*snaplock event-retention apply -vserver _SVM_name_ -name _policy_name_ -volume _volume_name_ -path _path_name_*`
+
++
+La commande suivante applique la règle EBR `employee_exit` marche `vs1` à tous les fichiers du répertoire `d1`:
+
++
+[listing]
+----
+cluster1::>snaplock event-retention apply -vserver vs1 -name employee_exit -volume vol1 -path /d1
+----
 

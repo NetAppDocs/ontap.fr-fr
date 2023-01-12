@@ -14178,8 +14178,6 @@
 
 
 
-
-
         </li>
       </ul>
     
@@ -34284,13 +34282,6 @@
         Créer un journal d'audit
       </a></li><li 
       data-pdf-exists="true" 
-      data-pdf-filename="Définissez la période de rétention des fichiers après un événement"
-      data-li-level="3#" 
-      class=" "
-    ><a class="na-navbar-padding" href="/fr-fr/ontap/snaplock/event-based-retention-feature-task.html">
-        Définissez la période de rétention des fichiers après un événement
-      </a></li><li 
-      data-pdf-exists="true" 
       data-pdf-filename="Déplacer un volume SnapLock"
       data-li-level="3#" 
       class=" "
@@ -36926,7 +36917,7 @@
 <p class="page-details">
   
     
-    <time datetime="2022-12-06 14:30:24 +0000">12/06/2022</time>
+    <time datetime="2023-01-12 00:35:43 +0000">01/12/2023</time>
     
   
 
@@ -36981,32 +36972,57 @@
 <div class="paragraph">
 <p>Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.</p>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<img src="/us-en/ontap/images/note.svg" alt="Note">
+</td>
+<td class="content">
 <div class="paragraph">
-<p>On doit exécuter cette commande depuis le SVM de destination ou le cluster destination. Bien que la resynchronisation ne nécessite pas de transfert de base, elle peut prendre du temps. Vous pouvez exécuter la resynchronisation en dehors des heures de pointe.</p>
+<p>Vous devez exécuter cette commande à partir du SVM source d&#8217;origine ou du cluster source d&#8217;origine. Bien que la resynchronisation ne nécessite pas de transfert de base, elle peut prendre du temps. Vous pouvez exécuter la resynchronisation en dehors des heures de pointe. Échec de la commande si une copie Snapshot commune n&#8217;existe pas sur la source et la destination. Utiliser <code>snapmirror initialize</code> pour réinitialiser la relation.</p>
+</div>
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>L&#8217;exemple suivant inverse la relation entre le volume source d&#8217;origine, <code>volA</code> marche <code>svm1`et le volume que vous servant de données, `volA_dst</code> marche <code>svm_backup</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>cluster_dst::&gt; snapmirror resync -source-path svm_backup:volA_dst -destination-path svm1:volA</pre>
+<pre>cluster_src::&gt; snapmirror resync -source-path svm_backup:volA_dst -destination-path svm1:volA</pre>
 </div>
 </div>
 </li>
 <li>
-<p>Arrêter le SVM source pour la relation inversée :</p>
+<p>Lorsque vous êtes prêt à rétablir l&#8217;accès aux données à la source d&#8217;origine, l&#8217;accès au volume de destination d&#8217;origine est interrompu. L&#8217;une des façons de faire est d&#8217;arrêter le SVM de destination d&#8217;origine :</p>
 <div class="paragraph">
 <p><code>vserver stop -vserver <em>SVM</em></code></p>
 </div>
 <div class="paragraph">
 <p>Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.</p>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<img src="/us-en/ontap/images/note.svg" alt="Note">
+</td>
+<td class="content">
 <div class="paragraph">
-<p>L&#8217;exemple suivant arrête le SVM source pour la relation inversée :</p>
+<p>Vous devez exécuter cette commande à partir du SVM destination d&#8217;origine ou du cluster destination d&#8217;origine. Cette commande arrête l&#8217;accès de l&#8217;utilisateur à l&#8217;ensemble du SVM de destination d&#8217;origine. Vous pouvez arrêter l&#8217;accès au volume de destination d&#8217;origine à l&#8217;aide d&#8217;autres méthodes.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>L&#8217;exemple suivant arrête le SVM destination original :</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>cluster_src::&gt; vserver stop svm_backup</pre>
+<pre>cluster_dst::&gt; vserver stop svm_backup</pre>
 </div>
 </div>
 </li>
@@ -37026,7 +37042,7 @@
 </td>
 <td class="content">
 <div class="paragraph">
-<p>Vous devez exécuter cette commande à partir du SVM de destination ou du cluster de destination.la commande échoue si une copie Snapshot commune n&#8217;existe pas sur la source et la destination. Utiliser <code>snapmirror initialize</code> pour réinitialiser la relation.</p>
+<p>Vous devez exécuter cette commande à partir du SVM source d&#8217;origine ou du cluster source d&#8217;origine.</p>
 </div>
 </td>
 </tr>
@@ -37037,12 +37053,12 @@
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>cluster_dst::&gt; snapmirror update -source-path svm_backup:volA_dst -destination-path svm1:volA</pre>
+<pre>cluster_src::&gt; snapmirror update -source-path svm_backup:volA_dst -destination-path svm1:volA</pre>
 </div>
 </div>
 </li>
 <li>
-<p>Arrêter les transferts programmés pour la relation inversée :</p>
+<p>Depuis le SVM source d&#8217;origine ou le cluster source d&#8217;origine, arrêter les transferts programmés pour la relation inversée :</p>
 <div class="paragraph">
 <p><code>snapmirror quiesce -source-path <em>SVM:volume</em>|<em>cluster://SVM/volume</em>, &#8230;&#8203; -destination-path <em>SVM:volume</em>|<em>cluster://SVM/volume</em>, &#8230;&#8203;</code></p>
 </div>
@@ -37057,54 +37073,23 @@
 </td>
 <td class="content">
 <div class="paragraph">
-<p>On doit exécuter cette commande depuis le SVM de destination ou le cluster destination.</p>
+<p>Vous devez exécuter cette commande à partir du SVM source d&#8217;origine ou du cluster source d&#8217;origine.</p>
 </div>
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>L&#8217;exemple suivant arrête les transferts programmés entre le volume à partir de où vous accédez les données, <code>volA_dst</code> marche <code>svm_backup</code>, et le volume source d&#8217;origine, <code>volA</code> marche <code>svm1</code>:</p>
+<p>L&#8217;exemple suivant illustre la fin des transferts programmés entre le volume de destination d&#8217;origine. <code>volA_dst</code> marche <code>svm_backup</code>, et le volume source d&#8217;origine, <code>volA</code> marche <code>svm1</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>cluster_dst::&gt; snapmirror quiesce -source-path svm_backup:volA_dst -destination-path svm1:volA</pre>
+<pre>cluster_src::&gt; snapmirror quiesce -source-path svm_backup:volA_dst -destination-path svm1:volA</pre>
 </div>
 </div>
 </li>
 <li>
-<p>Arrêter les transferts en cours pour la relation inversée :</p>
-<div class="paragraph">
-<p><code>snapmirror abort -source-path <em>SVM:volume</em>|<em>cluster://SVM/volume</em>, &#8230;&#8203; -destination-path <em>SVM:volume</em>|<em>cluster://SVM/volume</em>, &#8230;&#8203;</code></p>
-</div>
-<div class="paragraph">
-<p>Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.</p>
-</div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<img src="/us-en/ontap/images/note.svg" alt="Note">
-</td>
-<td class="content">
-<div class="paragraph">
-<p>On doit exécuter cette commande depuis le SVM de destination ou le cluster destination.</p>
-</div>
-</td>
-</tr>
-</table>
-</div>
-<div class="paragraph">
-<p>L&#8217;exemple suivant arrête les transferts en cours entre le volume dont vous accédez à des données, <code>volA_dst</code> marche <code>svm_backup</code>, et le volume source d&#8217;origine, <code>volA</code> marche <code>svm1</code>:</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>cluster_dst::&gt; snapmirror abort -source-path svm_backup:volA_dst -destination-path svm1:volA</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Rompez la relation inversée :</p>
+<p>Lorsque la mise à jour finale est terminée et que la relation indique « suspendu » pour l&#8217;état de la relation, exécutez la commande suivante à partir du SVM source d&#8217;origine ou du cluster source d&#8217;origine pour interrompre la relation inversée :</p>
 <div class="paragraph">
 <p><code>snapmirror break -source-path <em>SVM:volume</em>|<em>cluster://SVM/volume</em>, &#8230;&#8203; -destination-path <em>SVM:volume</em>|<em>cluster://SVM/volume</em>, &#8230;&#8203;</code></p>
 </div>
@@ -37119,48 +37104,42 @@
 </td>
 <td class="content">
 <div class="paragraph">
-<p>On doit exécuter cette commande depuis le SVM de destination ou le cluster destination.</p>
+<p>Vous devez exécuter cette commande à partir du SVM source d&#8217;origine ou du cluster source.</p>
 </div>
 </td>
 </tr>
 </table>
 </div>
 <div class="paragraph">
-<p>L&#8217;exemple suivant rompt la relation entre le volume dont vous servant des données, <code>volA_dst</code> marche <code>svm_backup</code>, et le volume source d&#8217;origine, <code>volA</code> marche <code>svm1</code>:</p>
+<p>L&#8217;exemple suivant rompt la relation entre le volume de destination d&#8217;origine, <code>volA_dst</code> marche <code>svm_backup</code>, et le volume source d&#8217;origine, <code>volA</code> marche <code>svm1</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>cluster_dst::&gt; snapmirror break -source-path svm_backup:volA_dst -destination-path svm1:volA</pre>
+<pre>cluster_scr::&gt; snapmirror break -source-path svm_backup:volA_dst -destination-path svm1:volA</pre>
 </div>
 </div>
 </li>
 <li>
-<p>Démarrer le SVM source d&#8217;origine :</p>
-<div class="paragraph">
-<p><code>vserver start -vserver <em>SVM</em></code></p>
-</div>
-<div class="paragraph">
-<p>Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.</p>
-</div>
-<div class="paragraph">
-<p>L&#8217;exemple suivant démarre le SVM source d&#8217;origine :</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>cluster_dst::&gt; vserver start svm1</pre>
-</div>
-</div>
-</li>
-<li>
-<p>Supprimez la relation de protection des données inversée :</p>
+<p>Depuis le SVM source d&#8217;origine ou le cluster source d&#8217;origine, supprimer la relation de protection des données inversée :</p>
 <div class="paragraph">
 <p><code>snapmirror delete -source-path <em>SVM:volume</em>|<em>cluster://SVM/volume</em>, &#8230;&#8203; -destination-path <em>SVM:volume</em>|<em>cluster://SVM/volume</em>, &#8230;&#8203;</code></p>
 </div>
 <div class="paragraph">
 <p>Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.</p>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<img src="/us-en/ontap/images/note.svg" alt="Note">
+</td>
+<td class="content">
 <div class="paragraph">
-<p>On doit exécuter cette commande depuis le SVM source ou le cluster source pour la relation inversée.</p>
+<p>Vous devez exécuter cette commande à partir du SVM source d&#8217;origine ou du cluster source d&#8217;origine.</p>
+</div>
+</td>
+</tr>
+</table>
 </div>
 <div class="paragraph">
 <p>L&#8217;exemple suivant supprime la relation inversée entre le volume source d&#8217;origine, <code>volA</code> marche <code>svm1`et le volume que vous servant de données, `volA_dst</code> marche <code>svm_backup</code>:</p>
@@ -37172,7 +37151,56 @@
 </div>
 </li>
 <li>
-<p>Rétablir la relation initiale de protection des données :</p>
+<p>Libérer la relation inverse de la SVM destination d&#8217;origine ou du cluster destination d&#8217;origine.</p>
+<div class="paragraph">
+<p><code>snapmirror release -source-path <em>SVM:volume</em>|<em>cluster://SVM/volume</em>, &#8230;&#8203; -destination-path <em>SVM:volume</em>|<em>cluster://SVM/volume</em>, &#8230;&#8203;</code></p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<img src="/us-en/ontap/images/note.svg" alt="Note">
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Vous devez exécuter cette commande à partir du SVM destination d&#8217;origine ou du cluster destination d&#8217;origine.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>L&#8217;exemple suivant libère la relation inversée entre le volume de destination d&#8217;origine, <code>volA_dst</code> marche <code>svm_backup</code>, et le volume source d&#8217;origine, <code>volA</code> marche <code>svm1</code>:</p>
+</div>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>cluster_dst::&gt; snapmirror release -source-path svm_backup:volA_dst -destination-path svm1:volA</pre>
+</div>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Si besoin démarrer le SVM de destination d&#8217;origine :</p>
+<div class="paragraph">
+<p><code>vserver start -vserver <em>SVM</em></code></p>
+</div>
+<div class="paragraph">
+<p>Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.</p>
+</div>
+<div class="paragraph">
+<p>L&#8217;exemple suivant démarre le SVM de destination d&#8217;origine :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>cluster_dst::&gt; vserver start svm_backup</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Rétablir la relation de protection des données d&#8217;origine à partir de la destination d&#8217;origine :</p>
 <div class="paragraph">
 <p><code>snapmirror resync -source-path <em>SVM:volume</em>|<em>cluster://SVM/volume</em>, &#8230;&#8203; -destination-path <em>SVM:volume</em>|<em>cluster://SVM/volume</em>, &#8230;&#8203;</code></p>
 </div>

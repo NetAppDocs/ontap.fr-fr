@@ -17,7 +17,7 @@
   <meta http-equiv="encoding" content="utf-8">
   <meta http-equiv="nss-type" content="Product Documentation"/>
   <meta http-equiv="nss-subtype" content="User Guide"/><meta name="description" content="Vous pouvez définir explicitement la durée de conservation d"un fichier ou utiliser la période de rétention par défaut pour le volume afin de définir la duré...">
-  <meta name="keywords" content=" snaplock, set, retention, time, default, explicit, file, modify, volume, period"><!-- Icons -->
+  <meta name="keywords" content=" snaplock, set, retention, time, default, explicit, file, modify, volume, period, ebr, event, based"><!-- Icons -->
   <link rel="icon" href="/fr-fr/ontap/images/favicon.ico" type="image/x-icon">
 
   <!-- RSS Feed --><!-- CSS Definitions: NetApp CSS should be defined after generic css -->
@@ -14168,8 +14168,6 @@
     
 
   
-
-
 
 
 
@@ -34284,13 +34282,6 @@
         Créer un journal d'audit
       </a></li><li 
       data-pdf-exists="true" 
-      data-pdf-filename="Définissez la période de rétention des fichiers après un événement"
-      data-li-level="3#" 
-      class=" "
-    ><a class="na-navbar-padding" href="/fr-fr/ontap/snaplock/event-based-retention-feature-task.html">
-        Définissez la période de rétention des fichiers après un événement
-      </a></li><li 
-      data-pdf-exists="true" 
       data-pdf-filename="Déplacer un volume SnapLock"
       data-li-level="3#" 
       class=" "
@@ -36926,7 +36917,7 @@
 <p class="page-details">
   
     
-    <time datetime="2023-01-09 20:37:52 +0000">01/09/2023</time>
+    <time datetime="2023-01-12 00:35:43 +0000">01/12/2023</time>
     
   
 
@@ -36939,7 +36930,7 @@
 <div id="preamble">
 <div class="sectionbody">
 <div class="paragraph lead">
-<p>Vous pouvez définir explicitement la durée de conservation d&#8217;un fichier ou utiliser la période de rétention par défaut pour le volume afin de définir la durée de conservation. Sauf si vous définissez explicitement la durée de conservation, SnapLock utilise la période de conservation par défaut pour calculer la durée de conservation.</p>
+<p>Vous pouvez définir explicitement la durée de conservation d&#8217;un fichier ou utiliser la période de rétention par défaut pour le volume afin de définir la durée de conservation. Sauf si vous définissez explicitement la durée de conservation, SnapLock utilise la période de conservation par défaut pour calculer la durée de conservation. Vous pouvez également définir la conservation des fichiers après un événement.</p>
 </div>
 <div class="paragraph">
 <div class="title">À propos de la période de conservation et de la durée de conservation</div>
@@ -37289,6 +37280,113 @@ cluster1::&gt; volume snaplock modify -vserver vs1 -volume vol1 -default-retenti
 </td>
 </tr>
 </table>
+</div>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="définissez-la-période-de-rétention-des-fichiers-après-un-événement">Définissez la période de rétention des fichiers après un événement</h2>
+<div class="sectionbody">
+<div class="paragraph lead">
+<p>À partir de ONTAP 9.3, vous pouvez définir la durée de conservation d&#8217;un fichier après un événement en utilisant la fonction SnapLock <em>Event Based Retention (EBR)</em>.</p>
+</div>
+<div class="ulist">
+<div class="title">Ce dont vous avez besoin</div>
+<ul>
+<li>
+<p>Vous devez être un administrateur SnapLock pour effectuer cette tâche.</p>
+<div class="paragraph">
+<p><a href="create-compliance-administrator-account-task.html">"Créez un compte d&#8217;administrateur SnapLock"</a></p>
+</div>
+</li>
+<li>
+<p>Vous devez vous connecter à une connexion sécurisée (SSH, console ou ZAPI).</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<div class="title">Description de la tâche</div>
+<p>La stratégie <em>Event Retention</em> définit la période de rétention du fichier après l&#8217;événement. La règle peut être appliquée à un seul fichier ou à tous les fichiers d&#8217;un répertoire.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Si un fichier n&#8217;est pas un fichier WORM, il est mis à l&#8217;état WORM pour la période de conservation définie dans la stratégie.</p>
+</li>
+<li>
+<p>Si un fichier est un fichier WORM ou un fichier inscriptible WORM, sa période de conservation sera prolongée par la période de conservation définie dans la stratégie.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Vous pouvez utiliser un volume Compliance-mode ou Enterprise-mode.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<img src="/us-en/ontap/images/note.svg" alt="Note">
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Les politiques EBR ne peuvent pas être appliquées aux fichiers en attente légale.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Pour une utilisation avancée, voir <a href="https://www.netapp.com/us/media/tr-4526.pdf">"Stockage WORM conforme avec NetApp SnapLock"</a>.</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 100%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong><em>utilisation d&#8217;EBR pour prolonger la période de conservation des fichiers WORM déjà existants</em></strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><div class="content"><div class="paragraph">
+<p>EBR est pratique lorsque vous souhaitez prolonger la période de conservation des fichiers WORM existants. Par exemple, votre entreprise a peut-être pour politique de conserver les enregistrements W-4 des employés sous forme non modifiée pendant trois ans après que l&#8217;employé change de retenue d&#8217;impôt. Une autre politique de l&#8217;entreprise pourrait exiger que les enregistrements W-4 soient conservés pendant cinq ans après la cessation d&#8217;emploi de l&#8217;employé.</p>
+</div>
+<div class="paragraph">
+<p>Dans ce cas, vous pouvez créer une police EBR avec une période de rétention de cinq ans. Une fois l&#8217;employé résilié (l'« événement »), vous appliqueriez la politique de l&#8217;EBR au registre W-4 de l&#8217;employé, ce qui entraînerait la prolongation de sa période de conservation. Ce processus est généralement plus simple que de prolonger manuellement la période de conservation, en particulier lorsqu&#8217;un grand nombre de fichiers sont impliqués.</p>
+</div></div></td>
+</tr>
+</tbody>
+</table>
+<div class="olist arabic">
+<div class="title">Étapes</div>
+<ol class="arabic">
+<li>
+<p>Créer une règle EBR :</p>
+<div class="paragraph">
+<p><code><strong>snaplock event-retention policy create -vserver <em>SVM_name</em> -name <em>policy_name</em> -retention-period <em>retention_period</em></strong></code></p>
+</div>
+<div class="paragraph">
+<p>La commande suivante crée la règle EBR <code>employee_exit</code> marche <code>vs1</code> avec une période de rétention de dix ans :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>cluster1::&gt;snaplock event-retention policy create -vserver vs1 -name employee_exit -retention-period 10years</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Appliquer une politique EBR :</p>
+<div class="paragraph">
+<p><code><strong>snaplock event-retention apply -vserver <em>SVM_name</em> -name <em>policy_name</em> -volume <em>volume_name</em> -path <em>path_name</em></strong></code></p>
+</div>
+<div class="paragraph">
+<p>La commande suivante applique la règle EBR <code>employee_exit</code> marche <code>vs1</code> à tous les fichiers du répertoire <code>d1</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>cluster1::&gt;snaplock event-retention apply -vserver vs1 -name employee_exit -volume vol1 -path /d1</pre>
+</div>
 </div>
 </li>
 </ol>

@@ -2,7 +2,7 @@
 permalink: snaplock/delete-worm-files-concept.html 
 sidebar: sidebar 
 keywords: delete, worm, file, privileged, delete, enterprise, mode, retention, period, overview 
-summary: 'Vous pouvez supprimer des fichiers WORM en mode entreprise pendant la période de conservation à l"aide de la fonction de suppression privilégiée.' 
+summary: 'Vous pouvez supprimer des fichiers WORM en mode entreprise pendant la période de conservation à l"aide de la fonction de suppression privilégiée. Avant de pouvoir utiliser cette fonction, vous devez créer un compte administrateur SnapLock, puis activer la fonction à l"aide du compte.' 
 ---
 = Vue d'ensemble de la suppression des fichiers WORM
 :allow-uri-read: 
@@ -13,7 +13,86 @@ summary: 'Vous pouvez supprimer des fichiers WORM en mode entreprise pendant la 
 [role="lead"]
 Vous pouvez supprimer des fichiers WORM en mode entreprise pendant la période de conservation à l'aide de la fonction de suppression privilégiée. Avant de pouvoir utiliser cette fonction, vous devez créer un compte administrateur SnapLock, puis activer la fonction à l'aide du compte.
 
-* link:https://docs.netapp.com/us-en/ontap/snaplock/create-compliance-administrator-account-task.html["Créez un compte d'administrateur SnapLock"]
-* link:https://docs.netapp.com/us-en/ontap/snaplock/enable-privileged-delete-task.html["Activer la fonction de suppression privilégiée"]
-* link:https://docs.netapp.com/us-en/ontap/snaplock/implement-privileged-delete-functionality-task.html["Supprimez les fichiers WORM"]
+
+
+== Créez un compte d'administrateur SnapLock
+
+Vous devez disposer des privilèges d'administrateur SnapLock pour effectuer une suppression privilégiée. Ces privilèges sont définis dans le rôle vsadmin-snaplock. Si ce rôle n'est pas encore attribué, vous pouvez demander à l'administrateur du cluster de créer un compte d'administrateur SVM avec le rôle d'administrateur SnapLock.
+
+.Ce dont vous avez besoin
+* Vous devez être un administrateur de cluster pour effectuer cette tâche.
+* Vous devez vous connecter à une connexion sécurisée (SSH, console ou ZAPI).
+
+
+.Étapes
+. Créer un compte administrateur SVM avec le rôle d'administrateur SnapLock :
++
+`*security login create -vserver _SVM_name_ -user-or-group-name _user_or_group_name_ -application _application_ -authmethod _authentication_method_ -role _role_ -comment _comment_*`
+
++
+La commande suivante active le compte d'administrateur du SVM `SnapLockAdmin` avec le prédéfini `vsadmin-snaplock` rôle d'accès `SVM1` utilisation d'un mot de passe :
+
++
+[listing]
+----
+cluster1::> security login create -vserver SVM1 -user-or-group-name SnapLockAdmin -application ssh -authmethod password -role vsadmin-snaplock
+----
+
+
+
+
+== Activer la fonction de suppression privilégiée
+
+Vous devez activer explicitement la fonction de suppression privilégiée sur le volume entreprise contenant les fichiers WORM que vous souhaitez supprimer.
+
+.Description de la tâche
+La valeur du `-privileged-delete` détermine si la suppression privilégiée est activée. Les valeurs possibles sont `enabled`, `disabled`, et `permanently-disabled`.
+
+[NOTE]
+====
+ `permanently-disabled` est l'état du terminal. Vous ne pouvez pas activer la suppression privilégiée sur le volume après avoir défini l'état sur `permanently-disabled`.
+
+====
+.Étapes
+. Activer la suppression privilégiée pour un volume SnapLock Enterprise :
++
+`*volume snaplock modify -vserver _SVM_name_ -volume _volume_name_ -privileged-delete disabled|enabled|permanently-disabled*`
+
++
+La commande suivante active la fonction de suppression privilégiée pour le volume entreprise `dataVol` marche `SVM1`:
+
++
+[listing]
+----
+SVM1::> volume snaplock modify -vserver SVM1 -volume dataVol -privileged-delete enabled
+----
+
+
+
+
+== Supprimez les fichiers WORM en mode entreprise
+
+Vous pouvez utiliser la fonction de suppression privilégiée pour supprimer des fichiers WORM en mode entreprise pendant la période de conservation.
+
+.Ce dont vous avez besoin
+* Vous devez être un administrateur SnapLock pour effectuer cette tâche.
+* Vous devez avoir créé un journal d'audit SnapLock et activé la fonctionnalité de suppression privilégiée sur le volume entreprise.
+
+
+.Description de la tâche
+Vous ne pouvez pas utiliser une opération de suppression privilégiée pour supprimer un fichier WORM expiré. Vous pouvez utiliser le `volume file retention show` Commande pour afficher la durée de conservation du fichier WORM que vous souhaitez supprimer. Pour plus d'informations, consultez la page man de la commande
+
+.Étape
+. Supprimez un fichier WORM sur un volume d'entreprise :
++
+`*volume file privileged-delete -vserver _SVM_name_ -file _file_path_*`
+
++
+La commande suivante supprime le fichier `/vol/dataVol/f1` Sur le SVM``SVM1``:
+
++
+[listing]
+----
+SVM1::> volume file privileged-delete -file /vol/dataVol/f1
+----
 

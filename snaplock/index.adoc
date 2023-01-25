@@ -17,9 +17,27 @@ SnapLock empêche la suppression, la modification ou la modification des donnée
 
 Avec SnapLock, vous archivage des fichiers et des copies Snapshot sur le stockage WORM et définissez des périodes de conservation pour les données protégées WORM.
 
-Il existe deux versions de SnapLock : SnapLock, Compliance et SnapLock Enterprise. Les deux versions sont exécutées sur des systèmes NetApp avec tous les types de stockage. Grâce à cette flexibilité, vous achetez le type et la quantité de stockage répondant aux besoins de votre entreprise en matière de stockage WORM SnapLock.
+Les protocoles de fichier ouvert pris en charge pour SnapLock sont les suivants : NFS (versions 2, 3 et 4) et CIFS (SMB 1.0, 2.0 et 3.0).
 
-Le stockage WORM SnapLock utilise la technologie NetApp Snapshot™ et peut exploiter le logiciel de réplication NetApp SnapMirror® et la fonction de sauvegarde NetApp SnapVault® en tant que technologie de base pour assurer une protection des données de restauration de sauvegarde.
+SnapLock ne nécessite pas de matériel spécifique. SnapLock est pris en charge sur tous les systèmes AFF, FAS et ONTAP Select. SnapLock n'est pas une solution exclusivement logicielle ; il s'agit d'une solution matérielle et logicielle intégrée. Cette distinction est importante pour les réglementations WORM strictes, telles que la norme SEC 17a-4, qui requièrent une solution matérielle et logicielle intégrée. Pour en savoir plus, se reporter à l'interprétation SEC : stockage électronique des dossiers des courtiers-concessionnaires.
+
+Vous pouvez utiliser une application pour valider les fichiers en mode WORM sur NFS ou CIFS, ou utiliser la fonctionnalité d'autovalidation de SnapLock pour allouer automatiquement les fichiers en mode WORM. Vous pouvez utiliser un fichier _WORM apppliable_ pour conserver les données écrites de manière incrémentielle, comme les informations de journal. Pour plus d'informations, voir link:https://docs.netapp.com/us-en/ontap/snaplock/volume-append-mode-create-worm-appendable-files-task.html["Utilisez le mode d'ajout de volumes pour créer des fichiers d'ajout WORM"].
+
+SnapLock prend en charge les méthodes de protection des données qui doivent répondre à la plupart des exigences de conformité :
+
+* Vous pouvez utiliser SnapLock pour SnapVault pour protéger les copies Snapshot WORM sur le stockage secondaire. Voir link:https://docs.netapp.com/us-en/ontap/snaplock/commit-snapshot-copies-worm-concept.html["Archivage des copies Snapshot en mode WORM"].
+* Vous pouvez utiliser SnapMirror pour répliquer des fichiers WORM dans un autre emplacement géographique à des fins de reprise après incident. Voir link:https://docs.netapp.com/us-en/ontap/snaplock/mirror-worm-files-task.html["Fichiers WORM en miroir"].
+
+
+SnapLock est une fonctionnalité sous licence de NetApp ONTAP. Une seule licence vous donne le droit d'utiliser SnapLock en mode strict conformité, afin de répondre aux exigences externes telles que la règle SEC 17a-4 et un mode perte de l'entreprise, afin de respecter les réglementations internes régissant la protection des ressources numériques. Les licences SnapLock font partie du bundle sécurité et conformité.
+
+L'étendue de la prise en charge d'SnapLock est même passée à ONTAP 9. Les extensions les plus importantes sont les suivantes :
+
+Efficacité du stockage : depuis la version ONTAP 9.9.1, SnapLock prend en charge les fonctionnalités d'efficacité du stockage, telles que la compaction des données, la déduplication entre les volumes et la compression adaptative pour les volumes et les agrégats SnapLock. Pour plus d'informations sur l'efficacité du stockage, voir link:https://docs.netapp.com/us-en/ontap/volumes/index.html["Présentation de la gestion du stockage logique avec l'interface de ligne de commande"].
+
+Volumes FlexGroup : depuis ONTAP 9.11.1, SnapLock prend en charge les volumes FlexGroup, sauf lorsque vous utilisez la conservation à des fins juridiques, la conservation basée sur des événements et SnapLock pour SnapVault. Depuis la version ONTAP 9.12.1, SnapLock pour SnapVault est pris en charge avec les volumes FlexGroup.
+
+Le stockage WORM SnapLock utilise la technologie NetApp Snapshot™ et peut exploiter la réplication SnapMirror® et les sauvegardes SnapVault® comme technologie de base pour assurer une protection de restauration de sauvegarde des données.
 
 [NOTE]
 ====
@@ -28,69 +46,13 @@ System Manager vous permet d'effectuer ces tâches SnapLock : installation des l
 ====
 
 
-== Protocoles d'accès aux fichiers pris en charge
-
-Les protocoles de fichier ouvert pris en charge pour SnapLock sont les suivants : NFS (versions 2, 3 et 4) et CIFS (SMB 1.0, 2.0 et 3.0).
-
-
-
-== Licences
-
-SnapLock est une fonctionnalité sous licence de NetApp ONTAP. Une seule licence vous donne le droit d'utiliser SnapLock en mode strict conformité, afin de répondre aux exigences externes telles que la règle SEC 17a-4 et un mode perte de l'entreprise, afin de respecter les réglementations internes régissant la protection des ressources numériques. Les licences SnapLock font partie du bundle sécurité et conformité.
-
-
-
-== Lorsque vous pouvez utiliser SnapLock
-
-Vous devez utiliser SnapLock dans les situations suivantes :
-
-* Vous souhaitez créer des agrégats Compliance ou Enterprise pour héberger les volumes des journaux d'audit SnapLock sur des configurations MetroCluster, avec les restrictions suivantes :
-+
-** SnapLock Enterprise est pris en charge sur les agrégats en miroir et sans miroir.
-** La conformité SnapLock est prise en charge uniquement sur les agrégats sans miroir.
-+
-Toutes les configurations MetroCluster prennent en charge les agrégats en miroir. Voir la link:https://library.netapp.com/ecm/ecm_download_file/ECMLP2492508["Notes de version de ONTAP"] Pour déterminer si votre configuration MetroCluster prend en charge les agrégats sans miroir.
-
-
-
-* Vous souhaitez utiliser les agrégats SnapLock Enterprise avec FabricPool.
-+
-Depuis la version ONTAP 9.8, les agrégats SnapLock Enterprise sont pris en charge par link:https://docs.netapp.com/us-en/ontap/fabricpool/index.html["FabricPool"].
-
-
-
-
-
-== Si vous ne devez pas utiliser SnapLock
-
-Vous ne devez pas utiliser SnapLock si les situations suivantes s'appliquent :
-
-* Vous utilisez des LUN SAN. Les LUN SAN ne sont pas prises en charge sur les volumes SnapLock. S'il est possible de déplacer des LUN SAN vers un volume SnapLock avec la technologie existante, cette opération n'est pas prise en charge, ni toute autre opération impliquant des LUN SAN sur un volume SnapLock.
-* Vous utilisez SMTape.
-* Vous créez des agrégats Compliance pour les LUN de baies. Les agrégats SnapLock Compliance ne prennent pas en charge les LUN de baies.
-* Vous créez des agrégats Compliance à l'aide de l'option SyncMirror. Les agrégats de conformité SnapLock ne prennent pas en charge les plexes SyncMirror.
-
-
-[NOTE]
-====
-Les disques SSD et les agrégats Flash Pool sont pris en charge par SnapLock à partir de ONTAP 9.1.
-
-====
-
-
-== Matériel et logiciels intégrés
-
-SnapLock ne nécessite pas de matériel spécifique. SnapLock est une fonction sous licence d'Data ONTAP. Elle est prise en charge sur tous les systèmes AFF et FAS prenant en charge ONTAP 9. Elle est également prise en charge par ONTAP Select. SnapLock n'est pas une solution exclusivement logicielle ; il s'agit d'une solution matérielle et logicielle intégrée. Cette distinction est importante pour les réglementations WORM strictes, telles que la norme SEC 17a-4, qui requièrent une solution matérielle et logicielle intégrée. Pour en savoir plus, se reporter à l'interprétation SEC : stockage électronique des dossiers des courtiers-concessionnaires.
-
-
-
 == Les avantages de SnapLock
 
 Vous pouvez effectuer les tâches suivantes :
 
 * Configurez SnapLock
 * Gestion des fichiers WORM pour la reprise après incident
-* Archivage des fichiers en mode WORM pour XYZ
+* Archivage des fichiers en mode WORM
 * Archivage des copies Snapshot sur le stockage WORM pour le stockage secondaire
 * Mise en miroir des fichiers WORM pour la reprise après incident
 * Conservation des fichiers WORM en cas de litiges avec la conservation légale
@@ -104,7 +66,7 @@ Vous pouvez effectuer les tâches suivantes :
 
 
 
-== Différences entre les modes Compliance et Enterprise
+== SnapLock Compliance et Enterprise modes
 
 Les modes SnapLock Compliance et Enterprise diffèrent principalement du niveau auquel chaque mode protège les fichiers WORM :
 
@@ -218,98 +180,7 @@ Non
 
 
  a| 
-SAN
- a| 
-Non
- a| 
-Non
-
-
-
- a| 
-SnapMirror synchrone
- a| 
-Non
- a| 
-Non
-
-
-
- a| 
-Continuité de l'activité SnapMirror
- a| 
-Non
- a| 
-Non
-
-
-
- a| 
-SnapRestore pour un seul fichier
- a| 
-Non
- a| 
-Oui.
-
-
-
- a| 
-SnapRestore
- a| 
-Non
- a| 
-Oui.
-
-
-
- a| 
-FlexClone
- a| 
-Vous pouvez cloner des volumes SnapLock, mais vous ne pouvez pas cloner des fichiers sur un volume SnapLock.
- a| 
-Vous pouvez cloner des volumes SnapLock, mais vous ne pouvez pas cloner des fichiers sur un volume SnapLock.
-
-
-
- a| 
-LUN
- a| 
-Non
- a| 
-Non
-
-
-
- a| 
-SMTape
- a| 
-Non
- a| 
-Non
-
-
-
- a| 
-Configurations MetroCluster
- a| 
-Oui, dans les conditions suivantes :
-
-* Depuis ONTAP 9.3, la conformité SnapLock est prise en charge sur les agrégats MetroCluster sans miroir.
-* Depuis ONTAP 9.3, la conformité SnapLock est prise en charge sur les agrégats en miroir, mais uniquement si l'agrégat est utilisé pour héberger les volumes du journal d'audit SnapLock.
-* Les configurations SnapLock spécifiques à SVM peuvent être répliquées sur les sites principal et secondaire à l'aide de MetroCluster.
-
- a| 
-Oui, dans les conditions suivantes :
-
-* Les agrégats SnapLock Enterprise sont pris en charge depuis la version ONTAP 9.
-* Depuis ONTAP 9.3, les agrégats SnapLock Enterprise avec suppression privilégiée sont pris en charge.
-* Les configurations SnapLock spécifiques à SVM peuvent être répliquées vers les deux sites à l'aide de MetroCluster.
-
-
-
-
- a| 
-Prise en charge de FabricPools sur des agrégats SnapLock
+FabricPool sur les agrégats SnapLock
  a| 
 Non
  a| 
@@ -320,6 +191,24 @@ Oui, à partir de ONTAP 9.8. Toutefois, votre équipe de compte doit ouvrir une 
 Vous devez savoir que les données FabricPool placées dans un cloud public ou privé n'sont plus protégées par SnapLock, car les administrateurs cloud peuvent les supprimer.
 
 ====
+
+
+ a| 
+Les agrégats Flash Pool
+ a| 
+Oui, à partir de ONTAP 9.1.
+ a| 
+Oui, à partir de ONTAP 9.1.
+
+
+
+ a| 
+FlexClone
+ a| 
+Vous pouvez cloner des volumes SnapLock, mais vous ne pouvez pas cloner des fichiers sur un volume SnapLock.
+ a| 
+Vous pouvez cloner des volumes SnapLock, mais vous ne pouvez pas cloner des fichiers sur un volume SnapLock.
+
 
 
  a| 
@@ -351,6 +240,97 @@ Vous devez également connaître les comportements suivants :
 * Les propriétés de configuration de SnapLock sont définies uniquement sur la FlexGroup dans son ensemble. Les composants individuels ne peuvent pas avoir des propriétés de configuration différentes, telles que le temps de rétention par défaut et la période de validation automatique.
 
 
+
+
+ a| 
+LUN
+ a| 
+Non
+ a| 
+Non
+
+
+
+ a| 
+Configurations MetroCluster
+ a| 
+Oui, dans les conditions suivantes :
+
+* Depuis ONTAP 9.3, la conformité SnapLock est prise en charge sur les agrégats MetroCluster sans miroir.
+* Depuis ONTAP 9.3, la conformité SnapLock est prise en charge sur les agrégats en miroir, mais uniquement si l'agrégat est utilisé pour héberger les volumes du journal d'audit SnapLock.
+* Les configurations SnapLock spécifiques à SVM peuvent être répliquées sur les sites principal et secondaire à l'aide de MetroCluster.
+
+ a| 
+Oui, dans les conditions suivantes :
+
+* Les agrégats SnapLock Enterprise sont pris en charge depuis la version ONTAP 9.
+* Depuis ONTAP 9.3, les agrégats SnapLock Enterprise avec suppression privilégiée sont pris en charge.
+* Les configurations SnapLock spécifiques à SVM peuvent être répliquées vers les deux sites à l'aide de MetroCluster.
+
+
+
+
+ a| 
+SAN
+ a| 
+Non
+ a| 
+Non
+
+
+
+ a| 
+SnapRestore pour un seul fichier
+ a| 
+Non
+ a| 
+Oui.
+
+
+
+ a| 
+Continuité de l'activité SnapMirror
+ a| 
+Non
+ a| 
+Non
+
+
+
+ a| 
+SnapRestore
+ a| 
+Non
+ a| 
+Oui.
+
+
+
+ a| 
+SMTape
+ a| 
+Non
+ a| 
+Non
+
+
+
+ a| 
+SnapMirror synchrone
+ a| 
+Non
+ a| 
+Non
+
+
+
+ a| 
+SSD
+ a| 
+Oui, à partir de ONTAP 9.1.
+ a| 
+Oui, à partir de ONTAP 9.1.
+
 |===
 
 
@@ -361,28 +341,6 @@ Les configurations MetroCluster utilisent deux mécanismes d'horloge de conformi
 Lorsqu'un volume est répliqué vers un autre site, son VCC est également répliqué. Lors d'un basculement de volume, du site A vers le site B, par exemple, le VCC continue d'être mis à jour sur le site B pendant que le SCC sur le site A s'arrête lorsque le site A passe hors ligne.
 
 Lorsque le site A est remis en ligne et que le rétablissement du volume est effectué, l'horloge du site A SCC redémarre alors que le VCC du volume continue d'être mis à jour. Étant donné que le VCC est mis à jour en permanence, indépendamment des opérations de basculement et de rétablissement, les délais de conservation des fichiers ne dépendent pas des horloges SCC et ne sont pas extensibles.
-
-
-
-== Archivage des fichiers en mode WORM
-
-Vous pouvez utiliser une application pour valider les fichiers en mode WORM sur NFS ou CIFS, ou utiliser la fonctionnalité d'autovalidation de SnapLock pour allouer automatiquement les fichiers en mode WORM. Vous pouvez utiliser un fichier _WORM apppliable_ pour conserver les données écrites de manière incrémentielle, comme les informations de journal. Pour plus d'informations, voir link:https://docs.netapp.com/us-en/ontap/snaplock/volume-append-mode-create-worm-appendable-files-task.html["Utilisez le mode d'ajout de volumes pour créer des fichiers d'ajout WORM"].
-
-
-
-== Protection des données
-
-SnapLock prend en charge les méthodes de protection des données qui doivent répondre à la plupart des exigences de conformité :
-
-* Vous pouvez utiliser SnapLock pour SnapVault pour protéger les copies Snapshot WORM sur le stockage secondaire. Voir link:https://docs.netapp.com/us-en/ontap/snaplock/commit-snapshot-copies-worm-concept.html["Archivage des copies Snapshot en mode WORM"].
-* Vous pouvez utiliser SnapMirror pour répliquer des fichiers WORM dans un autre emplacement géographique à des fins de reprise après incident. Voir link:https://docs.netapp.com/us-en/ontap/snaplock/mirror-worm-files-task.html["Fichiers WORM en miroir"].
-
-
-
-
-== Efficacité du stockage
-
-Depuis la version ONTAP 9.9.1, SnapLock prend en charge les fonctionnalités d'efficacité du stockage, telles que la compaction des données, la déduplication entre les volumes et la compression adaptative pour les volumes et les agrégats SnapLock. Pour plus d'informations sur l'efficacité du stockage, voir link:https://docs.netapp.com/us-en/ontap/volumes/index.html["Présentation de la gestion du stockage logique avec l'interface de ligne de commande"].
 
 
 

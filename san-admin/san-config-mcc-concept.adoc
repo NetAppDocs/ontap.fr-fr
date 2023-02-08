@@ -14,99 +14,18 @@ summary: 'Vous devez tenir compte de certaines considérations relatives à l"ut
 Vous devez tenir compte de certaines considérations relatives à l'utilisation des configurations SAN dans un environnement MetroCluster.
 
 * Les configurations MetroCluster ne prennent pas en charge les configurations VSAN « routées » de la structure FC front-end.
-* Les configurations MetroCluster ne prennent pas en charge la connectivité hôte NVMe front-end.
-* Les configurations MetroCluster prennent en charge d'autres protocoles SAN.
-* Lors de l'utilisation des configurations client SAN, vous devez vérifier si des considérations particulières relatives aux configurations MetroCluster sont incluses dans les notes fournies dans l'outil matrice d'interopérabilité (IMT).
+* Depuis la version ONTAP 9.12.1, les configurations IP MetroCluster à quatre nœuds sont prises en charge sur NVMe/FC. Les configurations MetroCluster ne sont pas prises en charge pour NVMe avant ONTAP 9.12.1.
+* D'autres protocoles SAN, tels que iSCSI, FC et FCoE, sont pris en charge dans les configurations MetroCluster.
+* Lors de l'utilisation de configurations client SAN, vous devez vérifier si des considérations spéciales sont incluses dans les configurations MetroCluster dans les notes fournies dans le link:https://mysupport.netapp.com/matrix["Matrice d'interopérabilité NetApp"^] (IMT).
 * Les systèmes d'exploitation et les applications doivent offrir une résilience d'E/S de 120 secondes pour prendre en charge le basculement automatique non planifié et le basculement manuel d'utilisation (Tiebreaker) MetroCluster.
 * Le MetroCluster utilise les mêmes WWPN des deux côtés du SAN frontal.
 
 
+.Informations associées
+link:https://docs.netapp.com/us-en/ontap-metrocluster/manage/concept_understanding_mcc_data_protection_and_disaster_recovery.html["Tout savoir sur la protection des données et la reprise après incident MetroCluster"^]
 
-NOTE: Lors du basculement, le port FC du site survivant peut se connecter à la structure avant que la structure n'ait détecté que le port FC du site de reprise sur incident est hors ligne et que ce port a été supprimé du nom et des services d'annuaire. Si le port FC de l'incident n'est pas encore supprimé, la tentative de connexion à la structure du port FC du site survivant peut être rejetée à cause d'un WWPN dupliqué. Ce comportement des commutateurs FC peut être modifié afin de respecter la connexion du périphérique précédent et non l'ancienne. Vous devez vérifier les effets de ce comportement sur d'autres périphériques de structure. Contactez le fournisseur du commutateur pour plus d'informations.
-
-Pour en savoir plus, voir :
-
-* link:https://docs.netapp.com/us-en/ontap-metrocluster/manage/concept_understanding_mcc_data_protection_and_disaster_recovery.html["Tout savoir sur la protection des données et la reprise après incident MetroCluster"]
-* link:https://docs.netapp.com/us-en/ontap-metrocluster/manage/task_perform_switchover_for_tests_or_maintenance.html["Effectuer un basculement pour les tests ou la maintenance"]
-
-
-.Étapes
-Pour éviter tout chevauchement lorsque l'ancien port passe hors ligne et que le nouveau port est connecté, procédez comme suit pour configurer les commutateurs frontaux :
-
-[cols="20,80"]
-|===
-
-
-| Pour... | Procédez comme suit : 
-
-
- a| 
-Commutateur Cisco
- a| 
-. Connectez-vous au commutateur et connectez-vous.
-. Passer en mode configuration :
-+
-....
-switch# config t
-switch(config)#
-....
-. Remplacez la première entrée de périphérique dans la base de données du serveur de noms par le nouveau périphérique :
-+
-[listing]
-----
-switch(config)# no fcns reject-duplicate-pwwn vsan 1
-----
-. Dans les commutateurs exécutant NX-OS 8.x, vérifiez que le délai de mise en veille flogi est défini sur zéro :
-+
-.. Afficher le délai de mise au repos :
-+
-`switch(config)# show flogi interval info | i quiesce`
-
-+
-....
- Stats:  fs flogi quiesce timerval:  0
-....
-.. Si la sortie de l'étape précédente n'indique pas que le délai est égal à zéro, définissez-le sur zéro :
-+
-`switch(config)# flogi scale enable`
-
-+
-`switch(config)$ flogi quiesce timeout 0`
-
-
-
-
-
-
-
- a| 
-Commutateur Brocade
- a| 
-. Connectez-vous au commutateur et connectez-vous.
-. Entrez le `switchDisable` commande.
-. Entrez le `configure` et appuyez sur `y` à l'invite.
-+
-....
- F-Port login parameters (yes, y, no, n): [no] y
-....
-. Choisir le paramètre 1 :
-+
-....
-- 0: First login take precedence over the second login (default)
-- 1: Second login overrides first login.
-- 2: the port type determines the behavior
-Enforce FLOGI/FDISC login: (0..2) [0] 1
-....
-. Répondez aux autres invites ou appuyez sur *Ctrl + D*.
-. Entrez le `switchEnable` commande.
-
-
-|===
 Pour plus d'informations sur l'hôte spécifique à MetroCluster, consultez les articles suivants de la base de connaissance NetApp :
 
-https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/MetroCluster/What_are_AIX_Host_support_considerations_in_a_MetroCluster_configuration%3F["Quels sont les éléments pris en charge par les hôtes AIX dans une configuration MetroCluster ?"]
+https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/MetroCluster/What_are_AIX_Host_support_considerations_in_a_MetroCluster_configuration%3F["Quels sont les éléments pris en charge par les hôtes AIX dans une configuration MetroCluster ?"^]
 
-https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/MetroCluster/Solaris_host_support_considerations_in_a_MetroCluster_configuration["Considérations relatives à la prise en charge des hôtes Solaris dans une configuration MetroCluster"]
-
-.Informations associées
-https://mysupport.netapp.com/matrix["Matrice d'interopérabilité NetApp"^]
+https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/MetroCluster/Solaris_host_support_considerations_in_a_MetroCluster_configuration["Considérations relatives à la prise en charge des hôtes Solaris dans une configuration MetroCluster"^]

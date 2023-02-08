@@ -1,0 +1,86 @@
+---
+permalink: san-admin/prevent_port_overlap_between_switchover.html 
+sidebar: sidebar 
+keywords: metrocluster environments, considerations, san configuration, metrocluster, environments, san, configurations, cisco switch, brocade switch, 
+summary: 'Pour éviter tout chevauchement lorsque l"ancien port passe hors ligne et que le nouveau port est connecté, vous pouvez configurer les commutateurs frontaux.' 
+---
+= Évitez le chevauchement des ports entre le basculement et le rétablissement
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Dans un environnement SAN, vous pouvez configurer les commutateurs frontaux afin d'éviter tout chevauchement lorsque l'ancien port passe hors ligne et que le nouveau port est connecté.
+
+Lors du basculement, le port FC du site survivant peut se connecter à la structure avant que la structure n'ait détecté que le port FC du site de reprise sur incident est hors ligne et que ce port a été supprimé du nom et des services d'annuaire.
+
+Si le port FC de l'incident n'est pas encore supprimé, la tentative de connexion à la structure du port FC du site survivant peut être rejetée à cause d'un WWPN dupliqué. Ce comportement des commutateurs FC peut être modifié afin de respecter la connexion du périphérique précédent et non l'ancienne. Vous devez vérifier les effets de ce comportement sur d'autres périphériques de structure. Contactez le fournisseur du commutateur pour plus d'informations.
+
+Choisissez la procédure correcte selon votre type de commutateur.
+
+.Étapes
+[role="tabbed-block"]
+====
+.Commutateur Cisco
+--
+. Connectez-vous au commutateur et connectez-vous.
+. Passer en mode configuration :
++
+....
+switch# config t
+switch(config)#
+....
+. Remplacez la première entrée de périphérique dans la base de données du serveur de noms par le nouveau périphérique :
++
+[listing]
+----
+switch(config)# no fcns reject-duplicate-pwwn vsan 1
+----
+. Dans les commutateurs exécutant NX-OS 8.x, vérifiez que le délai de mise en veille flogi est défini sur zéro :
++
+.. Afficher le délai de mise au repos :
++
+`switch(config)# show flogi interval info \| i quiesce`
+
++
+....
+ Stats:  fs flogi quiesce timerval:  0
+....
+.. Si la sortie de l'étape précédente n'indique pas que le délai est égal à zéro, définissez-le sur zéro :
++
+`switch(config)# flogi scale enable`
+
++
+`switch(config)$ flogi quiesce timeout 0`
+
+
+
+
+
+--
+.Commutateur Brocade
+--
+. Connectez-vous au commutateur et connectez-vous.
+. Entrez le `switchDisable` commande.
+. Entrez le `configure` et appuyez sur `y` à l'invite.
++
+....
+ F-Port login parameters (yes, y, no, n): [no] y
+....
+. Choisir le paramètre 1 :
++
+....
+- 0: First login take precedence over the second login (default)
+- 1: Second login overrides first login.
+- 2: the port type determines the behavior
+Enforce FLOGI/FDISC login: (0..2) [0] 1
+....
+. Répondez aux autres invites ou appuyez sur *Ctrl + D*.
+. Entrez le `switchEnable` commande.
+
+
+--
+====
+.Informations associées
+link:https://docs.netapp.com/us-en/ontap-metrocluster/manage/task_perform_switchover_for_tests_or_maintenance.html["Effectuer un basculement pour les tests ou la maintenance"^]

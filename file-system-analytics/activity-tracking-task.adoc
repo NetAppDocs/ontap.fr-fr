@@ -2,7 +2,7 @@
 permalink: file-system-analytics/activity-tracking-task.html 
 sidebar: sidebar 
 keywords: monitor, volume, ontap, FSA, File System Analytics, 
-summary: 'Suivi d"activité pour afficher les fichiers fortement sollicités, les répertoires, les clients et les utilisateurs dans un volume spécifié afin de résoudre les problèmes de performances en temps réel avec' 
+summary: 'Fonction de suivi des activités qui vous permet d"identifier les objets actifs et de les télécharger en tant que fichier CSV.' 
 ---
 = Activer le suivi des activités
 :allow-uri-read: 
@@ -36,7 +36,7 @@ La fonction de chronologie proposée sous ONTAP 9.11.1 vous permet de conserver 
 Vous pouvez activer le suivi des activités avec ONTAP System Manager ou l'interface de ligne de commandes ONTAP.
 
 .Description de la tâche
-Si vous utilisez le RBAC avec l'API REST de ONTAP ou System Manager, vous devez créer des rôles personnalisés pour gérer l'accès au suivi des activités. Voir <<Contrôle d'accès basé sur des rôles (RBAC) et suivi des activités>> pour ce processus.
+Si vous utilisez le RBAC avec l'API REST de ONTAP ou System Manager, vous devez créer des rôles personnalisés pour gérer l'accès au suivi des activités. Voir xref:role-based-access-control-task.html[Contrôle d'accès basé sur des rôles] pour ce processus.
 
 [role="tabbed-block"]
 ====
@@ -72,7 +72,7 @@ Si vous utilisez le RBAC avec l'API REST de ONTAP ou System Manager, vous devez 
 Vous pouvez activer le suivi des activités pour plusieurs volumes à la fois avec System Manager.
 
 .Description de la tâche
-Si vous utilisez le RBAC avec l'API REST de ONTAP ou System Manager, vous devez créer des rôles personnalisés pour gérer l'accès au suivi des activités. Voir <<Contrôle d'accès basé sur des rôles (RBAC) et suivi des activités>> pour ce processus.
+Si vous utilisez le RBAC avec l'API REST de ONTAP ou System Manager, vous devez créer des rôles personnalisés pour gérer l'accès au suivi des activités. Voir <<Role-based access control (RBAC) and Activity Tracking>> pour ce processus.
 
 [role="tabbed-block"]
 ====
@@ -94,48 +94,3 @@ Si vous utilisez le RBAC avec l'API REST de ONTAP ou System Manager, vous devez 
 
 --
 ====
-
-
-== Contrôle d'accès basé sur des rôles (RBAC) et suivi des activités
-
-Si vous utilisez xref:../concepts/administrator-authentication-rbac-concept.html[contrôle d'accès basé sur des rôles] (RBAC) dans System Manager ou dans l'API REST ONTAP, vous devez créer un rôle dédié pour modérer l'accès au suivi des activités dans l'analytique du système de fichiers.
-
-.Étapes
-. Créez un rôle par défaut pour accéder à toutes les fonctions.
-+
-Cette opération doit être effectuée avant de créer le rôle restrictif afin de garantir que le rôle n'est que restrictif sur le suivi d'activité :
-
-+
-`security login role create -cmddirname DEFAULT -access all -role storageAdmin`
-
-. Créer le rôle restrictif :
-+
-`security login role create -cmddirname "volume file show-disk-usage" -access none -role storageAdmin`
-
-. Autoriser les rôles à accéder aux services web du SVM :
-+
-** `rest` Pour les appels API REST
-** `security` pour la protection par mot de passe
-** `sysmgr` Pour accéder à System Manager
-+
-`vserver services web access create -vserver _svm-name_ -name_ -name rest -role storageAdmin`
-
-+
-`vserver services web access create -vserver _svm-name_ -name security -role storageAdmin`
-
-+
-`vserver services web access create -vserver _svm-name_ -name sysmgr -role storageAdmin`
-
-
-
-. Créer un utilisateur.
-+
-Vous devez exécuter une commande de création distincte pour chaque application que vous souhaitez appliquer à l'utilisateur. Les appels créent plusieurs fois sur le même utilisateur appliquent simplement toutes les applications à cet utilisateur et ne créent pas de nouvel utilisateur à chaque fois. Le `http` Le paramètre pour le type d'application s'applique à l'API REST ONTAP et à System Manager.
-
-+
-`security login create -user-or-group-name storageUser -authentication-method password -application http -role storageAdmin`
-
-. Avec les nouvelles informations d'identification utilisateur, vous pouvez désormais vous connecter à System Manager ou utiliser l'API REST de ONTAP pour accéder aux données d'analytique des systèmes de fichiers.
-
-
-link:https://docs.netapp.com/us-en/ontap-automation/rest/rbac_overview.html["En savoir plus sur les rôles RBAC et l'API REST de ONTAP"^]

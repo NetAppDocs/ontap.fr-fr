@@ -1,0 +1,114 @@
+---
+permalink: file-system-analytics/role-based-access-control-task.html 
+sidebar: sidebar 
+keywords: rbac, file system analytics, control, pre-defined, admin-no-fsa 
+summary: 'Selon la version de ONTAP que vous utilisez, vous devrez peut-être créer un rôle RBAC personnalisé pour l"utilisation de l"analyse des systèmes de fichiers.' 
+---
+= Contrôle d'accès basé sur des rôles avec File System Analytics
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de ONTAP 9.12.1, ONTAP inclut un rôle de contrôle d'accès basé sur des rôles (RBAC) prédéfini appelé `admin-no-fsa`. Le `admin-no-fsa` le rôle accorde des privilèges de niveau administrateur mais empêche l'utilisateur d'effectuer des opérations liées à l' `files` Terminal (analytique du système de fichiers) dans l'interface de ligne de commande ONTAP, l'API REST et dans System Manager.
+
+Pour plus d'informations sur le `admin-no-fsa` rôle, voir xref:../authentication/predefined-roles-cluster-administrators-concept.html[Rôles prédéfinis pour les administrateurs du cluster].
+
+Si vous utilisez une version de ONTAP antérieure à ONTAP 9.12.1, vous devrez créer un rôle dédié pour contrôler l'accès à l'analyse du système de fichiers. Dans les versions de ONTAP antérieures à ONTAP 9.12.1, vous devez configurer les autorisations RBAC via l'interface de ligne de commande d'ONTAP ou l'API REST d'ONTAP.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+À partir de ONTAP 9.12.1, vous pouvez configurer les autorisations RBAC pour l'analyse du système de fichiers à l'aide de System Manager.
+
+.Étapes
+. Sélectionnez *Cluster > Paramètres*. Sous *sécurité*, accédez à *utilisateurs et rôles* et sélectionnez image:icon_arrow.gif["icône de flèche"].
+. Sous *rôles*, sélectionnez image:icon_add.gif["ajouter une icône"].
+. Indiquez un nom pour le rôle. Sous attributs de rôle, configurez l'accès ou les restrictions pour le rôle d'utilisateur en fournissant le approprié link:https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-the-ontap-api-documentation-page["Terminaux API"^]. Consultez le tableau ci-dessous pour connaître les chemins principaux et secondaires permettant de configurer l'accès ou les restrictions de l'analyse du système de fichiers.
++
+|===
+| Restriction | Chemin primaire | Chemin secondaire 
+
+
+| Suivi d'activité sur les volumes | `/api/storage/volumes`  a| 
+** `/_:uuid_/top-metrics/directories`
+** `/_:uuid_/top-metrics/files`
+** `/_:uuid_/top-metrics/clients`
+** `/_:uuid_/top-metrics/users`
+
+
+
+
+| Suivi de l'activité sur les SVM | `/api/svm/svms`  a| 
+** `/_:uuid_/top-metrics/directories`
+** `/_:uuid_/top-metrics/files`
+** `/_:uuid_/top-metrics/clients`
+** `/_:uuid_/top-metrics/users`
+
+
+
+
+| Toutes les opérations d'analyse du système de fichiers | `/api/storage/volumes` | `/_:uuid_/files` 
+|===
++
+Vous pouvez utiliser `/{asterisk}/` Au lieu d'un UUID afin de définir la règle pour tous les volumes ou SVM sur le terminal.
+
++
+Choisissez les privilèges d'accès pour chaque noeud final.
+
+. Sélectionnez *Enregistrer*.
+. Pour attribuer le rôle à un ou plusieurs utilisateurs, voir xref:../task_security_administrator_access.html[Contrôlez l'accès administrateur].
+
+
+--
+.CLI
+--
+Si vous utilisez une version de ONTAP antérieure à ONTAP 9.12.1, créez un rôle personnalisé à l'aide de l'interface de ligne de commandes de ONTAP.
+
+.Étapes
+. Créez un rôle par défaut pour accéder à toutes les fonctions.
++
+Cette opération doit être effectuée avant de créer le rôle restrictif afin de garantir que le rôle n'est que restrictif sur le suivi d'activité :
+
++
+`security login role create -cmddirname DEFAULT -access all -role storageAdmin`
+
+. Créer le rôle restrictif :
++
+`security login role create -cmddirname "volume file show-disk-usage" -access none -role storageAdmin`
+
+. Autoriser les rôles à accéder aux services web du SVM :
++
+** `rest` Pour les appels API REST
+** `security` pour la protection par mot de passe
+** `sysmgr` Pour accéder à System Manager
++
+`vserver services web access create -vserver _svm-name_ -name_ -name rest -role storageAdmin`
+
++
+`vserver services web access create -vserver _svm-name_ -name security -role storageAdmin`
+
++
+`vserver services web access create -vserver _svm-name_ -name sysmgr -role storageAdmin`
+
+
+
+. Créer un utilisateur.
++
+Vous devez exécuter une commande de création distincte pour chaque application que vous souhaitez appliquer à l'utilisateur. Les appels créent plusieurs fois sur le même utilisateur appliquent simplement toutes les applications à cet utilisateur et ne créent pas de nouvel utilisateur à chaque fois. Le `http` Le paramètre pour le type d'application s'applique à l'API REST ONTAP et à System Manager.
+
++
+`security login create -user-or-group-name storageUser -authentication-method password -application http -role storageAdmin`
+
+. Avec les nouvelles informations d'identification utilisateur, vous pouvez désormais vous connecter à System Manager ou utiliser l'API REST de ONTAP pour accéder aux données d'analytique des systèmes de fichiers.
+
+
+--
+====
+.Plus d'informations
+* xref:../authentication/predefined-roles-cluster-administrators-concept.html[Rôles prédéfinis pour les administrateurs de cluster^]
+* xref:../task_security_administrator_access.html[Contrôler l'accès administrateur avec System Manager^]
+* link:https://docs.netapp.com/us-en/ontap-automation/rest/rbac_overview.html["En savoir plus sur les rôles RBAC et l'API REST de ONTAP"^]
+

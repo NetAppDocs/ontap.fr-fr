@@ -14,11 +14,11 @@ summary: Définissez une règle de protection pour un groupe de cohérence afin 
 [role="lead"]
 Les groupes de cohérence offrent une protection locale et à distance simple à gérer pour les applications SAN, NAS et NVMe couvrant plusieurs volumes.
 
-La création d'un groupe de cohérence n'active pas automatiquement la protection. Les règles de protection locales et/ou à distance peuvent être définies au moment de la création ou après la création de votre groupe de cohérence. Les règles de protection peuvent inclure les copies Snapshot locales ou la protection SnapMirror à distance avec la continuité de l'activité SnapMirror (SM-BC). Si vous utilisez des groupes de cohérence imbriqués, vous pouvez définir différentes stratégies de protection pour des volumes individuels. À partir de la ONTAP 9.11.1, les groupes de cohérence proposent <<two-phase,Création de copies Snapshot de groupe de cohérence en deux phases>>.
+La création d'un groupe de cohérence n'active pas automatiquement la protection. Les règles de protection locales et/ou à distance peuvent être définies au moment de la création ou après la création de votre groupe de cohérence. Les règles de protection peuvent inclure les copies Snapshot locales ou la protection SnapMirror à distance avec la continuité de l'activité SnapMirror (SM-BC). Si vous utilisez des groupes de cohérence imbriqués, vous pouvez définir différentes stratégies de protection pour des volumes individuels.
 
-Si vous utilisez la protection SM-BC à distance, pour vous assurer que les copies Snapshot des groupes de cohérence créés sur votre groupe de cohérence sont copiées vers la destination, les étiquettes de règles du cluster source et destination doivent correspondre. SM-BC ne réplique pas les copies Snapshot par défaut sauf si une règle avec une étiquette SnapMirror est ajoutée à la stratégie AutomateFailOver prédéfinie et les copies Snapshot sont créées avec cette étiquette. Pour en savoir plus sur ce processus, voir link:../task_san_configure_protection_for_business_continuity.html["Configuration de la protection pour la continuité de l'activité"].
+À partir de la ONTAP 9.11.1, les groupes de cohérence proposent <<two-phase,Création de copies Snapshot de groupe de cohérence en deux phases>>. L'instantané biphasé exécute une vérification préalable, garantissant que l'instantané sera correctement capturé.
 
-La restauration peut être effectuée pour un groupe de cohérence entier, un seul groupe de cohérence dans une configuration hiérarchique ou pour des volumes individuels dans un groupe de cohérence. La restauration peut être effectuée en sélectionnant le groupe de cohérence à partir de laquelle vous souhaitez effectuer une restauration, en sélectionnant le type de copie Snapshot, puis en identifiant la copie Snapshot spécifique pour procéder à la restauration. Pour plus d'informations sur ce processus, voir link:../task_dp_restore_from_vault.html["Restaurez un volume à partir d'une copie Snapshot antérieure"].
+La restauration peut être effectuée pour un groupe de cohérence entier, un seul groupe de cohérence dans une configuration hiérarchique ou pour des volumes individuels dans un groupe de cohérence. La restauration peut être effectuée en sélectionnant le groupe de cohérence à partir duquel vous souhaitez effectuer une restauration, en sélectionnant le type de copie Snapshot, puis en identifiant la copie Snapshot pour laquelle repose la restauration. Pour plus d'informations sur ce processus, voir link:../task_dp_restore_from_vault.html["Restaurez un volume à partir d'une copie Snapshot antérieure"].
 
 À partir de ONTAP 9.10.1, System Manager affiche les mappages de LUN sous le menu *protection > relations*. Lorsque vous sélectionnez une relation source, System Manager affiche une visualisation des relations source. En sélectionnant un volume, vous pouvez approfondir ces relations pour afficher la liste des LUN et des relations de groupe d'initiateurs. Ces informations peuvent être téléchargées sous forme de classeur Excel à partir de la vue de chaque volume. La tâche s'exécute en arrière-plan.
 
@@ -26,30 +26,42 @@ La restauration peut être effectuée pour un groupe de cohérence entier, un se
 
 == Définissez une règle de protection Snapshot locale
 
+La définition d'une règle de protection locale des snapshots permet de créer une stratégie couvrant tous les volumes d'un groupe de cohérence.
+
 .Étapes
+. Sélectionnez *stockage > groupes de cohérence*.
 . Sélectionnez le groupe de cohérence que vous avez créé dans le menu Groupe de cohérence.
 . Dans le coin supérieur droit de la page de vue d'ensemble du groupe de cohérence, sélectionnez *Modifier*.
 . Cochez la case en regard de *planifier les copies Snapshot (locales)*.
 . Sélectionnez une règle Snapshot. Pour configurer une nouvelle règle personnalisée, reportez-vous à la section link:../task_dp_create_custom_data_protection_policies.html["Création d'une règle de protection des données personnalisée"].
 . Sélectionnez *Enregistrer*.
-. Revenez au menu de présentation du groupe de cohérence. Dans la colonne de gauche sous *copies snapshot (local)*, l'état devrait indiquer protégé à côté de image:../media/icon_shield.png["alt=icône de bouclier vert"].
+. Revenez au menu de présentation du groupe de cohérence. Dans la colonne de gauche sous *copies snapshot (local)*, l'état est protégé à côté de image:../media/icon_shield.png["alt=icône de bouclier vert"].
 
 
 
 
-== Création de Snapshot de groupe de cohérence triphasé
+== Créer des snapshots de groupes de cohérence en deux phases
 
-Depuis la ONTAP 9.11.1, les groupes de cohérence prennent en charge les validations en deux phases pour la création de copies Snapshot de groupe de cohérence. Cette fonctionnalité n'est disponible qu'avec l'API REST de ONTAP. La création de copies Snapshot de groupe de cohérence biphasées est uniquement disponible pour la création de copies Snapshot, et non pour le provisionnement des groupes de cohérence ou la restauration des groupes de cohérence.
+Depuis la version ONTAP 9.11.1, les groupes de cohérence prennent en charge les validations en deux phases de la création de copies Snapshot de groupe de cohérence, qui exécutent une vérification préalable avant de valider le Snapshot. Cette fonctionnalité n'est disponible qu'avec l'API REST de ONTAP. La création de copies Snapshot de groupe de cohérence biphasées est uniquement disponible pour la création de copies Snapshot, et non pour le provisionnement des groupes de cohérence ou la restauration des groupes de cohérence.
 
-La création d'un Snapshot de groupe de cohérence biphasé interrompt le processus de création de Snapshot appelé avec une requête POST-adressée au `/application/consistency-groups/{consistency_group_uuid}/snapshots` point final dans une séquence de deux phases. Au cours de la première phase lancée avec une requête POST, l'API exécute des contrôles préalables, déclenche la création de snapshots et lance un chronomètre pour l'intervalle désigné. Si la demande POST de la phase 1 se termine par un code d'état 201, vous pouvez appeler la deuxième phase dans l'intervalle désigné à partir de la première phase, en archivant l'instantané sur le point final approprié.
+La création d'un Snapshot de groupe de cohérence biphasé interrompt le processus de création de Snapshot appelé avec une requête POST-adressée au `/application/consistency-groups/{consistency_group_uuid}/snapshots` point final dans une séquence de deux phases :
 
-Pour utiliser la création Snapshot de groupe de cohérence en deux phases, tous les nœuds du cluster doivent exécuter ONTAP 9.11.1. La création d'un Snapshot de groupe de cohérence biphase peut être invoquée avec le `action=start` paramètre. Vous pouvez également utiliser le `action_timeout` Paramètre qui spécifie le nombre maximal de secondes que peut prendre le processus de création de Snapshot. Le `action_timeout` le paramètre peut être défini sur un entier compris entre 5 et 120. La valeur par défaut de `action_timeout` est 7.
+. Au cours de la première phase lancée avec une requête POST, l'API exécute des contrôles préalables, déclenche la création de snapshots et lance un chronomètre pour l'intervalle désigné.
+. Si la demande POST de la phase 1 se termine par un code d'état 201, vous pouvez appeler la deuxième phase dans l'intervalle désigné à partir de la première phase, en archivant l'instantané sur le point final approprié.
 
-Une seule invocation active d'une opération de création de snapshots de groupe de cohérence est prise en charge sur une instance de groupe de cohérence à la fois, qu'elle soit une phase ou deux phases. Toute tentative d'appel d'une création de snapshot alors qu'une autre est en cours entraînera une défaillance.
 
 Pour plus d'informations sur l'API REST de ONTAP, reportez-vous au link:https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html["Référence API"^] ou visitez le link:https://devnet.netapp.com/restapi.php["PAGE DE L'API REST ONTAP"^] Sur le réseau de développeurs NetApp, pour obtenir la liste complète des terminaux API.
 
-.Créer une validation en deux phases
+.Considérations relatives aux copies Snapshot de groupes de cohérence biphasés
+* Pour utiliser la création Snapshot de groupe de cohérence en deux phases, tous les nœuds du cluster doivent exécuter ONTAP 9.11.1 ou version ultérieure.
+* Une seule invocation active d'une opération de création de snapshots de groupe de cohérence est prise en charge sur une instance de groupe de cohérence à la fois, qu'elle soit une phase ou deux phases. Toute tentative d'appel d'une création de snapshot alors qu'une autre est en cours entraînera une défaillance.
+* La création de Snapshot du groupe de cohérence biphasé avec le `action=start` paramètre.
++
+Vous pouvez également utiliser le `action_timeout` Paramètre permettant de spécifier le nombre maximal de secondes que le processus de création de Snapshot peut prendre. Le `action_timeout` le paramètre peut être défini sur un entier compris entre 5 et 120. La valeur par défaut de `action_timeout` est 7.
+
+
+
+.Créer un snapshot de groupe de cohérence triphasé
 . Appelez la création de l'instantané avec une demande POST au noeud final du groupe de cohérence à l'aide de l' `action=start` paramètre.
 +
 [source, curl]
@@ -74,27 +86,28 @@ curl -k -X PATCH 'https://<IP_address>/application/consistency-groups/<cg_uuid>/
 
 == Définissez une stratégie SM-BC distante
 
+Si vous utilisez la protection SM-BC à distance, pour vous assurer que les copies Snapshot des groupes de cohérence créés sur votre groupe de cohérence sont copiées vers la destination, les étiquettes de règles du cluster source et destination doivent correspondre. SM-BC ne réplique pas les copies Snapshot par défaut, sauf si une règle avec étiquette SnapMirror est ajoutée au prédéfini `AutomatedFailOver` La règle et les copies Snapshot sont créées avec cette étiquette. Pour en savoir plus sur ce processus, voir link:../task_san_configure_protection_for_business_continuity.html["Configuration de la protection pour la continuité de l'activité"].
+
 .Étapes
 . Assurez-vous que vous avez rempli les conditions préalables à l'utilisation de SM-BC. Voir link:../smbc/smbc_plan_prerequisites.html["Prérequis SM-BC"]
-
-
++
 
 NOTE: Les relations SM-BC ne peuvent pas être établies sur les volumes montés pour l'accès NAS.
 
+. Sélectionnez *stockage > groupes de cohérence*.
 . Sélectionnez le groupe de cohérence que vous avez créé dans le menu Groupe de cohérence.
 . En haut à droite de la page de présentation, sélectionnez *plus* puis *protéger*.
-. Les informations de la source doivent être automatiquement fraisées sur le côté gauche de la page.
-. Sélectionnez le cluster et la VM de stockage appropriés pour la destination. Sélectionnez une stratégie de protection. Vérifier que *Initialize relation* est coché.
-. Cliquez sur *Enregistrer*.
-. Le groupe de cohérence doit être initialisé et synchronisé. À la fin de ce processus, sous *SnapMirror (Remote)*, le statut devrait indiquer « protégé » à côté de image:../media/icon_shield.png["alt=icône de bouclier vert"].
+. Les informations de la source sont automatiquement fraisées. Sélectionnez le cluster et la VM de stockage appropriés pour la destination. Sélectionnez une stratégie de protection. Vérifier que *Initialize relation* est coché.
+. Sélectionnez *Enregistrer*.
+. Le groupe de cohérence doit être initialisé et synchronisé. Lorsque cela est terminé, sous *SnapMirror (Remote)*, le statut indique « protégé » à côté de image:../media/icon_shield.png["alt=icône de bouclier vert"].
 
-
-Pour plus d'informations sur SM-BC, voir link:../smbc/index.html["Présentation de SM-BC"].
 
 .Étapes suivantes
-link:clone-task.html["Cloner un groupe de cohérence"]
-link:../task_dp_configure_snapshot.html["Configurez les copies Snapshot"]
-link:../task_dp_create_custom_data_protection_policies.html["Création de règles personnalisées de protection des données"]
+* link:clone-task.html["Cloner un groupe de cohérence"]
+* link:../task_dp_configure_snapshot.html["Configurez les copies Snapshot"]
+* link:../task_dp_create_custom_data_protection_policies.html["Création de règles personnalisées de protection des données"]
 link:../task_dp_recover_snapshot.html["Effectuez des restaurations à partir de copies Snapshot"]
-link:../task_dp_restore_from_vault.html["Restaurez un volume à partir d'une copie Snapshot antérieure"]
-link:../smbc/index.html["Présentation de SM-BC"]
+* link:../task_dp_restore_from_vault.html["Restaurez un volume à partir d'une copie Snapshot antérieure"]
+* link:../smbc/index.html["Présentation de SM-BC"]
+* link:https://docs.netapp.com/us-en/ontap-automation/["Documentation sur l'automatisation ONTAP"^]
+

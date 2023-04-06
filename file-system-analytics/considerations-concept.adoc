@@ -26,3 +26,36 @@ Si vous avez activé File System Analytics sur les volumes dont le SVM contient 
 Dans certains cas, l'activation d'une analytique système de fichiers peut avoir un impact négatif sur les performances lors de la collecte de métadonnées initiale. Cela est généralement le plus fréquemment observé sur les systèmes qui atteignent une utilisation maximale. Pour éviter l'activation de l'analytique sur ces systèmes, vous pouvez utiliser les outils de contrôle des performances de ONTAP System Manager.
 
 Si vous constatez une augmentation notable de la latence, consultez l'article de la base de connaissances link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/High_or_fluctuating_latency_after_turning_on_NetApp_ONTAP_File_System_Analytics["Latence élevée ou variable après l'activation de l'analytique système de fichiers ONTAP de NetApp"^].
+
+
+
+== Considérations relatives à l'analyse
+
+Lorsque vous activez l'analyse de la capacité, ONTAP effectue une analyse d'initialisation. L'analyse accède aux métadonnées de tous les fichiers des volumes pour lesquels l'analyse de capacité est activée. Aucune donnée de fichier n'est lue pendant l'acquisition.
+
+Une fois l'analyse terminée, l'analyse du système de fichiers est mise à jour en temps réel en continu au fur et à mesure que le système de fichiers change, sans qu'il soit nécessaire d'exécuter à nouveau l'analyse.
+
+Le temps requis pour l'analyse est proportionnel au nombre de répertoires et de fichiers sur le volume. Étant donné que l'analyse collecte des métadonnées, la taille du fichier n'a pas d'incidence sur le temps d'analyse.
+
+
+
+=== Et des meilleures pratiques
+
+Vous devez démarrer l'analyse sur des volumes qui ne partagent pas d'agrégats. Vous pouvez voir quels agrégats hébergent actuellement les volumes à l'aide de la commande :
+
+`volume show -volume _comma-separated-list_of_volumes_ -fields aggr-list`
+
+Pendant l'analyse, les volumes continuent de transmettre le trafic client. Il est recommandé de démarrer l'analyse pendant les périodes où vous prévoyez un trafic client plus faible.
+
+Si le trafic client augmente, il consomme les ressources système et allonge l'analyse.
+
+À partir de ONTAP 9.12.1, vous pouvez interrompre la collecte de données dans System Manager et via l'interface de ligne de commandes ONTAP.
+
+* Si vous utilisez l'interface de ligne de commandes ONTAP :
++
+** Vous pouvez interrompre la collecte de données à l'aide de la commande : `volume analytics initialization pause -vserver _svm_name_ -volume _volume_name_`
+** Une fois le trafic client ralenti, vous pouvez reprendre la collecte de données à l'aide de la commande : `volume analytics initialization resume -vserver _svm_name_ -volume _volume_name_`
+
+
+* Si vous utilisez System Manager, dans la vue *Explorer* du menu volume, vous utilisez les boutons *Pause collecte de données* et *reprendre collecte de données* pour gérer l'acquisition.
+

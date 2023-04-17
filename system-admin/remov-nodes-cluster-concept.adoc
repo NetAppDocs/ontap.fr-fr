@@ -50,18 +50,33 @@ Il est recommandé d'émettre un message AutoSupport pour informer le support te
 *Remarque :* vous ne devez pas effectuer d'opérations telles que `cluster remove-node`, `cluster unjoin`, et `node rename` Lorsqu'une mise à niveau automatisée de ONTAP est en cours.
 
 .Description de la tâche
-Si vous exécutez un cluster à versions mixtes, vous pouvez supprimer le dernier nœud à version faible à l'aide de l'une des commandes de privilège avancées commençant par ONTAP 9.3 :
+* Si vous exécutez un cluster à versions mixtes, vous pouvez supprimer le dernier nœud à version faible à l'aide de l'une des commandes de privilège avancées commençant par ONTAP 9.3 :
++
+** ONTAP 9.3 : `cluster unjoin -skip-last-low-version-node-check`
+** ONTAP 9.4 et versions ultérieures : `cluster remove-node -skip-last-low-version-node-check`
 
-* ONTAP 9.3 : `cluster unjoin -skip-last-low-version-node-check`
-* ONTAP 9.4 et versions ultérieures : `cluster remove-node -skip-last-low-version-node-check`
+
+* Si vous dissociez 2 nœuds d'un cluster à 4 nœuds, la haute disponibilité du cluster est automatiquement activée sur les deux nœuds restants.
 
 
-*Remarque :* toutes les données système et utilisateur, de tous les disques connectés au nœud, doivent être rendues inaccessibles aux utilisateurs avant de supprimer un nœud du cluster. Si un nœud n'a pas été correctement rejoint à partir d'un cluster, contactez le support NetApp pour obtenir de l'aide concernant les options de restauration.
+
+NOTE: Toutes les données système et utilisateur de tous les disques connectés au nœud doivent être inaccessibles aux utilisateurs avant de supprimer un nœud du cluster. Si un nœud n'a pas été correctement rejoint à partir d'un cluster, contactez le support NetApp pour obtenir de l'aide concernant les options de restauration.
 
 .Étapes
 . Définissez le niveau de privilège sur avancé :
 +
 `*set -privilege advanced*`
+
+. Vérifier si un nœud sur le cluster contient epsilon :
++
+`*cluster show -epsilon true*`
+
++
+.. Si un nœud contient epsilon, modifiez son éligibilité à false.
++
+`*cluster modify -node <node_name> -eligibility false*`
+
+
 
 . Si le nœud que vous souhaitez supprimer est le nœud maître actuel, activez-le pour qu'un autre nœud du cluster soit élu comme nœud maître en changeant l'éligibilité du cluster du nœud maître à `false`:
 +

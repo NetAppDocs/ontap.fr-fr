@@ -1,0 +1,96 @@
+---
+permalink: s3-config/create-bucket-lifecycle-rule-task.html 
+sidebar: sidebar 
+keywords: s3, bucket, cli, lifecycle, rule 
+summary: 'À partir de ONTAP 9.13.1, vous pouvez implémenter l"expiration des objets S3.' 
+---
+= Créez une règle de gestion du cycle de vie des compartiments
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de ONTAP 9.13.1, vous pouvez implémenter l'expiration des objets S3. Les actions d'expiration définissent la date d'expiration des objets d'un compartiment. Cette fonctionnalité vous permet de gérer les versions d'objets afin de répondre aux exigences de conservation et de gérer efficacement le stockage objet S3 global.
+
+.Avant de commencer
+Un SVM compatible S3 contenant un serveur S3 et un compartiment doivent déjà exister. Voir link:create-svm-s3-task.html["Création d'un SVM pour S3"] pour en savoir plus.
+
+.Description de la tâche
+Lors de la création de votre règle de gestion du cycle de vie des compartiments, vous devez choisir l'un des trois types d'action d'expiration suivants :
+
+* `Expiration` – L'action d'expiration expire les objets identifiés par la règle. Si la gestion des versions de cas est activée sur le compartiment, S3 rend tous les objets expirés indisponibles. Si la gestion des versions n'est pas activée, cette règle supprimera définitivement l'objet.
+* `NoncurrentVersionExpiration` – Cette action est utilisée pour spécifier quand S3 supprime définitivement les objets non courants. Ces objets supprimés ne peuvent pas être récupérés.
+* `AbortIncompleteMultipartUpload` – L'administrateur peut utiliser cet élément pour définir une durée maximale (en jours) pendant laquelle il souhaite autoriser les téléchargements partitionnés à rester en cours
+
+
+Vous devez définir les champs requis pour chaque type d'action d'expiration lors de la création d'une règle de gestion du cycle de vie de compartiment. Ces champs peuvent être modifiés après la création initiale. Le tableau suivant affiche les champs uniques pour chaque type d'action.
+
+[cols="30,70"]
+|===
+
+
+| Type d'action | Champs uniques 
+
+
+ a| 
+NonCurrentVersionExpiation
+ a| 
+* `-non-curr-days` - Nombre de jours après lesquels les versions non actuelles seront supprimées
+* `-new-non-curr-versions` - Nombre de dernières versions non actuelles à conserver
+
+
+
+
+ a| 
+Expiration
+ a| 
+* `-obj-age-days` - Nombre de jours depuis la création, après lesquels la version actuelle des objets peut être supprimée
+* `-obj-exp-date` - Date précise à laquelle les objets doivent expirer
+* `-expired-obj-del-markers` - Nettoyage des marqueurs de suppression d'objet
+
+
+
+
+ a| 
+AbortIncompleMultipartUpload
+ a| 
+* `-after-initiation-days` - Nombre de jours d'initiation, après quoi le téléchargement peut être abandonné
+
+
+|===
+Pour que la règle de gestion du cycle de vie des compartiments ne s'applique qu'à un sous-ensemble d'objets spécifique, les administrateurs doivent définir chaque filtre lors de la création de la règle. Si ces filtres ne sont pas définis lors de la création de la règle, la règle s'applique à tous les objets du compartiment.
+
+Tous les filtres peuvent être modifiés après la création initiale _sauf_ pour les éléments suivants : +
+
+* `-prefix`
+* `-tags`
+* `-obj-size-greater-than`
+* `-obj-size-less-than`
+
+
+.Étapes
+. Utilisez le `vserver object-store-server bucket lifecycle-management-rule create` commande contenant les champs requis pour votre type d'action d'expiration pour créer votre règle de gestion du cycle de vie des compartiments.
+
+
+.Exemple
+La commande suivante crée une règle de gestion du cycle de vie des compartiments NonCurrentVersionExexpiration :
+
+[listing]
+----
+vserver object-store-server bucket lifecycle-management-rule create -vserver <svm_name> -bucket <bucket_name> -rule-id <rule_name> -action NonCurrentVersionExpiration -index <lifecycle_rule_index_integer> -is-enabled {true|false} -prefix <object_name> -tags <text> -obj-size-greater-than {<integer>[KB|MB|GB|TB|PB]} -obj-size-less-than {<integer>[KB|MB|GB|TB|PB]} -new-non-curr-versions <integer> -non-curr-days <integer>
+----
+.Exemple
+La commande suivante crée une règle de gestion du cycle de vie des compartiments d'expiration :
+
+[listing]
+----
+vserver object-store-server bucket lifecycle-management-rule create -vserver <svm_name> -bucket <bucket_name> -rule-id <rule_name> -action Expiration -index <lifecycle_rule_index_integer> -is-enabled {true|false} -prefix <object_name> -tags <text> -obj-size-greater-than {<integer>[KB|MB|GB|TB|PB]} -obj-size-less-than {<integer>[KB|MB|GB|TB|PB]} -obj-age-days <integer> -obj-exp-date <"MM/DD/YYYY HH:MM:SS"> -expired-obj-del-marker {true|false}
+----
+.Exemple
+La commande suivante crée une règle de gestion du cycle de vie des compartiments AbortIncompletteMultipartUpload :
+
+[listing]
+----
+vserver object-store-server bucket lifecycle-management-rule create -vserver <svm_name> -bucket <bucket_name> -rule-id <rule_name> -action AbortIncompleteMultipartUpload -index <lifecycle_rule_index_integer> -is-enabled {true|false} -prefix <object_name> -tags <text> -obj-size-greater-than {<integer>[KB|MB|GB|TB|PB]} -obj-size-less-than {<integer>[KB|MB|GB|TB|PB]} -after-initiation-days <integer>
+----

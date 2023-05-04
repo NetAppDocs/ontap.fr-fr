@@ -16,7 +16,7 @@ Depuis ONTAP 9.12.1, vous pouvez verrouiller une copie Snapshot sur un volume no
 La fonction horloge de conformité de SnapLock vous permet de verrouiller les copies Snapshot pendant une période spécifiée, de sorte qu'elles ne puissent pas être supprimées tant que l'heure d'expiration n'est pas atteinte. Le verrouillage des copies Snapshot est inviolable, ce qui les protège contre les menaces de ransomware. Vous pouvez utiliser des copies Snapshot verrouillées pour récupérer des données si un volume est compromis par une attaque par ransomware.
 
 .Exigences et considérations relatives à la non-conformité des copies Snapshot
-* Tous les nœuds du cluster doivent exécuter ONTAP 9.12.1 ou une version ultérieure.
+* Si vous utilisez l'interface de ligne de commandes ONTAP, tous les nœuds du cluster doivent exécuter ONTAP 9.12.1 ou une version ultérieure. Si vous utilisez System Manager, tous les nœuds doivent exécuter ONTAP 9.13.1 ou une version ultérieure.
 * La licence SnapLock doit être installée sur le cluster.
 +
 Pour plus de détails, voir link:https://docs.netapp.com/us-en/ontap/snaplock/install-license-task.html["Installation de la licence SnapLock"].
@@ -30,7 +30,7 @@ Pour plus de détails, voir link:https://docs.netapp.com/us-en/ontap/snaplock/in
 * La période de conservation des copies Snapshot verrouillées est prioritaire sur le nombre de copies Snapshot conservées. En d'autres termes, la limite de conservation des copies Snapshot n'est pas respectée si la période de conservation des copies Snapshot verrouillées n'a pas expiré.
 * Dans une relation SnapMirror, vous pouvez définir une période de conservation sur une règle de stratégie de copie en miroir et la période de conservation est appliquée aux copies Snapshot répliquées vers la destination si le volume de destination est activé pour le verrouillage des copies Snapshot. La période de conservation est prioritaire sur le nombre de copies. Par exemple, les copies Snapshot qui n'ont pas dépassé leur expiration seront conservées même si le nombre de copies à conserver est dépassé.
 * Vous pouvez renommer une copie Snapshot sur un volume non SnapLock. Les opérations de renommage de snapshot sur le volume principal d'une relation SnapMirror sont reflétées sur le volume secondaire uniquement si la règle est MirrorAllsnapshots. Pour les autres types de règles, la copie Snapshot renommée n'est pas propagée lors des mises à jour.
-* Vous pouvez restaurer une copie Snapshot verrouillée avec le `volume snapshot restore` Commande uniquement si la copie Snapshot verrouillée est la plus récente. Si des copies Snapshot non expirées sont présentes dans la suite de la restauration, l'opération de restauration de copie Snapshot échoue.
+* Si vous utilisez l'interface de ligne de commandes de ONTAP, vous pouvez restaurer une copie Snapshot verrouillée avec `volume snapshot restore` Commande uniquement si la copie Snapshot verrouillée est la plus récente. Si des copies Snapshot non expirées sont présentes dans la suite de la restauration, l'opération de restauration de copie Snapshot échoue.
 
 
 .Fonctionnalités prises en charge par les copies Snapshot inviolables
@@ -58,14 +58,32 @@ Les fonctionnalités suivantes ne sont actuellement pas prises en charge par les
 * SnapCenter
 * Continuité de l'activité SnapMirror (SM-BC)
 * SnapMirror synchrone
+* Mobilité des données des SVM
 
 
 
 
 == Activez le verrouillage des copies Snapshot lors de la création d'un volume
 
-Depuis ONTAP 9.12.1, vous pouvez activer le verrouillage des copies Snapshot lorsque vous créez un nouveau volume ou que vous modifiez un volume existant à l'aide du `-snapshot-locking-enabled` avec le `volume create` et `volume modify` commandes.
+Depuis ONTAP 9.12.1, vous pouvez activer le verrouillage des copies Snapshot lorsque vous créez un nouveau volume ou que vous modifiez un volume existant à l'aide du `-snapshot-locking-enabled` avec le `volume create` et `volume modify` Dans l'interface de ligne de commande. Depuis la version ONTAP 9.13.1, System Manager permet le verrouillage des copies Snapshot.
 
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Naviguez jusqu'à *stockage > volumes* et sélectionnez *Ajouter*.
+. Dans la fenêtre *Ajouter un volume*, choisissez *plus d'options*.
+. Entrez le nom du volume, sa taille, la règle d'export et le nom du partage.
+. Sélectionnez *Activer le verrouillage des instantanés*. Cette sélection ne s'affiche pas si la licence SnapLock n'est pas installée.
+. S'il n'est pas déjà activé, sélectionnez *initialiser horloge de conformité SnapLock*.
+. Enregistrez les modifications.
+. Dans la fenêtre *volumes*, sélectionnez le volume que vous avez mis à jour et choisissez *vue d'ensemble*.
+. Vérifiez que *SnapLock snapshot Copy Locking* affiche *enabled*.
+
+
+--
+.CLI
+--
 . Pour créer un nouveau volume et activer le verrouillage des copies Snapshot, entrez la commande suivante :
 +
 `volume create -vserver _vserver_name_ -volume _volume_name_ -snapshot-locking-enabled true`
@@ -83,23 +101,75 @@ Do you want to continue: {yes|no}: y
 ----
 
 
+--
+====
 
 
 == Activez le verrouillage des copies Snapshot sur un volume existant
 
+Depuis la version ONTAP 9.12.1, vous pouvez activer le verrouillage des copies Snapshot sur un volume existant à l'aide de l'interface de ligne de commande ONTAP. Depuis ONTAP 9.13.1, vous pouvez utiliser System Manager pour activer le verrouillage des copies Snapshot sur un volume existant.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Accédez à *Storage > volumes*.
+. Sélectionnez image:icon_kabob.gif["alt=Options de menu"] Et choisissez *Modifier > Volume*.
+. Dans la fenêtre *Modifier le volume*, localisez la section Paramètres des copies Snapshot (local) et sélectionnez *Activer le verrouillage des instantanés*.
++
+Cette sélection ne s'affiche pas si la licence SnapLock n'est pas installée.
+
+. S'il n'est pas déjà activé, sélectionnez *initialiser horloge de conformité SnapLock*.
+. Enregistrez les modifications.
+. Dans la fenêtre *volumes*, sélectionnez le volume que vous avez mis à jour et choisissez *vue d'ensemble*.
+. Vérifiez que *SnapLock snapshot Copy Locking* affiche *enabled*.
+
+
+--
+.CLI
+--
 . Pour modifier un volume existant afin d'activer le verrouillage des copies Snapshot, entrez la commande suivante :
 +
 `volume modify -vserver _vserver_name_ -volume _volume_name_ -snapshot-locking-enabled true`
 
 
 
+--
+====
 
 
-== Créer une copie Snapshot verrouillée
+== Créez une règle de copie Snapshot verrouillée et appliquez la conservation
 
-Depuis ONTAP 9.12.1, vous pouvez créer des règles de copie Snapshot pour appliquer une période de conservation de copies Snapshot et appliquer la règle à un volume afin de verrouiller les copies Snapshot pour la période spécifiée. Vous pouvez également verrouiller une copie Snapshot en définissant manuellement une période de conservation.
+Depuis ONTAP 9.12.1, vous pouvez créer des règles de copie Snapshot pour appliquer une période de conservation de copies Snapshot et appliquer la règle à un volume afin de verrouiller les copies Snapshot pour la période spécifiée. Vous pouvez également verrouiller une copie Snapshot en définissant manuellement une période de conservation. Depuis ONTAP 9.13.1, System Manager permet de créer des règles de verrouillage des copies Snapshot et de les appliquer à un volume.
 
-.Créer une règle de verrouillage des copies Snapshot
+
+
+=== Créer une règle de verrouillage des copies Snapshot
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Accédez à *Storage > Storage VM* et sélectionnez une VM de stockage.
+. Sélectionnez *Paramètres*.
+. Localisez *stratégies d'instantanés* et sélectionnez image:icon_arrow.gif["alt=flèche"].
+. Dans la fenêtre *Ajouter une stratégie d'instantanés*, entrez le nom de la stratégie.
+. Sélectionnez image:icon_add.gif["alt=Ajouter"].
+. Fournissez les détails de la planification de la copie Snapshot, notamment le nom de la planification, le nombre maximal de copies Snapshot à conserver et la période de conservation SnapLock.
+. Dans la colonne *SnapLock Retention Period*, entrez le nombre d'heures, de jours, de mois ou d'années pour conserver les copies instantanées. Par exemple, une règle de copie Snapshot avec une période de conservation de 5 jours verrouille une copie Snapshot pendant 5 jours à compter de sa création. Elle ne peut pas être supprimée pendant cette période. Les périodes de conservation suivantes sont prises en charge :
++
+** Années: 0 - 100
+** Mois: 0 - 1200
+** Jours: 0 - 36500
+** Heures: 0 - 24
+
+
+. Enregistrez les modifications.
+
+
+--
+.CLI
+--
 . Pour créer une règle de copie Snapshot, entrez la commande suivante :
 +
 `volume snapshot policy create -policy policy_name -enabled true -schedule1 _schedule1_name_ -count1 _maximum_Snapshot_copies -retention-period1 _retention_period_`
@@ -114,14 +184,56 @@ cluster1> volume snapshot policy create -policy policy_name -enabled true -sched
 ----
 
 
-.Application d'une politique de verrouillage à un volume
+--
+====
+
+
+=== Application d'une politique de verrouillage à un volume
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Accédez à *Storage > volumes*.
+. Sélectionnez image:icon_kabob.gif["alt=Options de menu"] Et choisissez *Modifier > Volume*.
+. Dans la fenêtre *Edit Volume*, sélectionnez *Schedule Snapshot copies*.
+. Sélectionnez la règle de verrouillage des copies Snapshot dans la liste.
+. Si le verrouillage des copies Snapshot n'est pas déjà activé, sélectionnez *Activer le verrouillage des instantanés*.
+. Enregistrez les modifications.
+
+
+--
+.CLI
+--
 . Pour appliquer une règle de verrouillage des copies Snapshot à un volume existant, entrez la commande suivante :
 +
 `volume modify -volume volume_name -vserver vserver_name -snapshot-policy policy_name`
 
 
 
-.Appliquez une période de conservation à la création manuelle de copies Snapshot
+--
+====
+
+
+=== Appliquez une période de conservation à la création manuelle de copies Snapshot
+
+Vous pouvez appliquer une période de conservation des copies Snapshot lorsque vous créez manuellement une copie Snapshot. Le verrouillage des copies Snapshot doit être activé sur le volume, sinon le paramètre de période de conservation est ignoré.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Accédez à *stockage > volumes* et sélectionnez un volume.
+. Dans la page de détails du volume, sélectionnez l'onglet *copies Snapshot*.
+. Sélectionnez image:icon_add.gif["alt=icône Ajouter"].
+. Indiquez le nom de la copie Snapshot et la date d'expiration du SnapLock. Vous pouvez sélectionner le calendrier pour choisir la date et l'heure d'expiration de la conservation.
+. Enregistrez les modifications.
+. Sur la page *volumes > copies instantanées*, sélectionnez *Afficher/Masquer* et choisissez *SnapLock expiration Time* pour afficher la colonne *SnapLock expiration Time* et vérifier que la durée de conservation est définie.
+
+
+--
+.CLI
+--
 . Pour créer une copie Snapshot manuellement et appliquer une période de conservation de verrouillage, entrez la commande suivante :
 +
 `volume snapshot create -volume _volume_name_ -snapshot _snapshot_copy_name_ -snaplock-expiry-time _expiration_date_time_`
@@ -136,7 +248,26 @@ cluster1> volume snapshot create -vserver vs1 -volume vol1 -snapshot snap1 -snap
 ----
 
 
-.Appliquez une période de conservation à une copie Snapshot existante
+--
+====
+
+
+=== Appliquez une période de conservation à une copie Snapshot existante
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Accédez à *stockage > volumes* et sélectionnez un volume.
+. Dans la page de détails du volume, sélectionnez l'onglet *copies Snapshot*.
+. Sélectionnez la copie Snapshot, puis image:icon_kabob.gif["alt=Options de menu"], Et choisissez *Modifier le temps d'expiration SnapLock*. Vous pouvez sélectionner le calendrier pour choisir la date et l'heure d'expiration de la conservation.
+. Enregistrez les modifications.
+. Sur la page *volumes > copies instantanées*, sélectionnez *Afficher/Masquer* et choisissez *SnapLock expiration Time* pour afficher la colonne *SnapLock expiration Time* et vérifier que la durée de conservation est définie.
+
+
+--
+.CLI
+--
 . Pour appliquer manuellement une période de conservation à une copie Snapshot existante, entrez la commande suivante :
 +
 `volume snapshot modify-snaplock-expiry-time -volume _volume_name_ -snapshot _snapshot_copy_name_ -expiry-time _expiration_date_time_`
@@ -150,3 +281,6 @@ L'exemple suivant applique une période de conservation à une copie Snapshot ex
 cluster1> volume snapshot modify-snaplock-expiry-time -volume vol1 -snapshot snap2 -expiry-time "11/10/2022 09:00:00"
 ----
 
+
+--
+====

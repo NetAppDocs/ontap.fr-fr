@@ -14,18 +14,27 @@ summary: 'Si vous souhaitez modifier la composition du groupe de cohérence en a
 
 
 [role="lead"]
-Si vous souhaitez modifier la composition du groupe de cohérence en ajoutant ou en supprimant un volume, vous devez d'abord supprimer la relation d'origine, puis créer à nouveau le groupe de cohérence avec la nouvelle composition.
-
-
-NOTE: Ce flux de travail s'applique à ONTAP 9.8 et 9.9.1. Depuis ONTAP 9.10.1, il est recommandé de le gérer link:../consistency-groups/index.html["groupes de cohérence"] Via System Manager ou avec l'API REST ONTAP. Depuis ONTAP 9.12.1, vous pouvez ajouter ou supprimer des volumes à un groupe de cohérence à l'aide de System Manager ou de l'API REST de ONTAP. Vous devrez interrompre la relation SM-BC avant de pouvoir modifier le groupe de cohérence, puis restaurer la protection SM-BC. Pour plus d'informations sur ce processus, voir xref:../consistency-groups/modify-task.html[Modifier un groupe de cohérence].
+L'ajout et la suppression de volumes dans une relation SM-BC active dépendent de la version de ONTAP que vous utilisez.
 
 .Description de la tâche
+Dans ONTAP 9.8 à 9.9.1, vous pouvez ajouter ou supprimer des volumes à un groupe de cohérence à l'aide de l'interface de ligne de commandes ONTAP.
+
+Depuis ONTAP 9.10.1, il est recommandé de le gérer link:../consistency-groups/index.html["groupes de cohérence"] Via System Manager ou avec l'API REST ONTAP. Si vous souhaitez modifier la composition du groupe de cohérence en ajoutant ou en supprimant un volume, vous devez d'abord supprimer la relation d'origine, puis créer à nouveau le groupe de cohérence avec la nouvelle composition.
+
+À partir de ONTAP 9.13.1, vous pouvez ajouter des volumes à un groupe de cohérence sans interruption avec une relation SM-BC active à partir de la source ou de la destination.
+
+
+NOTE: La suppression de volumes d'un groupe de cohérence avec une relation SM-BC engendre des perturbations et vous devez interrompre la relation SnapMirror avant de poursuivre cette opération.
+
+[role="tabbed-block"]
+====
+.ONTAP 9.8-9.13.0
+--
+.Avant de commencer
 * La modification de composition n'est pas autorisée lorsque le groupe de cohérence est à l'état "insync".
 * Le volume de destination doit être de type DP.
+* Le nouveau volume que vous ajoutez pour développer le groupe de cohérence doit disposer d'une paire de copies Snapshot communes entre les volumes source et de destination.
 
-
-
-NOTE: Le nouveau volume que vous ajoutez pour développer le groupe de cohérence doit disposer d'une paire de copies Snapshot communes entre les volumes source et de destination.
 
 .Étapes
 Cette procédure suppose qu'il existe deux mappages de volumes : vol_src1 <-> vol_dst1 et vol_src2 <-> vol_dst2, dans une relation de groupe de cohérence entre les points d'extrémité vs1_src:/cg/CG_src et vs1_dst:/cg_dst.
@@ -63,7 +72,7 @@ NOTE: Les LUN de destination ne sont pas mappées, tandis que les LUN présentes
 +
 `source::>snapmirror release -destination-path vs1_dst:/cg/cg_dst -relationship-info-only true`
 
-. **Si vous utilisez ONTAP 9.10.1 ou version ultérieure,** supprimez et recréez et le groupe de cohérence sur la source avec la composition correcte. Suivez les étapes de la section xref:../consistency-groups/delete-task.html[Supprimez un groupe de cohérence] puis xref:../consistency-groups/configure-task.html[Configurez un seul groupe de cohérence]. Dans ONTAP 9.10.1 et les versions ultérieures, vous devez effectuer les opérations de suppression et de création dans System Manager ou avec l'API REST ONTAP ; il n'existe pas de procédure d'interface de ligne de commandes.
+. **Si vous utilisez ONTAP 9.10.1 à 9.13.0,** supprimez et recréez et le groupe de cohérence sur la source avec la composition correcte. Suivez les étapes de la section xref:../consistency-groups/delete-task.html[Supprimez un groupe de cohérence] puis xref:../consistency-groups/configure-task.html[Configurez un seul groupe de cohérence]. Dans ONTAP 9.10.1 et les versions ultérieures, vous devez effectuer les opérations de suppression et de création dans System Manager ou avec l'API REST ONTAP ; il n'existe pas de procédure d'interface de ligne de commandes.
 +
 **Si vous utilisez ONTAP 9.8, 9.0 ou 9.9.1, passez à l'étape suivante.**
 
@@ -77,7 +86,24 @@ NOTE: Les LUN de destination ne sont pas mappées, tandis que les LUN présentes
 
 . Remappage des LUN que vous n'avez pas mappées à l'étape 5 :
 +
-`destination::> lun map -vserver vs1_dst -path <lun_path> -igroup <igroup_name>`
+`destination::> lun map -vserver vs1_dst -path _lun_path_ -igroup _igroup_name_`
 
 . Relancez les chemins d'E/S de la LUN hôte pour restaurer tous les chemins d'accès aux LUN.
 
+
+--
+.ONTAP 9.13.1 et versions ultérieures
+--
+À partir de ONTAP 9.13.1, vous pouvez ajouter des volumes à un groupe de cohérence sans interruption avec une relation SM-BC active. SM-BC prend en charge l'ajout de volumes à partir de la source ou de la destination.
+
+Pour plus d'informations sur l'ajout de volumes provenant du groupe de cohérence source, reportez-vous à la section xref:../consistency-groups/modify-task.html[Modifier un groupe de cohérence].
+
+.Ajout d'un volume depuis le cluster de destination
+. Sur le cluster de destination, sélectionnez **protection** > **relations**.
+. Recherchez la relation SM-BC à laquelle vous souhaitez ajouter des volumes. Sélectionnez image:icon_kabob.gif["icône kebab"] Puis **développer**.
+. Sélectionnez les relations de volume dont les volumes doivent être ajoutés au groupe de cohérence
+. Sélectionnez **développer**.
+
+
+--
+====

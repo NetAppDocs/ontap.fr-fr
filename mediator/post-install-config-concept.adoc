@@ -1,0 +1,100 @@
+---
+permalink: mediator/post-install-config-concept.html 
+sidebar: sidebar 
+keywords: mediator, new, release, update, install, configuration, post-installation, after installation, metrocluster ip, snapmirror business continuity 
+summary: 'Une fois le service ONTAP Mediator installé et en cours d"exécution, des tâches de configuration supplémentaires doivent être effectuées dans le système de stockage ONTAP pour utiliser les fonctions du Mediator.' 
+---
+= Configuration post-installation
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une fois le service ONTAP Mediator installé et en cours d'exécution, des tâches de configuration supplémentaires doivent être effectuées dans le système de stockage ONTAP pour utiliser les fonctions du Mediator :
+
+* Pour utiliser le service médiateur ONTAP dans une configuration IP MetroCluster, reportez-vous à la section link:https://docs.netapp.com/us-en/ontap-metrocluster/install-ip/task_configuring_the_ontap_mediator_service_from_a_metrocluster_ip_configuration.html["Configuration du service médiateur ONTAP à partir d'une configuration IP MetroCluster"^].
+* Pour utiliser SnapMirror Business Continuity, voir link:https://docs.netapp.com/us-en/ontap/smbc/smbc_install_confirm_ontap_cluster.html["Installez le service médiateur ONTAP et confirmez la configuration du cluster ONTAP"^].
+
+
+
+
+== Configurer les stratégies de sécurité du médiateur ONTAP
+
+Le serveur ONTAP Mediator prend en charge plusieurs paramètres de sécurité configurables. Les valeurs par défaut pour tous les paramètres sont fournies dans un fichier basse_space_Threshold_mib: 10read-only :
+
+`/opt/netapp/lib/ontap_mediator/server_config/ontap_mediator.user_config.yaml`
+
+Toutes les valeurs placées dans le `ontap_mediator.user_config.yaml` Remplace les valeurs par défaut et sera conservé dans toutes les mises à niveau du Mediator ONTAP.
+
+Après modification `ontap_mediator.user_config.yaml`, Redémarrez le service ONTAP Mediator :
+
+`systemctl restart ontap_mediator`
+
+Les attributs suivants peuvent être configurés : REMARQUE : autres valeurs par défaut dans `ontap_mediator.config.yaml` ne doit pas être modifié.
+
+* *Paramètres utilisés pour installer des certificats SSL tiers en remplacement des certificats auto-signés par défaut*
++
+....
+cert_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.crt'
+key_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.key'
+ca_cert_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.crt'
+ca_key_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.key'
+ca_serial_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.srl'
+cert_valid_days: '1095'                   # Used to set the expiration on client certs to 3 years
+x509_passin_pwd: 'pass:ontap'             # passphrase for the signed client cert
+....
+* *Paramètres qui fournissent des protections contre les attaques de devinettes de mots de passe par force brute*
++
+Pour activer la fonction, définissez une valeur pour `window_seconds` et le `retry_limit`
+
++
+Exemples :
+
++
+--
+** Fournissez une fenêtre de 5 minutes pour les hypothèses, puis réinitialisez le compte à zéro échec :
++
+`authentication_lock_window_seconds: 300`
+
+** Verrouiller le compte si cinq défaillances se produisent dans la période de la fenêtre :
++
+`authentication_retry_limit: 5`
+
+** Réduisez l'impact des attaques par tâtonnements de mots de passe par force brute en définissant un délai qui se produit avant le rejet de chaque tentative, ce qui ralentit les attaques.
++
+`authentication_failure_delay_seconds: 5`
+
++
+....
+authentication_failure_delay_seconds: 0   # seconds (float) to delay failed auth attempts prior to response, 0 = no delay
+authentication_lock_window_seconds: null  # seconds (int) since the oldest failure before resetting the retry counter, null = no window
+authentication_retry_limit: null          # number of retries to allow before locking API access, null = unlimited
+....
+
+
+--
+* *Champs qui contrôlent les règles de complexité du mot de passe du compte utilisateur de l'API ONTAP Mediator*
++
+....
+password_min_length: 8
+
+password_max_length: 64
+
+password_uppercase_chars: 0    # min. uppercase characters
+
+password_lowercase_chars: 1    # min. lowercase character
+
+password_special_chars: 1      # min. non-letter, non-digit
+
+password_nonletter_chars: 2    # min. non-letter characters (digits, specials, anything)
+....
+* *Paramètre qui contrôle l'espace libre requis sur le `/opt/netapp/lib/ontap_mediator` disque.*
++
+Si l'espace est inférieur au seuil défini, le service émet un avertissement.
+
++
+....
+low_space_threshold_mib: 10
+....
+

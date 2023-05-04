@@ -1,7 +1,7 @@
 ---
 permalink: flexgroup/create-svm-disaster-recovery-relationship-task.html 
 sidebar: sidebar 
-keywords: create, svm, disaster, recovery, relationship, flexgroup, volume, flex group, flexclone, flex clone 
+keywords: create, svm, disaster, recovery, svm dr, svm-dr, relationship, flexgroup, volume, flex group, flexclone, flex clone 
 summary: 'Depuis la version ONTAP 9.9.1, vous pouvez créer des relations SVM de reprise après incident à l"aide de volumes FlexGroup. Une relation SVM DR assure la redondance et la restauration de FlexGroups en cas d"incident via la synchronisation et la réplication de la configuration du SVM et de ses données. Une licence SnapMirror est requise pour SVM DR.' 
 ---
 = Création d'une relation de reprise après incident de SVM pour les volumes FlexGroup
@@ -14,16 +14,23 @@ summary: 'Depuis la version ONTAP 9.9.1, vous pouvez créer des relations SVM de
 Depuis la version ONTAP 9.9.1, vous pouvez créer des relations SVM de reprise après incident à l'aide de volumes FlexGroup. Une relation SVM DR assure la redondance et la restauration de FlexGroups en cas d'incident via la synchronisation et la réplication de la configuration du SVM et de ses données. Une licence SnapMirror est requise pour SVM DR.
 
 .Avant de commencer
-On doit connaître les conditions dans lesquelles vous ne pouvez pas créer de relation de SVM DR FlexGroup.
+Vous _ne pouvez pas_ créer une relation de SVM DR FlexGroup avec les appliquer suivantes.
 
 * Une configuration FlexGroup FlexClone existe
 * Un volume FlexGroup contient une configuration FabricPool
-* Le volume FlexGroup fait partie d'une relation de type « fan-out » ou en cascade
+* Le volume FlexGroup fait partie d'une relation en cascade
+* Le volume FlexGroup fait partie d'une relation de type « éventail » et votre cluster exécute une version ONTAP antérieure à ONTAP 9.12.1. (À partir de ONTAP 9.13.1, les relations de type « éventail » sont prises en charge.)
 
 
 .Description de la tâche
 * Tous les nœuds des deux clusters doivent exécuter la même version de ONTAP que le nœud sur lequel la prise en charge SVM DR a été ajoutée (ONTAP 9.9.1 ou version ultérieure).
 * La relation de SVM DR entre les sites primaire et secondaire doit être saine et disposer d'un espace suffisant pour prendre en charge les volumes FlexGroup sur les SVM principal et secondaire.
+* Lorsque vous créez une relation SVM DR FlexGroup dans laquelle le volume FlexGroup fait partie d'une relation de type « out », vous devez connaître les conditions suivantes :
++
+** Le cluster source et le cluster destination doivent exécuter ONTAP 9.13.1 ou une version ultérieure.
+** SVM DR avec volumes FlexGroup prend en charge les relations de ventilateur SnapMirror vers huit sites.
+
+
 
 
 Pour plus d'informations sur la création d'une relation de SVM DR, reportez-vous à https://docs.netapp.com/us-en/ontap/data-protection/snapmirror-svm-replication-workflow-concept.html["Gérer la réplication de SVM SnapMirror"].
@@ -40,7 +47,10 @@ link:create-task.html["Création d'un volume FlexGroup"].
 +
 Attendez que FlexGroup et tous ses composants soient créés avant de continuer.
 
-. Pour répliquer le volume FlexGroup, mettre à jour le SVM sur le site secondaire : `snapmirror update -destination-path destination_svm_name: -source-path source_svm_name:`+ vous pouvez également vérifier si une mise à jour SnapMirror planifiée existe déjà en entrant `snapmirror show -fields schedule`
+. Pour répliquer le volume FlexGroup, mettre à jour le SVM sur le site secondaire : `snapmirror update -destination-path destination_svm_name: -source-path source_svm_name:`
++
+Vous pouvez également vérifier si une mise à jour SnapMirror planifiée existe déjà en saisissant `snapmirror show -fields schedule`
+
 . Depuis le site secondaire, vérifier que la relation SnapMirror fonctionne correctement : `snapmirror show`
 +
 [listing]

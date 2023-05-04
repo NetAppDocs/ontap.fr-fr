@@ -22,14 +22,7 @@ summary: 'Dans la version actuelle de, la protection par ransomware est la plus 
 Prise en charge de la plateforme ONTAP :
 
 * La fonctionnalité ARP (autonome ransomware protection) est disponible pour tous les systèmes ONTAP sur site, à partir de ONTAP 9.10.1.
-* ARP n'est actuellement pas disponible pour ONTAP Select.
-* ARP n'est actuellement pas disponible pour Amazon FSX ou les environnements Cloud Volumes ONTAP suivants :
-+
-** AWS
-** Azure
-** Google Cloud
-
-
+* ARP est disponible pour ONTAP Select à partir de ONTAP Select 9.13.1.
 
 
 Charges de travail adaptées :
@@ -37,7 +30,7 @@ Charges de travail adaptées :
 * Les bases de données sur le stockage NFS
 * Répertoires locaux Windows ou Linux
 +
-Comme les utilisateurs pouvaient créer des fichiers avec des extensions qui n'ont pas été détectées pendant la période d'apprentissage, il y a plus de risques de faux positifs dans cette charge de travail.
+Comme les utilisateurs pouvaient créer des fichiers avec des extensions qui n'ont pas été détectées pendant la période d'apprentissage, les risques de faux positifs sont plus élevés dans cette charge de travail.
 
 * Images et vidéos
 +
@@ -55,8 +48,8 @@ Depuis ONTAP 9.12.1, ARP est disponible pour les configurations suivantes :
 Charges de travail inappropriées :
 
 * Workloads avec fréquence élevée de création ou de suppression de fichiers (des centaines de milliers de fichiers en quelques secondes, par exemple des charges de travail de test/développement)
-* ARP dépend de la capacité à reconnaître une surtension inhabituelle dans l'activité de création ou de suppression de fichiers. Si l'application elle-même est la source de l'activité de fichier, elle ne peut pas être distinguée efficacement de l'activité ransomware
-* Les charges de travail pour lesquelles l'application ou l'hôte crypte les données ARP dépendent de la distinction entre les données entrantes et cryptées. Si l'application elle-même est en train de chiffrer les données, l'efficacité de la fonction est réduite. Toutefois, la fonction peut toujours fonctionner en fonction de l'activité du fichier (création, suppression et écrasement) et du type de fichier.
+* ARP dépend de la capacité à reconnaître une surtension inhabituelle dans l'activité de création, de renommage ou de suppression de fichiers. Si l'application elle-même est la source de l'activité de fichier, elle ne peut pas être distinguée efficacement de l'activité ransomware
+* Les charges de travail pour lesquelles l'application ou l'hôte crypte les données ARP dépendent de la distinction entre les données entrantes et cryptées. Si l'application elle-même est en train de chiffrer les données, l'efficacité de la fonction est réduite. Toutefois, la fonction peut toujours fonctionner en fonction de l'activité du fichier (supprimer, écraser ou créer, ou créer ou renommer avec une nouvelle extension de fichier) et du type de fichier.
 
 
 Configurations système non prises en charge :
@@ -77,8 +70,8 @@ Types de volume non pris en charge :
 * Les volumes hors ligne
 * Volumes restreints
 * Volumes SnapLock
-* Volumes FlexGroup
-* Volumes FlexCache (la fonctionnalité anti-ransomwares est prise en charge sur les volumes FlexVol d'origine, mais pas sur les volumes en cache)
+* Volumes FlexGroup (à partir de ONTAP 9.13.1, les volumes FlexGroup sont pris en charge)
+* Volumes FlexCache (ARP est pris en charge sur les volumes FlexVol d'origine, mais pas sur les volumes de cache)
 * Volumes SAN uniquement
 * Volumes des machines virtuelles de stockage arrêtées
 * Volumes root des VM de stockage
@@ -98,7 +91,7 @@ Dans ONTAP 9.10.1 et 9.11.1, SnapMirror ne transfère pas l'état de configurati
 
 == Considérations relatives aux performances ARP et à la fréquence
 
-La fonctionnalité ARP peut avoir un impact minimal sur les performances du système, comme mesurée en débit et en IOPS de pointe. L'impact de la fonctionnalité anti-ransomwares est fortement tributaire des charges de travail des volumes. Pour les charges de travail standard ou courantes, les limites de configuration suivantes sont recommandées :
+La fonctionnalité ARP peut avoir un impact minimal sur les performances du système, comme mesurée en débit et en IOPS de pointe. L'impact de la fonctionnalité ARP dépend fortement des charges de travail des volumes. Pour les charges de travail standard ou courantes, les limites de configuration suivantes sont recommandées :
 
 [cols="30,20,30"]
 |===
@@ -121,3 +114,9 @@ Pass:[*] les performances du système ne sont pas dégradées au-delà de ces po
 Afin d'obtenir le meilleur point de récupération possible, ARP crée une copie Snapshot automatique dès qu'elle détecte une activité anormale du fichier. Cependant, ARP ne signale pas immédiatement une alerte, mais l'analytique doit s'exécuter et confirmer que l'activité suspecte correspond à un profil ransomware avant de générer une alerte. Ce processus peut prendre jusqu'à 60 minutes. Si l'analytique détermine que l'activité n'est pas suspecte, une alerte n'est pas générée, mais la copie Snapshot créée automatiquement reste présente dans le système de fichiers pendant au moins deux jours.
 
 Depuis ONTAP 9.11.1, vous pouvez contrôler le nombre et la période de conservation des copies Snapshot ARP générées automatiquement en réponse aux attaques de ransomware suspectées. Découvrez comment link:modify-automatic-shapshot-options-task.html["Modifiez les options des copies Snapshot automatiques"].
+
+
+
+== Vérification multiadministrateur avec volumes protégés par la protection anti-ransomware autonome (ARP)
+
+À partir de ONTAP 9.13.1, vous pouvez activer la vérification multiadministrateur (MAV) pour une sécurité supplémentaire avec ARP. MAV s'assure qu'au moins deux administrateurs authentifiés sont requis pour désactiver ARP, mettre en pause ARP ou marquer une attaque suspecte comme faux positif sur un volume protégé. Découvrez comment link:../multi-admin-verify/enable-disable-task.html["Activez MAV pour les volumes protégés par ARP"^]. Vous devez définir des administrateurs pour un groupe MAV et créer des règles MAV pour le `security anti-ransomware volume disable`, `security anti-ransomware volume pause`, et `security anti-ransomware volume attack clear-suspect` Commandes ARP à protéger. Chaque administrateur du groupe MAV doit approuver chaque nouvelle demande de règle et link:../multi-admin-verify/enable-disable-task.html["Ajoutez à nouveau la règle MAV"^] Dans les paramètres MAV.

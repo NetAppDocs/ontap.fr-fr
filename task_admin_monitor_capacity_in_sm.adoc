@@ -1,20 +1,25 @@
 ---
 sidebar: sidebar 
 permalink: task_admin_monitor_capacity_in_sm.html 
-keywords: system manager, monitor, capacity, view, measurement, physical, logical, storage, used storage, local tier capacity, aggregate capacity, block, add capacity, volume, used capacity, available capacity, total capacity, snapshot copy, snapshot copies, inactive data, overprovision, over provision, overflows, snapshot copy reserves, reserves, clone 
-summary: System Manager vous permet de surveiller la capacité de stockage utilisée et la quantité disponible pour un cluster ou un niveau local. 
+keywords: used storage, local tier capacity, aggregate capacity, add capacity, used capacity, available capacity, total capacity, inactive data, overprovision, overflows, snapshot copy reserves, reserves, clone, maximum capacity limit, storage VM, allocated 
+summary: System Manager vous permet de surveiller la capacité de stockage utilisée et la quantité disponible pour un cluster, un niveau local ou une machine virtuelle de stockage. 
 ---
 = Contrôle de la capacité dans System Manager
 :allow-uri-read: 
 
 
 [role="lead"]
-System Manager vous permet de surveiller la capacité de stockage utilisée et la quantité disponible pour un cluster ou un niveau local.
+System Manager vous permet de surveiller la capacité de stockage utilisée et la quantité disponible pour un cluster, un niveau local ou une machine virtuelle de stockage.
 
-Depuis ONTAP 9.10.1, vous pouvez également utiliser System Manager pour afficher les données historiques sur la capacité du cluster et ses projections concernant la capacité utilisée ou disponible à l'avenir. Vous pouvez également surveiller la capacité des niveaux et volumes locaux. En outre, depuis ONTAP 9.12.1, System Manager affiche également la capacité dédiée pour un niveau local.
+À chaque version d'ONTAP, System Manager fournit des informations plus fiables sur le contrôle de la capacité :
+
+* Depuis ONTAP 9.10.1, System Manager vous permet de consulter l'historique des données sur la capacité du cluster, ainsi que des prévisions sur la capacité qui sera utilisée ou disponible à l'avenir. Vous pouvez également surveiller la capacité des niveaux et volumes locaux.
+* À partir de ONTAP 9.12.1, System Manager affiche la quantité de capacité allouée pour un niveau local.
+* À partir de ONTAP 9.13.1, vous pouvez activer une limite de capacité maximale pour une machine virtuelle de stockage et définir un seuil pour déclencher des alertes lorsque le stockage utilisé atteint un certain pourcentage de la capacité maximale.
 
 
-NOTE: Les mesures de la capacité utilisée s'affichent différemment en fonction de la version de System Manager que vous utilisez, comme expliqué dans la link:concepts/capacity-measurements-in-sm-concept.html["Mesures de la capacité dans System Manager"].
+
+NOTE: Les mesures de la capacité utilisée s'affichent différemment en fonction de la version de ONTAP utilisée. Pour en savoir plus, consultez link:./concepts/capacity-measurements-in-sm-concept.html["Mesures de la capacité dans System Manager"].
 
 
 
@@ -44,14 +49,36 @@ Pour afficher les données relatives à la capacité dans le cloud, vous devez d
 
 NOTE: Dans System Manager, les représentations de capacité ne prennent pas en compte les capacités du niveau de stockage racine (agrégat).
 
-. Cliquez sur image:../media/icon_arrow.gif["flèche droite"] pour afficher plus de détails sur la capacité du cluster.
+. Cliquez sur le graphique pour afficher plus de détails sur la capacité du cluster.
++
+Les mesures de capacité sont indiquées dans deux graphiques à barres :
 
++
+--
+** Le graphique supérieur affiche la capacité physique : la taille de l'espace physique utilisé, réservé et disponible.
+** Le graphique inférieur affiche la capacité logique : la taille des données client, les copies Snapshot et les clones, ainsi que l'espace logique total utilisé.
+
+
+--
++
+Les mesures de réduction des données se trouvent sous les graphiques à barres :
+
++
+--
+** Taux de réduction des données pour les données clients uniquement (les copies Snapshot et les clones ne sont pas inclus).
+** Ratio global de réduction des données.
+
+
+--
+
+
+Pour plus d'informations, voir link:./concepts/capacity-measurements-in-sm-concept.html["Mesures de la capacité dans System Manager"].
 
 
 
 == Afficher la capacité d'un niveau local
 
-Vous pouvez afficher des informations détaillées sur la capacité des niveaux locaux. Depuis ONTAP 9.12.1, vous pouvez également afficher la capacité d'engagement d'un niveau local afin de déterminer si vous devez ajouter de la capacité au niveau local afin de répondre à la capacité engagée et éviter ainsi de manquer d'espace libre.
+Vous pouvez afficher des informations détaillées sur la capacité des niveaux locaux. À partir de ONTAP 9.12.1, la vue *capacité* inclut également la quantité de capacité allouée pour un niveau local, ce qui vous permet de déterminer si vous devez ajouter de la capacité au niveau local pour prendre en charge la capacité allouée et éviter de manquer d'espace libre.
 
 .Étapes
 . Cliquez sur *stockage > niveaux*.
@@ -79,14 +106,66 @@ Les graphiques à barres ci-dessous sont des rapports de mesure pour la réducti
 
 +
 --
-** Ratio global de réduction des données.
 ** Taux de réduction des données pour les données clients uniquement (les copies Snapshot et les clones ne sont pas inclus).
+** Ratio global de réduction des données.
 
 
 --
 
 
+Pour plus d'informations, voir link:./concepts/capacity-measurements-in-sm-concept.html["Mesures de la capacité dans System Manager"].
+
 .Actions facultatives
 * Si la capacité engagée est supérieure à la capacité du niveau local, vous pouvez envisager d'ajouter de la capacité au niveau local avant qu'il ne manque d'espace libre. Voir link:./disks-aggregates/add-disks-local-tier-aggr-task.html["Ajout de capacité à un niveau local (ajout de disques à un agrégat)"].
-* Vous pouvez également afficher la capacité utilisée par des volumes spécifiques dans le niveau local en sélectionnant l'onglet *volumes*.
+* Vous pouvez également afficher le stockage utilisé par des volumes spécifiques dans le niveau local en sélectionnant l'onglet *volumes*.
+
+
+
+
+== Affichez la capacité des volumes d'une VM de stockage
+
+Vous pouvez afficher la quantité de stockage utilisée par les volumes d'une VM de stockage et la capacité disponible. La mesure totale du stockage utilisé et disponible est appelée « capacité sur tous les volumes ».
+
+.Étapes
+. Sélectionnez *stockage* > *machines virtuelles de stockage*.
+. Cliquez sur le nom de la machine virtuelle de stockage.
+. Accédez à la section *capacité*, qui affiche un graphique à barres avec les mesures suivantes :
++
+--
+** *Physique utilisée* : somme du stockage physique utilisé sur tous les volumes de cette VM de stockage.
+** *Disponible* : somme de la capacité disponible sur tous les volumes de cette VM de stockage.
+** *Logique utilisée* : somme du stockage logique utilisé sur tous les volumes de cette machine virtuelle de stockage.
+
+
+--
+
+
+Pour plus de détails sur les mesures, voir link:./concepts/capacity-measurements-in-sm-concept.html["Mesures de la capacité dans System Manager"].
+
+
+
+== Afficher la limite de capacité maximale d'une machine virtuelle de stockage
+
+À partir de ONTAP 9.13.1, vous pouvez afficher la limite de capacité maximale d'une machine virtuelle de stockage.
+
+.Avant de commencer
+Vous devez link:manage-max-cap-limit-svm-in-sm-task.html["Limite de capacité maximale d'une machine virtuelle de stockage"] avant de pouvoir l'afficher.
+
+.Étapes
+. Sélectionnez *stockage* > *machines virtuelles de stockage*.
++
+Vous pouvez afficher les mesures de capacité maximale de deux manières :
+
++
+--
+** Dans la ligne de la machine virtuelle de stockage, affichez la colonne *capacité maximale* qui contient un graphique à barres indiquant la capacité utilisée, la capacité disponible et la capacité maximale.
+** Cliquez sur le nom de la VM de stockage. Dans l'onglet *vue d'ensemble*, faites défiler pour afficher les valeurs de seuil de capacité maximale, de capacité allouée et d'alerte de capacité dans la colonne de gauche.
+
+
+--
+
+
+.Informations associées
+* link:manage-max-cap-limit-svm-in-sm-task.html#edit-max-cap-limit-svm["Modifiez la limite de capacité maximale d'une machine virtuelle de stockage"]
+* link:./concepts/capacity-measurements-in-sm-concept.html["Mesures de la capacité dans System Manager"]
 

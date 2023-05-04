@@ -26,6 +26,7 @@ xref:enable-ad-users-groups-access-cluster-svm-task.adoc[Configuration de l'acc�
 +
 Vous pouvez effectuer cette tâche avant ou après avoir activé l'accès au compte.
 
+* À partir de ONTAP 9.13.1, vous pouvez utiliser une clé publique SSH comme méthode d'authentification principale ou secondaire avec un mot de passe utilisateur AD.
 * Vous pouvez utiliser ONTAP 9.11.1 depuis link:../nfs-admin/ldap-fast-bind-nsswitch-authentication-task.html["LDAP Fast bind pour l'authentification nsswitch"] S'il est pris en charge par le serveur LDAP AD.
 * Si vous n'êtes pas certain du rôle de contrôle d'accès que vous souhaitez attribuer au compte de connexion, vous pouvez utiliser le `security login modify` commande permettant d'ajouter le rôle ultérieurement.
 +
@@ -35,36 +36,66 @@ xref:modify-role-assigned-administrator-task.adoc[Modification du rôle attribu�
 
 [NOTE]
 ====
-L'accès au compte du groupe D'ANNONCES est pris en charge uniquement avec le `SSH` et `ontapi` en termes de latence.
+L'accès au compte du groupe D'ANNONCES est pris en charge uniquement avec le `SSH` et `ontapi` en termes de latence. Les groupes AD ne sont pas pris en charge avec l'authentification de clé publique SSH, qui est couramment utilisée pour l'authentification multifacteur.
 
 ====
 .Étape
 . Activer les comptes d'utilisateur ou d'administrateur de groupe AD pour accéder à un SVM :
 +
-`security login create -vserver SVM_name -user-or-group-name user_or_group_name -application application -authmethod domain -role role -comment comment [-is-ldap-fastbind true]`
+*Pour les utilisateurs AD :*
 
 +
-Pour connaître la syntaxe complète de la commande, reportez-vous au link:config-worksheets-reference.html["feuille de calcul"].
+[cols="1,1,1,4"]
+|===
+| Version ONTAP | Authentification principale | Authentification secondaire | Commande 
 
-+
-link:config-worksheets-reference.html["Création ou modification de comptes de connexion"]
 
-+
-La commande suivante active le compte d'administrateur du cluster AD `DOMAIN1\guest1` avec le prédéfini `backup` Rôle d'accès à la SVM d'admin``engCluster``.
-
-+
+| 9.13.1 et versions ultérieures | Clé publique | Aucune  a| 
 [listing]
 ----
-cluster1::>security login create -vserver engCluster -user-or-group-name DOMAIN1\guest1 -application ssh -authmethod domain -role backup
+security login create -vserver <svm_name> -user-or-group-name <user_name> -application ssh -authentication-method publickey -role <role>
 ----
-+
-La commande suivante active les comptes administrateur du SVM dans le compte AD group `DOMAIN1\adgroup` avec le prédéfini `vsadmin-volume` Rôle d'accès à la SVM``engData``.
 
-+
+
+| 9.13.1 et versions ultérieures | Domaine | Clé publique  a| 
+*Pour un nouvel utilisateur*
+
 [listing]
 ----
-cluster1::>security login create -vserver engData -user-or-group-name DOMAIN1\adgroup -application ssh -authmethod domain -role vsadmin-volume
+security login create -vserver <svm_name> -user-or-group-name <user_name> -application ssh -authentication-method domain -second-authentication-method publickey -role <role>
 ----
+*Pour un utilisateur existant*
+
+[listing]
+----
+security login modify -vserver <svm_name> -user-or-group-name <user_name> -application ssh -authentication-method domain -second-authentication-method publickey -role <role>
+----
+
+
+| 9.0 et versions ultérieures | Domaine | Aucune  a| 
+[listing]
+----
+security login create -vserver <svm_name> -user-or-group-name <user_name> -application <application> -authentication-method domain -role <role> -comment <comment> [-is-ldap-fastbind true]
+----
+|===
++
+*Pour les groupes AD :*
+
++
+[cols="1,1,1,4"]
+|===
+| Version ONTAP | Authentification principale | Authentification secondaire | Commande 
+
+
+| 9.0 et versions ultérieures | Domaine | Aucune  a| 
+[listing]
+----
+security login create -vserver <svm_name> -user-or-group-name <user_name> -application <application> -authentication-method domain -role <role> -comment <comment> [-is-ldap-fastbind true]
+----
+|===
++
+Pour connaître la syntaxe complète des commandes, voir link:config-worksheets-reference.html["Feuilles de travail pour l'authentification administrateur et la configuration RBAC"]
+
 
 
 .Une fois que vous avez terminé

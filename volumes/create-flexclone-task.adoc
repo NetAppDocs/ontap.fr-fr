@@ -11,12 +11,16 @@ summary: 'Création d"un volume FlexClone.'
 
 
 [role="lead"]
-Vous pouvez créer un volume FlexClone de protection des données à partir d'un volume de destination SnapMirror ou d'un volume FlexVol parent qui est un volume secondaire SnapVault. Une fois le volume FlexClone créé, vous ne pouvez plus supprimer le volume parent tant que le volume FlexClone existe.
+Vous pouvez créer un volume FlexClone de protection des données à partir d'un volume de destination SnapMirror ou d'un volume FlexVol parent qui est un volume secondaire SnapVault. Depuis ONTAP 9.7, vous pouvez créer un volume FlexClone à partir d'un volume FlexGroup. Une fois le volume FlexClone créé, vous ne pouvez plus supprimer le volume parent tant que le volume FlexClone existe.
 
 .Ce dont vous avez besoin
 * La licence FlexClone doit être installée sur le cluster.
 * Le volume que vous souhaitez cloner doit être en ligne.
 
+
+
+
+== Créez un volume FlexClone d'une FlexVol ou d'une FlexGroup
 
 .Étape
 . Créer un volume FlexClone :
@@ -40,4 +44,37 @@ Lors de la création d'un volume FlexClone en lecture/écriture à partir du vol
 +
 `volume clone create -vserver vs1 -flexclone vol_dp_clone -type DP -parent-volume dp_vol -parent-snapshot snap1`
 
+
+
+
+
+== Créez un FlexClone de tout type de SnapLock
+
+À partir de ONTAP 9.13.1, vous pouvez spécifier l'un des trois types de SnapLock, `compliance`, `enterprise`, `non-snaplock`, Lors de la création d'un FlexClone d'un volume RW. Par défaut, un volume FlexClone est créé avec le même type de SnapLock que le volume parent. Toutefois, vous pouvez remplacer la valeur par défaut à l'aide du `snaplock-type` Pendant la création du volume FlexClone.
+
+À l'aide du `non-snaplock` paramètre avec le `snaplock-type` Vous pouvez créer un volume FlexClone de type non SnapLock à partir d'un volume parent SnapLock afin de fournir une méthode plus rapide pour remettre les données en ligne si nécessaire.
+
+En savoir plus sur link:https://docs.netapp.com/us-en/ontap/snaplock/index.html["SnapLock"].
+
+.Avant de commencer
+Notez les restrictions de volume FlexClone suivantes lorsqu'elles ont un type SnapLock différent de celui du volume parent.
+
+* Seuls les clones de type RW sont pris en charge. Les clones de type DP avec un type SnapLock différent du volume parent ne sont pas pris en charge.
+* Les volumes avec LUN ne peuvent pas être clonés à l'aide de l'option de type snaplock, car les volumes SnapLock ne prennent pas en charge les LUN.
+* Un volume d'un agrégat en miroir MetroCluster ne peut pas être cloné avec un type SnapLock de conformité, car les volumes SnapLock Compliance ne sont pas pris en charge sur les agrégats en miroir MetroCluster.
+* Les volumes de conformité SnapLock avec conservation légale ne peuvent pas être clonés avec un autre type de SnapLock. La conservation légale n'est prise en charge que sur les volumes de conformité SnapLock.
+* Le SVM DR ne prend pas en charge les volumes SnapLock. La tentative de création d'un clone SnapLock à partir d'un volume dans un SVM faisant partie d'une relation SVM DR échoue.
+* Les bonnes pratiques de FabricPool recommandent que les clones conservent la même règle de hiérarchisation que la règle parente. Cependant, un clone de conformité SnapLock d'un volume activé par FabricPool ne peut pas avoir la même règle de Tiering que le clone parent. La règle de hiérarchisation doit être définie sur `none`. Tentative de création d'un clone de conformité SnapLock à partir d'un parent avec une règle de hiérarchisation autre que `none` échouera.
+
+
+.Étapes
+. Créer un volume FlexClone de type SnapLock : `volume clone create -vserver _svm_name_ -flexclone _flexclone_name_ -type RW [ -snaplock-type {non-snaplock|compliance|enterprise} ]`
++
+Exemple :
+
++
+[listing]
+----
+> volume clone create -vserver vs0 -flexclone vol1_clone -type RW -snaplock-type enterprise -parent-volume vol1
+----
 

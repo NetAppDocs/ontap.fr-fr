@@ -95,11 +95,39 @@ Les limites d'objets SAN suivantes sont incluses dans le tableau ci-dessous, que
 
 == Fonctionnalités et configurations prises en charge
 
+SM-BC est pris en charge avec de nombreux systèmes d'exploitation et fonctionnalités ONTAP, notamment :
+
+* AIX (à partir de ONTAP 9.11.1)
+* Configurations « Fan-Out »
+* HP-UX (à partir de ONTAP 9.10.1)
+* Copie NDMP (à partir de ONTAP 9.13.1)
+* Restauration partielle de fichiers (à partir de ONTAP 9.12.1)
+* Solaris 11.4 (à partir de ONTAP 9.10.1)
 
 
-=== Restauration partielle des fichiers
 
-Depuis ONTAP 9.12.1, la restauration partielle de LUN est prise en charge pour les volumes SM-BC. Pour plus d'informations sur ce processus, reportez-vous à la section link:../data-protection/restore-part-file-snapshot-task.html["Restaurez une partie d'un fichier à partir d'une copie Snapshot"].
+
+=== AIX
+
+Depuis ONTAP 9.11.1, AIX est pris en charge par SM-BC. Dans le cas d'une configuration AIX, le cluster principal est le cluster « actif ».
+
+Dans une configuration AIX, les basculements sont disruptifs. Chaque basculement nécessite une nouvelle analyse de l'hôte pour que les opérations d'E/S reprennent.
+
+Pour configurer un hôte AIX avec SM-BC, reportez-vous à l'article de la base de connaissances link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_configure_an_AIX_host_for_SnapMirror_Business_Continuity_(SM-BC)["Comment configurer un hôte AIX pour SnapMirror Business Continuity (SM-BC)"].
+
+
+
+=== Problèmes et limitations connus de HP-UX pour la configuration SM-BC
+
+Depuis ONTAP 9.10.1, SM-BC pour HP-UX est pris en charge. Si un événement de basculement automatique non planifié (AUFO) se produit sur le cluster maître isolé dans la configuration SM-BC, il peut prendre plus de 120 secondes pour que les E/S reprennent sur l'hôte HP-UX. Selon les applications en cours d'exécution, il se peut que cela n'entraîne aucune interruption d'E/S ni aucun message d'erreur. Si un événement AUFO se produit sur le cluster maître isolé, vous devez redémarrer les applications sur l'hôte HP-UX qui ont une tolérance de perturbation inférieure à 120 secondes.
+
+Un événement AUFO sur le cluster maître isolé peut provoquer une défaillance d'événement double lorsque la connexion entre le cluster principal et le cluster secondaire est perdue et que la connexion entre le cluster principal et le médiateur est également perdue. Ce phénomène est considéré comme un événement rare, contrairement à d'autres événements AUFO.
+
+
+
+=== FabricPool
+
+SM-BC prend en charge les volumes source et de destination sur les agrégats FabricPool avec les règles de Tiering aucune, Snapshot ou Auto. SM-S SM-BC ne prend pas en charge les agrégats FabricPool à l'aide d'une règle de Tiering.
 
 
 
@@ -111,13 +139,17 @@ Si vous rencontrez un basculement sur la destination SM-BC dans une configuratio
 
 
 
-=== AIX
+=== Restauration NDMP
 
-Depuis ONTAP 9.11.1, AIX est pris en charge par SM-BC. Dans le cas d'une configuration AIX, le cluster principal est le cluster « actif ».
+Depuis ONTAP 9.13.1, vous pouvez utiliser NDMP pour copier et restaurer des données avec SM-BC. L'utilisation de NDMP vous permet de déplacer des données vers la source SM-BC pour effectuer une restauration sans interrompre la protection. Cette fonctionnalité est particulièrement utile dans les configurations « Fan-Out ».
 
-Dans une configuration AIX, les basculements sont disruptifs. Chaque basculement nécessite une nouvelle analyse de l'hôte pour que les opérations d'E/S reprennent.
+Pour en savoir plus sur ce processus, voir xref:../tape-backup/transfer-data-ndmpcopy-task.html[Transfert de données à l'aide d'une copie ndmp].
 
-Pour configurer un hôte AIX avec SM-BC, reportez-vous à l'article de la base de connaissances link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_configure_an_AIX_host_for_SnapMirror_Business_Continuity_(SM-BC)["Comment configurer un hôte AIX pour SnapMirror Business Continuity (SM-BC)"].
+
+
+=== Restauration partielle des fichiers
+
+Depuis ONTAP 9.12.1, la restauration partielle de LUN est prise en charge pour les volumes SM-BC. Pour plus d'informations sur ce processus, reportez-vous à la section link:../data-protection/restore-part-file-snapshot-task.html["Restaurez une partie d'un fichier à partir d'une copie Snapshot"].
 
 
 
@@ -151,11 +183,3 @@ svl_fops_name = 0xa00298d69e0 "conf f_tpgs"
 
 
 NOTE: `conf` sera ajouté au `svl_fops_name` lorsqu'un `scsi-vhci-failover-override` a été appliqué. Pour plus d'informations et pour connaître les modifications recommandées par défaut, consultez l'article de la base de connaissances NetApp https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/Solaris_Host_support_recommended_settings_in_SnapMirror_Business_Continuity_(SM-BC)_configuration["Prise en charge de Solaris Host Paramètres recommandés dans la configuration de SnapMirror Business Continuity (SM-BC)"].
-
-
-
-=== Problèmes et limitations connus de HP-UX pour la configuration SM-BC
-
-Depuis ONTAP 9.10.1, SM-BC pour HP-UX est pris en charge. Si un événement de basculement automatique non planifié (AUFO) se produit sur le cluster maître isolé dans la configuration SM-BC, il peut prendre plus de 120 secondes pour que les E/S reprennent sur l'hôte HP-UX. Selon les applications en cours d'exécution, il se peut que cela n'entraîne aucune interruption d'E/S ni aucun message d'erreur. Si un événement AUFO se produit sur le cluster maître isolé, vous devez redémarrer les applications sur l'hôte HP-UX qui ont une tolérance de perturbation inférieure à 120 secondes.
-
-Un événement AUFO sur le cluster maître isolé peut provoquer une défaillance d'événement double lorsque la connexion entre le cluster principal et le cluster secondaire est perdue et que la connexion entre le cluster principal et le médiateur est également perdue. Ce phénomène est considéré comme un événement rare, contrairement à d'autres événements AUFO.

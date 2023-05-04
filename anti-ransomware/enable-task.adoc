@@ -19,7 +19,7 @@ summary: 'La protection autonome contre les ransomwares (ARP) peut être activé
 
 
 [role="lead"]
-Depuis ONTAP 9.10.1, la protection autonome contre les ransomwares (ARP) peut être activée sur les volumes nouveaux ou existants. Vous commencez par activer ARP en mode d'apprentissage, dans lequel le système analyse la charge de travail pour caractériser le comportement normal. Vous passez ensuite en mode actif, dans lequel une activité anormale est signalée pour votre évaluation.
+Depuis ONTAP 9.10.1, la protection autonome contre les ransomwares (ARP) peut être activée sur les volumes nouveaux ou existants. Vous commencez par activer ARP en mode d'apprentissage, dans lequel le système analyse la charge de travail pour caractériser le comportement normal. Vous passez ensuite en mode actif, dans lequel une activité anormale est signalée pour votre évaluation. Vous pouvez activer ARP sur un volume existant ou créer un nouveau volume et activer ARP depuis le début.
 
 .Ce dont vous avez besoin
 * Une machine virtuelle de stockage activée pour NFS ou SMB (ou les deux).
@@ -31,7 +31,7 @@ Depuis ONTAP 9.10.1, la protection autonome contre les ransomwares (ARP) peut ê
 
 
  a| 
-ONTAP 9.8-9.10.1
+ONTAP 9.10.1
  a| 
 MT_EK_MGMT (gestion des clés mutualisée)
 
@@ -44,16 +44,17 @@ Protection contre les ransomwares
 
 |===
 * Charge de travail NAS avec les clients configurés
-* Le volume à protéger doit avoir un Junction-path actif.
+* Le volume à protéger doit avoir un actif link:../concepts/namespaces-junction-points-concept.html["chemin de jonction"^].
 * Facultatif mais recommandé : le système EMS est configuré pour envoyer des notifications par e-mail, qui incluent des notifications d'activité ARP. Pour plus d'informations, voir link:../error-messages/configure-ems-events-send-email-task.html["Configurez les événements EMS pour envoyer des notifications par e-mail"].
+* Facultatif mais recommandé : à partir de la version ONTAP 9.13.1, vous pouvez activer la vérification multiadministrateur de sorte que deux administrateurs utilisateurs authentifiés ou plus soient requis pour la configuration ARP (protection anti-ransomware autonome). link:../multi-admin-verify/enable-disable-task.html["En savoir plus >>"^].
 
 
 .Description de la tâche
-La solution ARP NetApp inclut une période d'apprentissage initiale (également appelée « exécution sèche »), dans laquelle le système ONTAP apprend quelles extensions de fichier sont valides et utilise les données analysées pour développer des profils d'alerte. Après avoir exécuté ARP en mode d'apprentissage pendant suffisamment de temps pour évaluer les caractéristiques de la charge de travail, vous pouvez passer en mode actif et commencer à protéger vos données. En mode actif, si une extension de fichier est marquée comme anormale, mais que vous l'évaluez et que vous la marquez comme un faux positif, le profil d'alerte est affiné pour que l'extension ne soit pas marquée comme anormale dans les alertes futures.
+La solution ARP NetApp inclut une période d'apprentissage initiale (également appelée « exécution sèche »), dans laquelle le système ONTAP apprend quelles extensions de fichier sont valides et utilise les données analysées pour développer des profils d'alerte. Après avoir exécuté ARP en mode d'apprentissage pendant suffisamment de temps pour évaluer les caractéristiques de la charge de travail, vous pouvez passer en mode actif et commencer à protéger vos données. À partir de ONTAP 9.13.1, l'apprentissage adaptatif a été ajouté à l'analyse ARP et le passage du mode d'apprentissage au mode actif s'effectue automatiquement.
 
-Bien que vous puissiez passer du mode d'apprentissage au mode actif à tout moment, une période d'apprentissage de 30 jours est recommandée. Un changement précoce peut entraîner un trop grand nombre de faux positifs. Dans l'interface de ligne de commandes de ONTAP, vous pouvez utiliser `security anti-ransomware volume workload-behavior show` commande pour afficher les extensions de fichier détectées à ce jour. Il est recommandé de ne pas utiliser cet outil pour raccourcir la période d'apprentissage.
+Bien que vous puissiez passer du mode d'apprentissage au mode actif à tout moment, une période d'apprentissage de 30 jours est recommandée. Un changement précoce peut entraîner un trop grand nombre de faux positifs. L'apprentissage adaptatif introduit dans ONTAP 9.13.1 pourrait déterminer qu'une période plus courte est suffisante. Dans l'interface de ligne de commandes de ONTAP, vous pouvez utiliser `security anti-ransomware volume workload-behavior show` commande pour afficher les extensions de fichier détectées à ce jour. Il est recommandé de ne pas utiliser cet outil pour raccourcir la période d'apprentissage.
 
-Vous pouvez activer ARP sur un volume existant ou créer un nouveau volume et activer ARP depuis le début.
+En mode actif, si une extension de fichier est marquée comme anormale, mais que vous l'évaluez et que vous la marquez comme un faux positif, le profil d'alerte est mis à jour de sorte que l'extension ne soit pas marquée comme anormale dans les alertes futures.
 
 
 NOTE: Dans les volumes existants, les modes d'apprentissage et actif s'appliquent uniquement aux données récemment écrites, et non aux données déjà existantes du volume. Les données existantes ne sont pas analysées et analysées, car les caractéristiques du trafic de données normal antérieur sont présumées basées sur les nouvelles données une fois que le volume est activé pour ARP.
@@ -68,6 +69,10 @@ Pour gérer cette fonctionnalité dans l'interface de ligne de commandes de ONTA
 . Cliquez sur *Storage > volumes*, puis sélectionnez le volume à protéger.
 . Dans l'onglet *Security* de la présentation *volumes*, cliquez sur *Status* pour passer de Désactivé à activé en mode d'apprentissage dans la zone *anti-ransomware*.
 . Lorsque la période d'apprentissage est terminée, passez ARP en mode actif.
++
+
+NOTE: Si vous avez effectué une mise à niveau vers ONTAP 9.13.1, ARP détermine automatiquement la période d'apprentissage optimale et automatise le commutateur. C'est possible link:../anti-ransomware/enable-default-task.html["Désactivez ce paramètre sur la machine virtuelle de stockage associée"] si vous souhaitez contrôler manuellement le mode d'apprentissage en mode actif.
+
 +
 .. Cliquez sur *Storage > volumes*, puis sélectionnez le volume prêt pour le mode actif.
 .. Dans l'onglet *Security* de la vue d'ensemble *volumes*, cliquez sur *basculer* en mode actif dans la zone anti-ransomware.
@@ -84,7 +89,7 @@ Pour gérer cette fonctionnalité dans l'interface de ligne de commandes de ONTA
 `security anti-ransomware volume dry-run -volume _vol_name_ -vserver _svm_name_`
 
 +
-Vous pouvez également activer le ransomware avec le `volume modify` commande :
+Vous pouvez également activer la protection contre les ransomware à l'aide du `volume modify` commande :
 
 +
 `volume modify -volume _vol_name_ -vserver _svm_name_ -anti-ransomware-state dry-run`
@@ -97,9 +102,15 @@ Sur l'interface de ligne de commandes, vous pouvez également créer un volume a
 
 +
 
-NOTE: Vous devez toujours activer ARP au départ à l'état de fonctionnement à sec. En commençant par l'état actif, vous pouvez générer un nombre excessif de faux positifs.
+NOTE: Vous devez toujours activer le protocole ARP initialement dans l'état DRY-RUN (mode d'apprentissage). En commençant par l'état actif, vous pouvez générer un nombre excessif de faux positifs.
 
-. Lorsque la période d'apprentissage est terminée, modifiez le volume protégé pour passer en mode actif :
++
+Si vous avez mis à niveau vers ONTAP 9.13.1 ou une version ultérieure, l'apprentissage adaptatif est activé de sorte que le changement d'état actif s'effectue automatiquement. Si vous ne souhaitez pas que ce comportement soit automatiquement activé, modifier le paramétrage au niveau du Vserver sur tous les volumes associés :
+
++
+`vserver modify _svm_name_ -anti-ransomware-auto-switch-from-learning-to-enabled false`
+
+. Lorsque la période d'apprentissage est terminée, modifiez le volume protégé pour passer en mode actif si ce n'est pas déjà fait automatiquement :
 +
 `security anti-ransomware volume enable -volume _vol_name_ -vserver _svm_name_`
 

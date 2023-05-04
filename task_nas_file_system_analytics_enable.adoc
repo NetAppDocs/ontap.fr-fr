@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar 
 permalink: task_nas_file_system_analytics_enable.html 
-keywords: capacity analytics, data visualization, File System Analytics, System Manager, storage, explorer 
+keywords: capacity analytics, data visualization, File System Analytics 
 summary: 'Pour collecter et afficher les données d"utilisation telles que l"analyse de la capacité, vous devez activer l"analytique du système de fichiers.' 
 ---
 = Activez l'analyse du système de fichiers
@@ -21,7 +21,10 @@ summary: 'Pour collecter et afficher les données d"utilisation telles que l"ana
 [role="lead"]
 Pour collecter et afficher des données d'utilisation telles que l'analyse de la capacité, vous devez activer l'analytique du système de fichiers sur un volume.
 
-Depuis ONTAP 9.8, vous pouvez activer l'analytique du système de fichiers sur un volume nouveau ou existant. Si vous mettez à niveau un système vers ONTAP 9.8 ou une version ultérieure, assurez-vous que tous les processus de mise à niveau sont terminés avant d'activer l'analyse du système de fichiers.
+.Description de la tâche
+* Depuis ONTAP 9.8, vous pouvez activer l'analytique du système de fichiers sur un volume nouveau ou existant. Si vous mettez à niveau un système vers ONTAP 9.8 ou une version ultérieure, assurez-vous que tous les processus de mise à niveau sont terminés avant d'activer l'analyse du système de fichiers.
+* Selon la taille et le contenu du volume, l'activation d'une fonctionnalité d'analytique peut prendre du temps pendant le traitement des données existantes dans le volume par ONTAP. System Manager affiche la progression et présente les données analytiques une fois terminées. Si vous avez besoin d'informations plus précises sur la progression de l'initialisation, vous pouvez utiliser la commande d'interface de ligne de commandes de ONTAP `volume analytics show`.
+
 
 .Description de la tâche
 Selon la taille et le contenu du volume, l'activation d'une fonctionnalité d'analytique peut prendre du temps pendant le traitement des données existantes dans le volume par ONTAP. System Manager affiche la progression et présente les données analytiques une fois terminées. Si vous avez besoin d'informations plus précises sur la progression de l'initialisation, vous pouvez utiliser la commande d'interface de ligne de commandes de ONTAP `volume analytics show`.
@@ -44,10 +47,53 @@ Vous pouvez activer l'analytique du système de fichiers avec ONTAP System Manag
 --
 .CLI
 --
-.Pour activer File System Analytics avec l'interface de ligne de commande :
+.Activez l'analyse du système de fichiers à l'aide de la CLI
 . Exécutez la commande suivante :
 `volume analytics on -vserver _svm_name_ -volume _volume_name_ [-foreground {true|false}]`Par défaut, la commande s'exécute au premier plan ; ONTAP affiche la progression et présente les données analytiques une fois l'opération terminée. Si vous avez besoin d'informations plus précises, vous pouvez exécuter la commande en arrière-plan à l'aide de la `-foreground false` puis utilisez l' `volume analytics show` Commande permettant d'afficher la progression de l'initialisation dans l'interface de ligne de commandes.
-. Une fois l'analytique du système de fichiers terminée, utilisez ONTAP System Manager pour afficher les données analytiques.
+. Une fois l'analyse du système de fichiers terminée, utilisez System Manager ou l'API REST ONTAP pour afficher les données analytiques.
+
+
+--
+====
+
+
+== Modifier les paramètres par défaut de l'analyse du système de fichiers
+
+À partir de la version ONTAP 9.13.1, vous pouvez modifier les paramètres des SVM ou des clusters pour activer l'analytique du système de fichiers par défaut sur les nouveaux volumes.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Si vous utilisez System Manager, vous pouvez modifier les paramètres de la machine virtuelle de stockage ou du cluster pour activer l'analyse de la capacité et le suivi des activités lors de la création du volume par défaut. L'activation par défaut s'applique uniquement aux volumes créés après la modification des paramètres, et non aux volumes existants.
+
+.Modifier les paramètres d'analyse du système de fichiers sur un cluster
+. Dans System Manager, accédez à **Paramètres de cluster**.
+. Dans **Paramètres du cluster**, consultez l'onglet Paramètres du système de fichiers. Pour modifier les paramètres, sélectionnez image:icon_gear.gif["Permet de régler le rapport"] icône.
+. Dans le champ **Activity Tracking**, entrez les noms des SVM pour lequel le suivi des activités est activé par défaut. Si vous ne renseignez pas ce champ, le suivi d'activité sera désactivé sur tous les SVM.
++
+Décochez la case **Activer sur les nouveaux ordinateurs virtuels de stockage** pour désactiver le suivi des activités par défaut sur les nouveaux ordinateurs virtuels de stockage.
+
+. Dans le champ **Analytics**, entrez les noms des machines virtuelles de stockage pour lesquels l'analyse des capacités doit être activée par défaut. Si vous ne renseignez pas ce champ, l'analyse de la capacité est désactivée sur tous les SVM.
++
+Décochez la case **Activer sur les nouvelles machines virtuelles de stockage** pour désactiver l'analyse des capacités par défaut sur les nouvelles machines virtuelles de stockage.
+
+. Sélectionnez **Enregistrer**.
+
+
+.Modification des paramètres d'analytique du système de fichiers sur une SVM
+. Sélectionner le SVM à modifier puis **Storage VM settings**.
+. Dans la carte **File System Analytics**, utilisez les commutateurs pour activer ou désactiver le suivi des activités et l'analyse des capacités pour tous les nouveaux volumes de la machine virtuelle de stockage.
+
+
+--
+.CLI
+--
+Vous pouvez configurer la machine virtuelle de stockage pour activer l'analytique du système de fichiers par défaut sur les nouveaux volumes à l'aide de l'interface de ligne de commande ONTAP.
+
+.Activer l'analytique des systèmes de fichiers par défaut sur une SVM
+. Modifier le SVM pour activer l'analytique de capacité et le suivi des activités par défaut sur tous les volumes nouvellement créés :
+`vserver modify -vserver _svm_name_ -auto-enable-activity-tracking true -auto-enable-analytics true`
 
 
 --

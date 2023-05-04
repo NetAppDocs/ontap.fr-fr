@@ -13,29 +13,39 @@ summary: Créez un groupe de cohérence hiérarchique pour la gestion et la prot
 [role="lead"]
 Si la charge de travail de vos applications se compose de plusieurs sous-ensembles de volumes, chacun d'entre eux étant cohérent sur l'ensemble des volumes associés, ONTAP vous permet de créer un groupe de cohérence hiérarchique.
 
-Les groupes de cohérence hiérarchiques ont un parent qui peut inclure jusqu'à cinq groupes de cohérence individuels. Les groupes de cohérence hiérarchiques peuvent prendre en charge différentes règles Snapshot locales sur plusieurs groupes de cohérence ou volumes individuels. Si vous utilisez une stratégie de continuité de l'activité SnapMirror à distance (SM-BC), qui s'applique à l'ensemble du groupe de cohérence hiérarchique (parent et enfant).
+Les groupes de cohérence hiérarchiques ont un parent qui peut inclure jusqu'à cinq groupes de cohérence individuels. Les groupes de cohérence hiérarchiques peuvent prendre en charge différentes règles Snapshot locales sur plusieurs groupes de cohérence ou volumes individuels. Si vous utilisez une règle de protection à distance, elle s'applique à l'ensemble du groupe de cohérence hiérarchique (parent et enfant).
+
+À partir de ONTAP 9.13.1, vous pouvez xref:modify-geometry-task.html[modifier la géométrie de vos groupes de cohérence] et xref:modify-task.html[déplacez des volumes entre des groupes de cohérence enfants].
 
 Pour connaître les limites d'objets relatives aux groupes de cohérence, reportez-vous à la section xref:limits.html[Limites d'objets pour les groupes de cohérence].
 
 
 
-== Créez un groupe de cohérence hiérarchique avec les nouvelles LUN
+== Créez un groupe de cohérence hiérarchique avec de nouveaux LUN ou volumes
 
-Lorsque vous créez un groupe de cohérence hiérarchique, vous pouvez le remplir avec de nouvelles LUN.
+Lorsque vous créez un groupe de cohérence hiérarchique, vous pouvez le remplir avec de nouvelles LUN. Depuis la version ONTAP 9.13.1, vous pouvez également utiliser de nouveaux espaces de noms NVMe et volumes NAS.
 
 .Étapes
 . Sélectionnez *stockage > groupes de cohérence*.
-. Sélectionnez *+Ajouter* puis *en utilisant de nouveaux LUN*.
-. Nommer le groupe de cohérence. Indiquez le nombre de LUN et la capacité par LUN.
+. Sélectionnez *+Add*, puis sélectionnez le protocole de votre objet de stockage.
 +
-.. **Type d'application** : si vous utilisez ONTAP 9.12.1 ou version ultérieure, sélectionnez un type d'application. Si aucune valeur n'est sélectionnée, le groupe de cohérence se voit attribuer le type de **autre** par défaut. En savoir plus sur la cohérence du balisage dans xref:index.html#application-and-component-tags[Balises d'application et de composant]. Si vous prévoyez de créer une relation SM-BC, vous devez utiliser *autre*.
+Dans ONTAP 9.10.1 à 9.12.1, la seule option pour un nouvel objet de stockage est **en utilisant de nouvelles LUN**. Depuis ONTAP 9.13.1, System Manager prend en charge la création de groupes de cohérence avec de nouveaux namespaces NVMe et de nouveaux volumes NAS.
+
+. Nommer le groupe de cohérence. Indiquez le nombre de volumes ou de LUN et la capacité par volume ou LUN.
++
+.. **Type d'application** : si vous utilisez ONTAP 9.12.1 ou version ultérieure, sélectionnez un type d'application. Si aucune valeur n'est sélectionnée, le groupe de cohérence se voit attribuer le type de **autre** par défaut. En savoir plus sur la cohérence du balisage dans xref:index.html#application-and-component-tags[Balises d'application et de composant]. Si vous prévoyez d'utiliser une stratégie de protection à distance, vous devez choisir *autre*.
 
 
 . Sélectionnez le système d'exploitation hôte et le format LUN. Entrez les informations sur l'initiateur hôte.
-. Pour configurer des stratégies de protection, ajouter un groupe de cohérence enfant ou afficher d'autres options relatives aux initiateurs hôtes, sélectionnez *plus d'options*.
-. Pour ajouter un groupe de cohérence enfant, sélectionnez *+Ajouter un groupe de cohérence enfant*.
-. Sélectionnez le niveau de performances, le nombre de LUN et la capacité par LUN. Désignez le système d'exploitation hôte, le format de LUN et sélectionnez un nouveau groupe d'initiateurs hôtes ou un groupe existant.
-. *Facultatif* : sélectionnez une stratégie de snapshot locale.
++
+.. Pour **nouveaux LUN** : sélectionnez le système d'exploitation hôte et le format de LUN. Entrez les informations sur l'initiateur hôte.
+.. Pour **nouveaux volumes NAS** : choisissez l'option d'exportation appropriée (NFS ou SMB/CIFS) en fonction de la configuration NAS de votre SVM.
+.. Pour **nouveaux espaces de noms NVMe** : sélectionnez le système d'exploitation hôte et le sous-système NVMe.
+
+
+. Pour ajouter un groupe de cohérence enfant, sélectionnez *plus d'options* puis *+Ajouter un groupe de cohérence enfant*.
+. Sélectionnez le niveau de performance, le nombre de LUN ou de volumes et la capacité par LUN ou volume. Indiquez les configurations d'exportation ou les informations du système d'exploitation appropriées en fonction du protocole que vous utilisez.
+. Vous pouvez également sélectionner une stratégie de snapshot locale et définir les autorisations d'accès.
 . Répétez l'opération pour jusqu'à cinq groupes de cohérence enfant.
 . Sélectionnez *Enregistrer*.
 . Vérifiez que votre groupe de cohérence a été créé en retournant au menu principal du groupe de cohérence sur lequel il apparaîtra une fois le travail ONTAP terminé. Si vous définissez une stratégie de protection, examinez la stratégie appropriée, à distance ou locale, qui doit afficher un bouclier vert avec une coche.
@@ -54,12 +64,18 @@ Vous pouvez organiser des volumes existants en un groupe de cohérence hiérarch
 . Sélectionnez les volumes existants à inclure. Seuls les volumes qui ne font pas déjà partie d'un groupe de cohérence seront disponibles à la sélection.
 . Pour ajouter un groupe de cohérence enfant, sélectionnez *+Ajouter un groupe de cohérence enfant*. Créez les groupes de cohérence nécessaires, qui seront nommés automatiquement.
 +
-.. **Type de composant** : si vous utilisez ONTAP 9.12.1 ou version ultérieure, sélectionnez un type de composant "données", "logs" ou "autre". Si aucune valeur n'est sélectionnée, le groupe de cohérence se voit attribuer le type de **autre** par défaut. En savoir plus sur la cohérence du balisage dans xref:index.html#application-and-component-tags[Balises d'application et de composant]. Si vous prévoyez de créer une relation SM-BC, vous devez utiliser *autre*.
+.. **Type de composant** : si vous utilisez ONTAP 9.12.1 ou version ultérieure, sélectionnez un type de composant "données", "logs" ou "autre". Si aucune valeur n'est sélectionnée, le groupe de cohérence se voit attribuer le type de **autre** par défaut. En savoir plus sur la cohérence du balisage dans xref:index.html#application-and-component-tags[Balises d'application et de composant]. Si vous prévoyez d'utiliser une stratégie de protection à distance, vous devez utiliser *autre*.
 
 
 . Attribuez des volumes existants à chaque groupe de cohérence.
-. *Facultatif* : sélectionnez une stratégie de snapshot locale.
+. Si vous le souhaitez, sélectionnez une règle Snapshot locale.
 . Répétez l'opération pour jusqu'à cinq groupes de cohérence enfant.
 . Sélectionnez *Enregistrer*.
 . Vérifiez que votre groupe de cohérence a été créé en retournant au menu principal du groupe de cohérence sur lequel il apparaîtra une fois le travail ONTAP terminé. Si vous avez choisi une stratégie de protection, vérifiez qu'elle a été correctement définie en sélectionnant votre groupe de cohérence dans le menu ; sous le type de stratégie approprié, vous verrez un bouclier vert avec une coche à l'intérieur de celle-ci.
+
+
+.Étapes suivantes
+* xref:xref:modify-geometry-task.html[Modifier la géométrie d'un groupe de cohérence]
+* xref:modify-task.html[Modifier un groupe de cohérence]
+* xref:protect-task.html[Protéger un groupe de cohérence]
 

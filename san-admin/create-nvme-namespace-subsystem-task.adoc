@@ -13,8 +13,6 @@ summary: 'Pour les systèmes utilisant le protocole NVMe, vous devez créer un o
 [role="lead"]
 Si une procédure pour votre hôte spécifique n'est pas disponible, vous pouvez suivre ces étapes pour créer des espaces de noms et provisionner du stockage pour tout hôte NVMe pris en charge.
 
-Les espaces de noms apparaissent sous Linux comme périphériques de disque SCSI.
-
 Cette procédure crée de nouveaux espaces de noms sur une machine virtuelle de stockage existante. Votre VM de stockage doit être configurée pour NVME, et votre transport FC ou TCP doit déjà être configuré.
 
 Depuis ONTAP 9.8, lorsque vous provisionnez le stockage, la QoS est activée par défaut. Vous pouvez désactiver QoS ou choisir une règle de QoS personnalisée lors du processus de provisionnement ou ultérieurement.
@@ -31,8 +29,6 @@ En utilisant ONTAP System Manager (9.7 et versions ultérieures), créez des esp
 Si vous devez créer un nouveau sous-système, cliquez sur *plus d'options*.
 
 . Si vous exécutez ONTAP 9.8 ou version ultérieure et que vous souhaitez désactiver la qualité de service ou choisir une stratégie de qualité de service personnalisée, cliquez sur *plus d'options*, puis, sous *stockage et optimisation*, sélectionnez *niveau de service de performances*.
-
-
 . Segmenter vos commutateurs FC par WWPN. Utilisez une zone par initiateur et incluez tous les ports cibles dans chaque zone.
 . Sur votre hôte, découvrez les nouveaux espaces de noms.
 . Initialiser l'espace de noms et le formater avec un système de fichiers.
@@ -51,45 +47,59 @@ Si vous devez configurer la machine virtuelle de stockage pour NVMe, reportez-vo
 .Étapes
 . Vérifier que le SVM est configuré pour NVMe :
 +
-`vserver show -vserver _SVM_name_ -fields allowed-protocols`
-
+[source, cli]
+----
+vserver show -vserver <svm_name> -fields allowed-protocols
+----
 +
 `NVMe` doit s'afficher sous le `allowed-protocols` colonne.
 
 . Créez le namespace NVMe :
 +
-`vserver nvme namespace create -vserver _SVM_name_ -path _path_ -size _size_of_namespace_ -ostype _OS_type_`
-
+[source, cli]
+----
+vserver nvme namespace create -vserver <svm_name> -path <path> -size <size_of_namespace> -ostype <OS_type>
+----
 . Créez le sous-système NVMe :
 +
-`vserver nvme subsystem create -vserver _SVM_name_ -subsystem _name_of_subsystem_ -ostype _OS_type_`
-
+[source, cli]
+----
+vserver nvme subsystem create -vserver <svm_name> -subsystem <name_of_subsystem> -ostype <OS_type>
+----
 +
 Le nom du sous-système NVMe est sensible à la casse. Ils doivent comporter entre 1 et 96 caractères. Les caractères spéciaux sont autorisés.
 
 . Vérifiez que le sous-système a été créé :
 +
-`vserver nvme subsystem show -vserver _SVM_name_`
-
+[source, cli]
+----
+vserver nvme subsystem show -vserver <svm_name>
+----
 +
 Le `nvme` le sous-système doit s'afficher sous `Subsystem` colonne.
 
 . Obtenez le NQN de l'hôte.
 . Ajoutez le NQN hôte au sous-système :
 +
-`vserver nvme subsystem host add -vserver _SVM_name_ -subsystem _subsystem_name_ -host-nqn _Host_NQN_:subsystem._subsystem_name_`
-
+[source, cli]
+----
+vserver nvme subsystem host add -vserver <svm_name> -subsystem <subsystem_name> -host-nqn <Host_NQN>
+----
 . Mapper l'espace de noms au sous-système :
 +
-`vserver nvme subsystem map add -vserver _SVM_name_ -subsystem _subsystem_name_ -path _path_`
-
+[source, cli]
+----
+vserver nvme subsystem map add -vserver <svm_name> -subsystem <subsystem_name> -path <path>
+----
 +
 Un espace de noms ne peut être mappé qu'à un seul sous-système.
 
 . Vérifiez que l'espace de noms est mappé sur le sous-système :
 +
-`vserver nvme namespace show -vserver _SVM_name_ -instance`
-
+[source, cli]
+----
+vserver nvme namespace show -vserver <svm_name> -instance
+----
 +
 Le sous-système doit être répertorié comme `Attached subsystem`.
 

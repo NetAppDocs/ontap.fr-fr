@@ -1,7 +1,7 @@
 ---
 permalink: performance-admin/guarantee-throughput-qos-task.html 
 sidebar: sidebar 
-keywords: guaranteeing, throughput, qos, understand, ceilings, floors, shared, policy, adaptive, general, support, workloads, 
+keywords: throughput, qos, understand, ceilings, floors, shared, policy, adaptive, general, support, workloads, 
 summary: 'Grâce à la qualité de service (QoS) du stockage, vous pouvez garantir que les performances des workloads stratégiques ne sont pas dégradées par des charges de travail concurrentes. Vous pouvez fixer un plafond de débit pour une charge de travail concurrente afin de limiter son impact sur les ressources système ou définir un débit pour une charge de travail critique. Il convient ainsi au débit minimal requis, indépendamment de la demande des charges de travail concurrentes. Vous pouvez même fixer un plafond et un sol pour la même charge de travail.' 
 ---
 = Débit garanti avec les QoS
@@ -32,20 +32,24 @@ image::../media/qos-ceiling.gif[plafond qos]
 
 == À propos du débit au sol (QoS min)
 
-Un débit garantit que le débit d'une charge de travail ne se situe pas en dessous d'un nombre minimal d'IOPS ou de Mbit/s, ou d'IOPS et de Mbit/s.dans la figure ci-dessous, les débits requis par la charge de travail 1 et la charge de travail 3 garantissent qu'ils répondent aux objectifs de débit minimaux, indépendamment de la demande 2.
+Un plancher de débit garantit que le débit d'une charge de travail ne passe pas en dessous d'un nombre minimal d'IOPS ou de Mo/sec, ou d'IOPS et de Mo/sec. Dans la figure ci-dessous, les niveaux de débit pour la charge de travail 1 et la charge de travail 3 s'assurent qu'ils répondent aux objectifs de débit minimum, indépendamment de la demande par charge de travail 2.
 
 [TIP]
 ====
 Comme le suggèrent les exemples, un plafond de débit accélère directement le débit. Un plancher de débit accélère indirectement le débit en donnant la priorité aux charges de travail pour lesquelles le sol a été défini.
 
 ====
-Un groupe de règles qui définit un étage de débit ne peut pas être appliqué à un SVM. Vous pouvez spécifier l'étage lors de la création du groupe de règles ou attendre jusqu'à ce que vous surveilliez les charges de travail pour le spécifier.
+Vous pouvez spécifier l'étage lors de la création du groupe de règles ou attendre jusqu'à ce que vous surveilliez les charges de travail pour le spécifier.
 
-[NOTE]
-====
-Dans les versions antérieures à ONTAP 9.7, le débit est garanti lorsque la capacité de performance est suffisante. Dans la ONTAP 9.7 et versions ultérieures, le débit au sol peut être garanti même en cas de capacité de performance insuffisante. Ce nouveau comportement de plancher s'appelle planchers v2. Pour respecter les garanties, au sol v2, peut offrir une plus grande latence sur les charges de travail sans débit ni travail dépassant les paramètres au sol. Au sol v2 s'applique à la QoS et à la qualité de service adaptative. L'option d'activation/désactivation du nouveau comportement des planchers v2 est disponible dans ONTAP 9.7P6 et versions ultérieures.Une charge de travail peut tomber en dessous du sol spécifié lors d'opérations critiques telles que `volume move trigger-cutover`. Même lorsque vous disposez d'une capacité suffisante et que vos opérations stratégiques n'ont pas lieu, le débit d'une charge de travail peut tomber en dessous du seuil spécifié de 5 %. Si les étages sont surprovisionnés et que la capacité de performance n'est pas disponible, certaines charges de travail peuvent tomber en dessous de l'étage spécifié.
+À partir de la version ONTAP 9.13.1, vous pouvez définir des étages de débit au niveau de l'étendue du SVM avec <<adaptive-qos-templates>>. Dans les versions ONTAP antérieures à 9.13.1, un groupe de règles qui définit un plancher de débit ne peut pas être appliqué à une SVM.
 
-====
+
+NOTE: Dans les versions antérieures à ONTAP 9.7, le débit est garanti lorsque la capacité de performance est suffisante.
+
++ dans ONTAP 9.7 et versions ultérieures, les niveaux de débit peuvent être garantis même en cas de capacité de performance insuffisante. Ce nouveau comportement de plancher s'appelle planchers v2. Pour respecter les garanties, au sol v2, peut offrir une plus grande latence sur les charges de travail sans débit ni travail dépassant les paramètres au sol. Au sol v2 s'applique à la QoS et à la qualité de service adaptative.
+
++ l'option d'activation/désactivation du nouveau comportement des étages v2 est disponible dans ONTAP 9.7P6 et versions ultérieures. Une charge de travail peut tomber sous le plancher spécifié pendant des opérations critiques comme `volume move trigger-cutover`. Même lorsque vous disposez d'une capacité suffisante et que vos opérations stratégiques n'ont pas lieu, le débit d'une charge de travail peut tomber en dessous du seuil spécifié de 5 %. Si les étages sont surprovisionnés et que la capacité de performance n'est pas disponible, certaines charges de travail peuvent tomber en dessous de l'étage spécifié.
+
 image::../media/qos-floor.gif[l'étage qos]
 
 
@@ -68,11 +72,9 @@ _Adaptive QoS_ ajuste automatiquement la valeur du groupe de règles en fonction
 
 Généralement, vous utilisez la QoS adaptative pour ajuster les plafonds de débit, mais vous pouvez également l'utiliser pour gérer le débit (en cas d'augmentation de la taille des charges de travail). La taille du workload est exprimée en espace alloué à l'objet de stockage ou en espace utilisé par l'objet de stockage.
 
-[NOTE]
-====
-L'espace utilisé est disponible pour les étages de débit dans ONTAP 9.5 et versions ultérieures. Elle n'est pas prise en charge pour les étages de débit dans ONTAP 9.4 et les versions antérieures.
 
-====
+NOTE: L'espace utilisé est disponible pour les étages de débit dans ONTAP 9.5 et versions ultérieures. Elle n'est pas prise en charge pour les étages de débit dans ONTAP 9.4 et les versions antérieures.
+
 * Une politique _Alocated space_ maintient le ratio IOPS/To|Go en fonction de la taille nominale de l'objet de stockage. Si le rapport est de 100 IOPS/Go, un volume de 150 Go plafonné à 15,000 IOPS, tant que la taille du volume reste celle-ci. Si le volume a été redimensionné de façon à 300 Go, la QoS adaptative ajuste le débit au plafond à 30,000 000 IOPS.
 * Une règle _Used space_ (par défaut) maintient le ratio IOPS/To|Go en fonction de la quantité de données réelles stockées avant le stockage efficace. Si le rapport est de 100 IOPS/Go, un volume de 150 Go contenant 100 Go de données stockées aurait un débit plafond de 10,000 000 IOPS. À mesure que la quantité d'espace utilisée change, la QoS adaptative ajuste le plafond de débit en fonction du rapport.
 
@@ -89,7 +91,19 @@ Le débit doit augmenter d'au moins 10 000 IOPS avant la mise à jour.
 
 Les groupes de règles de QoS adaptative sont toujours non partagés : le plafond ou l'étage de débit défini s'applique à chaque charge de travail membre individuellement.
 
-À partir de la version ONTAP 9.6, le débit au sol est pris en charge sur le modèle ONTAP Select Premium avec SSD.
+À partir de la version ONTAP 9.6, les niveaux de débit sont pris en charge par ONTAP Select Premium avec SSD.
+
+
+
+=== Modèle de groupe de règles adaptatif
+
+À partir de la version ONTAP 9.13.1, vous pouvez définir un modèle de QoS adaptative sur une SVM. Les modèles de groupes de règles adaptatifs vous permettent de définir des seuils et des plafonds de débit pour tous les volumes d'une SVM.
+
+Les modèles de groupes de règles adaptatives ne peuvent être définis qu'après la création du SVM. Utilisez le `vserver modify` commande avec `-qos-adaptive-policy-group-template` paramètre permettant de définir la règle.
+
+Lorsque vous définissez un modèle de groupe de règles adaptatives, les volumes créés ou migrés après avoir défini la règle héritent automatiquement de la règle. L'affectation du modèle de règle n'a aucun impact sur les volumes existants du SVM. Si vous désactivez la policy sur le SVM, tout volume ultérieurement migré vers ou créé sur le SVM ne recevra pas la policy. La désactivation du modèle de groupe de règles adaptatives n'a pas d'impact sur les volumes qui ont hérité du modèle de règles car ils conservent le modèle de règles.
+
+Pour plus d'informations, voir xref:../performance-admin/adaptive-policy-template-task.html[Définissez un modèle de groupe de règles adaptatives].
 
 
 
@@ -98,8 +112,6 @@ Les groupes de règles de QoS adaptative sont toujours non partagés : le plafon
 Le tableau ci-dessous présente les différences en matière de prise en charge des plafonds de débit, des étages de débit et de la QoS adaptative.
 
 |===
-
-
 | Ressource ou fonctionnalité | Plafond de débit | Plancher de débit | Débit au sol v2 | La QoS adaptative 
 
 
@@ -173,7 +185,7 @@ Non
 Oui.
 
 |===
-*La prise en charge de C190 et de ONTAP Select a débuté avec la version 9.6 de ONTAP.
+La prise en charge de \*C190 et ONTAP Select a débuté avec la 9.6 version de ONTAP.
 
 
 
@@ -182,9 +194,7 @@ Oui.
 Le tableau ci-dessous présente la prise en charge des charges de travail pour les plafonds de débit dans la version ONTAP 9. Les volumes root, les miroirs de partage de charge et les miroirs de protection des données ne sont pas pris en charge.
 
 |===
-
-
-| Support de charge de travail - plafond | 9.0 | 9.1 | 9.2 | 9.3 | 9.4 et versions ultérieures | 9.8 et versions ultérieures 
+| Support de charge de travail - plafond | ONTAP 9.0 | ONTAP 9.1 | ONTAP 9.2 | ONTAP 9.3 | ONTAP 9.4 - 9.7 | ONTAP 9.8 et versions ultérieures 
 
 
  a| 
@@ -322,7 +332,7 @@ oui
 oui
 
 |===
-*Depuis ONTAP 9.8, l'accès NFS est pris en charge dans les qtrees des volumes FlexVol et FlexGroup sur lesquels NFS est activé. Depuis la version ONTAP 9.9.1, l'accès SMB est également pris en charge dans les qtrees des volumes FlexVol et FlexGroup sur lesquels SMB est activé.
+\*à partir de ONTAP 9.8, l'accès NFS est pris en charge dans les qtrees des volumes FlexVol et FlexGroup sur lesquels NFS est activé. Depuis la version ONTAP 9.9.1, l'accès SMB est également pris en charge dans les qtrees des volumes FlexVol et FlexGroup sur lesquels SMB est activé.
 
 
 
@@ -331,115 +341,33 @@ oui
 Le tableau ci-dessous présente la prise en charge des charges de travail pour les débits par la version ONTAP 9. Les volumes root, les miroirs de partage de charge et les miroirs de protection des données ne sont pas pris en charge.
 
 |===
+| Soutien de la charge de travail - plancher | ONTAP 9.2 | ONTAP 9.3 | ONTAP 9.4 - 9.7 | ONTAP 9.8 - 9.13.0 | ONTAP 9.13.1 et versions ultérieures 
 
 
-| Soutien de la charge de travail - plancher | 9.2 | 9.3 | 9.4 et versions ultérieures | 9.8 et versions ultérieures 
+| Volumétrie | oui | oui | oui | oui | oui 
 
 
- a| 
-Volumétrie
- a| 
-oui
- a| 
-oui
- a| 
-oui
- a| 
-oui
+| Fichier | non | oui | oui | oui | oui 
 
 
-
- a| 
-Fichier
- a| 
-non
- a| 
-oui
- a| 
-oui
- a| 
-oui
+| LUN | oui | oui | oui | oui | oui 
 
 
-
- a| 
-LUN
- a| 
-oui
- a| 
-oui
- a| 
-oui
- a| 
-oui
+| SVM | non | non | non | non | oui 
 
 
-
- a| 
-SVM
- a| 
-non
- a| 
-non
- a| 
-non
- a| 
-non
+| Volume FlexGroup | non | non | oui | oui | oui 
 
 
-
- a| 
-Volume FlexGroup
- a| 
-non
- a| 
-non
- a| 
-oui
- a| 
-oui
+| qtrees * | non | non | non | oui | oui 
 
 
-
- a| 
-qtrees *
- a| 
-non
- a| 
-non
- a| 
-non
- a| 
-oui
+| Plusieurs charges de travail par groupe de règles | non | non | oui | oui | oui 
 
 
-
- a| 
-Plusieurs charges de travail par groupe de règles
- a| 
-non
- a| 
-non
- a| 
-oui
- a| 
-oui
-
-
-
- a| 
-Groupes de stratégies non partagés
- a| 
-non
- a| 
-non
- a| 
-oui
- a| 
-oui
-
+| Groupes de stratégies non partagés | non | non | oui | oui | oui 
 |===
-*Depuis ONTAP 9.8, l'accès NFS est pris en charge dans les qtrees des volumes FlexVol et FlexGroup sur lesquels NFS est activé. Depuis la version ONTAP 9.9.1, l'accès SMB est également pris en charge dans les qtrees des volumes FlexVol et FlexGroup sur lesquels SMB est activé.
+\*à partir de ONTAP 9.8, l'accès NFS est pris en charge dans les qtrees des volumes FlexVol et FlexGroup sur lesquels NFS est activé. Depuis la version ONTAP 9.9.1, l'accès SMB est également pris en charge dans les qtrees des volumes FlexVol et FlexGroup sur lesquels SMB est activé.
 
 
 
@@ -448,72 +376,28 @@ oui
 Le tableau ci-dessous présente la prise en charge des workloads pour la QoS adaptative par la version ONTAP 9. Les volumes root, les miroirs de partage de charge et les miroirs de protection des données ne sont pas pris en charge.
 
 |===
+| Prise en charge des workloads : QoS adaptative | ONTAP 9.3 | ONTAP 9.4 - 9.13.0 | ONTAP 9.13.1 et versions ultérieures 
 
 
-| Prise en charge des workloads : QoS adaptative | 9.3 | 9.4 et versions ultérieures 
+| Volumétrie | oui | oui | oui 
 
 
- a| 
-Volumétrie
- a| 
-oui
- a| 
-oui
+| Fichier | non | oui | oui 
 
 
-
- a| 
-Fichier
- a| 
-non
- a| 
-oui
+| LUN | non | oui | oui 
 
 
-
- a| 
-LUN
- a| 
-non
- a| 
-oui
+| SVM | non | non | oui 
 
 
-
- a| 
-SVM
- a| 
-non
- a| 
-non
+| Volume FlexGroup | non | oui | oui 
 
 
-
- a| 
-Volume FlexGroup
- a| 
-non
- a| 
-oui
+| Plusieurs charges de travail par groupe de règles | oui | oui | oui 
 
 
-
- a| 
-Plusieurs charges de travail par groupe de règles
- a| 
-oui
- a| 
-oui
-
-
-
- a| 
-Groupes de stratégies non partagés
- a| 
-oui
- a| 
-oui
-
+| Groupes de stratégies non partagés | oui | oui | oui 
 |===
 
 
@@ -522,9 +406,7 @@ oui
 Le tableau ci-dessous indique le nombre maximal de charges de travail et de groupes de règles par la version ONTAP 9.
 
 |===
-
-
-| Prise en charge des workloads | 9.3 et versions antérieures | 9.4 et versions ultérieures 
+| Prise en charge des workloads | ONTAP 9.3 et versions antérieures | ONTAP 9.4 et versions ultérieures 
 
 
  a| 

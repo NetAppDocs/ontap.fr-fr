@@ -1,7 +1,7 @@
 ---
 permalink: volumes/run-efficiency-operations-manual-task.html 
 sidebar: sidebar 
-keywords: starting deduplication manually, starting data compression manually, efficiency, run 
+keywords: starting deduplication manually, starting data compression manually, efficiency, run, sequential packing 
 summary: 'Vous pouvez exécuter manuellement les opérations d"efficacité sur un volume à l"aide de la commande Volume Efficiency start.' 
 ---
 = Exécutez les opérations d'efficacité manuellement
@@ -17,17 +17,44 @@ Vous pouvez exécuter manuellement les opérations d'efficacité sur un volume �
 Selon l'opération d'efficacité que vous souhaitez exécuter manuellement, vous devez avoir activé la déduplication ou la compression des données et la déduplication sur un volume.
 
 .Description de la tâche
-Si la déduplication et la compression des données sont activées sur un volume, la compression des données est exécutée initialement avant la déduplication.
+Lorsque l'efficacité du stockage sensible à la température est activée sur un volume, la déduplication est exécutée initialement, suivie de la compression des données.
 
 La déduplication est un processus d'arrière-plan qui consomme des ressources système pendant son exécution. Si les données ne sont pas modifiées fréquemment dans un volume, il est préférable d'exécuter la déduplication moins souvent. Plusieurs opérations de déduplication simultanées exécutées sur un système de stockage entraînent une consommation supérieure des ressources système.
 
 Vous pouvez exécuter jusqu'à huit opérations de déduplication ou de compression des données simultanées par nœud. Si des opérations d'efficacité supplémentaires sont planifiées, les opérations sont mises en attente.
 
+À partir de ONTAP 9.13.1, si l'efficacité du stockage sensible à la température est activée sur un volume, vous pouvez exécuter l'efficacité du volume sur les données existantes pour tirer parti de la compression séquentielle afin d'améliorer encore l'efficacité du stockage.
+
+
+
+== Exécuter l'efficacité manuellement
+
 .Étape
-. Utilisez le `volume efficiency start` commande pour démarrer l'opération d'efficacité sur un volume.
-
-
+. Démarrer l'opération d'efficacité sur un volume : `volume efficiency start`
++
 .Exemple
-La commande suivante vous permet de démarrer manuellement uniquement la déduplication ou la compression des données, suivie de la déduplication sur le volume Vola :
+La commande suivante vous permet de lancer manuellement uniquement la déduplication ou la déduplication, suivie de la compression logique et de la compression des conteneurs sur la volume Vola
 
-`volume efficiency start -vserver vs1 -volume VolA`
++
+[listing]
+----
+volume efficiency start -vserver vs1 -volume VolA
+----
+
+
+
+
+== Remballer les données existantes
+
+Pour tirer parti de la compression séquentielle des données introduite dans ONTAP 9.13.1 sur les volumes sur lesquels l'efficacité du stockage sensible à la température est activée, vous pouvez reballer les données existantes. Vous devez être en mode privilège avancé pour utiliser cette commande.
+
+.Étape
+. Définissez le niveau de privilège : `set -privilege advanced`
+. Remballer les données existantes : `volume efficiency inactive-data-compression start -vserver _vserver_name_ -volume _volume_name_ -scan-mode extended_recompression`
++
+.Exemple
+[listing]
+----
+volume efficiency inactive-data-compression start -vserver vs1 -volume vol1 -scan-mode extended_recompression
+----
+

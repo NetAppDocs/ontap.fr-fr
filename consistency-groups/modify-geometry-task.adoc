@@ -1,0 +1,126 @@
+---
+sidebar: sidebar 
+permalink: consistency-groups/modify-geometry-task.html 
+keywords: consistency group geometry, promote consistency group, demote, add consistency group 
+summary: 'Depuis la version ONTAP 9.13.1, vous pouvez modifier la géométrie de votre groupe de cohérence en perturbant les opérations d"E/S.' 
+---
+= Modifier la géométrie du groupe de cohérence
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis la version ONTAP 9.13.1, vous pouvez modifier la géométrie d'un groupe de cohérence. La modification de la géométrie d'un groupe de cohérence vous permet de modifier la configuration des groupes de cohérence enfant ou parent sans interrompre les opérations d'E/S en cours.
+
+La modification de la géométrie d'un groupe de cohérence a un impact sur les copies Snapshot existantes.
+
+
+NOTE: Vous ne pouvez pas modifier la géométrie d'un groupe de cohérence configuré avec une règle de protection à distance. Vous devez d'abord rompre la relation de protection, modifier la géométrie, puis restaurer la protection à distance.
+
+
+
+== Ajouter un nouveau groupe de cohérence enfant
+
+Depuis la version ONTAP 9.13.1, vous pouvez ajouter un nouveau groupe de cohérence enfant à un groupe de cohérence parent existant.
+
+.Avant de commencer
+* Un groupe de cohérence parent peut contenir cinq groupes de cohérence enfant au maximum. Voir xref:limits.html[limites des groupes de cohérence] pour les autres limites.
+* Vous ne pouvez pas ajouter un groupe de cohérence enfant à un seul groupe de cohérence. Vous devez d'abord <<promouvoir>> groupe de cohérence, vous pouvez ensuite ajouter un groupe de cohérence enfant.
+* Les copies Ssapshot existantes du groupe de cohérence capturé avant l'opération d'extension sont considérées comme partielles. Toute opération de restauration basée sur cette copie Snapshot reflète le groupe de cohérence au moment de la copie Snapshot.
+
+
+.Étapes
+. Sélectionnez *stockage > groupes de cohérence*.
+. Sélectionnez le groupe de cohérence parent auquel vous souhaitez ajouter un groupe de cohérence enfant.
+. En regard du nom du groupe de cohérence parent, sélectionnez **plus** puis **Ajouter un nouveau groupe de cohérence enfant**.
+. Indiquez le nom du groupe de cohérence.
+. Indiquez si vous souhaitez ajouter des volumes nouveaux ou existants.
++
+.. Si vous ajoutez des volumes existants, sélectionnez **volumes existants** puis choisissez les volumes dans le menu déroulant.
+.. Si vous ajoutez de nouveaux volumes, sélectionnez **nouveaux volumes** puis indiquez le nombre de volumes et leur taille.
+
+
+. Sélectionnez **Ajouter**.
+
+
+
+
+== Détacher un groupe de cohérence enfant
+
+Depuis la version ONTAP 9.13.1, vous pouvez supprimer un groupe de cohérence enfant de son groupe de cohérence parent et le convertir en groupe de cohérence individuel.
+
+.Avant de commencer
+* Le détachement d'un groupe de cohérence enfant entraîne l'invalidation et l'inaccessibilité des snapshots du groupe de cohérence parent. Les snapshots granulaires de volume restent valides.
+* Les copies Snapshot existantes d'un groupe de cohérence individuel restent valides.
+
+
+.Étapes
+. Sélectionnez *stockage > groupes de cohérence*.
+. Sélectionnez le groupe de cohérence parent contenant l'enfant à détacher.
+. En regard du groupe de cohérence enfant à détacher, sélectionnez **plus** puis **détacher du parent**.
+. Si vous le souhaitez, renommez le groupe de cohérence et sélectionnez un type d'application.
+. Sélectionnez **détacher**.
+
+
+
+
+== Déplacez un seul groupe de cohérence sous un groupe de cohérence parent
+
+À partir de la version ONTAP 9.13.1, vous pouvez convertir un groupe de cohérence existant en groupe de cohérence enfant. Au cours de l'opération de déplacement, vous pouvez déplacer le groupe de cohérence sous un groupe de cohérence parent existant ou créer un nouveau groupe de cohérence parent.
+
+.Avant de commencer
+* Le groupe de cohérence parent doit avoir au moins quatre enfants. Un groupe de cohérence parent peut contenir cinq groupes de cohérence enfant au maximum. Voir xref:limits.html[limites des groupes de cohérence] pour les autres limites.
+* Les copies snapshot existantes du groupe de cohérence _parent_ capturées avant cette opération seront considérées comme partielles. Toute opération de restauration basée sur l'une de ces copies Snapshot reflète le groupe de cohérence au moment précis de la copie Snapshot.
+* Les snapshots de groupes de cohérence existants d'un seul groupe de cohérence restent valides.
+
+
+.Étapes
+. Sélectionnez *stockage > groupes de cohérence*.
+. Sélectionnez le groupe de cohérence à convertir.
+. Sélectionnez **plus** puis **déplacer sous un autre groupe de cohérence**.
+. Si vous le souhaitez, indiquez un nouveau nom pour le groupe de cohérence et sélectionnez un type de composant. Par défaut, le type de composant sera autre.
+. Indiquez si vous souhaitez migrer vers un groupe de cohérence parent existant ou créer un nouveau groupe de cohérence parent :
++
+.. Pour migrer vers un groupe de cohérence parent existant, sélectionnez **groupe de cohérence existant**, puis choisissez le groupe de cohérence dans le menu déroulant.
+.. Pour créer un nouveau groupe de cohérence parent, sélectionnez **Nouveau groupe de cohérence**, puis indiquez le nom du nouveau groupe de cohérence.
+
+
+. Sélectionnez **déplacer**.
+
+
+
+
+== Promouvoir un groupe de cohérence enfant
+
+À partir de la version ONTAP 9.13.1, vous pouvez promouvoir un groupe de cohérence unique en tant que groupe de cohérence parent. Lorsque vous promouvez le groupe de cohérence unique en parent, vous créez également un nouveau groupe de cohérence enfant qui hérite de tous les volumes du groupe de cohérence unique d'origine.
+
+.Avant de commencer
+* Pour convertir un groupe de cohérence enfant en groupe de cohérence parent, vous devez d'abord le faire <<detach>> le groupe de cohérence enfant doit ensuite suivre la procédure suivante.
+* Une fois le groupe de cohérence mis en avant, les copies Snapshot existantes du groupe de cohérence restent valides.
+
+
+.Étapes
+. Sélectionnez *stockage > groupes de cohérence*.
+. Sélectionnez le groupe de cohérence à promouvoir.
+. Sélectionnez **plus** puis **promouvoir en groupe de cohérence parent**.
+. Entrez un **Nom** et sélectionnez un **Type de composant** pour le groupe de cohérence enfant.
+. Sélectionnez **promouvoir**.
+
+
+
+
+== Rétrograder un parent en un seul groupe de cohérence
+
+Depuis la version ONTAP 9.13.1, vous pouvez rétrograder un groupe de cohérence parent en un seul groupe de cohérence. La rétrogradation du parent aplatit la hiérarchie du groupe de cohérence, supprimant tous les groupes de cohérence enfants associés. Tous les volumes du groupe de cohérence restent dans le nouveau groupe de cohérence unique.
+
+.Avant de commencer
+* Les copies Snapshot existantes du groupe de cohérence parent restent valides après la rétrogradation vers une cohérence unique. Les copies Snapshot existantes de l'un des groupes de cohérence enfant associés de ce parent deviennent non valides, mais les snapshots de volumes individuels continuent d'être accessibles sous forme de copies Snapshot granulaires de volumes.
+
+
+.Étapes
+. Sélectionnez *stockage > groupes de cohérence*.
+. Sélectionnez le groupe de cohérence parent à rétrograder.
+. Sélectionnez **plus** puis **Rétrograder à un seul groupe de cohérence**.
+. Un avertissement vous informe que tous les groupes de cohérence enfants associés seront supprimés et que leurs volumes seront déplacés dans le nouveau groupe de cohérence unique. Sélectionnez **Rétrograder** pour confirmer que vous comprenez l'impact.
+

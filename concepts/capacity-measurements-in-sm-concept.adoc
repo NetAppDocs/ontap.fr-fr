@@ -2,14 +2,14 @@
 sidebar: sidebar 
 permalink: concepts/capacity-measurements-in-sm-concept.html 
 keywords: capacity, measurement, physical, logical, storage, used storage, local tier capacity, aggregate capacity, block, capacity concern, add capacity, volume, used capacity, available capacity, total capacity, inactive capacity, static insights, dynamic insights, snapshot copy, snapshot copies, inactive data, overprovision, overflows, snapshot copy policy, snapshot copy reserves, reserves, policy, top volumes 
-summary: La capacité du système peut être mesurée en espace physique ou en espace logique. Les versions récentes de System Manager utilisent des mesures de la capacité physique et logique. 
+summary: 'La capacité du système peut être mesurée soit en tant qu"espace physique, soit en tant qu"espace logique. Depuis ONTAP 9.7, System Manager mesure la capacité physique et logique.' 
 ---
 = Mesures de la capacité dans System Manager
 :allow-uri-read: 
 
 
 [role="lead"]
-La capacité du système peut être mesurée en espace physique ou en espace logique. Les versions récentes de System Manager utilisent des mesures de la capacité physique et logique.
+La capacité du système peut être mesurée soit en tant qu'espace physique, soit en tant qu'espace logique. Depuis ONTAP 9.7, System Manager mesure la capacité physique et logique.
 
 Les différences entre les deux mesures sont expliquées dans les descriptions suivantes :
 
@@ -19,13 +19,6 @@ Les différences entre les deux mesures sont expliquées dans les descriptions s
 
 
 NOTE: Dans System Manager, les représentations de capacité ne prennent pas en compte les capacités du niveau de stockage racine (agrégat).
-
-<<measurements-used-cap>>
-<<cap-measurement-terms>>
-<<cap-measurement-units>>
-
-.Informations supplémentaires
-Vous pouvez surveiller la capacité d'un cluster, ainsi que ses niveaux locaux et ses volumes dans System Manager. Reportez-vous à la section link:../task_admin_monitor_capacity_in_sm.html["Contrôle de la capacité dans System Manager"].
 
 
 
@@ -72,7 +65,9 @@ Espace logique utilisé (si les paramètres d'efficacité du stockage ont été 
 
 Les termes suivants sont utilisés pour décrire la capacité :
 
-* *Disponible* : quantité d'espace physique disponible dans un niveau local qui peut être utilisé pour provisionner des volumes.
+* *Capacité allouée* : quantité d'espace allouée aux volumes d'une machine virtuelle de stockage.
+* *Disponible* : quantité d'espace physique disponible pour stocker des données ou provisionner des volumes dans une machine virtuelle de stockage ou sur un niveau local.
+* *Capacité sur les volumes* : somme du stockage utilisé et du stockage disponible de tous les volumes sur une machine virtuelle de stockage.
 * *Données client* : espace utilisé par les données client (physique ou logique).
 * *Validé* : le montant de la capacité engagée pour un niveau local.
 * *Réduction des données* :
@@ -83,11 +78,34 @@ Les termes suivants sont utilisés pour décrire la capacité :
 
 * *Logical Used* : quantité d'espace utilisé sans tenir compte de l'espace économisé par les fonctions d'efficacité du stockage.
 * *Logical Used %* : pourcentage de la capacité logique utilisée actuelle par rapport à la taille provisionnée, à l'exclusion des réserves snapshot. Cette valeur peut être supérieure à 100 %, grâce aux économies en termes d'efficacité réalisées dans le volume.
+* *Capacité maximale* : quantité maximale d'espace allouée aux volumes sur une machine virtuelle de stockage.
 * *Physical Used*: La capacité utilisée dans les blocs physiques d'un volume ou d'un niveau local.
 * *Physical Used %* : pourcentage de capacité utilisée dans les blocs physiques d'un volume par rapport à la taille provisionnée.
 * *Réservé* : espace réservé pour les volumes déjà provisionnés dans un niveau local.
+* *Utilisé*: La quantité d'espace qui contient des données.
 * *Utilisé et réservé* : somme de l'espace physique utilisé et réservé.
 
+
+
+
+== Capacité d'une VM de stockage
+
+La capacité maximale d'une machine virtuelle de stockage est déterminée par l'espace total alloué aux volumes plus l'espace restant non alloué.
+
+* L'espace alloué aux volumes correspond à la somme de la capacité utilisée et de la capacité disponible des volumes FlexVol, des volumes FlexGroup et des volumes FlexCache.
+* La capacité des volumes est incluse dans les sommes, même lorsqu'elles sont restreintes, hors ligne ou dans la file d'attente de restauration après suppression.
+* Si les volumes sont configurés avec l'extension automatique, la valeur de taille automatique maximale du volume est utilisée dans les sommes. Sans croissance automatique, la capacité réelle du volume est utilisée dans les sommes.
+
+
+Le tableau suivant explique comment la mesure de la capacité sur l'ensemble des volumes est liée à la limite de capacité maximale.
+
+image:max-cap-limit-cap-x-volumes.gif["La limite de capacité maximale comprend l'espace alloué et l'espace disponible, et la capacité entre les volumes n'occupe que l'espace alloué."]
+
+À partir de ONTAP 9.13.1, les administrateurs du cluster peuvent link:../manage-max-cap-limit-svm-in-sm-task.html["Limite de capacité maximale pour une VM de stockage"]. Toutefois, il est impossible de définir des limites de stockage pour une VM de stockage qui contient des volumes destinés à la protection des données, dans une relation SnapMirror ou dans une configuration MetroCluster. De même, les quotas ne peuvent pas être configurés pour dépasser la capacité maximale d'une machine virtuelle de stockage.
+
+Une fois la limite de capacité maximale définie, elle ne peut pas être modifiée pour obtenir une taille inférieure à la capacité actuellement allouée.
+
+Lorsqu'une machine virtuelle de stockage atteint sa capacité maximale, certaines opérations ne peuvent pas être effectuées. System Manager fournit des suggestions pour les étapes suivantes de link:../insights-system-optimization-task.html["*Aperçus*"].
 
 
 
@@ -156,8 +174,10 @@ Pio
  a| 
 1024 * 1024 * 1024 * 1024 * 1024
  a| 
-1,125,898,010,834,824 octets
+1,125,899,906,842,624 octets
 
 |===
-.Informations supplémentaires :
+.Informations associées
+link:../task_admin_monitor_capacity_in_sm.html["Contrôle de la capacité dans System Manager"]
+
 link:../volumes/logical-space-reporting-enforcement-concept.html["Création de rapports sur l'espace logique et application des volumes"]

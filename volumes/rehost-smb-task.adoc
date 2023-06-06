@@ -1,10 +1,10 @@
 ---
 permalink: volumes/rehost-smb-task.html 
 sidebar: sidebar 
-keywords: rehost, cifs volumes 
+keywords: rehost, cifs volumes, smb 
 summary: Vous pouvez réhébergement de volumes qui traitent des données via le protocole SMB. Après avoir réhébergement du volume CIFS, pour continuer à accéder aux données sur le protocole SMB, vous devez configurer manuellement les règles et les règles associées. 
 ---
-= Réhébergement de volumes CIFS
+= Réhébergement des volumes SMB
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -13,25 +13,16 @@ summary: Vous pouvez réhébergement de volumes qui traitent des données via le
 [role="lead"]
 Vous pouvez réhébergement de volumes qui traitent des données via le protocole SMB. Après avoir réhébergement du volume CIFS, pour continuer à accéder aux données sur le protocole SMB, vous devez configurer manuellement les règles et les règles associées.
 
-.Ce dont vous avez besoin
-* Le volume doit être en ligne.
-* Les opérations de gestion de volumes, telles que le déplacement de volumes ou de LUN, ne doivent pas être en cours d'exécution.
-* L'accès aux données au volume qui est réhébergé doit être arrêté.
-* La configuration des services de nom et de commutateur ns-switch du SVM cible doit être configurée pour prendre en charge l'accès aux données du volume de réhébergement.
-* Le SVM source et le SVM de destination doivent avoir le même domaine Active Directory et realmDNS.
-* L'ID utilisateur et l'ID groupe du volume doivent être disponibles dans le SVM cible ou modifiés sur le volume d'hébergement.
-+
-[NOTE]
-====
-Si des utilisateurs et des groupes locaux sont configurés et si des fichiers et des répertoires sont présents sur ce volume avec des autorisations définies pour ces utilisateurs ou groupes, ces autorisations ne sont plus effectives.
-
-====
-
-
 .Description de la tâche
 * Le réhébergement représente aussi une opération disruptive.
 * En cas d'échec de l'opération de réhébergement, vous devrez peut-être reconfigurer les stratégies de volume et les règles associées sur le volume source.
 * Si les domaines Active Directory du SVM source et du SVM cible sont différents, il est possible que l'accès aux objets du volume soit perdu.
+* À partir de ONTAP 9.8, le réhébergement d'un volume avec NetApp Volume Encryption (NVE) est pris en charge. Si vous utilisez un gestionnaire de clés intégré, les métadonnées chiffrées seront modifiées lors de l'opération de réhébergement. Les données utilisateur ne sont pas modifiées.
++
+Si vous utilisez ONTAP 9.8 ou une version antérieure, vous devez annuler le chiffrement du volume avant d'effectuer l'opération de réhébergement.
+
+
+
 * Lorsque le SVM source possède des utilisateurs et des groupes locaux, les autorisations pour les fichiers et répertoires (ACL) définis ne sont plus effectives après l'opération de réhébergement de volume.
 +
 Il en va de même pour les listes de contrôle d'accès d'audit (CLS)
@@ -50,6 +41,19 @@ Il en va de même pour les listes de contrôle d'accès d'audit (CLS)
 
 
 
+.Avant de commencer
+* Le volume doit être en ligne.
+* Les opérations de gestion de volumes, telles que le déplacement de volumes ou de LUN, ne doivent pas être en cours d'exécution.
+* L'accès aux données au volume qui est réhébergé doit être arrêté.
+* La configuration des services de nom et de commutateur ns-switch du SVM cible doit être configurée pour prendre en charge l'accès aux données du volume de réhébergement.
+* Le SVM source et le SVM de destination doivent avoir le même domaine Active Directory et realmDNS.
+* L'ID utilisateur et l'ID groupe du volume doivent être disponibles dans le SVM cible ou modifiés sur le volume d'hébergement.
++
+
+NOTE: Si des utilisateurs et des groupes locaux sont configurés et si des fichiers et des répertoires sont présents sur ce volume avec des autorisations définies pour ces utilisateurs ou groupes, ces autorisations ne sont plus effectives.
+
+
+
 .Étapes
 . Enregistrez des informations sur les partages CIFS pour éviter de perdre des informations sur les partages CIFS en cas d'échec de l'opération de réhébergement de volume.
 . Démontez le volume du volume parent :
@@ -62,7 +66,7 @@ Il en va de même pour les listes de contrôle d'accès d'audit (CLS)
 
 . Réhébergement « volume » sur le SVM de destination :
 +
-`volume rehost -vserver source_svm -volume vol_name -destination-vserver destination_svm`
+`volume rehost -vserver _source_svm_ -volume _vol_name_ -destination-vserver _destination_svm_`
 
 . Monter le volume sous la Junction path appropriée dans le SVM de destination :
 +

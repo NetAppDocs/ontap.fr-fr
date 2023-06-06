@@ -13,7 +13,28 @@ summary: 'Vous pouvez réhéberger les volumes ayant des LUN mappées. Une fois 
 [role="lead"]
 Vous pouvez réhéberger les volumes ayant des LUN mappées. Une fois le groupe initiateur (igroup) créé sur le SVM de destination, le nouvel hôte de volume peut automatiquement remappage le volume sur la même SVM.
 
-.Ce dont vous avez besoin
+.Description de la tâche
+* Le réhébergement représente aussi une opération disruptive.
+* En cas d'échec de l'opération de réhébergement, vous devrez peut-être reconfigurer les stratégies de volume et les règles associées sur le volume source.
+* À partir de ONTAP 9.8, le réhébergement d'un volume avec NetApp Volume Encryption (NVE) est pris en charge. Si vous utilisez un gestionnaire de clés intégré, les métadonnées chiffrées seront modifiées lors de l'opération de réhébergement. Les données utilisateur ne sont pas modifiées.
++
+Si vous utilisez ONTAP 9.8 ou une version antérieure, vous devez annuler le chiffrement du volume avant d'effectuer l'opération de réhébergement.
+
+
+
+* Une fois le réhébergement, les règles, règles et configurations de volume suivantes perdues du volume source et doivent être reconfigurées manuellement sur le volume hébergé :
++
+** Politiques antivirus
+** Règle d'efficacité du volume
+** Règles de qualité de services
+** Règles relatives aux snapshots
+** règle et règles d'exportation de la configuration des services de noms et de commutateur ns
+** ID d'utilisateur et de groupe
+
+
+
+
+.Avant de commencer
 * Le volume doit être en ligne.
 * Les opérations de gestion de volumes, telles que les déplacements de volumes ou de LUN, ne doivent pas être en cours d'exécution.
 * Aucune E/S active ne doit être constatée sur les volumes ou les LUN.
@@ -29,25 +50,10 @@ Si le groupe initiateur porte le même nom, vous devez l'avoir renommé dans l'u
 
 
 
-.Description de la tâche
-* Le réhébergement représente aussi une opération disruptive.
-* En cas d'échec de l'opération de réhébergement, vous devrez peut-être reconfigurer les stratégies de volume et les règles associées sur le volume source.
-* Une fois le réhébergement, les règles, règles et configurations de volume suivantes perdues du volume source et doivent être reconfigurées manuellement sur le volume hébergé :
-+
-** Politiques antivirus
-** Règle d'efficacité du volume
-** Règles de qualité de services
-** Règles relatives aux snapshots
-** règle et règles d'exportation de la configuration des services de noms et de commutateur ns
-** ID d'utilisateur et de groupe
-
-
-
-
 .Étapes
 . Enregistrer les informations de mappage de LUN sur le volume cible :
 +
-`lun mapping show–volume volume to be rehosted-vserver source vserver`
+`lun mapping show volume _volume_ vserver _source_svm_`
 
 +
 Cette étape de précaution permet d'éviter de perdre des informations sur le mappage de LUN en cas de défaillance du réhébergement de volume.
@@ -55,7 +61,7 @@ Cette étape de précaution permet d'éviter de perdre des informations sur le m
 . Supprimez les igroups associés avec le volume cible.
 . Réhébergement le volume cible auprès du SVM de destination :
 +
-`volume rehost -vserver source_svm -volume vol_name -destination-vserver destination_svm`
+`volume rehost -vserver _source_svm_ -volume _volume_name_ -destination-vserver _destination_svm_`
 
 . Mapper les LUN sur le volume cible sur les igroups appropriés.
 +

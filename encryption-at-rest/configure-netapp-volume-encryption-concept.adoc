@@ -17,7 +17,7 @@ NetApp Volume Encryption (NVE) est une technologie logicielle de chiffrement des
 
 == Présentation de NVE
 
-Les données, y compris les copies Snapshot, et les métadonnées sont chiffrées. L'accès aux données est donné par une clé XTS-AES-256 unique, une par volume. Un serveur de gestion externe des clés ou un gestionnaire de clés intégré sert des clés aux nœuds :
+Avec NVE, les métadonnées et les données (y compris les copies Snapshot) sont chiffrées. L'accès aux données est donné par une clé XTS-AES-256 unique, une par volume. Un serveur de gestion externe des clés ou un gestionnaire de clés intégré (OKM) sert les clés pour les nœuds :
 
 * Le serveur externe de gestion des clés est un système tiers de votre environnement de stockage qui transmet des clés aux nœuds à l'aide du protocole KMIP (Key Management Interoperability Protocol). Il est recommandé de configurer des serveurs de gestion externe des clés sur un système de stockage différent de vos données.
 * Le gestionnaire de clés intégré est un outil intégré qui sert des clés aux nœuds du même système de stockage que vos données.
@@ -27,18 +27,14 @@ Depuis ONTAP 9.7, le chiffrement d'agrégat et de volume est activé par défaut
 
 Vous pouvez activer le chiffrement sur un volume nouveau ou existant. NVE prend en charge la gamme complète de fonctionnalités d'efficacité du stockage, notamment la déduplication et la compression.
 
-[NOTE]
-====
-Si vous utilisez SnapLock, vous pouvez activer le chiffrement uniquement sur les nouveaux volumes SnapLock vides. Vous ne pouvez pas activer le chiffrement sur un volume SnapLock existant.
 
-====
+NOTE: Si vous utilisez SnapLock, vous pouvez activer le chiffrement uniquement sur les nouveaux volumes SnapLock vides. Vous ne pouvez pas activer le chiffrement sur un volume SnapLock existant.
+
 Vous pouvez utiliser NVE sur n'importe quel type d'agrégat (HDD, SSD, hybride, LUN de baie), avec n'importe quel type RAID et dans n'importe quelle implémentation ONTAP prise en charge, y compris ONTAP Select. Vous pouvez également utiliser NVE avec le chiffrement matériel pour « chiffrer » les données sur des disques à autochiffrement.
 
-[NOTE]
-====
-AFF A220, AFF A800, FAS2720, FAS2750 et versions ultérieures stockent les core dumps sur leur périphérique de démarrage. Lorsque NVE est activé sur ces systèmes, le « core dump » est également chiffré.
 
-====
+NOTE: AFF A220, AFF A800, FAS2720, FAS2750 et versions ultérieures stockent les core dumps sur leur périphérique de démarrage. Lorsque NVE est activé sur ces systèmes, le « core dump » est également chiffré.
+
 
 
 == Chiffrement d'agrégat
@@ -175,14 +171,16 @@ Depuis ONTAP 9.6, NVE prend en charge le périmètre des SVM pour la gestion ext
  a| 
 Efficacité du stockage
  a| 
-Déduplication, compression, compaction, FlexClone. Les clones utilisent la même clé que le parent, même après le fractionnement du clone. Vous êtes averti de ressaisir le clone fractionné.
+Déduplication, compression, compaction, FlexClone.
+
+Les clones utilisent la même clé que le parent, même après le fractionnement du clone. Vous devez effectuer une `volume move` sur un clone divisé, après quoi le clone divisé aura une clé différente.
 
 
 
  a| 
 La réplication
  a| 
-* Pour la réplication de volume, le volume de destination doit avoir été activé pour le chiffrement. Le chiffrement peut être configuré pour la source et non configuré pour la destination, et inversement.
+* Pour la réplication de volume, les volumes source et de destination peuvent avoir des paramètres de chiffrement différents. Le chiffrement peut être configuré pour la source et non configuré pour la destination, et inversement.
 * Pour la réplication SVM, le volume de destination est automatiquement chiffré, sauf si le nœud de destination ne contient pas de nœud qui prend en charge le chiffrement de volume, dans ce cas la réplication réussit, mais le volume de destination n'est pas chiffré.
 * Dans le cas de configurations MetroCluster, chaque cluster extrait les clés de gestion externes des serveurs de clés configurés. Les clés OKM sont répliquées vers le site partenaire par le service de réplication de la configuration.
 

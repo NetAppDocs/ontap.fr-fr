@@ -11,70 +11,103 @@ summary: 'La prise en charge de NVMe varie en fonction de votre version d"ONTAP,
 
 
 [role="lead"]
-Le support et les limites de la technologie NVMe varient en fonction de la version ONTAP, de la plateforme et de votre configuration.
+Les limites et la prise en charge de NVMe varient en fonction de votre version d'ONTAP, de votre plateforme et de votre configuration. Pour plus de détails sur votre configuration spécifique, reportez-vous au link:https://imt.netapp.com/matrix/["Matrice d'interopérabilité NetApp"].
 
-
-
-== Protocoles pris en charge
+Protocoles pris en charge
 
 [cols="3*"]
 |===
 
 
-| Protocole | À partir de ... | Autorisé par... 
+| Protocole | Depuis ONTAP... | Autorisé par... 
 
 
-| TCP | ONTAP 9.10.1 | Valeur par défaut 
+| TCP | 9.10.1 | Valeur par défaut 
 
 
-| FC | ONTAP 9.4 | Valeur par défaut 
+| FC | 9.4 | Valeur par défaut 
 |===
+À partir de la version ONTAP 9.8, vous pouvez configurer les protocoles SCSI, NAS et NVMe sur la même machine virtuelle de stockage (SVM).
+Dans ONTAP 9.7 et les versions antérieures, NVMe est le seul protocole du SVM.
+
 
 
 == Limites et prise en charge de la plateforme et de la configuration
 
-La prise en charge du protocole NVMe-of varie selon la plateforme et la configuration. Pour plus de détails sur votre configuration spécifique, reportez-vous au link:https://imt.netapp.com/matrix/["Matrice d'interopérabilité NetApp"].
+Les protocoles NVMe/FC et NVMe/TCP sont pris en charge comme suit.  NVME/FC est pris en charge sur les plateformes répertoriées ci-dessous uniquement avec des HBA FC 32 Gb.
 
-
-NOTE: Depuis la version ONTAP 9.12.1, les configurations IP MetroCluster à 4 nœuds sont prises en charge sur NVMe/FC. Les configurations MetroCluster ne sont pas prises en charge pour NVMe avant la version 9.12.1.
-
-[cols="2*"]
+[cols="3*"]
 |===
 
 
-| Depuis ONTAP... | Plateformes 
+| Depuis ONTAP... | Plateformes | Nombre max. De nœuds par cluster 
 
 
 | 9.12.1  a| 
-* FAS
-* FAS 100 % Flash (AFF)
-* Toutes les plateformes de baies SAN (ASA)
+* AFF
+* ASA
+* Série C.
+
+| 12 
 
 
+| 9.10.1  a| 
+* AFF
+* ASA
+
+| 4 
 
 
 | 9.9.1  a| 
 * AFF
 * ASA
 
+| 4 
 
 
-
-| 9.4 | Les plateformes AFF uniquement 
+| 9.4 | AFF uniquement | 4 
 |===
+
+
+== Configurations MetroCluster
+
+Depuis la version ONTAP 9.12.1, les configurations IP MetroCluster à 4 nœuds sont prises en charge sur NVMe/FC. Les configurations MetroCluster ne sont pas prises en charge pour NVMe avant la version 9.12.1.
+
 
 
 == Limites et prise en charge de l'espace de noms
 
-Pour mettre en place le protocole NVMe dans votre environnement SAN, vous devez configurer un SVM pour NVMe, créer des espaces de noms et des sous-systèmes, configurer une LIF NVMe/FC, puis mapper les espaces de noms aux sous-systèmes. Lors de l'utilisation d'espaces de noms NVMe, vous devez connaître les éléments suivants :
+La prise en charge de l'espace de noms NVMe varie en fonction de votre version d'ONTAP.
 
-* Avec ONTAP 9.10.1, c'est possible xref:../nvme/resize-namespace-task.html[redimensionner un espace de noms]. Le redimensionnement d'un espace de noms n'est pas pris en charge dans les versions antérieures à ONTAP 9.10.1.
-* Depuis ONTAP 9.6, les espaces de noms prennent en charge des blocs de 512 octets et des blocs de 4096 octets.
+[cols="2*"]
+|===
+
+
+| Depuis ONTAP... | Prise en charge des namespaces NVMe... 
+
+
+| 9.10.1 | xref:../nvme/resize-namespace-task.html[Redimensionnement]
+
+Le redimensionnement d'un espace de noms n'est pas pris en charge dans les versions antérieures à ONTAP 9.10.1. 
+
+
+| 9.8 | Les LUN et les espaces de noms peuvent être combinés sur le même volume. 
+
+
+| 9.6  a| 
+* blocs de 512 octets et blocs de 4096 octets
 +
 4096 est la valeur par défaut. 512 ne doit être utilisé que si le système d'exploitation hôte ne prend pas en charge les blocs de 4096 octets.
 
+* Déplacement de volumes avec espaces de noms mappés
+
+
+|===
+En outre, lorsque vous utilisez des espaces de noms NVMe, vous devez connaître les points suivants :
+
 * Si vous perdez des données dans une LUN, celle-ci ne peut pas être restaurée à partir d'un namespace, ou inversement.
 * La garantie d'espace pour les espaces de noms est identique à la garantie d'espace du volume contenant.
+* Vous ne pouvez pas créer d'espace de noms sur une transition de volume à partir d'Data ONTAP 7-mode.
 * Les espaces de noms ne prennent pas en charge les éléments suivants :
 +
 ** Nouvelles appellations
@@ -83,6 +116,36 @@ Vous ne pouvez pas renommer un espace de noms.
 
 ** Déplacement inter-volume
 ** Copie inter-volume
+** Copie à la demande
 
 
 
+
+
+
+== Basculement/rétablissement d'une paire haute disponibilité multivoie
+
+Depuis la version ONTAP 9.5, NVMe prend en charge le basculement/rétablissement de paires haute disponibilité multivoie.
+
+
+
+== Restrictions supplémentaires
+
+* Les configurations NVMe ne prennent pas en charge les fonctionnalités d'ONTAP suivantes :
++
+** Synchrone
+** Virtual Storage Console
+
+
+* Les éléments suivants s'appliquent uniquement aux nœuds exécutant ONTAP 9.4 :
++
+** Les LIFs et namespaces NVMe doivent être hébergés sur le même nœud.
+** Le service NVMe doit être créé avant la création du LIF NVMe.
+
+
+
+
+Voir la https://hwu.netapp.com["NetApp Hardware Universe"^] Pour obtenir la liste complète des limites NVMe.
+
+.Informations associées
+link:https://www.netapp.com/pdf.html?item=/media/10680-tr4080.pdf["Bonnes pratiques pour le SAN moderne"]

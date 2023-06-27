@@ -1,0 +1,61 @@
+---
+permalink: volumes/storage-efficiency-behavior-snapmirror-reference.html 
+sidebar: sidebar 
+keywords: storage, efficiency, temperature, change, efficient, snapmirror, volume, move 
+summary: 'L"efficacité du stockage est appliquée à un volume lors d"un déplacement de volume ou d"une opération SnapMirror et ce qui se passe après l"activation manuelle de l"efficacité du stockage sensible à la température dépend du type d"efficacité du volume source.' 
+---
+= Efficacité du stockage avec déplacement de volumes et opérations SnapMirror
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le comportement de l'efficacité du stockage sur un volume lorsque vous déplacez un volume ou procédez à une opération SnapMirror et ce qui se passe lorsque vous effectuez une interruption SnapMirror et activez manuellement l'efficacité du stockage sensible à la température dépend du type d'efficacité sur le volume source.
+
+Le tableau suivant décrit le comportement d'un volume source et d'un volume de destination lorsque vous effectuez un déplacement de volume ou une opération SnapMirror avec différents types d'efficacité de stockage, ainsi que le comportement lorsque vous activez manuellement l'efficacité de stockage sensible à la température (TSSE).
+
+[cols="1,1,1,2,1,1,2"]
+|===
+
+
+| Efficacité du volume source 3+| Comportement par défaut du volume de destination 3+| Comportement par défaut après activation manuelle de TSSE (après coupure SnapMirror) 
+
+
+|  | *Type d'efficacité du stockage* | *Nouvelles écritures* | *Compression de données à froid* | *Type d'efficacité du stockage* | *Nouvelles écritures* | *Compression de données à froid* 
+
+
+| Aucune efficacité du stockage (probablement FAS) | Compression de fichiers | Une tentative de compression de fichier est effectuée à la volée sur les données nouvellement écrites | Pas de compression des données inactives. Les données restent telles qu'elles sont | TSSE avec algorithme d'acquisition de données inactives comme ZSTD | Tentative de compression en ligne 8k au format TSSE | *Fichier données compressées*: N/A
+   +
+   *Données non compressées* : tentative de compression de 32 K après la période de jours seuil atteinte
+   +
+   *Données nouvellement écrites* : tentative de compression de 32 K après la période de seuil 
+
+
+| Aucune efficacité du stockage (probablement FAS) | Compression de fichiers sur les plates-formes C-Series utilisant ONTAP 9.11.1P10 ou ONTAP 9.12.1P3 | Pas de compression de données inactives compatible TSSE | *Fichier données compressées*: N/A | TSSE avec algorithme d'acquisition de données inactives comme ZSTD | Compression à la volée de 8 Ko | *Fichier données compressées*: N/A
+   +
+   *Données non compressées* : tentative de compression de 32 K après la période de jours seuil atteinte
+   +
+   *Données nouvellement écrites* : tentative de compression de 32 K après la période de seuil 
+
+
+| Aucune efficacité du stockage (probablement FAS) | TSSE sur les plates-formes de la série C utilisant ONTAP 9.12.1P4 et versions ultérieures ou ONTAP 9.13.1 et versions ultérieures | Tentative de compression en ligne 8K au format TSSE | *Fichier données compressées*: N/A
+   +
+   *Données non compressées* : tentative de compression de 32 K après la période de jours seuil atteinte
+   +
+   *Données nouvellement écrites* : tentative de compression de 32 K après la période de seuil | TSSE avec algorithme d'acquisition de données inactives comme ZSTD | Tentative de compression en ligne 8K au format TSSE | *Fichier données compressées*: N/A
+   +
+   *Données non compressées* : tentative de compression de 32 K après la période de jours seuil atteinte
+   +
+   *Données nouvellement écrites* : tentative de compression de 32 K après la période de seuil 
+
+
+| Groupe de compression de fichiers | Identique à la source | Une tentative de compression de fichier est effectuée à la volée sur les données nouvellement écrites | Pas de compression des données inactives. Les données restent telles qu'elles sont | TSSE avec algorithme d'acquisition de données inactives comme ZSTD | Tentative de compression en ligne 8k au format TSSE | *Fichier données compressées* : non compressées
+  +
+  *Données non compressées* : la compression de 32 K est tentée après la période de jours de seuil atteinte
+  +
+  *Données nouvellement écrites* : la compression de 32 K est tentée après le nombre de jours de seuil atteint 
+
+
+| Analyse des données inactives TSSE | TSSE utilisant le même algorithme de compression que le volume source (LZOPro->LZOPro et ZSTD->ZSTD) | Tentative de compression en ligne de 8 Ko au format TSSE | Tentative de compression de 32 K avec LzoPro après la période de froid basée sur le seuil est atteinte sur les données existantes et les données nouvellement écrites. | TSSE est activé. REMARQUE : l'algorithme d'acquisition de données inactives LZOPro peut être remplacé par ZSTD. | Tentative de compression en ligne 8K au format TSSE | Une tentative de compression de 32 K est effectuée après la période de froid des jours de seuil atteinte pour les données existantes et les données nouvellement écrites. 
+|===

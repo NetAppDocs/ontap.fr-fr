@@ -1,46 +1,79 @@
 ---
 permalink: upgrade/concept_mixed_version_requirements.html 
 sidebar: sidebar 
-keywords: ontap, upgrade, mixed, version, requirements 
-summary: 'Depuis ONTAP 9.3, par défaut, vous ne pouvez pas ajouter de nouveaux nœuds au cluster qui exécutent une version de ONTAP différente de celle qui s"exécute sur les nœuds existants.' 
+keywords: ontap, upgrade, mixed, version, clusters, mixed-version nodes, requirements 
+summary: Un cluster ONTAP à version mixte se compose de nœuds exécutant deux versions principales de ONTAP différentes, telles que ONTAP 9.8 et 9.12.1. Les clusters ONTAP à versions mixtes sont uniquement pris en charge par NetApp dans des scénarios spécifiques. 
 ---
-= Version requise mixte
+= Clusters ONTAP à version mixte
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Depuis ONTAP 9.3, par défaut, vous ne pouvez pas ajouter de nouveaux nœuds au cluster qui exécutent une version de ONTAP différente de celle qui s'exécute sur les nœuds existants.
+Un cluster ONTAP à version mixte se compose de nœuds exécutant deux versions principales de ONTAP différentes, telles que ONTAP 9.8 et 9.12.1, ou ONTAP 9.9.1 et 9.13.1. Les clusters ONTAP à versions mixtes sont uniquement pris en charge par NetApp dans des scénarios spécifiques.
 
-Si vous prévoyez d'ajouter de nouveaux nœuds à votre cluster qui exécutent une version de ONTAP ultérieure aux nœuds de votre cluster existant, vous devez d'abord mettre à niveau les nœuds de votre cluster vers la version ultérieure, puis ajouter ces nouveaux nœuds.
+Les deux scénarios les plus courants sont :
 
-Les clusters à version mixte ne sont pas recommandés, mais dans certains cas, vous devrez peut-être temporairement indiquer un état de version mixte. Par exemple, vous devez indiquer un état de version mixte si vous mettez à niveau vers une version ultérieure d'ONTAP qui n'est pas prise en charge sur certains nœuds du cluster existant. Dans ce cas, vous devez mettre à niveau les nœuds qui prennent en charge la version ultérieure de ONTAP, puis supprimer les nœuds qui ne prennent pas en charge la version de ONTAP vers laquelle vous effectuez la mise à niveau à l'aide de la commande suivante :
+* Mises à niveau logicielles ONTAP dans les clusters de grande taille
+* Des mises à niveau logicielles ONTAP sont nécessaires lorsque vous prévoyez d'ajouter de nouveaux contrôleurs à un cluster
 
-[cols="2"]
+
+Ce contenu s'applique aux versions ONTAP qui prennent en charge les systèmes de plateformes NetApp, tels que les systèmes AFF, ASA, FAS et C-series.  Les informations contenues dans ce document ne s'appliquent pas aux versions cloud de ONTAP (9.x.0) telles que 9.12.0.
+
+
+
+== Conditions requises pour les clusters ONTAP à versions mixtes
+
+Dans tous les cas où votre cluster doit entrer un état de version mixte de ONTAP, vous devez connaître les exigences et restrictions importantes.
+
+* Un cluster ne peut pas contenir plus de deux versions principales de ONTAP différentes. Les clusters dont les nœuds fonctionnent avec différents niveaux de patch P ou D de la même version ONTAP, tels que ONTAP 9.9.1P1 et 9.9.1P5, ne sont pas considérés comme des clusters ONTAP de version mixte.
+* Le cluster étant dans un état de version mixte, vous ne devez pas saisir de commandes pour modifier le fonctionnement ou la configuration du cluster, sauf si nécessaire pour répondre aux exigences de mise à niveau. Pour faciliter les activités de mise à niveau du contrôleur, les opérations de déplacement des volumes sont prises en charge dans un cluster ONTAP à version mixte.
+* Pour un fonctionnement optimal du cluster, la durée pendant laquelle celui-ci se trouve dans un état à version mixte doit être aussi courte que possible.  La durée maximale pendant laquelle un cluster peut rester dans un état de version mixte dépend de la version ONTAP la plus faible du cluster.
++
+[cols="2*"]
 |===
-| Version ONTAP | Commande 
+| Si la version la plus basse de ONTAP s'exécutant dans le cluster de version mixte est : | Vous pouvez alors rester dans un état de version mixte pendant un maximum de 
 
 
- a| 
-ONTAP 9.3
- a| 
-`cluster unjoin -skip-last-low-version-node-check`
+| ONTAP 9.8 ou supérieur | 90 jours 
 
 
-
- a| 
-ONATP 9.4 et versions ultérieures
- a| 
-`cluster remove-node -skip-last-low-version-node-check`
-
+| ONTAP 9.7 ou inférieur | 7 jours 
 |===
-Il peut également être nécessaire de spécifier un état de version mixte lors d'une mise à jour technique ou d'une mise à niveau interrompue. Dans ce cas, vous pouvez remplacer le comportement par défaut de ONTAP et ajouter des nœuds d'une version différente à l'aide de `cluster add-node -allow-mixed-version-join` commande de privilège avancée.
+* À partir de ONTAP 9.8, un cluster ONTAP à version mixte peut couvrir un maximum de 4 versions majeures. Par exemple, un cluster ONTAP à version mixte peut avoir des nœuds exécutant ONTAP 9.8 et 9.12.1, ou des nœuds exécutant ONTAP 9.9.1 et 9.13.1. Cependant, un cluster ONTAP à versions mixtes avec des nœuds exécutant ONTAP 9.8 et 9.13.1 ne serait pas pris en charge, car ce cluster à versions mixtes comprend 5 versions principales.
 
-Lorsque vous devez entrer un état de version mixte, vous devez terminer la mise à niveau aussi rapidement que possible.
 
-À partir de ONTAP 9.8 et versions ultérieures, une paire haute disponibilité ne doit pas exécuter une version ONTAP à partir d'une version différente des autres paires haute disponibilité du cluster pendant plus de 90 jours. Dans ONTAP 9.7 et versions antérieures, une paire haute disponibilité ne doit pas exécuter une version de ONTAP différente d'une autre paire haute disponibilité du cluster pendant plus de 7 jours.
 
-Pour un fonctionnement correct du cluster, la période pendant laquelle le cluster est défini sur un état de version mixte doit être aussi courte que possible.
 
-Lorsque le cluster est dans un état de version mixte, vous ne devez pas saisir de commandes permettant de modifier l'opération ou la configuration du cluster, sauf si nécessaire pour répondre aux exigences de mise à niveau.
+== Mise à jour de la version ONTAP d'un grand cluster
+
+Chaque version de ONTAP propose un ensemble de fonctionnalités plus robuste. Lorsque vous devez mettre à niveau la version ONTAP d'un cluster de plus grande taille pour obtenir une version plus récente de ONTAP, vous devez entrer un état de cluster à version mixte pendant un certain temps au fur et à mesure de la mise à niveau de chaque nœud du cluster.
+
+
+
+== Ajout de nouveaux nœuds à votre cluster
+
+Vous pouvez ajouter de nouveaux nœuds à votre cluster pour augmenter sa capacité, ou parce que vous remplacez complètement vos contrôleurs. Dans les deux cas, vous devez activer la migration de vos données depuis les anciens contrôleurs vers le nouveau système.
+
+Si vous prévoyez d'ajouter de nouveaux nœuds au cluster, et que ces nœuds nécessitent une version de ONTAP ultérieure à celle des nœuds existants de votre cluster, vous devez d'abord mettre à niveau tous les nœuds existants de votre cluster vers la version ONTAP ultérieure, puis ajouter les nouveaux nœuds. Toutefois, si cela n'est pas possible parce que certains de vos nœuds ne prennent pas en charge la version ultérieure de ONTAP, vous devrez entrer un état de version mixte pendant une durée limitée dans le cadre de votre processus de mise à niveau.
+Si certains nœuds ne prennent pas en charge la version ONTAP la plus faible requise par vos nouveaux contrôleurs, effectuez les opérations suivantes :
+
+. link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_methods.html["Mise à niveau"] Les nœuds de votre cluster qui prennent en charge la version ONTAP de vos nouveaux contrôleurs.
+. Ajoutez les nouveaux nœuds à votre cluster.
++
+Utilisez la commande ONTAP cluster add-node -allow-mixed-version-join au niveau des privilèges avancés pour joindre les nouveaux nœuds.
+
+. Migrez vos données à partir de nœuds qui ne peuvent pas être mis à niveau vers un nœud exécutant la version ONTAP supérieure.
+. link:https://docs.netapp.com/us-en/ontap/system-admin/remov-nodes-cluster-concept.html["Supprimez les nœuds non pris en charge du cluster"^].
++
+Utilisez la commande ONTAP cluster remove-node -skip-last-low-version-node-check pour supprimer ces nœuds. (Dans ONTAP 9.3 et les versions antérieures, utilisez la commande cluster unjoin -skip-last-low-version-node-check.)
+
+
+
+Pour plus d'informations sur la migration des données, voir :
+
+* link:https://docs.netapp.com/us-en/ontap-systems-upgrade/upgrade/upgrade-create-aggregate-move-volumes.html["Création d'un agrégat et déplacement des volumes vers les nouveaux nœuds"^]
+* link:https://docs.netapp.com/us-en/ontap-metrocluster/transition/task_move_linux_iscsi_hosts_from_mcc_fc_to_mcc_ip_nodes.html#setting-up-new-iscsi-connections["Configuration de nouvelles connexions iSCSI pour les déplacements de volumes SAN"^]
+* link:https://docs.netapp.com/us-en/ontap/encryption-at-rest/encrypt-existing-volume-task.html["Déplacement de volumes avec chiffrement"^]
+

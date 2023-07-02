@@ -68,7 +68,9 @@ NOTE: Lors de la migration d'un cluster AFF vers un cluster FAS avec des agréga
 |===
 
 
-== Exigences de performances de l'infrastructure réseau pour le temps de réponse aller-retour TCP (RTT)
+== Exigences de performances de l'infrastructure réseau pour le temps de réponse aller-retour TCP (RTT) entre le cluster source et le cluster de destination
+
+En fonction de la version ONTAP installée sur le cluster, le réseau qui connecte les clusters source et destination doit avoir un temps d'aller-retour maximal, comme indiqué :
 
 |===
 
@@ -104,17 +106,16 @@ NOTE: Lors de la migration d'un cluster AFF vers un cluster FAS avec des agréga
 
 == Prérequis
 
-Avant de lancer une migration de véhicule lent, vous devez respecter les conditions préalables suivantes :
+Avant de lancer une migration d'un SVM, vous devez réunir les conditions préalables suivantes :
 
 * Vous devez être un administrateur de cluster.
 * link:https://docs.netapp.com/us-en/ontap/peering/create-cluster-relationship-93-later-task.html["Les clusters source et destination doivent être mis en cluster par groupes"^].
 * La licence Data protection Bundle doit être installée sur les clusters source et cible.
-* Tous les nœuds du cluster source doivent exécuter ONTAP 9.10.1 ou une version ultérieure. Pour connaître la prise en charge spécifique du contrôleur de baie ONTAP, reportez-vous à la section
+* Tous les nœuds du cluster source doivent exécuter ONTAP 9.10.1 ou une version ultérieure. Pour connaître la prise en charge spécifique du contrôleur de baie ONTAP, reportez-vous à la section link:https://hwu.netapp.com/["Hardware Universe"^].
 * Tous les nœuds du cluster source doivent exécuter la même version de ONTAP.
 * Tous les nœuds du cluster destination doivent exécuter la même version de ONTAP.
 * Le cluster de destination doit être au même niveau ou pas plus de deux versions de cluster effectif (ECV) majeures plus récentes que le cluster source.
 * Les clusters source et destination doivent prendre en charge le même sous-réseau IP pour l'accès aux LIF de données.
-* Le réseau qui connecte les clusters source et destination doit avoir un temps de trajet aller-retour maximum (RTT) de 10 ms.
 * La SVM source doit contenir moins de xref:Maximum supported volumes per SVM[nombre maximal de volumes de données pris en charge pour la version].
 * Un espace suffisant pour le placement des volumes doit être disponible sur la destination
 * Onboard Key Manager doit être configuré sur le site de destination si le SVM source possède des volumes chiffrés
@@ -151,7 +152,7 @@ Le tableau présente les fonctionnalités ONTAP prises en charge par la mobilit�
 | Destination SnapMirror asynchrone | ONTAP 9.12.1 |  
 
 
-| Source SnapMirror asynchrone | ONTAP 9.12.1  a| 
+| Source SnapMirror asynchrone | ONTAP 9.11.1  a| 
 * Les transferts peuvent se poursuivre normalement sur les relations FlexVol SnapMirror pendant la majeure partie de la migration.
 * Tout transfert en cours est annulé pendant la mise en service et les nouveaux transferts échouent pendant la mise en service et ils ne peuvent pas être redémarrés tant que la migration n'est pas terminée.
 * Les transferts programmés qui ont été annulés ou manqués pendant la migration ne sont pas démarrés automatiquement une fois la migration terminée.
@@ -209,7 +210,7 @@ En savoir plus sur xref:FabricPool support[Prise en charge de FabricPool].
 | Miroirs de partage de charge | Non pris en charge |  
 
 
-| SVM MetroCluster | Non pris en charge |  
+| SVM MetroCluster | Non pris en charge | Bien que la migration des SVM ne prenne pas en charge la migration des SVM MetroCluster, vous pouvez peut-être utiliser la réplication asynchrone de SnapMirror pour link:https://www.netapp.com/media/83785-tr-4966.pdf["Migrer un SVM dans une configuration MetroCluster"]. 
 
 
 | Configurations NDMP | Non pris en charge |  
@@ -239,7 +240,10 @@ Avant la migration des SVM :
 | Gestionnaire de clés intégré OKM (Onboard Key Manager) avec le mode critères communs activé sur le cluster source | Non pris en charge |  
 
 
-| Qtrees | ONTAP 9.10.1 |  
+| Qtrees | Non pris en charge |  
+
+
+| Quotas | Non pris en charge |  
 
 
 | S3 | Non pris en charge |  
@@ -296,7 +300,7 @@ La migration SVM est prise en charge avec des volumes sur FabricPools pour les p
 
 == Opérations prises en charge pendant la migration
 
-Le tableau suivant indique la prise en charge des opérations sur volume en fonction de l'état de migration :
+Le tableau suivant indique les opérations de volume prises en charge au sein du SVM de migration en fonction de l'état de migration :
 
 [cols="2,1,1,1"]
 |===
@@ -308,13 +312,16 @@ Le tableau suivant indique la prise en charge des opérations sur volume en fonc
 |  | *En cours* | *Pause* | *Mise en service* 
 
 
-| Création | Autorisé | Autorisé | Non pris en charge 
+| Création | Non autorisé | Autorisé | Non pris en charge 
 
 
 | Supprimer | Non autorisé | Autorisé | Non pris en charge 
 
 
-| Analyse des systèmes de fichiers 2+| Voir analyse du système de fichiers | Non pris en charge 
+| Désactivation de l'analyse du système de fichiers | Autorisé | Autorisé | Non pris en charge 
+
+
+| Activer l'analyse des systèmes de fichiers | Non autorisé | Autorisé | Non pris en charge 
 
 
 | Modifier | Autorisé | Autorisé | Non pris en charge 
@@ -326,7 +333,7 @@ Le tableau suivant indique la prise en charge des opérations sur volume en fonc
 | Déplacer/réhéberger | Non autorisé | Autorisé | Non pris en charge 
 
 
-| Création/modification | Non autorisé | Non autorisé | Non pris en charge 
+| Création/modification qtree | Non autorisé | Non autorisé | Non pris en charge 
 
 
 | Création/modification de quotas | Non autorisé | Non autorisé | Non pris en charge 
@@ -355,7 +362,7 @@ Le tableau suivant indique la prise en charge des opérations sur volume en fonc
 
 | Restaurer le fichier à partir de la copie Snapshot | Autorisé | Autorisé | Non pris en charge 
 |===
-Le tableau suivant indique la prise en charge des opérations sur fichiers en fonction de l'état de migration :
+Le tableau suivant indique les opérations sur fichiers prises en charge au sein du SVM de migration en fonction de l'état de migration :
 
 [cols="2,1,1,1"]
 |===

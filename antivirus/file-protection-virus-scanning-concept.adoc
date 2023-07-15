@@ -2,7 +2,7 @@
 permalink: antivirus/file-protection-virus-scanning-concept.html 
 sidebar: sidebar 
 keywords: anti virus, understand, netapp, virus, scan 
-summary: 'Vous pouvez utiliser la fonctionnalité antivirus intégrée sur les systèmes de stockage NetApp afin de protéger vos données contre les virus ou tout autre code malveillant. L"analyse antivirus NetApp, appelée Vscan, combine le meilleur logiciel antivirus tiers aux fonctionnalités ONTAP, qui vous offrent la flexibilité nécessaire pour contrôler quels fichiers sont analysés et à quel moment.' 
+summary: 'Vscan est une solution d"analyse antivirus développée par NetApp qui permet aux clients de protéger leurs données contre toute compromission par des virus ou d"autres codes malveillants. Il associe un logiciel antivirus fourni par le partenaire aux fonctionnalités de ONTAP pour offrir aux clients la flexibilité dont ils ont besoin pour gérer l"analyse des fichiers.' 
 ---
 = À propos de l'analyse antivirus NetApp
 :allow-uri-read: 
@@ -11,24 +11,28 @@ summary: 'Vous pouvez utiliser la fonctionnalité antivirus intégrée sur les s
 
 
 [role="lead"]
-Vous pouvez utiliser la fonctionnalité antivirus intégrée sur les systèmes de stockage NetApp afin de protéger vos données contre les virus ou tout autre code malveillant. L'analyse antivirus NetApp, appelée _Vscan_, associe le meilleur logiciel antivirus tiers à des fonctionnalités ONTAP, vous offrant ainsi la flexibilité nécessaire pour contrôler quels fichiers sont analysés et à quel moment.
+Vscan est une solution d'analyse antivirus développée par NetApp qui permet aux clients de protéger leurs données contre toute compromission par des virus ou d'autres codes malveillants. Il associe un logiciel antivirus fourni par le partenaire aux fonctionnalités de ONTAP pour offrir aux clients la flexibilité dont ils ont besoin pour gérer l'analyse des fichiers.
 
 
 
 == Fonctionnement de l'analyse antivirus
 
-Les systèmes de stockage délèguent des opérations d'analyse à des serveurs externes hébergeant le logiciel antivirus de fournisseurs tiers. Le connecteur antivirus ONTAP, fourni par NetApp et installé sur le serveur externe, gère la communication entre le système de stockage et le logiciel antivirus.
+Les systèmes de stockage délèguent des opérations d'analyse à des serveurs externes hébergeant le logiciel antivirus de fournisseurs tiers.
 
-* Vous pouvez utiliser _On-Access scan_ pour rechercher des virus lorsque les clients ouvrent, lisent, renomment ou ferment des fichiers sur SMB. L'opération de fichier est suspendue jusqu'à ce que le serveur externe indique l'état de numérisation du fichier. Si le fichier a déjà été numérisé, ONTAP autorise l'opération de fichier. Dans le cas contraire, il demande un scan à partir du serveur.
+En fonction du mode d'analyse actif, ONTAP envoie des demandes d'analyse lorsque les clients accèdent aux fichiers via SMB (on-Access) ou accèdent à des fichiers dans des emplacements spécifiques, selon une planification ou immédiatement (on-Demand).
+
+* Vous pouvez utiliser _On-Access scan_ pour rechercher des virus lorsque les clients ouvrent, lisent, renomment ou ferment des fichiers sur SMB. Les opérations sur les fichiers sont suspendues jusqu'à ce que le serveur externe indique l'état d'analyse du fichier. Si le fichier a déjà été numérisé, ONTAP autorise l'opération de fichier. Dans le cas contraire, il demande un scan à partir du serveur.
 +
 L'analyse lors de l'accès n'est pas prise en charge par NFS.
 
-* Vous pouvez utiliser _On-Demand scan_ pour vérifier immédiatement ou selon un planning les fichiers à la recherche de virus. Il se peut que vous souhaitiez exécuter des analyses uniquement pendant les heures creuses, par exemple. Le serveur externe met à jour l'état d'analyse des fichiers vérifiés, de sorte que la latence d'accès aux fichiers pour ces fichiers (en supposant qu'ils n'ont pas été modifiés) est généralement réduite lorsqu'ils sont ensuite accédés par SMB.
+* Vous pouvez utiliser _On-Demand scan_ pour vérifier immédiatement ou selon un planning les fichiers à la recherche de virus. Nous recommandons que les analyses à la demande ne s'exécutent qu'en dehors des heures de pointe pour éviter de surcharger l'infrastructure AV existante, qui est normalement dimensionnée pour l'analyse à l'accès. Le serveur externe met à jour l'état d'analyse des fichiers vérifiés afin de réduire la latence d'accès aux fichiers par rapport à SMB. S'il y a eu des modifications de fichier ou des mises à jour de version de logiciel, il demande une nouvelle analyse de fichier à partir du serveur externe.
 +
 Vous pouvez utiliser l'analyse à la demande pour n'importe quel chemin du namespace du SVM, même pour les volumes exportés uniquement via NFS.
 
 
 
-Vous activez généralement les deux modes de scan sur un SVM. Dans les deux modes, le logiciel antivirus prend des mesures correctives sur les fichiers infectés en fonction de vos paramètres dans le logiciel.
+Il est généralement possible d'activer les modes d'analyse à la fois on-Access et on-Demand sur une SVM. Dans les deux modes, le logiciel antivirus effectue des actions correctives sur les fichiers infectés en fonction des paramètres de votre logiciel.
+
+Le connecteur antivirus ONTAP, fourni par NetApp et installé sur le serveur externe, gère la communication entre le système de stockage et le logiciel antivirus.
 
 image::../media/how-virus-scanning-works-new.gif[fonctionnement de l'analyse antivirus nouveau]

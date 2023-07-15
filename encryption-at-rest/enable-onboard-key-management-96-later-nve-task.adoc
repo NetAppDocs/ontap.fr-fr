@@ -11,17 +11,17 @@ summary: Vous pouvez utiliser le gestionnaire de clés intégré pour sécuriser
 
 
 [role="lead"]
-Vous pouvez utiliser le gestionnaire de clés intégré pour sécuriser les clés que le cluster utilise pour accéder aux données chiffrées. Vous devez activer le gestionnaire de clés intégré sur chaque cluster qui accède à un volume chiffré ou à un disque auto-chiffré.
+Vous pouvez utiliser le gestionnaire de clés intégré pour sécuriser les clés que le cluster utilise pour accéder aux données chiffrées. Vous devez activer le gestionnaire de clés intégré sur chaque cluster qui accède à un volume chiffré ou à un disque à chiffrement automatique.
 
 .Ce dont vous avez besoin
 * Vous devez être un administrateur de cluster pour effectuer cette tâche.
-* Vous devez configurer l'environnement MetroCluster avant de configurer un gestionnaire de clés externe.
+* Vous devez configurer l'environnement MetroCluster avant de configurer le gestionnaire de clés intégré.
 
 
 .Description de la tâche
 Vous devez exécuter le `security key-manager onboard sync` commande à chaque ajout d'un nœud au cluster.
 
-Si vous disposez d'une configuration MetroCluster, vous devez exécuter `security key-manager onboard enable` sur le cluster local, puis s'exécute `security key-manager onboard sync` sur le cluster distant, en utilisant la même phrase de passe sur chacun d'eux.
+Si vous avez une configuration MetroCluster, vous devez exécuter `security key-manager onboard enable` sur le cluster local, puis s'exécute `security key-manager onboard sync` sur le cluster distant, en utilisant la même phrase de passe sur chacun d'eux.
 
 Par défaut, vous n'êtes pas tenu de saisir la phrase de passe du gestionnaire de clés lors du redémarrage d'un nœud. Vous pouvez utiliser le `cc-mode-enabled=yes` option pour exiger que les utilisateurs saisissent la phrase de passe après un redémarrage.
 
@@ -96,55 +96,36 @@ L'exemple suivant vérifie que les clés d'authentification ont été créées p
 [listing]
 ----
 cluster1::> security key-manager key query -key-type NSE-AK
-       Vserver: cluster1
-   Key Manager: onboard
-          Node: node1
+               Node: node1
+            Vserver: cluster1
+        Key Manager: onboard
+   Key Manager Type: OKM
+ Key Manager Policy: -
 
-Key Tag                               Key Type  Restored
-------------------------------------  --------  --------
-node1                                 NSE-AK    yes
-    Key ID: 000000000000000002000000000001000c11b3863f78c2273343d7ec5a67762e0000000000000000
-node1                                 NSE-AK    yes
-    Key ID: 000000000000000002000000000001006f4e2513353a674305872a4c9f3bf7970000000000000000
+ Key Tag                               Key Type Encryption   Restored
 
-       Vserver: svm1
-   Key Manager: onboard
-          Node: node1
-    Key Server: keyserver.svm1.com:5965
+------------------------------------  -------- ------------ --------
 
-Key Tag                               Key Type  Restored
-------------------------------------  --------  --------
-eb9f8311-e8d8-487e-9663-7642d7788a75  VEK       yes
-    Key ID: 0000000000000000020000000000004001cb18336f7c8223743d3e75c6a7726e0000000000000000
-9d09cbbf-0da9-4696-87a1-8e083d8261bb  VEK       yes
-    Key ID: 0000000000000000020000000000004064f2e1533356a470385274a9c3ffb9770000000000000000
+node1                                 NSE-AK   AES-256      true
 
-       Vserver: cluster1
-   Key Manager: onboard
-          Node: node2
+    Key ID: 00000000000000000200000000000100056178fc6ace6d91472df8a9286daacc0000000000000000
 
-Key Tag                               Key Type  Restored
-------------------------------------  --------  --------
-node1                                 NSE-AK    yes
-    Key ID: 000000000000000002000000000001000c11b3863f78c2273343d7ec5a67762e0000000000000000
-node1                                 NSE-AK    yes
-    Key ID: 000000000000000002000000000001006f4e2513353a674305872a4c9f3bf7970000000000000000
+node1                                 NSE-AK   AES-256      true
 
-       Vserver: svm1
-   Key Manager: onboard
-          Node: node2
-    Key Server: keyserver.svm1.com:5965
+    Key ID: 00000000000000000200000000000100df1689a148fdfbf9c2b198ef974d0baa0000000000000000
 
-Key Tag                               Key Type  Restored
-------------------------------------  --------  --------
-eb9f8311-e8d8-487e-9663-7642d7788a75  VEK       yes
-    Key ID: 0000000000000000020000000000004001cb18336f7c8223743d3e75c6a7726e0000000000000000
-9d09cbbf-0da9-4696-87a1-8e083d8261bb  VEK       yes
-    Key ID: 0000000000000000020000000000004064f2e1533356a470385274a9c3ffb9770000000000000000
+2 entries were displayed.
 ----
+. Vous pouvez également convertir des volumes en texte brut en volumes chiffrés.
++
+`volume encryption conversion start`
+
++
+Le gestionnaire de clés intégré doit être entièrement configuré avant de convertir les volumes. Dans un environnement MetroCluster, le gestionnaire de clés intégré doit être configuré sur les deux sites.
+
 
 
 .Une fois que vous avez terminé
 Copiez la phrase secrète dans un emplacement sécurisé à l'extérieur du système de stockage pour une utilisation ultérieure.
 
-Toutes les informations de gestion des clés sont automatiquement sauvegardées dans la base de données répliquée (RDB) pour le cluster. Vous devez également sauvegarder les informations manuellement pour les utiliser en cas d'incident.
+Chaque fois que vous configurez la phrase secrète Onboard Key Manager, vous devez également sauvegarder les informations manuellement dans un emplacement sécurisé en dehors du système de stockage afin de les utiliser en cas d'incident. Voir link:backup-key-management-information-manual-task.html["Sauvegardez manuellement les informations intégrées de gestion des clés"].

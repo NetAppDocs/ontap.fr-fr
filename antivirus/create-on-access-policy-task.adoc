@@ -2,7 +2,7 @@
 permalink: antivirus/create-on-access-policy-task.html 
 sidebar: sidebar 
 keywords: create, on-access, policy 
-summary: 'Une règle On-Access définit l"étendue d"une analyse on-Access. Vous pouvez spécifier la taille maximale des fichiers à scanner, les extensions des fichiers à inclure dans le scan, ainsi que les extensions et chemins des fichiers à exclure du scan. On peut créer une on-Access policy pour un SVM individuel ou pour tous les SVM d"un cluster.' 
+summary: 'Une règle On-Access définit l"étendue d"une analyse on-Access. On peut créer une on-Access policy pour un SVM individuel ou pour tous les SVM d"un cluster. Si vous avez créé une on-Access policy pour tous les SVM d"un cluster, vous devez activer la politique sur chaque SVM individuellement.' 
 ---
 = Création d'une règle on-Access
 :allow-uri-read: 
@@ -11,19 +11,30 @@ summary: 'Une règle On-Access définit l"étendue d"une analyse on-Access. Vous
 
 
 [role="lead"]
-Une règle On-Access définit l'étendue d'une analyse on-Access. Vous pouvez spécifier la taille maximale des fichiers à scanner, les extensions des fichiers à inclure dans le scan, ainsi que les extensions et chemins des fichiers à exclure du scan. On peut créer une on-Access policy pour un SVM individuel ou pour tous les SVM d'un cluster.
+Une règle On-Access définit l'étendue d'une analyse on-Access. On peut créer une on-Access policy pour un SVM individuel ou pour tous les SVM d'un cluster. Si vous avez créé une on-Access policy pour tous les SVM d'un cluster, vous devez activer la politique sur chaque SVM individuellement.
 
 .Description de la tâche
-Par défaut, ONTAP crée une on-Access policy nommée « default_CIFS » et la permet à tous les SVM d'un cluster.
+* Vous pouvez spécifier la taille maximale du fichier à numériser, les extensions de fichier et les chemins à inclure dans la numérisation, ainsi que les extensions de fichier et les chemins à exclure de la numérisation.
+* Vous pouvez définir le `scan-mandatory` Option désactivée pour spécifier que l'accès aux fichiers est autorisé lorsqu'aucun serveur Vscan n'est disponible pour l'analyse antivirus.
+* Par défaut, ONTAP crée une on-Access policy nommée « default_CIFS » et l'active pour tous les SVM d'un cluster.
+* Tout fichier admissible à l'exclusion de numérisation en fonction du `paths-to-exclude`, `file-ext-to-exclude`, ou `max-file-size` les paramètres ne sont pas pris en compte pour l'acquisition, même si l' `scan-mandatory` l'option est activée. (Cochez cette case link:vscan-server-connection-concept.html["dépannage"] pour les problèmes de connectivité liés au `scan-mandatory` option.)
+* Par défaut, seuls les volumes en lecture-écriture sont analysés. Vous pouvez spécifier des filtres qui permettent la numérisation de volumes en lecture seule ou qui limitent la numérisation aux fichiers ouverts avec l'accès d'exécution.
+* L'analyse antivirus n'est pas effectuée sur un partage SMB pour lequel le paramètre disponible en continu est défini sur Oui.
+* Voir la link:architecture-concept.html["Architecture antivirus"] Pour plus d'informations sur le profil _Vscan file-Operations_.
+* Vous pouvez créer un maximum de dix (10) règles d'accès par SVM. Toutefois, vous ne pouvez activer qu'une seule stratégie d'accès à la fois.
++
+** Vous pouvez exclure un maximum de cent (100) chemins et extensions de fichiers de l'analyse antivirus dans une stratégie d'accès.
 
-Vous pouvez définir le `scan-mandatory` Option désactivée pour spécifier que l'accès aux fichiers est autorisé lorsqu'aucun serveur Vscan n'est disponible pour l'analyse antivirus. Gardez à l'esprit que tout fichier admissible à l'exclusion de numérisation basée sur le `paths-to-exclude`, `file-ext-to-exclude`, ou `max-file-size` les paramètres ne sont pas pris en compte pour l'acquisition, même si le `scan-mandatory` l'option est activée.
 
-[NOTE]
-====
-Pour les problèmes potentiels liés au `scan-mandatory` option, voir xref:vscan-server-connection-concept.adoc[Problèmes de connectivité potentiels impliquant l'option Scan-obligatoire].
+* Quelques recommandations d'exclusion de fichiers :
++
+** Pensez à exclure les fichiers volumineux (la taille de fichier peut être spécifiée) de l'analyse antivirus car ils peuvent entraîner un temps de réponse lent ou des délais de requête d'analyse pour les utilisateurs CIFS. La taille de fichier par défaut pour l'exclusion est de 2 Go.
+** Pensez à exclure les extensions de fichier telles que `.vhd` et `.tmp` car les fichiers avec ces extensions peuvent ne pas être appropriés pour la numérisation.
+** Pensez à exclure les chemins de fichiers tels que le répertoire de quarantaine ou les chemins dans lesquels seuls les disques durs virtuels ou les bases de données sont stockés.
+** Vérifiez que toutes les exclusions sont spécifiées dans la même stratégie, car une seule stratégie peut être activée à la fois. NetApp recommande vivement de disposer du même ensemble d'exclusions que celui spécifié dans le moteur antivirus.
 
-====
-Par défaut, seuls les volumes en lecture-écriture sont analysés. Vous pouvez spécifier des filtres qui permettent la numérisation de volumes en lecture seule ou qui limitent la numérisation aux fichiers ouverts avec l'accès d'exécution.
+
+
 
 .Étapes
 . Création d'une règle on-Access :
@@ -33,7 +44,8 @@ Par défaut, seuls les volumes en lecture-écriture sont analysés. Vous pouvez 
 +
 ** Spécifier un SVM de données pour une politique définie pour un SVM individuel, un SVM d'administration du cluster pour une politique définie pour tous les SVM d'un cluster.
 ** Le `-file-ext-to-exclude` le réglage remplace le `-file-ext-to-include` réglage.
-** Réglez `-scan-files-with-no-ext` à vrai pour numériser des fichiers sans extensions. La commande suivante crée une on-Access policy nommée `Policy1` sur le ``vs1``SVM :
+** Réglez `-scan-files-with-no-ext` à vrai pour numériser des fichiers sans extensions.
+La commande suivante crée une on-Access policy nommée `Policy1` sur le `vs1` SVM :
 
 
 +

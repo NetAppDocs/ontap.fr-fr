@@ -19,6 +19,15 @@ Les règles de Tiering de FabricPool vous permettent de déplacer efficacement l
 
 Les règles de Tiering FabricPool déterminent quand ou si les blocs de données utilisateur d'un volume d'FabricPool sont déplacés vers le Tier cloud, en fonction de la « température » du volume « actif » ou froid (inactif). Le volume « température » augmente lorsqu'il est fréquemment utilisé et diminue lorsqu'il n'est pas utilisé. Certaines règles de Tiering ont associé une période de refroidissement minimale de Tiering, qui définit le temps pendant lequel les données utilisateur d'un volume FabricPool doivent rester inactives pour que les données soient considérées comme « inactives » et déplacées vers le Tier cloud.
 
+Une fois qu'un bloc a été identifié comme froid, il est marqué comme éligible pour être hiérarchisé.  Une analyse quotidienne de la hiérarchisation en arrière-plan recherche les blocs inactifs. Lorsque suffisamment de blocs de 4 Ko provenant du même volume ont été collectés, ils sont concaténés dans un objet de 4 Mo et déplacés au niveau cloud en fonction de la règle de Tiering des volumes.
+
+[NOTE]
+====
+Données dans des volumes utilisant `all` la règle de tiering est immédiatement marquée comme inactives et commence le tiering vers le tier cloud dès que possible. Inutile d'attendre l'exécution de l'analyse de Tiering quotidienne.
+
+====
+Vous pouvez utiliser le `volume object-store tiering show` Pour afficher l'état de la hiérarchisation d'un volume FabricPool. Pour plus d'informations, reportez-vous à la section link:https://docs.netapp.com/us-en/ontap-cli-9131/["Référence de commande"].
+
 La règle de Tiering FabricPool est spécifiée au niveau du volume. Quatre options sont disponibles :
 
 * Le `snapshot-only` La règle de Tiering (par défaut) déplace les blocs de données utilisateur des copies Snapshot de volume non associées au système de fichiers actif vers le niveau cloud.
@@ -32,7 +41,10 @@ La période de refroidissement minimale par défaut du Tiering est de 31 jours. 
 +
 Vous pouvez modifier le paramètre par défaut de la période de refroidissement minimum par niveaux avec l' `-tiering-minimum-cooling-days` paramètre au niveau de privilège avancé de l' `volume create` et `volume modify` commandes. Les valeurs valides sont de 2 à 183 jours.
 
-* Le `all` La règle de Tiering, prise en charge uniquement sur ONTAP 9.6 et versions ultérieures, déplace tous les blocs de données utilisateur du système de fichiers actif et les copies Snapshot vers le Tier cloud. Elle remplace le `backup` règle de hiérarchisation.
+* Le `all` La règle de Tiering, prise en charge uniquement avec ONTAP 9.6 et versions ultérieures, déplace tous les blocs de données utilisateur du système de fichiers actif et des copies Snapshot vers le Tier cloud. Elle remplace le `backup` règle de hiérarchisation.
++
+Le `all` la règle de tiering des volumes ne doit pas être utilisée sur les volumes en lecture/écriture présentant un trafic client normal.
+
 +
 La période de refroidissement minimale de Tiering n'est pas applicable, car les données sont déplacées vers le Tier cloud dès l'exécution de l'analyse de Tiering et vous ne pouvez pas modifier le paramètre.
 

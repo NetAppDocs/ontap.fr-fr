@@ -2,7 +2,7 @@
 permalink: flexgroup/move-constituents-task.html 
 sidebar: sidebar 
 keywords: constituents, flexgroup, volume, flex group, balancing, balance, traffic, free, space, aggregate, snapmirror, snap mirror, 
-summary: 'Vous pouvez déplacer les composants d"un volume FlexGroup d"un agrégat à un autre afin d"équilibrer la charge lorsque certains composants connaissent plus le trafic. Le déplacement des composants permet également de libérer de l"espace sur un agrégat pour le redimensionnement des composants existants.' 
+summary: 'Vous pouvez déplacer les composants d"un volume FlexGroup d"un agrégat à un autre afin d"équilibrer la charge lorsque certains composants subissent davantage de trafic. Le déplacement des composants permet également de libérer de l"espace sur un agrégat pour le redimensionnement des composants existants.' 
 ---
 = Déplacer les composants d'un volume FlexGroup
 :allow-uri-read: 
@@ -11,7 +11,7 @@ summary: 'Vous pouvez déplacer les composants d"un volume FlexGroup d"un agrég
 
 
 [role="lead"]
-Vous pouvez déplacer les composants d'un volume FlexGroup d'un agrégat à un autre afin d'équilibrer la charge lorsque certains composants connaissent plus le trafic. Le déplacement des composants permet également de libérer de l'espace sur un agrégat pour le redimensionnement des composants existants.
+Vous pouvez déplacer les composants d'un volume FlexGroup d'un agrégat à un autre afin d'équilibrer la charge lorsque certains composants subissent davantage de trafic. Le déplacement des composants permet également de libérer de l'espace sur un agrégat pour le redimensionnement des composants existants.
 
 .Ce dont vous avez besoin
 Pour déplacer un composant de volume FlexGroup dans une relation SnapMirror, vous devez avoir initialisé la relation SnapMirror.
@@ -20,11 +20,14 @@ Pour déplacer un composant de volume FlexGroup dans une relation SnapMirror, vo
 Vous ne pouvez pas effectuer de déplacement de volumes pendant l'extension des composants du volume FlexGroup.
 
 .Étapes
-. Identifiez les composants du volume FlexGroup que vous souhaitez déplacer : `volume show -vserver svm_name -is-constituent *`
+. Identifiez les composants du volume FlexGroup que vous souhaitez déplacer :
++
+`volume show -vserver svm_name -is-constituent true`
+
 +
 [listing]
 ----
-cluster1::> volume show -vserver vs2 -is-constituent *
+cluster1::> volume show -vserver vs2 -is-constituent true
 Vserver   Volume       Aggregate    State      Type       Size  Available Used%
 --------- ------------ ------------ ---------- ---- ---------- ---------- -----
 vs2       fg1          -            online     RW        400TB    15.12TB   62%
@@ -32,7 +35,10 @@ vs2       fg1__0001    aggr1        online     RW         25TB     8.12MB   59%
 vs2       fg1__0002    aggr2        online     RW         25TB     2.50TB   90%
 ...
 ----
-. Identifiez un agrégat dans lequel vous pouvez déplacer le composant de volume FlexGroup : `volume move target-aggr show -vserver svm_name -volume vol_constituent_name`
+. Identifiez un agrégat dans lequel vous pouvez déplacer le composant de volume FlexGroup :
++
+`volume move target-aggr show -vserver svm_name -volume vol_constituent_name`
+
 +
 L'espace disponible dans l'agrégat que vous sélectionnez doit être supérieur à la taille du composant de volume FlexGroup que vous déplacez.
 
@@ -49,14 +55,20 @@ node12a_aggr1    100.36TB         hdd
 node12a_aggr4    100.36TB         hdd
 5 entries were displayed.
 ----
-. Vérifier que le composant de volume FlexGroup peut être déplacé vers l'agrégat prévu : `volume move start -vserver svm_name -volume vol_constituent_name -perform-validation-only true`
+. Vérifier que le composant de volume FlexGroup peut être déplacé vers l'agrégat prévu :
++
+`volume move start -vserver svm_name -volume vol_constituent_name -destination-aggregate aggr_name -perform-validation-only true`
+
 +
 [listing]
 ----
 cluster1::> volume move start -vserver vs2 -volume fg1_0002 -destination-aggregate node12a_aggr3 -perform-validation-only true
 Validation succeeded.
 ----
-. Déplacez le composant de volume FlexGroup : `volume move start -vserver svm_name -volume vol_constituent_name -destination-aggregate aggr_name [-allow-mixed-aggr-types {true|false}]`
+. Déplacez le composant de volume FlexGroup :
++
+`volume move start -vserver svm_name -volume vol_constituent_name -destination-aggregate aggr_name [-allow-mixed-aggr-types {true|false}]`
+
 +
 L'opération de déplacement de volume s'exécute en arrière-plan.
 
@@ -80,7 +92,10 @@ cluster1::> volume move start -vserver vs2 -volume fg1_002 -destination-aggregat
 Si l'opération de déplacement de volume échoue en raison d'une opération SnapMirror active, vous devez abandonner l'opération SnapMirror à l'aide du `snapmirror abort -h` commande. Dans certains cas, l'opération d'abandon de SnapMirror peut également échouer. Dans ce cas, vous devez abandonner l'opération de déplacement de volume et réessayer ultérieurement.
 
 ====
-. Vérifiez l'état de l'opération de déplacement de volume : `volume move show -volume vol_constituent_name`
+. Vérifiez l'état de l'opération de déplacement de volume :
++
+`volume move show -volume vol_constituent_name`
+
 +
 L'exemple suivant montre l'état d'un volume composant FlexGroup qui a terminé la phase de réplication et est en phase de mise en service de l'opération de déplacement de volume :
 

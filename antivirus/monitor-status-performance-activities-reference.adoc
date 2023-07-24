@@ -1,0 +1,278 @@
+---
+permalink: antivirus/monitor-status-performance-activities-reference.html 
+sidebar: sidebar 
+keywords: monitoring, performance, status, connection, statistics 
+summary: Vous pouvez surveiller les problèmes critiques du serveur Vscan. 
+---
+= Surveiller l'état et les activités de performance
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez surveiller les aspects critiques du module Vscan, tels que le statut de connexion du serveur Vscan,
+La santé des serveurs Vscan et le nombre de fichiers analysés. Ces informations sont utiles
+Vous diagnostiquez les problèmes liés au serveur Vscan.
+
+
+
+== Afficher les informations de connexion au serveur Vscan
+
+Vous pouvez afficher le statut de connexion des serveurs Vscan pour gérer les connexions qui sont déjà utilisées
+et les connexions disponibles. Diverses commandes affichent des informations
+À propos du statut de connexion des serveurs Vscan.
+
+|===
+
+
+| Commande... | Informations affichées... 
+
+
+ a| 
+`vserver vscan connection-status show`
+ a| 
+Résumé de l'état de la connexion
+
+
+
+ a| 
+`vserver vscan connection-status show-all`
+ a| 
+Informations détaillées sur l'état de la connexion
+
+
+
+ a| 
+`vserver vscan connection-status show-not-connected`
+ a| 
+État des connexions disponibles mais non connectées
+
+
+
+ a| 
+`vserver vscan connection-status show-connected`
+ a| 
+Informations sur le serveur Vscan connecté
+
+|===
+Pour plus d'informations sur ces commandes, consultez les pages de manuels.
+
+
+
+== Afficher les statistiques du serveur Vscan
+
+Vous pouvez afficher les statistiques spécifiques au serveur Vscan pour surveiller les performances et diagnostiquer les problèmes liés à
+analyse antivirus Vous devez collecter un échantillon de données avant de pouvoir utiliser le `statistics show` commande à
+Afficher les statistiques du serveur Vscan.
+Pour compléter un échantillon de données, procédez comme suit :
+
+.Étape
+. Exécutez le `statistics start` commande et le `optional statistics` commande d'arrêt.
+
+
+
+
+=== Afficher les statistiques des requêtes et des latences du serveur Vscan
+
+Vous pouvez utiliser ONTAP `offbox_vscan` Compteurs par SVM pour surveiller le taux de Vscan
+Requêtes de serveur envoyées et reçues par seconde et latences de serveur dans tous les Vscan
+serveurs. Pour afficher ces statistiques, procédez comme suit :
+
+.Étape
+. Exécutez les statistiques show `object offbox_vscan –instance SVM` commande avec
+compteurs suivants :
++
+|===
+
+
+| Compteur... | Informations affichées... 
+
+
+ a| 
+`scan_request_dispatched_rate`
+ a| 
+Nombre de requêtes antivirus envoyées par ONTAP aux serveurs Vscan par seconde
+
+
+
+ a| 
+`scan_noti_received_rate`
+ a| 
+Nombre de requêtes antivirus reçues par ONTAP des serveurs Vscan par seconde
+
+
+
+ a| 
+`dispatch_latency`
+ a| 
+Latence dans ONTAP pour identifier un serveur Vscan disponible et envoyer la demande à ce serveur Vscan
+
+
+
+ a| 
+`scan_latency`
+ a| 
+Latence aller-retour de ONTAP au serveur Vscan, y compris le temps que le scan doit s'exécuter
+
+|===
+
+
+
+
+==== Exemple de statistiques générées à partir d'un compteur ONTAP externe vscan
+
+[listing]
+----
+Object: offbox_vscan
+Instance: SVM
+Start-time: 10/16/2013 10:13:25
+End-time: 10/16/2013 10:25:11
+Cluster: cluster01
+Number of Constituents: 2 (complete_aggregation)
+Counter Value
+-------------------------------- --------------------------------
+scan_request_dispatched_rate 291
+scan_noti_received_rate 292
+dispatch_latency 43986us
+scan_latency 3433501us
+-----------------------------------------------------------------
+----
+
+
+=== Afficher les statistiques des requêtes et des latences individuelles du serveur Vscan
+
+Vous pouvez utiliser ONTAP `offbox_vscan_server` Compteurs sur un serveur Vscan par SVM, par serveur Vscan externe,
+Et par nœud pour surveiller le taux des requêtes du serveur Vscan expédiées et la latence du serveur sur
+Chaque serveur Vscan individuellement. Pour collecter ces informations, procédez comme suit :
+
+.Étape
+. Exécutez le `statistics show –object offbox_vscan –instance
+SVM:servername:nodename` avec les compteurs suivants :
++
+|===
+
+
+| Compteur... | Informations affichées... 
+
+
+ a| 
+`scan_request_dispatched_rate`
+ a| 
+Nombre de demandes d'analyse antivirus envoyées par ONTAP
+
+
+
+ a| 
+`scan_latency`
+ a| 
+Latence aller-retour de ONTAP au serveur Vscan, y compris le temps que le scan doit s'exécuter
+Vers les serveurs Vscan par seconde
+
+|===
+
+
+
+
+==== Exemple de statistiques générées à partir d'un compteur ONTAP offbox_vscan_Server
+
+[listing]
+----
+Object: offbox_vscan_server
+Instance: SVM:vscan_server:node
+Start-time: 10/16/2013 10:13:25
+End-time: 10/16/2013 10:25:11
+Cluster: cluster01
+Number of Constituents: 1 (complete_aggregation)
+Counter Value
+-------------------------------- --------------------------------
+scan_request_dispatched_rate 291
+scan_latency 3433830us
+------------------------------------------------------------------
+----
+
+
+=== Afficher les statistiques d'utilisation du serveur Vscan
+
+Vous pouvez également utiliser ONTAP `offbox_vscan_server` Compteurs pour la collecte de l'utilisation Vscan côté serveur
+statistiques. Ces statistiques sont suivies par SVM, par serveur Vscan externe et par nœud. Ils
+Inclure l'utilisation des CPU sur le serveur Vscan, la profondeur de file d'attente pour les opérations de scan sur le serveur Vscan
+(actuel et maximal), mémoire utilisée et réseau utilisé.
+Ces statistiques sont transmises par l'antivirus Connector aux compteurs statistiques de ONTAP. Ils
+sont basées sur des données interrogées toutes les 20 secondes et doivent être collectées plusieurs fois pour plus de précision ;
+sinon, les valeurs affichées dans les statistiques reflètent uniquement la dernière interrogation. L'utilisation du processeur et les files d'attente sont
+il est particulièrement important de surveiller et d'analyser. Une valeur élevée pour une file d'attente moyenne peut indiquer que l'
+Le serveur Vscan présente un goulet d'étranglement.
+Pour collecter les statistiques d'utilisation du serveur Vscan sur un SVM, un serveur Vscan par—serveur externe, et par—nœud
+basis, effectuez l'étape suivante :
+
+.Étape
+. Collectez les statistiques d'utilisation du serveur Vscan
++
+Exécutez le `statistics show –object offbox_vscan_server –instance
+SVM:servername:nodename` avec les commandes suivantes `offbox_vscan_server` compteurs :
+
+
+
+|===
+
+
+| Compteur... | Informations affichées... 
+
+
+ a| 
+`scanner_stats_pct_cpu_used`
+ a| 
+Utilisation du CPU sur le serveur Vscan
+
+
+
+ a| 
+`scanner_stats_pct_input_queue_avg`
+ a| 
+File d'attente moyenne des requêtes de scan sur le serveur Vscan
+
+
+
+ a| 
+`scanner_stats_pct_input_queue_hiwatermark`
+ a| 
+File d'attente de pointe des requêtes de scan sur le serveur Vscan
+
+
+
+ a| 
+`scanner_stats_pct_mem_used`
+ a| 
+Mémoire utilisée sur le serveur Vscan
+
+
+
+ a| 
+`scanner_stats_pct_network_used`
+ a| 
+Réseau utilisé sur le serveur Vscan
+
+|===
+
+
+==== Exemple de statistiques d'utilisation pour le serveur Vscan
+
+[listing]
+----
+Object: offbox_vscan_server
+Instance: SVM:vscan_server:node
+Start-time: 10/16/2013 10:13:25
+End-time: 10/16/2013 10:25:11
+Cluster: cluster01
+Number of Constituents: 1 (complete_aggregation)
+Counter Value
+-------------------------------- --------------------------------
+scanner_stats_pct_cpu_used 51
+scanner_stats_pct_dropped_requests 0
+scanner_stats_pct_input_queue_avg 91
+scanner_stats_pct_input_queue_hiwatermark 100
+scanner_stats_pct_mem_used 95
+scanner_stats_pct_network_used 4
+-----------------------------------------------------------------
+----

@@ -82,9 +82,11 @@ SnapMirror synchrone prend en charge les volumes source et de destination sur le
 
 Les fonctionnalités suivantes sont prises en charge par la technologie SnapMirror synchrone dans la ONTAP 9.7 :
 
-* Réplication des copies Snapshot créées par les applications si une copie Snapshot est balisée avec l'étiquette appropriée au moment de la `snapshot create` Par ailleurs, lors de l'utilisation de l'interface de ligne de commandes ou de l'API ONTAP, SnapMirror synchrone réplique les copies Snapshot, créées par l'utilisateur ou créées avec des scripts externes, après la suspension des applications. Les copies Snapshot planifiées créées à l'aide d'une règle Snapshot ne sont pas répliquées. Pour plus d'informations sur la réplication de copies Snapshot créées par les applications, consultez l'article de la base de connaissances : link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_replicate_application_created_snapshots_with_SnapMirror_Synchronous["Réplication des copies Snapshot créées par les applications avec SnapMirror synchrone"^].
+* Réplication des copies Snapshot créées par les applications
+Si une copie Snapshot est étiquetée avec l'étiquette appropriée au moment du `snapshot create` Par ailleurs, lors de l'utilisation de l'interface de ligne de commandes ou de l'API ONTAP, SnapMirror synchrone réplique les copies Snapshot, créées par l'utilisateur ou créées avec des scripts externes, après la suspension des applications. Les copies Snapshot planifiées créées à l'aide d'une règle Snapshot ne sont pas répliquées. Pour plus d'informations sur la réplication de copies Snapshot créées par les applications, consultez l'article de la base de connaissances : link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_replicate_application_created_snapshots_with_SnapMirror_Synchronous["Réplication des copies Snapshot créées par les applications avec SnapMirror synchrone"^].
 * NVMe-FC
-* Les clones de LUN et les clones d'espace de noms NVMe, sauvegardés par les copies Snapshot créées par les applications, sont également pris en charge.
+* Clones de LUN et clones d'espace de noms NVMe
+Les clones LUN sauvegardés par les copies Snapshot créées par les applications sont également pris en charge.
 
 
 Les fonctionnalités suivantes sont prises en charge pour la technologie SnapMirror synchrone dans la ONTAP 9.6 (si tous les nœuds du cluster source et de destination exécutent ONTAP 9.6) :
@@ -92,18 +94,23 @@ Les fonctionnalités suivantes sont prises en charge pour la technologie SnapMir
 * REPRISE APRÈS INCIDENT DES SVM
 +
 ** Une source SnapMirror synchrone peut également être une source SVM DR, par exemple une configuration « Fan-Out » avec SM-S comme une jambe et un SVM DR comme l'autre.
-** Une source SnapMirror synchrone ne peut pas être une destination de reprise après incident SVM, car SM-S ne prend pas en charge une source DP en cascade. Vous devez libérer la relation synchrone avant d'effectuer une resynchronisation des SVM DR dans le cluster destination.
-** Une destination SnapMirror synchrone ne peut pas être une source SVM DR, car la reprise après incident du SVM ne prend pas en charge la réplication de volumes DP. Un retournement de resynchronisation de la source synchrone entraînerait la reprise après incident du SVM à l'exclusion du volume DP dans le cluster de destination.
+** Une source SnapMirror synchrone ne peut pas être une destination de reprise après incident SVM, car SM-S ne prend pas en charge une source DP en cascade.
+Vous devez libérer la relation synchrone avant d'effectuer une resynchronisation des SVM DR dans le cluster destination.
+** Une destination SnapMirror synchrone ne peut pas être une source SVM DR, car la reprise après incident du SVM ne prend pas en charge la réplication de volumes DP.
+Un retournement de resynchronisation de la source synchrone entraînerait la reprise après incident du SVM à l'exclusion du volume DP dans le cluster de destination.
 
 
 * NFSv4.0 et NFSv4.1
 * SMB 2.0 ou version ultérieure
 * Accès à partir de protocoles mixtes (NFSv3 et SMB)
 * Antivirus sur le volume primaire de la relation SnapMirror synchrone
-* Quotas matériels ou logiciels sur le volume primaire de la relation SnapMirror synchrone les règles de quota ne sont pas répliquées vers la destination. Par conséquent, la base de données de quota n'est pas répliquée vers la destination.
+* Quotas matériels ou conditionnels sur le volume principal de la relation SnapMirror synchrone
+Les règles de quota ne sont pas répliquées vers la destination. Par conséquent, la base de données de quota n'est pas répliquée vers la destination.
 * FPolicy sur le volume principal de la relation SnapMirror synchrone
-* SnapMirror synchrone mis en cascade miroir la relation depuis le volume de destination de la relation SnapMirror synchrone doit être une relation SnapMirror asynchrone.
-* Parité estampille entre les volumes source et de destination pour NAS si vous avez effectué une mise à niveau de ONTAP 9.5 vers ONTAP 9.6, l’horodatage est répliqué uniquement pour les fichiers nouveaux et modifiés dans le volume source. L'horodatage des fichiers existants dans le volume source n'est pas synchronisé.
+* SnapMirror Synchronous mirror-mirror cascade
+La relation à partir du volume de destination de la relation SnapMirror synchrone doit être une relation SnapMirror asynchrone.
+* Parité temporelle entre les volumes source et de destination pour le NAS
+Si vous avez effectué une mise à niveau de ONTAP 9.5 vers ONTAP 9.6, l'horodatage est uniquement répliqué pour les fichiers nouveaux et modifiés du volume source. L'horodatage des fichiers existants dans le volume source n'est pas synchronisé.
 * Suppression de la limitation de fréquence d'opération de métadonnées élevée
 * Sécurité des données sensibles en transit avec le chiffrement TLS 1.2
 * Cloner la suppression automatique
@@ -123,7 +130,8 @@ Les fonctionnalités suivantes ne sont pas prises en charge avec les relations S
 * SFMoD
 * SFCoD
 * VVol
-* Les LUN d'accès SAN et NVMe mixtes et les espaces de noms NVMe ne sont pas pris en charge sur le même volume ou SVM.
+* Accès mixte SAN/NVMe
+Les LUN et les namespaces NVMe ne sont pas pris en charge sur le même volume ou SVM.
 * Volumes SnapLock
 * Volumes FlexGroup
 * Volumes FlexCache
@@ -142,8 +150,13 @@ Les fonctionnalités suivantes ne sont pas prises en charge avec les relations S
 
 SnapMirror synchrone dispose de deux modes de fonctionnement basés sur le type de règle SnapMirror utilisée :
 
-* *Mode de synchronisation* en mode de synchronisation, les opérations d'E/S d'application sont envoyées en parallèle aux systèmes de stockage primaire et secondaire. Si l'écriture dans le stockage secondaire n'est pas terminée, pour une raison quelconque, l'application peut continuer à écrire sur le stockage primaire. Lorsque l'erreur est résolue, la technologie SnapMirror synchrone se resynchronise automatiquement sur le système de stockage secondaire et reprend la réplication du stockage primaire sur le stockage secondaire en mode synchrone. En mode synchrone, RPO=0 et RTO sont très faibles jusqu'à ce qu'une défaillance de réplication secondaire se produise. Ainsi, les objectifs RPO et RTO deviennent indéterminés, mais équivalent au temps de résolution du problème à l'origine de la défaillance de la réplication secondaire et de la resynchronisation à réaliser.
-* *StrictSync mode* SnapMirror synchrone peut, en option, fonctionner en mode StrictSync. Si l'écriture sur le stockage secondaire n'est pas terminée, pour une raison quelconque, les E/S de l'application échouent, ce qui permet de s'assurer que les stockages primaire et secondaire sont identiques. Les E/S de l'application vers le système primaire sont reprendre uniquement après le retour de la relation SnapMirror dans `InSync` état. En cas de panne du stockage primaire, les E/S des applications peuvent reprendre sur le système de stockage secondaire, après le basculement, sans perte de données. En mode StrictSync, le RPO est toujours nul et le RTO très faible.
+* *Mode de synchronisation*
+En mode synchrone, les opérations d'E/S de l'application sont envoyées en parallèle au primaire et au secondaire
+systèmes de stockage netapp fas. Si l'écriture dans le stockage secondaire n'est pas terminée, pour une raison quelconque, l'application peut continuer à écrire sur le stockage primaire. Lorsque l'erreur est résolue, la technologie SnapMirror synchrone se resynchronise automatiquement sur le système de stockage secondaire et reprend la réplication du stockage primaire sur le stockage secondaire en mode synchrone.
+En mode synchrone, RPO=0 et RTO sont très faibles jusqu'à ce qu'une défaillance de réplication secondaire se produise. Ainsi, les objectifs RPO et RTO deviennent indéterminés, mais équivalent au temps de résolution du problème à l'origine de la défaillance de la réplication secondaire et de la resynchronisation à réaliser.
+* *Mode StrictSync*
+SnapMirror synchrone peut fonctionner en mode StrictSync. Si l'écriture sur le stockage secondaire n'est pas terminée, pour une raison quelconque, les E/S de l'application échouent, ce qui permet de s'assurer que les stockages primaire et secondaire sont identiques. Les E/S de l'application vers le système primaire sont reprendre uniquement après le retour de la relation SnapMirror dans `InSync` état. En cas de panne du stockage primaire, les E/S des applications peuvent reprendre sur le système de stockage secondaire, après le basculement, sans perte de données.
+En mode StrictSync, le RPO est toujours nul et le RTO très faible.
 
 
 

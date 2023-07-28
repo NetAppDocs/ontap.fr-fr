@@ -1,11 +1,10 @@
 ---
 sidebar: sidebar 
 permalink: smbc/smbc_admin_upgrade_and_revert_considerations.html 
-keywords: SM-BC, SMBC, upgrade, revert, ONTAP 
-summary: 'Vous devez connaître les conditions requises pour la mise à niveau et le rétablissement d"une configuration SM-BC.' 
+keywords: upgrade, revert, ONTAP 
+summary: La mise à niveau ou le rétablissement de ONTAP a des implications sur votre relation SM-BC, en particulier lorsque vous passez à ONTAP 9.8 ou version ultérieure ou à la version 9.7 ou antérieure. 
 ---
-= Considérations relatives à la mise à niveau et à la restauration de SM-BC
-:hardbreaks:
+= Mettez à niveau et restaurez ONTAP avec SM-BC
 :allow-uri-read: 
 :nofooter: 
 :icons: font
@@ -14,35 +13,41 @@ summary: 'Vous devez connaître les conditions requises pour la mise à niveau e
 
 
 [role="lead"]
-Vous devez connaître les conditions requises pour la mise à niveau et le rétablissement d'une configuration SM-BC.
+SnapMirror Business Continuity (SM-BC) est pris en charge à partir de la version 9.8 de ONTAP. La mise à niveau et la restauration de votre cluster ONTAP ont des implications sur vos relations SM-BC selon la version de ONTAP vers laquelle vous effectuez la mise à niveau ou la restauration.
 
 
 
-== Mise à niveau
+== Mettez à niveau ONTAP
 
-Avant de pouvoir configurer et utiliser SM-BC, vous devez mettre à niveau tous les nœuds des clusters source et de destination vers ONTAP 9.8 ou version ultérieure.link:link:../upgrade/index.html["Logiciel Upgating sur les clusters ONTAP"]
+Avant de pouvoir configurer et utiliser SM-BC, vous devez mettre à niveau tous les nœuds des clusters source et de destination vers ONTAP 9.8 ou version ultérieure.
+link:link:../upgrade/index.html["Mettez à niveau le logiciel sur les clusters ONTAP"]
+
+
+NOTE: Le `snapmirror quiesce` et `snampirror resume` Les commandes ne sont pas prises en charge par SM-BC.
+
+Lorsque vous mettez à niveau des clusters de la version 9.8 ou 9.9.1 vers la version 9.10.1, ONTAP crée de nouveaux groupes de cohérence sur la source et la destination pour les relations SM-BC. Ils peuvent être gérés dans System Manager sous l'option **groupes de cohérence** ou en utilisant l'API REST ONTAP avec le noeud final des groupes de cohérence.
+
+
+
+== Restaurez ONTAP 9.9.1 à partir de ONTAP 9.10.1
+
+Pour rétablir des relations de 9.10.1 à 9.9.1, les relations SM-BC doivent être supprimées, suivies de l'instance de groupe de cohérence 9.10.1. Impossible de supprimer les groupes de cohérence avec une relation SM-BC active. Tout volume FlexVol mis à niveau vers la version 9.10.1 précédemment associé à une autre application de conteneur intelligent ou d'entreprise en 9.9.1 ou version antérieure ne sera plus associé à la restauration. La suppression des groupes de cohérence ne supprime pas les volumes constitutifs ou les snapshots granulaires volume. Reportez-vous à la section link:../consistency-groups/delete-task.html["Supprimez un groupe de cohérence"] Pour plus d'informations sur cette tâche dans ONTAP 9.10.1 et versions ultérieures.
+
+
+
+== Restaurez ONTAP 9.7 à partir de ONTAP 9.8
 
 
 NOTE: SM-BC n'est pas pris en charge avec les clusters mixtes ONTAP 9.7 et ONTAP 9.8.
 
-La mise à niveau des clusters de 9.8 ou 9.9.1 vers 9.10.1 crée de nouveaux groupes de cohérence à la fois sur la source et la destination pour les relations SM-BC.
-
-
-
-== Les restaurations à ONTAP 9.9.1 depuis ONTAP 9.10.1
-
-Pour rétablir des relations de 9.10.1 à 9.9.1, les relations SM-BC doivent être supprimées, suivies de l'instance de groupe de cohérence 9.10.1. Impossible de supprimer les groupes de cohérence avec une relation SMBC active. Tout volume FlexVol mis à niveau vers la version 9.10.1 précédemment associé à une autre application de conteneur intelligent ou d'entreprise en 9.9.1 ou version antérieure ne sera plus associé à la restauration. La suppression des groupes de cohérence ne supprime pas les volumes constitutifs ou les snapshots granulaires volume. Reportez-vous à la section link:../consistency-groups/delete-task.html["Supprimez un groupe de cohérence"] pour plus d'informations sur cette tâche.
-
-
-
-== Les restaurations à ONTAP 9.7 depuis ONTAP 9.8
-
 Lorsque vous restaurez ONTAP 9.8 vers ONTAP 9.7, vous devez tenir compte des éléments suivants :
 
-* Si le cluster héberge une destination SM-BC, la restauration vers ONTAP 9.7 n'est pas autorisée tant que la relation n'est pas rompue et supprimée.
-* Si le cluster héberge une source SM-BC, la restauration vers ONTAP 9.7 n'est pas autorisée tant que la relation n'est pas libérée.
+* Si le cluster héberge une destination SM-BC, le retour à ONTAP 9.7 n'est pas autorisé tant que la relation n'est pas rompue et supprimée.
+* Si le cluster héberge une source SM-BC, le retour à ONTAP 9.7 n'est pas autorisé tant que la relation n'est pas validée.
 * Toutes les politiques SnapMirror personnalisées SM-BC créées par l'utilisateur doivent être supprimées avant de revenir à ONTAP 9.7.
 
+
+Pour répondre à ces exigences, reportez-vous à la section link:smbc_admin_removing_an_smbc_configuration.html["Supprimer une configuration SM-BC"].
 
 .Étapes
 . Effectuer une vérification de restauration à partir de l'un des clusters de la relation SM-BC :

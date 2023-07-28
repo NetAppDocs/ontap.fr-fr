@@ -2,7 +2,7 @@
 sidebar: sidebar 
 permalink: s3-snapmirror/create-cloud-backup-new-bucket-task.html 
 keywords: create, backup, relationship, new, bucket 
-summary: 'Lorsque vous créez de nouveaux compartiments S3, vous pouvez les sauvegarder immédiatement dans un compartiment cible SnapMirror S3 d"un fournisseur de magasin d"objets, qui peut être un système StorageGRID ou un déploiement AWS S3.' 
+summary: 'Lorsque vous créez des compartiments S3, vous pouvez les sauvegarder immédiatement dans un compartiment cible SnapMirror S3 d"un fournisseur de magasin d"objets, qui peut être un système StorageGRID ou un déploiement Amazon S3.' 
 ---
 = Création d'une relation de sauvegarde pour un nouveau compartiment (cible cloud)
 :toc: macro
@@ -19,12 +19,12 @@ summary: 'Lorsque vous créez de nouveaux compartiments S3, vous pouvez les sauv
 
 
 [role="lead"]
-Lorsque vous créez de nouveaux compartiments S3, vous pouvez les sauvegarder immédiatement dans un compartiment cible SnapMirror S3 d'un fournisseur de magasin d'objets, qui peut être un système StorageGRID ou un déploiement AWS S3.
+Lorsque vous créez des compartiments S3, vous pouvez les sauvegarder immédiatement dans un compartiment cible SnapMirror S3 d'un fournisseur de magasin d'objets, qui peut être un système StorageGRID ou un déploiement Amazon S3.
 
 .Ce dont vous aurez besoin
 * Vous disposez d'informations d'identification de compte et de configuration valides pour le fournisseur de magasin d'objets.
 * Les interfaces réseau intercluster et un IPspace ont été configurés sur le système source.
-* • La configuration DNS pour la machine virtuelle de stockage source doit pouvoir résoudre le FQDN de la cible.
+* • La configuration DNS de la machine virtuelle de stockage source doit pouvoir résoudre le nom de domaine complet de la cible.
 
 
 
@@ -96,8 +96,12 @@ Lorsque vous cliquez sur *Enregistrer*, un nouveau compartiment est créé dans 
 == Procédure CLI
 
 . Si il s'agit de la première relation SnapMirror S3 pour ce SVM, vérifiez que des clés utilisateur root existent pour les SVM source et de destination, puis régénèrent-les s'ils ne :
-`vserver object-store-server user show`+ Vérifiez qu'il y a une clé d'accès pour l'utilisateur root. Si ce n'est pas le cas, entrez :
-`vserver object-store-server user regenerate-keys -vserver svm_name -user _root_`+ ne pas régénérer la clé si elle existe déjà.
+`vserver object-store-server user show`
+ +
+Vérifiez qu'il existe une clé d'accès pour l'utilisateur root. Si ce n'est pas le cas, entrez :
+`vserver object-store-server user regenerate-keys -vserver svm_name -user _root_`
+ +
+Ne pas régénérer la clé si elle existe déjà.
 . Création d'un compartiment dans le SVM source :
 `vserver object-store-server bucket create -vserver _svm_name_ -bucket _bucket_name_ [-size _integer_[KB|MB|GB|TB|PB]] [-comment _text_] [_additional_options_]`
 . Ajout de règles d'accès à la politique de compartiment par défaut :
@@ -111,7 +115,10 @@ clusterA::> vserver object-store-server bucket policy add-statement -bucket test
 . Créez une règle SnapMirror S3 si vous ne disposez pas d'une règle existante et que vous ne souhaitez pas utiliser la règle par défaut :
 `snapmirror policy create -vserver svm_name -policy policy_name -type continuous [-rpo _integer_] [-throttle _throttle_type_] [-comment _text_] [_additional_options_]`
 +
-Paramètres : * `type continuous` – Le seul type de règle pour les relations SnapMirror S3 (obligatoire). * `-rpo` – indique le temps de l'objectif de point de récupération, en secondes (facultatif). * `-throttle` – spécifie la limite supérieure sur le débit/bande passante, en kilo-octets/secondes (facultatif).
+Paramètres :
+* `type continuous` – Le seul type de règle pour les relations SnapMirror S3 (obligatoire).
+* `-rpo` – indique le temps de l'objectif de point de récupération, en secondes (facultatif).
+* `-throttle` – spécifie la limite supérieure sur le débit/bande passante, en kilo-octets/secondes (facultatif).
 
 +
 .Exemple
@@ -127,7 +134,14 @@ Voir la `security certificate install` page de manuel pour plus de détails.
 . Définissez le magasin d'objets de destination S3 SnapMirror :
 `snapmirror object-store config create -vserver _svm_name_ -object-store-name _target_store_name_ -usage data -provider-type {AWS_S3|SGWS} -server _target_FQDN_ -container-name _remote_bucket_name_ -is-ssl-enabled true -port _port_number_ -access-key target_access_key -secret-password _target_secret_key_`
 +
-Paramètres : * `-object-store-name` – Le nom de la cible de magasin d'objets sur le système ONTAP local. * `-usage` – utiliser `data` pour ce flux de travail. * `-provider-type` – `AWS_S3` et `SGWS` Les cibles (StorageGRID) sont prises en charge. * `-server` – Le FQDN ou l'adresse IP du serveur cible. * `-is-ssl-enabled` –L'activation de SSL est facultative mais recommandée. + Voir le `snapmirror object-store config create` page de manuel pour plus de détails.
+Paramètres :
+* `-object-store-name` – Le nom de la cible de magasin d'objets sur le système ONTAP local.
+* `-usage` – utiliser `data` pour ce flux de travail.
+* `-provider-type` – `AWS_S3` et `SGWS` Les cibles (StorageGRID) sont prises en charge.
+* `-server` – Le FQDN ou l'adresse IP du serveur cible.
+* `-is-ssl-enabled` –L'activation de SSL est facultative mais recommandée.
+ +
+Voir la `snapmirror object-store config create` page de manuel pour plus de détails.
 
 +
 .Exemple
@@ -138,7 +152,10 @@ src_cluster::> snapmirror object-store config create -vserver vs0 -object-store-
 . Création d'une relation SnapMirror S3 :
 `snapmirror create -source-path _svm_name_:/bucket/_bucket_name_ -destination-path _object_store_name_:/objstore -policy _policy_name_`
 +
-Paramètres : * `-destination-path` – le nom de magasin d'objets que vous avez créé à l'étape précédente et la valeur fixe `objstore`. + vous pouvez utiliser une stratégie que vous avez créée ou accepter la valeur par défaut.
+Paramètres :
+* `-destination-path` – le nom de magasin d'objets que vous avez créé à l'étape précédente et la valeur fixe `objstore`.
+  +
+Vous pouvez utiliser une stratégie que vous avez créée ou accepter la règle par défaut.
 
 +
 .Exemple

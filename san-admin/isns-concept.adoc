@@ -1,10 +1,10 @@
 ---
 permalink: san-admin/isns-concept.html 
 sidebar: sidebar 
-keywords: what, isns 
+keywords: isns, isns server, internet storage name service, iscsi, iqn 
 summary: 'Le service iSNS (Internet Storage Name Service) est un protocole qui permet la découverte et la gestion automatisées des périphériques iSCSI sur un réseau de stockage TCP/IP. Un serveur iSNS conserve des informations sur les périphériques iSCSI actifs sur le réseau, y compris leurs adresses IP, les noms de nœud iSCSI et les groupes de portails.' 
 ---
-= Qu'est-ce qu'iSNS
+= ISNS (Internet Storage Name Service)
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -28,3 +28,92 @@ Un serveur iSNS utilise le protocole iSNS (Internet Storage Name Service) pour g
 Le protocole iSNS permet la découverte et la gestion automatisées des périphériques iSCSI sur un réseau de stockage IP. Un initiateur iSCSI peut interroger le serveur iSNS pour détecter les périphériques cibles iSCSI.
 
 NetApp ne fournit pas ni ne revende de serveurs iSNS. Vous pouvez obtenir ces serveurs auprès d'un fournisseur pris en charge par NetApp.
+
+
+
+== Interaction des SVM avec un serveur iSNS
+
+Le serveur iSNS communique avec chaque machine virtuelle de stockage (SVM) via le LIF de gestion des SVM. La LIF de gestion enregistre toutes les informations de nom de nœud cible iSCSI, d'alias et de portail avec le service iSNS pour un SVM spécifique.
+
+Dans l'exemple suivant, le SVM « VS1 » utilise la LIF de gestion du SVM « VS1_mgmt_lif » pour s'enregistrer sur le serveur iSNS. Lors de l'enregistrement iSNS, un SVM envoie toutes les LIFs iSCSI via le LIF de gestion du SVM au serveur iSNS. Une fois l'enregistrement iSNS terminé, le serveur iSNS dispose d'une liste de toutes les LIFs desservant iSCSI dans « VS1 ». Si un cluster contient plusieurs SVM, chaque SVM doit s'enregistrer individuellement sur le serveur iSNS pour utiliser le service iSNS.
+
+image::../media/bsag_c-mode_iSNS_register.png[Registre iSNS du mode bsag c]
+
+Dans l'exemple suivant, une fois que le serveur iSNS a terminé l'enregistrement avec la cible, l'hôte A peut découvrir toutes les LIFs pour « VS1 » via le serveur iSNS comme indiqué à l'étape 1. Une fois que l'hôte A a terminé la découverte des LIFs pour « VS1 », l'hôte A peut établir une connexion avec l'une des LIFs dans « VS1 », comme indiqué à l'étape 2. L'hôte A ne connaît aucune des LIFs dans « VS2 » jusqu'à ce que la LIF de gestion « VS2_mgmt_LIF » pour les registres « VS2 » avec le serveur iSNS.
+
+image::../media/bsag_c-mode_iSNS_connect.png[Mode bsag c connexion iSNS]
+
+Cependant, si vous définissez les listes d'accès de l'interface, l'hôte ne peut utiliser que les LIFs définies dans la liste d'accès de l'interface pour accéder à la cible.
+
+Après la configuration initiale d'iSNS, ONTAP met automatiquement à jour le serveur iSNS lorsque les paramètres de configuration de la SVM changent.
+
+Un délai de quelques minutes peut se produire entre le moment où vous apportez les modifications de configuration et l'envoi de la mise à jour par ONTAP au serveur iSNS. Forcer une mise à jour immédiate des informations iSNS sur le serveur iSNS : `vserver iscsi isns update`
+
+
+
+== Commandes de gestion d'iSNS
+
+ONTAP fournit des commandes pour gérer votre service iSNS.
+
+|===
+
+
+| Les fonctions que vous recherchez... | Utilisez cette commande... 
+
+
+ a| 
+Configurez un service iSNS
+ a| 
+`vserver iscsi isns create`
+
+
+
+ a| 
+Démarrez un service iSNS
+ a| 
+`vserver iscsi isns start`
+
+
+
+ a| 
+Modifiez un service iSNS
+ a| 
+`vserver iscsi isns modify`
+
+
+
+ a| 
+Affiche la configuration du service iSNS
+ a| 
+`vserver iscsi isns show`
+
+
+
+ a| 
+Forcer une mise à jour des informations iSNS enregistrées
+ a| 
+`vserver iscsi isns update`
+
+
+
+ a| 
+Arrêtez un service iSNS
+ a| 
+`vserver iscsi isns stop`
+
+
+
+ a| 
+Supprimez un service iSNS
+ a| 
+`vserver iscsi isns delete`
+
+
+
+ a| 
+Affichez la page man pour une commande
+ a| 
+`man _command name_`
+
+|===
+Consultez la page man pour chaque commande pour plus d'informations.

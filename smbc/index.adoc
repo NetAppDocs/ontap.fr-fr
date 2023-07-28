@@ -14,15 +14,17 @@ summary: 'Depuis ONTAP 9.8, vous pouvez utiliser SnapMirror Business Continuity 
 
 
 [role="lead"]
-Depuis ONTAP 9.8, vous pouvez utiliser SnapMirror Business Continuity (SM-BC) pour protéger les applications avec des LUN. Les applications peuvent ainsi basculer en toute transparence, assurant ainsi la continuité de l'activité en cas d'incident. SM-BC est pris en charge sur les clusters AFF (y compris les clusters AFF C-Series) ou ASA (All SAN Array), dans lesquels les clusters principal et secondaire peuvent être AFF ou ASA. SM-BC protège les applications avec des LUN iSCSI ou FCP.
+SnapMirror Business Continuity (SM-BC) assure la continuité des services de l'entreprise même en cas de défaillance complète du site, permettant aux applications de basculer en toute transparence à l'aide d'une copie secondaire. Aucune intervention manuelle ni script supplémentaire n'est nécessaire pour déclencher un basculement avec SM-BC.
+
+SM-BC est disponible à partir de ONTAP 9.8. SM-BC est pris en charge sur les clusters AFF ou sur tous les clusters SAN Array (ASA), dans lesquels les clusters principaux et secondaires peuvent être AFF ou ASA. SM-BC protège les applications avec des LUN iSCSI ou FCP.
 
 
 
 == Avantages
 
-La continuité de l'activité SnapMirror offre les avantages suivants :
+SM-BC offre les avantages suivants :
 
-* Assure une disponibilité sans interruption pour les applications stratégiques
+* Disponibilité sans interruption pour les applications stratégiques
 * Possibilité d'héberger les applications stratégiques en alternance depuis les sites principal et secondaire
 * Gestion des applications simplifiée grâce à des groupes de cohérence pour assurer la cohérence des écritures dépendantes
 * Possibilité de tester le basculement pour chaque application
@@ -32,19 +34,13 @@ La continuité de l'activité SnapMirror offre les avantages suivants :
 
 
 
-== Cas d'utilisation courants
+== Cas d'utilisation
 
+.Déploiement des applications pour un objectif de délai de restauration (RTO) nul
+Dans un déploiement SM-BC, vous aurez un cluster principal et un cluster secondaire. Une LUN dans le cluster principal  `1LP`) aura un miroir (`L1s`) Sur le serveur secondaire ; les deux LUN partagent le même ID de série et sont signalées comme des LUN de lecture-écriture à l'hôte. En revanche, les opérations de lecture et d'écriture sont uniquement gérées sur le LUN principal, `1LP`. Toutes les écritures sont effectuées sur le miroir `L1S` sont servis par proxy.
 
-
-=== Déploiement d'applications pour un RTO nul ou un basculement transparent des applications
-
-Le basculement transparent des applications repose sur le basculement de chemin logiciel MPIO (Multipath I/O) des hôtes pour garantir un accès sans interruption au stockage. Les copies LUN, par exemple copie primaire(L1P) et miroir (L1S), ont la même identité (numéro de série) et sont signalées comme lues-inscriptibles vers l'hôte. Toutefois, les lectures et écritures sont uniquement gérées par le volume primaire. Les E/S émises vers la copie miroir sont proxyés à la copie principale. Le chemin privilégié de l'hôte pour L1 est VS1:N1 basé sur l'état d'accès ALUA (Asymmetric Logical Unit Access) Active Optimized (A/O). Un médiateur est recommandé dans le cadre du déploiement, principalement afin d'effectuer un basculement en cas de panne du stockage primaire.
-
-
-
-=== Scénario d'incident
-
-Le site hébergeant le cluster principal subit un incident. Le logiciel de chemins d'accès multiples de l'hôte marque tous les chemins dans le cluster comme étant hors service et utilise les chemins depuis le cluster secondaire. Il en résulte un basculement non disruptif vers la copie miroir de la LUN L1. LES 1S sont convertis d'une copie miroir vers une copie active de la LUN L1. Le basculement se produit automatiquement lorsqu'un médiateur externe est configuré. Le chemin préféré de l'hôte vers L1 devient VS2:N1.
+.Scénario d'incident
+Avec SM-BC, vous pouvez répliquer de manière synchrone plusieurs volumes pour une application entre des sites répartis géographiquement. En cas d'interruption du stockage primaire, vous pouvez basculer automatiquement vers la copie secondaire, assurant ainsi la continuité de l'activité pour les applications de niveau 1.
 
 
 
@@ -53,3 +49,12 @@ Le site hébergeant le cluster principal subit un incident. Le logiciel de chemi
 La figure suivante illustre le fonctionnement général de la fonctionnalité de continuité de l'activité SnapMirror.
 
 image:workflow_san_snapmirror_business_continuity.png["Flux de travail de continuité de l'activité SnapMirror"]
+
+Dans la section un du diagramme, une application est déployée sur un SVM dans le data Center principal. Les volumes ajoutés au groupe de cohérence principal sont protégés par SM-BC et mis en miroir sur le groupe de cohérence secondaire d'un data Center secondaire. En cas d'interruption, les volumes du groupe de cohérence principal basculeront vers le groupe de cohérence mis en miroir. Les volumes qui ne se trouvent pas dans un groupe de cohérence mis en miroir ne sont pas servis en cas de basculement.
+
+
+
+== Plus d'informations
+
+* link:https://www.netapp.com/pdf.html?item=/media/21888-tr-4878.pdf["Tr-4878 : continuité de l'activité avec SnapMirror"^]
+

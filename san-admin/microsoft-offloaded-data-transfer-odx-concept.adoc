@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: microsoft, offloaded, data, transfer, odx 
 summary: 'Microsoft Offloaded Data Transfer (ODX), également appelé allègement de la charge des copies, permet le transfert direct des données au sein d"un périphérique de stockage ou entre des périphériques de stockage compatibles, sans transférer les données via l"ordinateur hôte.' 
 ---
-= Présentation de Microsoft Offloaded Data Transfer (ODX)
+= Microsoft Offloaded Data Transfer (ODX)
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -20,3 +20,130 @@ Dans les transferts de fichiers non ODX, les données sont lues à partir de la 
 Étant donné que les copies déchargées d'ODX sont effectuées directement entre la source et la destination, des avantages considérables sont obtenus, notamment le temps de copie plus rapide, l'utilisation réduite du processeur et de la mémoire sur le client et la réduction de l'utilisation de la bande passante d'E/S du réseau.
 
 Pour les environnements SAN, ODX n'est disponible que lorsqu'il est pris en charge par l'hôte et le système de stockage. Les ordinateurs clients qui prennent en charge ODX et où ODX est activé automatiquement et de manière transparente utilisent le transfert de fichiers déchargées lors du déplacement ou de la copie des fichiers. ODX est utilisé que les fichiers par glisser-déposer soient via l'Explorateur Windows ou qu'il utilise des commandes de copie de fichier en ligne de commande ou qu'une application client lance des demandes de copie de fichiers.
+
+
+
+== Conditions requises pour l'utilisation d'ODX
+
+Si vous prévoyez d'utiliser ODX pour la réduction des volumes de copies, vous devez connaître les considérations relatives à la prise en charge des volumes, les exigences système et les fonctionnalités logicielles requises.
+
+Pour utiliser ODX, votre système doit disposer des éléments suivants :
+
+* ONTAP
++
+ODX est automatiquement activé dans les versions prises en charge de ONTAP.
+
+* Volume source minimum de 2 Go
++
+Pour des performances optimales, le volume source doit être supérieur à 260 Go.
+
+* Déduplication
++
+ODX utilise la déduplication dans le cadre du processus de copie. Si vous ne souhaitez pas la déduplication sur votre SVM, il est conseillé de désactiver ODX sur ce SVM.
+
+* Prise en charge d'ODX sur le client Windows
++
+ODX est pris en charge par Windows Server 2012 ou version ultérieure et dans Windows 8 ou version ultérieure. La matrice d'interopérabilité contient les dernières informations sur les clients Windows pris en charge.
+
++
+https://mysupport.netapp.com/matrix["Matrice d'interopérabilité NetApp"^]
+
+* Prise en charge des applications de copie pour ODX
++
+ODX doit être prise en charge par l'application qui effectue le transfert de données. Les opérations applicatives prenant en charge ODX sont les suivantes :
+
++
+** Les opérations de gestion Hyper-V, telles que la création et la conversion de disques durs virtuels (VHD), la gestion des copies Snapshot et la copie de fichiers entre les machines virtuelles
+** Opérations de l'Explorateur Windows
+** Commandes de copie Windows PowerShell
+** Commandes de copie de l'invite de commande Windows
+La bibliothèque Microsoft TechNet contient plus d'informations sur les applications ODX prises en charge sur les serveurs et les clients Windows.
+
+
+* Si vous utilisez des volumes compressés, la taille du groupe de compression doit être de 8 Ko.
++
+La taille des groupes de compression 32 K n'est pas prise en charge.
+
+
+
+ODX ne fonctionne pas avec les types de volume suivants :
+
+* Volumes source d'une capacité inférieure à 2 Go
+* Volumes en lecture seule
+* link:../flexcache/supported-unsupported-features-concept.html["Volumes FlexCache"]
+* link:../san-admin/san-volumes-concept.html#semi-thick-provisioning-for-volumes["Volumes provisionnés semi-lourds"]
+
+
+
+
+== Configuration spéciale pour les fichiers système
+
+Vous pouvez supprimer les fichiers ODX trouvés dans les qtrees. Vous ne devez pas supprimer ou modifier d'autres fichiers système d'ODX à moins d'en obtenir une.
+
+Lors de l'utilisation de la fonctionnalité ODX, des fichiers système d'ODX existent dans tous les volumes du système. Ces fichiers permettent une représentation instantanée des données utilisées lors du transfert d'ODX. Les fichiers système suivants se trouvent au niveau racine de chaque volume qui contient des LUN ou des fichiers vers lesquels les données ont été déchargées :
+
+* `.copy-offload` (un répertoire masqué)
+* `.tokens` (fichier sous le masqué `.copy-offload` répertoire)
+
+
+Vous pouvez utiliser le `copy-offload delete-tokens -path dir_path -node _node_name_` Commande permettant de supprimer un qtree contenant un fichier ODX.
+
+
+
+== Cas d'utilisation d'ODX
+
+Vous devez tenir compte des cas d'utilisation d'ODX sur des SVM afin de pouvoir déterminer dans quelles circonstances ODX vous fournit des avantages en matière de performances.
+
+Par défaut, les serveurs et clients Windows qui prennent en charge ODX utilisent la fonction d'allègement de la charge des copies pour copier des données sur des serveurs distants. Si le serveur ou le client Windows ne prend pas en charge ODX, ou si l'allègement de la charge des copies ODX échoue à tout moment, l'opération de copie ou de déplacement retourne aux lectures et écritures classiques pour la copie ou le déplacement.
+
+Les cas d'utilisation suivants prennent en charge l'utilisation de copies et de déplacements d'ODX :
+
+* Intra-volume
++
+Les fichiers ou LUN source et de destination se trouvent dans le même volume.
+
+* Inter-volume, même nœud, même SVM
++
+Les fichiers ou LUN source et de destination se trouvent sur des volumes différents situés sur le même nœud. Les données sont détenues par le même SVM.
+
+* Inter-volumes, nœuds différents, même SVM
++
+Les fichiers ou LUN source et de destination se trouvent sur des volumes différents situés sur des nœuds différents. Les données sont détenues par le même SVM.
+
+* Inter-SVM, même nœud
++
+Les fichiers source et de destination ou les LUN se trouvent sur des volumes différents situés sur le même nœud. Les données sont détenues par différents SVM.
+
+* Inter-SVM, nœuds différents
++
+Les fichiers ou LUN source et de destination se trouvent sur des volumes différents situés sur des nœuds différents. Les données sont détenues par différents SVM.
+
+* Inter-cluster
++
+Les LUN source et de destination se trouvent sur des volumes différents, sur différents nœuds, sur l'ensemble des clusters. Cette fonctionnalité est uniquement prise en charge pour SAN et ne fonctionne pas pour SMB.
+
+
+
+Il existe d'autres cas d'utilisation spéciaux :
+
+* Dans l'implémentation de ONTAP ODX, vous pouvez utiliser ODX pour copier des fichiers entre des partages SMB et des disques virtuels connectés FC ou iSCSI.
++
+Vous pouvez utiliser Windows Explorer, l'interface de ligne de commande Windows ou PowerShell, Hyper-V ou d'autres applications prenant en charge ODX pour copier ou déplacer des fichiers de manière transparente à l'aide de l'allègement de la charge des copies ODX entre les partages SMB et les LUN connectés, à condition que les partages SMB et les LUN soient sur le même cluster.
+
+* Hyper-V fournit des cas d'utilisation supplémentaires pour la décharge de copies ODX :
++
+** Vous pouvez utiliser le pass-through ODX qui décharge les copies et Hyper-V pour copier des données dans ou sur des fichiers de disque dur virtuel (VHD), ou pour copier des données entre les partages SMB mappés et les LUN iSCSI connectés au sein du même cluster.
++
+Ainsi, des copies des systèmes d'exploitation invités peuvent être transmis au stockage sous-jacent.
+
+** Lors de la création de VHD de taille fixe, ODX permet d'initialiser le disque avec des zéros, à l'aide d'un jeton bien connu mis à zéro.
+** L'allègement de la charge des copies d'ODX est utilisé pour la migration du stockage de machines virtuelles si le stockage source et cible est situé sur le même cluster.
+
+
++
+[NOTE]
+====
+Pour tirer parti des cas d'utilisation liés au délestage des copies ODX par Hyper-V, le système d'exploitation invité doit prendre en charge ODX. Les disques du système d'exploitation invité doivent être des disques SCSI pris en charge par le stockage (SMB ou SAN) prenant en charge ODX. Les disques IDE du système d'exploitation invité ne prennent pas en charge le pass-through ODX.
+
+====
+

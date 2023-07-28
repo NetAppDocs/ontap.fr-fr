@@ -14,22 +14,22 @@ summary: Pour garantir la sécurité et le cryptage continus des données, même
 
 
 [role="lead"]
-À partir de ONTAP 9.8, ONTAP utilise le protocole IPsec en mode transport pour garantir la sécurité et le cryptage continus des données, même en transit. IPSec offre le cryptage des données pour tout le trafic IP, y compris les protocoles NFS, iSCSI et SMB. IPSec fournit la seule option de cryptage en vol pour le trafic iSCSI.
+ONTAP utilise IPsec en mode de transport pour assurer la sécurité et le chiffrement en continu des données, même en transit. IPSec offre le cryptage des données pour tout le trafic IP, y compris les protocoles NFS, iSCSI et SMB.
 
-À partir de ONTAP 9.9.1, les algorithmes de cryptage utilisés par IPsec sont validés par la norme FIPS 140-2. Les algorithmes sont générés par le module de chiffrement NetApp dans ONTAP qui assure la validation FIPS 140-2-2.
+À partir de ONTAP 9.12.1, la prise en charge IPsec du protocole hôte frontal est disponible dans les configurations MetroCluster IP et MetroCluster reliées à la structure.
+La prise en charge IPsec dans les clusters MetroCluster est limitée au trafic hôte frontal et n'est pas prise en charge sur les LIF intercluster MetroCluster.
 
 À partir de ONTAP 9.10.1, vous pouvez utiliser des clés prépartagées (PSK) ou des certificats pour l'authentification avec IPsec. Auparavant, seuls les PSK étaient pris en charge par IPsec.
 
-À partir de ONTAP 9.12.1, la prise en charge IPsec du protocole hôte frontal est disponible dans les configurations MetroCluster IP et MetroCluster reliées à la structure.
+À partir de ONTAP 9.9.1, les algorithmes de cryptage utilisés par IPsec sont validés par la norme FIPS 140-2. Les algorithmes sont générés par le module de chiffrement NetApp dans ONTAP qui assure la validation FIPS 140-2-2.
 
-* La prise en charge IPsec dans les clusters MetroCluster est limitée au trafic hôte frontal et n'est pas prise en charge sur les LIF intercluster MetroCluster.
-
+À partir de ONTAP 9.8, ONTAP prend en charge IPsec en mode transport.
 
 Une fois IPsec configuré, le trafic réseau entre le client et ONTAP est protégé par des mesures préventives pour lutter contre les attaques par replay et les attaques de l'homme au milieu.
 
 Pour le cryptage NetApp SnapMirror et du trafic de peering de clusters, le cryptage de peering de clusters (CPE), la sécurité de la couche de transport (TLS) est toujours recommandée sur IPsec afin de garantir la sécurité en transit sur le réseau. Ceci est dû au fait que TLS offre de meilleures performances que IPsec.
 
-Bien que la fonctionnalité IPsec soit activée sur le cluster, le réseau nécessite une entrée SPD (Security Policy Database) pour correspondre au trafic à protéger et pour spécifier les détails de protection (tels que la suite de chiffrement et la méthode d'authentification) avant que le trafic ne puisse circuler. Une entrée SPD correspondante est également nécessaire sur chaque client. L'exigence SPD est nécessaire pour les méthodes d'authentification PSK et de certification.
+Bien que la fonctionnalité IPsec soit activée sur le cluster, le réseau nécessite une entrée SPD (Security Policy Database) pour correspondre au trafic à protéger et pour spécifier les détails de protection (tels que la suite de chiffrement et la méthode d'authentification) avant que le trafic ne puisse circuler. Une entrée SPD correspondante est également nécessaire sur chaque client.
 
 
 
@@ -60,13 +60,13 @@ Le résultat inclut maintenant `IPsec Enabled: true`.
 
 
 
-== Préparation de la création de stratégies IPsec avec authentification par certificat
+== Préparez la création de stratégies IPsec avec l'authentification par certificat
 
-Vous pouvez ignorer cette étape si vous n'utilisez que des clés PSK pré-partagées pour l'authentification et n'utiliserez pas l'authentification par certificat.
+Vous pouvez ignorer cette étape si vous utilisez uniquement des clés prépartagées (PSK) pour l'authentification et que vous n'utilisez pas l'authentification par certificat.
 
-Avant de créer une stratégie IPsec utilisant des certificats pour l'authentification, vous devez vous assurer que les conditions préalables suivantes sont remplies :
+Avant de créer une stratégie IPSec qui utilise des certificats pour l'authentification, vous devez vérifier que les conditions préalables suivantes sont remplies :
 
-* ONTAP et le client doivent tous deux avoir installé le certificat CA de l'autre partie pour que les certificats de l'entité finale (ONTAP ou client) soient vérifiables des deux côtés
+* ONTAP et le client doivent avoir installé le certificat CA de l'autre partie afin que les certificats de l'entité finale (ONTAP ou le client) soient vérifiables des deux côtés
 * Un certificat est installé pour la LIF de ONTAP qui participe à la politique
 
 
@@ -74,15 +74,24 @@ Avant de créer une stratégie IPsec utilisant des certificats pour l'authentifi
 NOTE: Les LIF ONTAP peuvent partager des certificats. Un mappage un-à-un entre les certificats et les LIFs n'est pas nécessaire.
 
 .Étapes
-. Vous devez installer tous les certificats CA utilisés lors de l'authentification mutuelle, y compris les autorités de certification côté ONTAP et côté client, sur la gestion des certificats ONTAP, à moins qu'ils ne soient déjà installés (comme c'est le cas pour une autorité de certification racine auto-signée ONTAP). *Commande exemple*
+. Installez tous les certificats de l'autorité de certification utilisés lors de l'authentification mutuelle, y compris les autorités de certification côté ONTAP et côté client, dans la gestion des certificats ONTAP, sauf s'il est déjà installé (comme c'est le cas pour une autorité de certification racine auto-signée ONTAP).
++
+*Commande exemple*
 `cluster::> security certificate install -vserver svm_name -type server-ca -cert-name my_ca_cert`
-. Pour vous assurer que l'autorité de certification installée se trouve dans le chemin de recherche de l'autorité de certification IPSec pendant l'authentification, ajoutez les autorités de certification de gestion des certificats ONTAP au module IPsec à l'aide de la commande « Security ipsec CA-Certificate add ». *Commande exemple*
+
+. Pour vous assurer que l'autorité de certification installée se trouve dans le chemin de recherche de l'autorité de certification IPSec lors de l'authentification, ajoutez les autorités de certification de gestion de certificat ONTAP au module IPSec à l'aide du `security ipsec ca-certificate add` commande.
++
+*Commande exemple*
 `cluster::> security ipsec ca-certificate add -vserver svm_name -ca-certs my_ca_cert`
-. Créez et installez un certificat pour une utilisation par le LIF ONTAP. L'autorité de certification de l'émetteur de ce certificat doit déjà être installée sur ONTAP et ajoutée à IPsec. *Commande exemple*
+
+. Créez et installez un certificat pour une utilisation par le LIF ONTAP. L'autorité de certification de l'émetteur de ce certificat doit déjà être installée sur ONTAP et ajoutée à IPsec.
++
+*Commande exemple*
 `cluster::> security certificate install -vserver svm_name -type server -cert-name my_nfs_server_cert`
 
 
-Pour plus d'informations sur les certificats dans ONTAP, consultez les commandes de certificat de sécurité dans la documentation de ONTAP 9.
+
+Pour plus d'informations sur les certificats dans ONTAP, consultez les commandes de certificat de sécurité dans la documentation de ONTAP 9 .
 
 
 
@@ -90,7 +99,7 @@ Pour plus d'informations sur les certificats dans ONTAP, consultez les commandes
 
 IPSec requiert une entrée SPD avant d'autoriser le trafic à circuler sur le réseau. Ceci est vrai si vous utilisez un PSK ou un certificat pour l'authentification.
 
-.Étape
+.Étapes
 . Utilisez le `security ipsec policy create` commande pour :
 +
 .. Sélectionnez l'adresse IP ONTAP ou le sous-réseau d'adresses IP pour participer au transport IPsec.
@@ -99,14 +108,18 @@ IPSec requiert une entrée SPD avant d'autoriser le trafic à circuler sur le r�
 
 NOTE: Le client doit prendre en charge Internet Key Exchange version 2 (IKEv2) avec une clé pré-partagée (PSK).
 
-.. Facultatif. Sélectionnez les protocoles de couche supérieure (UDP, TCP, ICMP, etc. ), les numéros de port local et les numéros de port distants à protéger. Les paramètres correspondants sont `protocols`, `local-ports` et `remote-ports` respectivement.
+.. Facultatif. Sélectionnez les paramètres de trafic à granularité fine, tels que les protocoles de couche supérieure (UDP, TCP, ICMP, etc.) ), les numéros de port local et les numéros de port distant pour protéger le trafic. Les paramètres correspondants sont `protocols`, `local-ports` et `remote-ports` respectivement.
 +
 Ignorez cette étape pour protéger tout le trafic entre l'adresse IP ONTAP et l'adresse IP du client. La protection de tout le trafic est la valeur par défaut.
 
-.. Entrez PSK ou PKI pour `auth-method` paramètre de la méthode d'authentification souhaitée.
+.. Entrez PSK ou PKI (public-Key Infrastructure) pour le `auth-method` paramètre de la méthode d'authentification souhaitée.
 +
-... Si vous entrez une clé PSK, après avoir terminé tous les autres paramètres facultatifs, appuyez sur <ENTER> pour que l'invite entre et vérifie la clé pré-partagée.
-... Si vous entrez une PKI, vous devez également entrer `cert-name`, `local-identity`, `remote-identity` paramètres. Si l'identité du certificat côté distant est inconnue ou si plusieurs identités client sont attendues, entrez le mot spécial `ANYTHING`.
+... Si vous entrez une clé PSK, incluez les paramètres, puis appuyez sur <enter> pour que l'invite vous demande d'entrer et de vérifier la clé pré-partagée.
++
+
+NOTE: `local-identity` et `remote-identity` Les paramètres sont facultatifs si l'hôte et le client utilisent StrongSwan et qu'aucune règle générique n'est sélectionnée pour l'hôte ou le client.
+
+... Si vous entrez une PKI, vous devez également entrer `cert-name`, `local-identity`, `remote-identity` paramètres. Si l'identité du certificat côté distant est inconnue ou si plusieurs identités client sont attendues, entrez l'identité spéciale `ANYTHING`.
 
 
 
@@ -114,25 +127,27 @@ Ignorez cette étape pour protéger tout le trafic entre l'adresse IP ONTAP et l
 
 
 ....
-security ipsec policy create -vserver <vs1> -name <test34> -local-ip-subnets <192.168.134.34/32> -remote-ip-subnets <192.168.134.44/32>
+security ipsec policy create -vserver vs1 -name test34 -local-ip-subnets 192.168.134.34/32 -remote-ip-subnets 192.168.134.44/32
 Enter the preshared key for IPsec Policy _test34_ on Vserver _vs1_:
 ....
 ....
 security ipsec policy create -vserver vs1 -name test34 -local-ip-subnets 192.168.134.34/32 -remote-ip-subnets 192.168.134.44/32 -local-ports 2049 -protocols tcp -auth-method PKI -cert-name my_nfs_server_cert -local-identity CN=netapp.ipsec.lif1.vs0 -remote-identity ANYTHING
 ....
-Le trafic IP ne peut pas circuler entre le client et le serveur tant que ONTAP et le client n'ont pas configuré les stratégies IPsec correspondantes et que les informations d'authentification (PSK ou certificat) ne sont pas en place des deux côtés. Pour plus de détails, reportez-vous à la configuration IPsec du côté client.
+Le trafic IP ne peut pas circuler entre le client et le serveur tant que ONTAP et le client n'ont pas configuré les stratégies IPSec correspondantes et que les informations d'identification d'authentification (PSK ou certificat) ne sont pas en place des deux côtés. Pour plus de détails, reportez-vous à la configuration IPsec côté client.
 
 
 
 == Utiliser les identités IPsec
 
-Pour la méthode d'authentification de clé pré-partagée, les identités sont facultatives, sauf si un client IPsec l'exige (tel que Libreswan). Pour la méthode d'authentification PKI/certificat, les identités locales et distantes sont obligatoires. Les identités spécifient quelle identité est certifiée dans le certificat de chaque partie et sont utilisées dans le processus de vérification. Si l'identité distante est inconnue ou si elle peut être de nombreuses identités différentes, utilisez l'identité spéciale `ANYTHING`.
+Pour la méthode d'authentification par clé pré-partagée, les identités locales et distantes sont facultatives si l'hôte et le client utilisent StrongSwan et qu'aucune règle générique n'est sélectionnée pour l'hôte ou le client.
+
+Pour la méthode d'authentification PKI/certificat, les identités locales et distantes sont obligatoires. Les identités spécifient quelle identité est certifiée dans le certificat de chaque côté et sont utilisées dans le processus de vérification. Si l'identité distante est inconnue ou si elle peut être de nombreuses identités différentes, utilisez l'identité spéciale `ANYTHING`.
 
 .Description de la tâche
 Au sein de ONTAP, les identités sont spécifiées en modifiant l'entrée du démon du processeur de service ou pendant sa création. Le démon du processeur de service peut être un nom d'identité avec une adresse IP ou un format de chaîne.
 
 .Étape
-Pour modifier les paramètres d'identité d'un démon du processeur de service existant, utilisez la commande suivante :
+Pour modifier un paramètre d'identité SPD existant, utilisez la commande suivante :
 
 `security ipsec policy modify`
 
@@ -165,13 +180,13 @@ Pour permettre à n'importe quel client, quelle que soit son adresse IP source, 
 De plus, vous devez spécifier le `remote-identity` champ avec l'identité côté client correcte. Pour l'authentification par certificat, vous pouvez entrer `ANYTHING`.
 
 +
-Aussi, lorsque le `0.0.0.0/0` le caractère générique est utilisé, vous devez configurer un numéro de port local ou distant spécifique à utiliser. Par exemple : `NFS port 2049`.
+Aussi, lorsque le `0.0.0.0/0` le caractère générique est utilisé. vous devez configurer un numéro de port local ou distant spécifique à utiliser. Par exemple : `NFS port 2049`.
 
 +
-.Étape
-.. Utilisez l'une des commandes suivantes pour configurer IPsec pour plusieurs clients :
+.Étapes
+.. Utilisez l'une des commandes suivantes pour configurer IPsec pour plusieurs clients.
 +
-... Si vous utilisez une configuration *sous-réseau* pour prendre en charge plusieurs clients IPsec :
+... Si vous utilisez *subnet configuration* pour prendre en charge plusieurs clients IPsec :
 +
 `security ipsec policy create -vserver _vserver_name_ -name _policy_name_ -local-ip-subnets _IPsec_IP_address/32_ -remote-ip-subnets _IP_address/subnet_ -local-identity _local_id_ -remote-identity _remote_id_`
 
@@ -179,7 +194,7 @@ Aussi, lorsque le `0.0.0.0/0` le caractère générique est utilisé, vous devez
 .Commande exemple
 `security ipsec policy create -vserver _vs1_ -name _subnet134_ -local-ip-subnets _192.168.134.34/32_ -remote-ip-subnets _192.168.134.0/24_ -local-identity _ontap_side_identity_ -remote-identity _client_side_identity_`
 
-... Si vous utilisez un *Autoriser la configuration de tous les clients* pour prendre en charge plusieurs clients IPsec :
+... Si vous utilisez *Autoriser la configuration de tous les clients* à prendre en charge plusieurs clients IPsec :
 +
 `security ipsec policy create -vserver _vserver_name_ -name _policy_name_ -local-ip-subnets _IPsec_IP_address/32_ -remote-ip-subnets _0.0.0.0/0_ -local-ports _port_number_ -local-identity _local_id_ -remote-identity _remote_id_`
 

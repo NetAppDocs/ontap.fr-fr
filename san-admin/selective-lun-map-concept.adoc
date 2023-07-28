@@ -1,7 +1,7 @@
 ---
 permalink: san-admin/selective-lun-map-concept.html 
 sidebar: sidebar 
-keywords: select, lun, map 
+keywords: select, selective, lun, map, slm, enabled, modify, reporting, nodes, list 
 summary: 'Le mappage de LUN sélectif (SLM) réduit le nombre de chemins entre l"hôte et la LUN. Avec SLM, lorsqu"un nouveau mappage de LUN est créé, le LUN est accessible uniquement via des chemins sur le nœud propriétaire de la LUN et son partenaire HA.' 
 ---
 = Présentation du mappage de LUN sélectif
@@ -18,3 +18,46 @@ SLM permet de gérer un groupe initiateur unique par hôte et prend également e
 Les ensembles de ports peuvent être utilisés avec SLM comme dans les versions précédentes de ONTAP pour restreindre davantage l'accès de certaines cibles à certains initiateurs. Lors de l'utilisation de SLM avec des ensembles de ports, les LUN sont accessibles sur l'ensemble des LIF du portset sur le nœud propriétaire de la LUN et sur le partenaire HA de ce nœud.
 
 SLM est activé par défaut sur tous les nouveaux mappages de LUN.
+
+
+
+== Déterminez si SLM est activé sur un mappage de LUN
+
+Si votre environnement possède une combinaison de LUN créées dans ONTAP et de LUN qui sont passées des versions précédentes, vous devrez peut-être déterminer si le mappage de LUN sélectif (SLM) est activé sur une LUN spécifique.
+
+Vous pouvez utiliser les informations affichées dans la sortie du `lun mapping show -fields reporting-nodes, node` Commande permettant de déterminer si SLM est activé sur votre mappage de LUN. Si SLM n'est pas activé, "-" s'affiche dans les cellules sous la colonne "nœuds de portage" de la sortie de la commande. Si SLM est activé, la liste des nœuds affichée sous la colonne « noeuds » est dupliquée dans la colonne « noeuds de portage ».
+
+
+
+== Modifiez la liste des noeuds-rapports SLM
+
+Si vous déplacez une LUN ou un volume contenant des LUN vers une autre paire haute disponibilité (HA) au sein du même cluster, vous devez modifier la liste des nœuds de rapport du mappage de LUN sélectif (SLM) avant de lancer le déplacement pour vous assurer que les chemins LUN actifs et optimisés sont maintenus.
+
+.Étapes
+. Ajoutez le nœud de destination et son nœud partenaire à la liste « reporting-nodes » de l'agrégat ou du volume :
++
+`lun mapping add-reporting-nodes -vserver _vserver_name_ -path _lun_path_ -igroup _igroup_name_ [-destination-aggregate _aggregate_name_|-destination-volume _volume_name_]`
+
++
+Si vous disposez d'une convention de nom cohérente, vous pouvez modifier plusieurs mappages de LUN en même temps en utilisant `_igroup_prefix*_` au lieu de `_igroup_name_`.
+
+. Relancez l'analyse de l'hôte pour détecter les nouveaux chemins ajoutés.
+. Si votre système d'exploitation le requiert, ajoutez les nouveaux chemins d'accès à votre configuration MPIO (Multi-Path Network I/O).
+. Exécutez la commande pour l'opération de déplacement requise et attendez la fin de l'opération.
+. Vérifier que les E/S sont en cours de maintenance via le chemin actif/optimisé :
++
+`lun mapping show -fields reporting-nodes`
+
+. Supprimez l'ancien propriétaire de LUN et son nœud partenaire de la liste noeuds-rapports :
++
+`lun mapping remove-reporting-nodes -vserver _vserver_name_ -path _lun_path_ -igroup _igroup_name_ -remote-nodes`
+
+. Vérifiez que la LUN a été supprimée du mappage de LUN existant :
++
+`lun mapping show -fields reporting-nodes`
+
+. Supprimez toute entrée de périphérique obsolète pour le système d'exploitation hôte.
+. Modifiez les fichiers de configuration des chemins d'accès multiples si nécessaire.
+. Relancez l'analyse de l'hôte pour vérifier la suppression des anciens chemins. +
+Reportez-vous à la documentation de votre hôte pour connaître les étapes spécifiques à suivre pour relancer l'analyse de vos hôtes.
+

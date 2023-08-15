@@ -104,11 +104,11 @@ ARP a deux modes :
 
 Lorsque vous activez ARP, il s'exécute en mode d'apprentissage. En mode apprentissage, le système ONTAP développe un profil d'alerte basé sur les domaines analytiques susmentionnés : entropie, types d'extension de fichier et IOPS de fichier. Après avoir exécuté ARP en mode d'apprentissage pendant suffisamment de temps pour évaluer les caractéristiques de la charge de travail, vous pouvez passer en mode actif et commencer à protéger vos données. Une fois que le protocole ARP est passé en mode actif, ONTAP crée des instantanés ARP pour protéger les données en cas de détection d'une menace.
 
-Il est recommandé de laisser ARP en mode d'apprentissage pendant au moins 30 jours, mais vous pouvez passer en mode actif à tout moment. Un changement précoce peut entraîner un trop grand nombre de faux positifs. À partir de ONTAP 9.13.1, ARP détermine automatiquement la période d'apprentissage optimale et automatise le commutateur, qui peut se produire avant 30 jours.
+Il est recommandé de laisser ARP en mode d'apprentissage pendant au moins 30 jours, mais vous pouvez passer en mode actif à tout moment. Un basculement trop précoce peut entraîner un trop grand nombre de faux positifs. À partir de ONTAP 9.13.1, ARP détermine automatiquement la période d'apprentissage optimale et automatise le commutateur, qui peut se produire avant 30 jours.
 
 En mode actif, si une extension de fichier est marquée comme anormale, vous devez évaluer l'alerte. Vous pouvez agir sur l'alerte pour protéger vos données ou marquer l'alerte comme un faux positif. Lorsque vous marquez un faux positif, ONTAP met à jour le profil d'alerte ARP afin que l'extension de fichier ne soit pas signalée par la suite. La commande `security anti-ransomware volume workload-behavior show` affiche les extensions de fichier qui ont été détectées dans le volume. (Si vous exécutez cette commande très tôt en mode d'apprentissage et qu'elle affiche une représentation précise des types de fichiers, vous ne devez pas utiliser ces données comme base pour passer en mode actif, car ONTAP collecte toujours d'autres metrics.)
 
-À partir de ONTAP 9.11.1, vous pouvez personnaliser les paramètres de détection pour ARP à l'aide du `security anti-ransomware volume attack-detection-parameters modify` commande. Par exemple, si plusieurs nouveaux types de fichiers doivent être utilisés dans votre volume, vous pouvez désactiver les alertes pour les types de fichiers inédits. Pour plus d'informations sur cette commande, reportez-vous au link:https://docs.netapp.com/us-en/ontap-cli-9131/security-anti-ransomware-volume-attack-detection-parameters-modify.html["Référence de commande ONTAP"^].
+À partir de ONTAP 9.11.1, vous pouvez personnaliser les paramètres de détection pour ARP. Pour plus d'informations, voir xref:manage-parameters-task.html[Gérer les paramètres de détection d'attaque ARP].
 
 
 
@@ -119,14 +119,14 @@ En mode actif, ARP évalue la probabilité de menace en fonction des données en
 * **Bas** : cette option est attribuée la première fois qu'une nouvelle extension de fichier est observée dans le volume.
 * **Modéré**: Plusieurs fichiers avec la même extension de fichier jamais vu-avant sont observés.
 +
-** Dans ONTAP 9.10.1, le seuil de remontée à modéré est de 100 fichiers ou plus. À partir de ONTAP 9.11.1, la quantité du fichier est personnalisable ; sa valeur par défaut est 20.
+** Dans ONTAP 9.10.1, le seuil de remontée à modéré est de 100 fichiers ou plus. À partir de ONTAP 9.11.1, la quantité du fichier peut être modifiée ; sa valeur par défaut est 20.
 
 
 
 
-Lorsque la probabilité d'attaque est faible, cela signifie que ONTAP a détecté une anomalie et crée un instantané de votre volume en arrière-plan pour créer le meilleur point de récupération possible. L'instantané ARP est identifiable par son nom, par exemple `Anti_ransomware_backup.2022-12-20_1248`, et utilise la balise `anti-ransomware-backup`.
+En cas de menace faible, ONTAP détecte une anomalie et crée une copie Snapshot du volume pour créer le meilleur point de restauration possible. Le snapshot ARP utilise le `anti-ransomware-backup` tag et est identifiable par son nom, par exemple `Anti_ransomware_backup.2022-12-20_1248`.
 
-La menace passe au niveau modéré après l'exécution d'un rapport d'analytique par ONTAP qui détermine si l'anomalie correspond à un profil de ransomware. Les menaces qui restent au niveau bas sont consignées, mais ONTAP n'envoie pas d'alerte concernant les menaces faibles. Lorsque la probabilité d'attaque est modérée, ONTAP génère une notification EMS vous invitant à évaluer la menace. Pour plus d'informations, voir xref:respond-abnormal-task.html[Réagir à une activité anormale].
+La menace passe au niveau modéré après l'exécution d'un rapport d'analytique par ONTAP qui détermine si l'anomalie correspond à un profil de ransomware. Les menaces qui restent au niveau bas sont consignées et visibles dans la section **événements** du Gestionnaire système, mais ONTAP n'envoie pas d'alerte concernant les menaces faibles. Lorsque la probabilité d'attaque est modérée, ONTAP génère une notification EMS vous invitant à évaluer la menace. Pour plus d'informations, voir xref:respond-abnormal-task.html[Réagir à une activité anormale].
 
 Vous pouvez afficher des informations sur une menace, quel que soit le niveau, dans la section **événements** de System Manager ou avec le `security anti-ransomware volume show -vserver _svm_name_` commande.
 

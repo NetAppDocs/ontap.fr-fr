@@ -1,0 +1,162 @@
+---
+permalink: system-admin/manage-node-root-volumes-aggregates-task.html 
+sidebar: sidebar 
+keywords: node, governing, root, volume, aggregate, files, special, directories, free, space, full, delete, file, core, dump 
+summary: 'Le volume racine d"un nœud est un volume FlexVol installé en usine ou par le logiciel d"installation.' 
+---
+= Gestion des volumes root et des agrégats root des nœuds
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le volume racine d'un nœud est un volume FlexVol installé en usine ou par le logiciel d'installation. Il est réservé aux fichiers système, aux fichiers journaux et aux fichiers core. Le nom du répertoire est `/mroot`, qui n'est accessible que via le systemshell par le support technique. La taille minimale du volume racine d'un nœud dépend du modèle de plateforme.
+
+
+
+== Présentation des règles qui régissent les volumes racine des nœuds et les agrégats racine
+
+Le volume racine d'un nœud contient des répertoires et des fichiers spéciaux pour ce nœud. L'agrégat root contient le volume root. Quelques règles régissent le volume racine d'un nœud et l'agrégat racine.
+
+* Les règles suivantes régissent le volume racine du nœud :
++
+** À moins d'en recevoir l'instruction du support technique, ne modifiez pas la configuration ou le contenu du volume racine.
+** Ne stockez pas les données utilisateur sur le volume racine.
++
+Le stockage des données utilisateur dans le volume racine augmente le temps de rétablissement du stockage entre les nœuds d'une paire haute disponibilité.
+
+** Vous pouvez déplacer le volume root vers un autre agrégat.  Voir <<relocate-root>>.
+
+
+* L'agrégat root est dédié uniquement au volume root du nœud.
++
+ONTAP vous empêche de créer d'autres volumes dans l'agrégat racine.
+
+
+
+https://hwu.netapp.com["NetApp Hardware Universe"^]
+
+
+
+== Libérez de l'espace sur le volume racine d'un nœud
+
+Un message d'avertissement s'affiche lorsque le volume racine d'un nœud est saturé ou presque plein. Le nœud ne peut pas fonctionner correctement lorsque son volume racine est plein. Vous pouvez libérer de l'espace sur le volume racine d'un nœud en supprimant les fichiers « core dump », les fichiers de trace des paquets et les copies Snapshot de volume racine.
+
+.Étapes
+. Afficher les fichiers core dump du nœud et leur nom :
++
+`system node coredump show`
+
+. Supprimez les fichiers core dump indésirables du nœud :
++
+`system node coredump delete`
+
+. Accès au nodeshell :
++
+`*system node run -node _nodename_*`
+
++
+`_nodename_` est le nom du nœud dont vous souhaitez libérer l'espace du volume racine.
+
+. Passez au niveau de privilège avancé du nodeshell à partir du nodeshell :
++
+`*priv set advanced*`
+
+. Afficher et supprimer les fichiers de trace des paquets du nœud via le nodeshell :
++
+.. Afficher tous les fichiers dans le volume root du nœud :
++
+`*ls /etc*`
+
+.. Si des fichiers de trace de paquets sont enregistrés (`*.trc`) sont dans le volume racine du nœud, supprimez-les individuellement :
++
+`*rm /etc/log/packet_traces/_file_name.trc_*`
+
+
+
+. Identifiez et supprimez les copies Snapshot du volume racine du nœud via le nodeshell :
++
+.. Identifiez le nom du volume root :
++
+`*vol status*`
+
++
+Le volume racine est indiqué par le mot « root » dans la colonne « Options » du `vol status` sortie de la commande.
+
++
+Dans l'exemple suivant, le volume root est `vol0`:
+
++
+[listing]
+----
+node1*> vol status
+
+         Volume State           Status            Options
+           vol0 online          raid_dp, flex     root, nvfail=on
+                                64-bit
+----
+.. Afficher les copies Snapshot du volume racine :
++
+`*snap list root_vol_name*`
+
+.. Supprimez les copies Snapshot de volume racine non souhaitées :
++
+`*snap delete root_vol_namesnapshot_name*`
+
+
+
+. Quittez le nodeshell et retournez au clustershell :
++
+`*exit*`
+
+
+
+
+
+== Transfert des volumes racines vers de nouveaux agrégats
+
+La procédure de remplacement racine migre l'agrégat racine actuel vers un autre jeu de disques sans interruption.
+
+.Description de la tâche
+Le basculement du stockage doit être activé pour transférer les volumes root. Vous pouvez utiliser le `storage failover modify -node _nodename_ -enable true` commande permettant d'activer le basculement.
+
+Vous pouvez modifier l'emplacement du volume root vers un nouvel agrégat dans les scénarios suivants :
+
+* Lorsque les agrégats racines ne sont pas sur le disque de votre choix
+* Lorsque vous souhaitez réorganiser les disques connectés au nœud
+* Lorsque vous effectuez un remplacement des tiroirs disques EOS
+
+
+.Étapes
+. Définissez le niveau de privilège sur avancé :
++
+`*set privilege advanced*`
+
+. Transférer l'agrégat racine :
++
+`*system node migrate-root -node _nodename_ -disklist _disklist_ -raid-type _raid-type_*`
+
++
+** *-noeud*
++
+Spécifie le nœud qui possède l'agrégat racine que vous souhaitez migrer.
+
+** *-disklist*
++
+Spécifie la liste des disques sur lesquels le nouvel agrégat racine sera créé. Tous les disques doivent être des disques de secours et appartenir au même nœud. Le nombre minimum de disques requis dépend du type RAID.
+
+** *-raid-type*
++
+Spécifie le type RAID de l'agrégat racine. La valeur par défaut est `raid-dp`.
+
+
+
+. Surveiller la progression de la tâche :
++
+`*job show -id _jobid_ -instance*`
+
+
+
+.Résultats
+Si toutes les vérifications préalables ont réussi, la commande démarre un travail de remplacement de volume racine et se ferme. Le nœud devrait redémarrer.

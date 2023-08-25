@@ -1,8 +1,8 @@
 ---
 permalink: system-admin/configure-saml-authentication-task.html 
 sidebar: sidebar 
-keywords: tdp, ldap, identity, provider, saml, security, assertion, markup, lanaguage, active, directory 
-summary: 'Depuis ONTAP 9.3, vous pouvez configurer l"authentification SAML pour les services Web. Lorsque l"authentification SAML est configurée et activée, les utilisateurs sont authentifiés par un fournisseur d"identité externe (IDP) au lieu des fournisseurs de services d"annuaire tels qu"Active Directory et LDAP.' 
+keywords: tdp, ldap, identity, provider, saml, security, assertion, markup, lanaguage, active, directory, disable, authentication, idp, active directory, troubleshoot, repair 
+summary: 'Depuis ONTAP 9.3, vous pouvez configurer l"authentification SAML pour les services Web. Lorsque l"authentification SAML est configurée et activée, les utilisateurs sont authentifiés par un fournisseur d"identité externe (IDP) au lieu des fournisseurs de services d"annuaire tels qu"Active Directory et LDAP. Lorsque l"authentification SAML est désactivée, les fournisseurs de services d"annuaire configurés tels qu"Active Directory et LDAP sont utilisés pour l"authentification.' 
 ---
 = Configurez l'authentification SAML
 :allow-uri-read: 
@@ -100,10 +100,116 @@ admin          service-processor
                            password      admin            no     none
 admin          ssh         password      admin            no     none
 admin1         http        password      backup           no     none
-**admin1         http        saml          backup           -      none**
+**admin1       http        saml          backup           -      none**
 ----
 
 
+
+
+
+
+== Désactivez l'authentification SAML
+
+Vous pouvez désactiver l'authentification SAML lorsque vous souhaitez arrêter l'authentification des utilisateurs Web à l'aide d'un fournisseur d'identité externe (IDP). Lorsque l'authentification SAML est désactivée, les fournisseurs de services d'annuaire configurés tels qu'Active Directory et LDAP sont utilisés pour l'authentification.
+
+.Ce dont vous avez besoin
+Vous devez être connecté depuis la console.
+
+.Étapes
+. Désactiver l'authentification SAML :
++
+`*security saml-sp modify -is-enabled false*`
+
+. Si vous ne souhaitez plus utiliser l'authentification SAML ou si vous souhaitez modifier l'IDP, supprimez la configuration SAML :
++
+`*security saml-sp delete*`
+
+
+
+
+
+== Résolution des problèmes liés à la configuration SAML
+
+Si la configuration de l'authentification SAML échoue, vous pouvez réparer manuellement chaque nœud sur lequel la configuration SAML a échoué et effectuer une restauration suite à la défaillance. Au cours du processus de réparation, le serveur Web est redémarré et toutes les connexions HTTP ou HTTPS actives sont interrompues.
+
+.Description de la tâche
+Lorsque vous configurez l'authentification SAML, ONTAP applique la configuration SAML par nœud. Lorsque vous activez l'authentification SAML, ONTAP tente automatiquement de réparer chaque nœud en cas de problèmes de configuration. Si la configuration SAML est problématique sur n'importe quel nœud, vous pouvez désactiver l'authentification SAML, puis réactiver l'authentification SAML. Lorsque la configuration SAML ne s'applique pas à un ou plusieurs nœuds, même après la réactivation de l'authentification SAML, cela peut se présenter. Vous pouvez identifier le nœud sur lequel la configuration SAML a échoué, puis réparer manuellement ce nœud.
+
+.Étapes
+. Connectez-vous au niveau de privilège avancé :
++
+`*set -privilege advanced*`
+
+. Identifiez le nœud sur lequel la configuration SAML a échoué :
++
+`*security saml-sp status show -instance*`
+
++
+[listing]
+----
+cluster_12::*> security saml-sp status show -instance
+
+                         Node: node1
+                Update Status: config-success
+               Database Epoch: 9
+   Database Transaction Count: 997
+                   Error Text:
+SAML Service Provider Enabled: false
+        ID of SAML Config Job: 179
+
+                         Node: node2
+                Update Status: config-failed
+               Database Epoch: 9
+   Database Transaction Count: 997
+                   Error Text: SAML job failed, Reason: Internal error. Failed to receive the SAML IDP Metadata file.
+SAML Service Provider Enabled: false
+        ID of SAML Config Job: 180
+2 entries were displayed.
+----
+. Corrigez la configuration SAML sur le nœud défaillant :
++
+`*security saml-sp repair -node _node_name_*`
+
++
+[listing]
+----
+cluster_12::*> security saml-sp repair -node node2
+
+Warning: This restarts the web server. Any HTTP/S connections that are active
+         will be disrupted.
+Do you want to continue? {y|n}: y
+[Job 181] Job is running.
+[Job 181] Job success.
+----
++
+Le serveur Web est redémarré et toutes les connexions HTTP ou HTTPS actives sont interrompues.
+
+. Vérifiez que le langage SAML est configuré sur tous les nœuds :
++
+`*security saml-sp status show -instance*`
+
++
+[listing]
+----
+cluster_12::*> security saml-sp status show -instance
+
+                         Node: node1
+                Update Status: config-success
+               Database Epoch: 9
+   Database Transaction Count: 997
+                   Error Text:
+SAML Service Provider Enabled: false
+        ID of SAML Config Job: 179
+
+                         Node: node2
+                Update Status: **config-success**
+               Database Epoch: 9
+   Database Transaction Count: 997
+                   Error Text:
+SAML Service Provider Enabled: false
+        ID of SAML Config Job: 180
+2 entries were displayed.
+----
 
 
 .Informations associées

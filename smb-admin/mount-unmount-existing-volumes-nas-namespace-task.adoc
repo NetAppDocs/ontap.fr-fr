@@ -14,14 +14,14 @@ summary: 'Un volume doit être monté sur le namespace NAS avant de pouvoir conf
 Un volume doit être monté sur le namespace NAS avant de pouvoir configurer l'accès des clients NAS aux données contenues dans les volumes SVM (Storage Virtual machine). Vous pouvez monter un volume sur un point de jonction s'il n'est pas actuellement monté. Vous pouvez également démonter des volumes.
 
 .Description de la tâche
-Si vous démontez et mettez hors ligne un volume, toutes les données du point de jonction, y compris les données des volumes dont les points de jonction sont contenus dans l'espace de noms du volume démonté, sont inaccessibles aux clients NAS.
+Si vous démontez et mettez un volume hors ligne, toutes les données du point de jonction, y compris les données des volumes dont les points de jonction se trouvent dans l'espace de noms du volume non monté, sont inaccessibles aux clients NAS.
 
 [NOTE]
 ====
-Pour interrompre l'accès client NAS à un volume, il ne suffit pas de démonter le volume. Vous devez mettre hors ligne le volume ou prendre d'autres mesures pour vous assurer que les caches de descripteur de fichier côté client sont invalidés. Pour plus d'informations, consultez l'article suivant de la base de connaissances : les clients https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/NFSv3_clients_still_have_access_to_a_volume_after_being_removed_from_the_namespace_in_ONTAP[NFSv3 ont toujours accès à un volume après avoir été supprimés de l'espace de nom dans ONTAP]
+Pour interrompre l'accès client NAS à un volume, il ne suffit pas de démonter le volume. Vous devez mettre le volume hors ligne ou prendre d'autres mesures pour vous assurer que les caches de descripteur de fichier côté client sont invalidés. Pour plus d'informations, consultez l'article suivant de la base de connaissances : https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/NFSv3_clients_still_have_access_to_a_volume_after_being_removed_from_the_namespace_in_ONTAP["Les clients NFSv3 ont toujours accès à un volume après avoir été supprimés du namespace dans ONTAP"]
 
 ====
-Lorsque vous démontez et mettez hors ligne un volume, les données ne sont pas perdues au sein du volume. En outre, les règles d'exportation de volume et les partages SMB créés sur le volume ou sur des répertoires et des points de jonction au sein du volume démonté sont conservés. Si vous remontez le volume démonté, les clients NAS peuvent accéder aux données contenues dans le volume à l'aide des règles d'exportation et des partages SMB existants.
+Lorsque vous démontez et mettez un volume hors ligne, les données du volume ne sont pas perdues. En outre, les règles d'exportation de volume et les partages SMB créés sur le volume ou sur des répertoires et des points de jonction au sein du volume démonté sont conservés. Si vous remontez le volume démonté, les clients NAS peuvent accéder aux données contenues dans le volume à l'aide des règles d'exportation et des partages SMB existants.
 
 .Étapes
 . Effectuez l'action souhaitée :
@@ -40,14 +40,19 @@ Montez un volume
  a| 
 Démonter un volume
  a| 
-`volume unmount -vserver _svm_name_ -volume _volume_name_ volume offline -vserver _svm_name_ -volume _volume_name_`
+`volume unmount -vserver _svm_name_ -volume _volume_name_`
+
+`volume offline -vserver _svm_name_ -volume _volume_name_`
 
 |===
-. Vérifiez que le volume est dans l'état de montage souhaité : `volume show -vserver _vserver_name_ -volume _volume_name_ -fields state,junction-path,junction-active`
+. Vérifiez que le volume est dans l'état de montage souhaité :
++
+`volume show -vserver _svm_name_ -volume _volume_name_ -fields state,junction-path,junction-active`
+
 
 
 .Exemples
-L'exemple suivant monte un volume nommé « sales » situé sur la SVM vs1 au point de jonction `/sales`:
+L'exemple suivant monte un volume nommé « ventes » situé sur la SVM « vs1 » au point de jonction « /ventes » :
 
 [listing]
 ----
@@ -61,7 +66,7 @@ vs1       data       online    /data           true
 vs1       home4      online    /eng/home       true
 vs1       sales      online    /sales          true
 ----
-L'exemple suivant démonte et moligne un volume nommé « `dates' » situé sur SVM vs1 :
+L'exemple suivant démonte et met hors ligne un volume nommé « `data`' situé sur le SVM « vs1` » :
 
 [listing]
 ----

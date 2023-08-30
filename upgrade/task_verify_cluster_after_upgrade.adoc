@@ -4,24 +4,20 @@ sidebar: sidebar
 keywords: ontap, upgrade, upgrade, verify, status, health, post, after 
 summary: Après la mise à niveau, vous devez vérifier votre cluster. 
 ---
-= Vérification post-mise à niveau du cluster
+= Vérifiez votre cluster après la mise à niveau de ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Une fois la mise à niveau effectuée, vous devez vérifier la version du cluster, l'état du cluster et l'état de stockage.
-
-.Avant de commencer
-
-NOTE: Si vous utilisez une configuration MetroCluster FC, vous devez également vérifier que le cluster est activé pour le basculement automatique non planifié.
+Après la mise à niveau de ONTAP, vérifiez la version du cluster, l'état de santé du cluster et l'état du stockage.  Si votre cluster est dans une configuration MetroCluster FC, vous devez également vérifier que le cluster est activé pour le basculement automatique non planifié.
 
 
 
 == Vérifiez la version du cluster
 
-Après la mise à niveau de toutes les paires haute disponibilité, vous devez utiliser la commande version pour vérifier que tous les nœuds exécutent la version cible.
+Une fois toutes les paires haute disponibilité mises à niveau, vous devez utiliser la commande version pour vérifier que tous les nœuds exécutent la version cible.
 
 La version en cluster est la version la plus basse d'ONTAP s'exécutant sur n'importe quel nœud du cluster. Si la version du cluster n'est pas la version cible de ONTAP, vous pouvez mettre à niveau votre cluster.
 
@@ -29,7 +25,7 @@ La version en cluster est la version la plus basse d'ONTAP s'exécutant sur n'im
 +
 `version`
 
-. Si la version de cluster n'est pas la version de ONTAP cible, vous pouvez vérifier l'état de mise à niveau de tous les nœuds :
+. Si la version du cluster n'est pas la version cible de ONTAP, vous devez vérifier l'état de mise à niveau de tous les nœuds :
 +
 `system node upgrade-revert show`
 
@@ -60,9 +56,6 @@ Si l'un des nœuds est défectueux ou non éligible, vérifiez la présence d'er
 . Définissez le niveau de privilège sur avancé :
 +
 `set -privilege advanced`
-
-+
-Entrez « y » pour continuer.
 
 . Vérifier les détails de configuration pour chaque processus RDB
 +
@@ -122,18 +115,17 @@ node2     vldb     154      154      14847    node0     secondary
 node3     vldb     154      154      14847    node0     secondary
 4 entries were displayed.
 ----
-. Si vous travaillez dans un environnement SAN, vérifiez que chaque nœud se trouve dans un quorum SAN : `event log show  -severity informational -message-name scsiblade.*`
-+
-Le message d'événement scsiBlade le plus récent pour chaque nœud doit indiquer que le SCSI-Blade est quorum.
-
+. Si vous travaillez dans un environnement SAN, vérifiez que chaque nœud se trouve dans un quorum SAN : `cluster kernel-service show`
 +
 [listing]
 ----
-cluster1::*> event log show  -severity informational -message-name scsiblade.*
-Time             Node       Severity       Event
----------------  ---------- -------------- ---------------------------
-MM/DD/YYYY TIME  node0      INFORMATIONAL  scsiblade.in.quorum: The scsi-blade ...
-MM/DD/YYYY TIME  node1      INFORMATIONAL  scsiblade.in.quorum: The scsi-blade ...
+cluster1::*> cluster kernel-service show
+Master            Cluster           Quorum        Availability  Operational
+Node              Node              Status        Status        Status
+----------------- ----------------- ------------- ------------- -------------
+cluster1-01       cluster1-01       in-quorum     true          operational
+                  cluster1-02       in-quorum     true          operational
+2 entries were displayed.
 ----
 
 
@@ -142,9 +134,9 @@ link:../system-admin/index.html["Administration du système"]
 
 
 
-== Vérifier que le basculement automatique non planifié est activé
+== Vérifier que le basculement automatique non planifié est activé (configurations MetroCluster FC uniquement)
 
-Une fois la mise à niveau d'un cluster effectuée, vérifiez que le basculement automatique non planifié est activé.
+Si votre cluster est dans une configuration FC MetroCluster, vérifiez que le basculement automatique non planifié est activé après la mise à niveau de ONTAP.
 
 .Description de la tâche
 
@@ -168,78 +160,6 @@ AUSO Failure Domain  auso-on-cluster-disaster
 `metrocluster modify -auto-switchover-failure-domain auso-on-cluster-disaster`
 
 . Vérifier qu'un basculement automatique non planifié a été activé en répétant l'étape 1.
-
-
-
-
-== Vérification de l'état du stockage
-
-Une fois que vous avez mis à niveau un cluster, vous devez vérifier l'état de vos disques, agrégats et volumes.
-
-. Vérification de l'état du disque :
-+
-|===
-
-
-| Pour vérifier... | Procédez comme ça... 
-
-
- a| 
-Disques cassés
- a| 
-.. Afficher les éventuels disques défectueux :
-+
-`storage disk show -state broken`
-
-.. Retirez ou remplacez tout disque endommagé.
-
-
-
-
- a| 
-Disques soumis à des opérations de maintenance ou de reconstruction
- a| 
-.. Afficher tous les disques en état de maintenance, en attente ou reconstruction :
-+
-`storage disk show -state maintenance|pending|reconstructing`
-
-.. Attendez la fin de l'opération de maintenance ou de reconstruction avant de poursuivre.
-
-
-|===
-. Vérifiez que tous les agrégats sont en ligne en affichant l'état du stockage physique et logique, y compris les agrégats de stockage :
-+
-`storage aggregate show -state !online`
-
-+
-Cette commande affiche les agrégats qui sont _not_ online. Tous les agrégats doivent être en ligne avant et après avoir effectué une mise à niveau ou une nouvelle version majeure.
-
-+
-[listing]
-----
-cluster1::> storage aggregate show -state !online
-There are no entries matching your query.
-----
-. Vérifiez que tous les volumes sont en ligne en affichant les volumes _NOT_ online :
-+
-`volume show -state !online`
-
-+
-Tous les volumes doivent être en ligne avant et après avoir effectué une mise à niveau ou une nouvelle version majeure.
-
-+
-[listing]
-----
-cluster1::> volume show -state !online
-There are no entries matching your query.
-----
-. Vérifiez qu'il n'y a pas de volumes incohérents :
-+
-`volume show -is-inconsistent true`
-
-+
-Consultez l'article de la base de connaissances link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Volume_Showing_WAFL_Inconsistent["Volume affichant des WAFL incohérentes"] sur la manière de traiter les volumes incohérents.
-
 
 
 .Informations associées

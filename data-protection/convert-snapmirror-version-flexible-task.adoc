@@ -11,10 +11,9 @@ summary: Vous pouvez facilement convertir une relation de type DP existante en X
 
 
 [role="lead"]
-Vous pouvez facilement convertir une relation de type DP existante en XDP pour tirer parti de SnapMirror flexible à la version.
+Si vous procédez à une mise à niveau vers ONTAP 9.12.1 ou version ultérieure, vous devez convertir les relations de type DP en relation XDP avant la mise à niveau. ONTAP 9.12.1 et versions ultérieures ne prennent pas en charge les relations de type DP. Vous pouvez facilement convertir une relation de type DP existante en XDP pour tirer parti de SnapMirror flexible à la version.
 
 .Description de la tâche
-* Si vous procédez à une mise à niveau vers ONTAP 9.12.1 ou version ultérieure, vous devez convertir les relations de type DP en relation XDP avant la mise à niveau. ONTAP 9.12.1 et versions ultérieures ne prennent pas en charge les relations de type DP.
 * SnapMirror ne convertit pas automatiquement les relations de type DP existantes en relation XDP. Pour convertir la relation, vous devez rompre et supprimer la relation existante, créer une nouvelle relation XDP et resynchroniser la relation. Pour plus d'informations, reportez-vous à la section link:version-flexible-snapmirror-default-concept.html["XDP remplace DP par défaut SnapMirror"].
 * Lors de la planification de votre conversion, notez que la préparation en arrière-plan et la phase d'entreposage des données d'une relation SnapMirror XDP peuvent prendre un certain temps. Il n'est pas rare de voir la relation SnapMirror indiquant l'état « préparation » pour une période prolongée.
 
@@ -27,8 +26,10 @@ Après avoir converti un type de relation SnapMirror de DP en XDP, les paramètr
 .Étapes
 . Depuis le cluster de destination, s'assurer que la relation SnapMirror est de type DP, que l'état du miroir est SnapMirror, que l'état de la relation est inactif et que la relation fonctionne correctement :
 +
-`snapmirror show -destination-path _SVM:volume_|_cluster://SVM/volume_`
-
+[source, cli]
+----
+snapmirror show -destination-path _SVM:volume_|_cluster://SVM/volume_
+----
 +
 L'exemple suivant montre la sortie du `snapmirror show` commande :
 
@@ -63,8 +64,10 @@ Vous pouvez le trouver utile de conserver une copie du `snapmirror show` sortie 
 ====
 . Depuis les volumes source et de destination, assurez-vous que les deux volumes disposent d'une copie Snapshot commune :
 +
-`volume snapshot show -vserver _SVM_ -volume _volume_`
-
+[source, cli]
+----
+volume snapshot show -vserver _SVM_ -volume _volume_
+----
 +
 L'exemple suivant montre le `volume snapshot show` sortie pour le souce et les volumes de destination :
 
@@ -110,10 +113,12 @@ snapmirror.10af643c-32d1-11e3-954b-123478563412_2147484682.2014-06-27_100026
 ----
 . Pour vous assurer que les mises à jour planifiées ne s'exécutent pas pendant la conversion, mettez au repos la relation de type DP existante :
 +
-`snapmirror quiesce -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
-
+[source, cli]
+----
+snapmirror quiesce -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...
+----
 +
-Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+Pour connaître la syntaxe complète de la commande, reportez-vous au link:https://docs.netapp.com/us-en/ontap-cli-9131//snapmirror-quiesce.html["page de manuel"^].
 
 +
 [NOTE]
@@ -131,10 +136,12 @@ cluster_dst::> snapmirror quiesce -destination-path svm_backup:volA_dst
 ----
 . Casser la relation de type DP existante :
 +
-`snapmirror break -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
-
+[source, cli]
+----
+snapmirror break -destination-path _SVM:volume_|_cluster://SVM/volume_, ...
+----
 +
-Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+Pour connaître la syntaxe complète de la commande, reportez-vous au link:https://docs.netapp.com/us-en/ontap-cli-9131//snapmirror-break.html["page de manuel"^].
 
 +
 [NOTE]
@@ -164,10 +171,12 @@ cluster_dst::> volume snapshot autodelete modify -vserver svm_backup -volume vol
 ----
 . Supprimez la relation DP-type existante :
 +
-`snapmirror delete -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
-
+[source, cli]
+----
+snapmirror delete -destination-path _SVM:volume_|_cluster://SVM/volume_, ...
+----
 +
-Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+Pour connaître la syntaxe complète de la commande, reportez-vous au link:https://docs.netapp.com/us-en/ontap-cli-9131//snapmirror-delete.html["page de manuel"^].
 
 +
 [NOTE]
@@ -185,8 +194,10 @@ cluster_dst::> snapmirror delete -destination-path svm_backup:volA_dst
 ----
 . Vous pouvez utiliser la sortie que vous avez conservée de l' `snapmirror show` Commande pour créer la nouvelle relation de type XDP :
 +
-`snapmirror create -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ... -type XDP -schedule _schedule_ -policy _policy_`
-
+[source, cli]
+----
+snapmirror create -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ... -type XDP -schedule _schedule_ -policy _policy_
+----
 +
 La nouvelle relation doit utiliser le même volume source et destination. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
 
@@ -207,10 +218,12 @@ cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_ba
 ----
 . Resynchronisation des volumes source et de destination :
 +
-`snapmirror resync -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
-
+[source, cli]
+----
+snapmirror resync -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...
+----
 +
-Pour améliorer le temps de resynchronisation, vous pouvez utiliser le `-quick-resync` mais vous devez savoir que vous pouvez perdre des économies en matière d'efficacité du stockage. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man : link:https://docs.netapp.com/us-en/ontap-cli-9131/snapmirror-resync.html#parameters.html["Commande SnapMirror resync"].
+Pour améliorer le temps de resynchronisation, vous pouvez utiliser le `-quick-resync` mais vous devez savoir que vous pouvez perdre des économies en matière d'efficacité du stockage. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man : link:https://docs.netapp.com/us-en/ontap-cli-9131/snapmirror-resync.html#parameters.html["Commande SnapMirror resync"^].
 
 +
 [NOTE]
@@ -228,11 +241,13 @@ cluster_dst::> snapmirror resync -source-path svm1:volA -destination-path svm_ba
 ----
 . Si vous avez désactivé la suppression automatique de copies Snapshot, réactivez-la :
 +
-`volume snapshot autodelete modify -vserver _SVM_ -volume _volume_ -enabled true`
-
+[source, cli]
+----
+volume snapshot autodelete modify -vserver _SVM_ -volume _volume_ -enabled true
+----
 
 
 .Une fois que vous avez terminé
-. Utilisez le `snapmirror show` Commande permettant de vérifier que la relation SnapMirror a été créée. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
-. Une fois que le volume de destination SnapMirror XDP commence à mettre à jour les copies Snapshot conformément à la règle SnapMirror, vous pouvez utiliser la sortie de `snapmirror list-destinations` Commande depuis le cluster source pour afficher la nouvelle relation SnapMirror XDP
+. Utilisez le `snapmirror show` Commande permettant de vérifier que la relation SnapMirror a été créée.
+. Une fois que le volume de destination SnapMirror XDP commence à mettre à jour les copies Snapshot, comme défini par la règle SnapMirror, utilisez les valeurs de sortie de `snapmirror list-destinations` Commande depuis le cluster source pour afficher la nouvelle relation SnapMirror XDP
 

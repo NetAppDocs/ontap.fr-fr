@@ -2,7 +2,7 @@
 permalink: volumes/split-flexclone-from-parent-task.html 
 sidebar: sidebar 
 keywords: split, flexclone, volume, parent, volume, clone 
-summary: Si vous souhaitez disposer de son propre espace disque sur un volume FlexClone en lecture/écriture plutôt que sur celui de son volume parent, vous pouvez séparer le volume FlexClone de son volume parent. 
+summary: Vous pouvez séparer un volume FlexClone de son parent pour en faire un volume FlexVol normal. 
 ---
 = Séparer un volume FlexClone de son volume parent
 :allow-uri-read: 
@@ -11,17 +11,30 @@ summary: Si vous souhaitez disposer de son propre espace disque sur un volume Fl
 
 
 [role="lead"]
-Si vous souhaitez disposer de son propre espace disque sur un volume FlexClone en lecture/écriture plutôt que sur celui de son volume parent, vous pouvez séparer le volume FlexClone de son volume parent.
+Vous pouvez séparer un volume FlexClone de son parent pour en faire un volume FlexVol normal.
+
+L'opération de fractionnement de clone a lieu en arrière-plan. Les données sont accessibles sur le clone et sur le parent lors du fractionnement. À partir de la version ONTAP 9.4, l'optimisation de l'espace est préservée. Le processus de fractionnement ne met à jour que les métadonnées et requiert un nombre d'E/S minimal. Aucun bloc de données n'est copié.
 
 .Description de la tâche
-La division d'un volume FlexClone à partir de son volume parent peut entraîner la réservation d'un espace plus important sur l'agrégat contenant. Si vous ne disposez pas des privilèges suffisants pour afficher l'espace disponible dans votre agrégat, contactez votre administrateur de stockage pour vérifier qu'il y a suffisamment d'espace dans l'agrégat pour que l'opération de fractionnement se termine.
+* Il est impossible de créer de nouvelles copies Snapshot du volume FlexClone pendant la division.
+* Un volume FlexClone ne peut pas être séparé du volume parent s'il appartient à une relation de protection des données ou s'il fait partie d'un miroir de partage de charge.
+* Si vous mettez le volume FlexClone hors ligne alors que le fractionnement est en cours, l'opération est suspendue. Lorsque vous remettez le volume FlexClone en ligne, l'opération de fractionnement reprend.
+* Après le fractionnement, le volume FlexVol parent et le clone nécessitent l'allocation d'espace complet déterminée par leurs garanties de volume.
+* Une fois qu'un volume FlexClone est séparé de son parent, il n'est pas possible de le rejoindre à nouveau.
+* Depuis ONTAP 9.4, pour les volumes non garantis sur les systèmes AFF, l'opération de séparation pour les volumes FlexClone partage les blocs physiques et ne copie pas les données. Par conséquent, le fractionnement des volumes FlexClone sur les systèmes AFF est plus rapide que le fractionnement FlexClone sur d'autres systèmes FAS dans ONTAP 9.4 et versions ultérieures. La division FlexClone optimisée sur les systèmes AFF offre plusieurs avantages :
++
+** L'efficacité du stockage est préservée après le fractionnement du clone du parent.
+** Les copies Snapshot existantes ne sont pas supprimées.
+** L'opération est plus rapide.
+** Le volume FlexClone peut être partagé en tout point de la hiérarchie des clones.
 
-Depuis ONTAP 9.4, pour les volumes non garantis sur les systèmes AFF, l'opération de séparation pour les volumes FlexClone partage les blocs physiques et ne copie pas les données. Par conséquent, le fractionnement des volumes FlexClone sur les systèmes AFF est plus rapide que le fractionnement FlexClone sur d'autres systèmes FAS dans ONTAP 9.4 et versions ultérieures. La division FlexClone optimisée sur les systèmes AFF offre plusieurs avantages :
 
-* L'efficacité du stockage est préservée après le fractionnement du clone du parent.
-* Les copies Snapshot existantes ne sont pas supprimées.
-* L'opération est plus rapide.
-* Le volume FlexClone peut être partagé en tout point de la hiérarchie des clones.
+
+
+.Avant de commencer
+* Vous devez être un administrateur de cluster.
+* Le volume FlexClone doit être en ligne au début de l'opération de fractionnement.
+* Le volume parent doit être en ligne pour que le fractionnement réussisse.
 
 
 .Étapes

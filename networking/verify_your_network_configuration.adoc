@@ -1,0 +1,95 @@
+---
+sidebar: sidebar 
+permalink: networking/verify_your_network_configuration.html 
+keywords: verify, upgrade, considerations, network, configuration, upgrading, physical, wire, wiring, cable, cabling, layer 2, reachability, port, results, verify your networking configuration after upgrading to ontap 9.8 or later, network port reachability show -detail, repair reachability decision tree, layer 2 reachability, assigned broadcast domain, reachability-status, unexpected ports, unavailable ports, reachability repair 
+summary: Vérifiez votre configuration réseau après la mise à niveau vers ONTAP 9.8 ou version ultérieure 
+---
+= Vérifiez votre configuration réseau après une mise à niveau ONTAP à partir de ONTAP 9.7x ou version antérieure
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Après avoir effectué la mise à niveau de ONTAP 9.7x ou une version antérieure vers ONTAP 9.8 ou une version ultérieure, vous devez vérifier la configuration de votre réseau. Après la mise à niveau, ONTAP surveille automatiquement l'accessibilité de la couche 2.
+
+.Étape
+. Vérifiez que chaque port est joignable par rapport au domaine de diffusion attendu :
++
+[source, cli]
+----
+network port reachability show -detail
+----
+
+
+La sortie de la commande contient les résultats de l'accessibilité. Utilisez l'arbre décisionnel et le tableau ci-dessous pour comprendre les résultats de l'accessibilité (état-accessibilité) et déterminer ce que, le cas échéant, faire ensuite.
+
+image:ontap_nm_image1.png["Réparer l'arbre de décision de l'accessibilité"]
+
+[cols="20,80"]
+|===
+
+
+| état-accessibilité | Description 
+
+
+ a| 
+ok
+ a| 
+Le port a une capacité de réachbilité de couche 2 à son domaine de diffusion attribué.
+
+Si l'état de la capacité d'accessibilité est « ok », mais qu'il y a des « ports inattendus », envisagez de fusionner un ou plusieurs domaines de diffusion. Pour plus d'informations, voir link:merge_broadcast_domains.html["Fusionner les domaines de diffusion"].
+
+Si le statut de la capacité d'accessibilité est « ok », mais qu'il y a des « ports inaccessibles », envisagez de diviser un ou plusieurs domaines de diffusion. Pour plus d'informations, voir link:split_broadcast_domains.html["Séparer les domaines de diffusion"].
+
+Si l'état de la capacité de reprise est « ok » et qu'il n'y a pas de ports inattendus ou inaccessibles, votre configuration est correcte.
+
+
+
+ a| 
+mauvaise configuration de la capacité de réachbilité
+ a| 
+Le port n'a pas la capacité de reachcapacité de couche 2 à son domaine de diffusion affecté ; cependant, le port a une capacité de réachcapacité de couche 2 à un domaine de diffusion différent.
+
+Vous pouvez réparer l'accessibilité du port. Lorsque vous exécutez la commande suivante, le système affecte le port au broadcast domain auquel il a la capacité de reachcapacité :
+
+`network port reachability repair -node -port`
+
+Pour plus d'informations, voir link:repair_port_reachability.html["Réparation de l'accessibilité de l'orifice"].
+
+
+
+ a| 
+sans trabilité
+ a| 
+Le port n'a pas la possibilité de reachcapacité de couche 2 à un domaine de diffusion existant.
+
+Vous pouvez réparer l'accessibilité du port. Lorsque vous exécutez la commande suivante, le système affecte le port à un nouveau domaine de diffusion créé automatiquement dans l'IPspace par défaut :
+
+`network port reachability repair -node -port`
+
+Pour plus d'informations, voir link:repair_port_reachability.html["Réparation de l'accessibilité de l'orifice"].
+
+
+
+ a| 
+accessibilité multi-domaines
+ a| 
+Le port a une capacité de réachbilité de couche 2 à son domaine de diffusion attribué ; cependant, il a également la possibilité de reachcapacité de couche 2 à au moins un autre domaine de broadcast.
+
+Examinez la connectivité physique et la configuration du commutateur pour déterminer si elle est incorrecte ou si le domaine de diffusion attribué au port doit être fusionné avec un ou plusieurs domaines de diffusion.
+
+Pour plus d'informations, voir link:merge_broadcast_domains.html["Fusionner les domaines de diffusion"] ou link:repair_port_reachability.html["Réparation de l'accessibilité de l'orifice"].
+
+
+
+ a| 
+inconnu
+ a| 
+Si l'état de la capacité d'accessibilité est « inconnu », attendez quelques minutes et essayez à nouveau la commande.
+
+|===
+Une fois que vous avez réparé un port, vous devez vérifier et résoudre les LIFs et les VLAN déplacés. Si le port faisait partie d'un groupe d'interfaces, vous devez également connaître ce qui s'est passé pour ce groupe.  Pour plus d'informations, voir link:repair_port_reachability.html["Réparation de l'accessibilité de l'orifice"].

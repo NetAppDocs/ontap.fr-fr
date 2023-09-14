@@ -11,21 +11,19 @@ summary: Depuis ONTAP 9.8, vous pouvez utiliser la suppression sécurisée pour 
 
 
 [role="lead"]
-Depuis ONTAP 9.8, vous pouvez utiliser une suppression sécurisée des données « `réplication``````ss'' sans interruption sur les volumes compatibles NVE avec une relation SnapMirror synchrone.
-
-.Ce dont vous avez besoin
-* Vous devez être un administrateur de cluster pour effectuer cette tâche.
-* Des privilèges avancés sont requis pour cette tâche.
-
+À partir de ONTAP 9.8, vous pouvez utiliser une suppression sécurisée pour « nettoyer » les données de volumes NVE sans interruption avec une relation SnapMirror synchrone.
 
 .Description de la tâche
 Une purge sécurisée peut prendre plusieurs minutes à plusieurs heures, selon la quantité de données contenues dans les fichiers supprimés. Vous pouvez utiliser le `volume encryption secure-purge show` commande permettant d'afficher le statut de l'opération. Vous pouvez utiliser le `volume encryption secure-purge abort` commande pour mettre fin à l'opération.
 
-[NOTE]
-====
-Pour effectuer une purge sécurisée sur un hôte SAN, vous devez supprimer la LUN entière contenant les fichiers à purger, ou vous devez pouvoir perforer les trous dans la LUN pour les blocs appartenant aux fichiers à purger. Si vous ne pouvez pas supprimer la LUN ou si votre système d'exploitation hôte ne prend pas en charge la perforation dans la LUN, vous ne pouvez pas effectuer de purge sécurisée.
 
-====
+NOTE: Pour effectuer une purge sécurisée sur un hôte SAN, vous devez supprimer la LUN entière contenant les fichiers à purger, ou vous devez pouvoir perforer les trous dans la LUN pour les blocs appartenant aux fichiers à purger. Si vous ne pouvez pas supprimer la LUN ou si votre système d'exploitation hôte ne prend pas en charge la perforation dans la LUN, vous ne pouvez pas effectuer de purge sécurisée.
+
+.Avant de commencer
+* Vous devez être un administrateur de cluster pour effectuer cette tâche.
+* Des privilèges avancés sont requis pour cette tâche.
+
+
 .Étapes
 . Sur le système de stockage, passez au niveau de privilège avancé :
 +
@@ -46,25 +44,25 @@ Répétez cette étape pour l'autre volume de votre relation SnapMirror synchron
 
 . Si les fichiers que vous souhaitez supprimer de manière sécurisée se trouvent dans des copies Snapshot, supprimez les copies Snapshot :
 +
-`snapshot delete -vserver SVM_name -volume vol_A -snapshot snapshot`
+`snapshot delete -vserver _SVM_name_ -volume _volume_name_ -snapshot _snapshot_`
 
 . Si le fichier de suppression sécurisée se trouve dans les copies Snapshot de base ou communes, mettez à jour SnapMirror pour déplacer la copie Snapshot commune :
 +
-`snapmirror update -source-snapshot snapshot_name -destination-path destination_path`
+`snapmirror update -source-snapshot _snapshot_name_ -destination-path _destination_path_`
 
 +
 Il existe deux copies Snapshot communes. Cette commande doit donc être émise deux fois.
 
 . Si le fichier de suppression sécurisée se trouve dans la copie Snapshot cohérente au niveau des applications, supprimez la copie Snapshot sur les deux volumes de la relation SnapMirror synchrone :
 +
-`snapshot delete -vserver SVM_name -volume vol_name -snapshot snapshot`
+`snapshot delete -vserver _SVM_name_ -volume _volume_name_ -snapshot _snapshot_`
 
 +
 Effectuer cette étape sur les deux volumes.
 
 . Supprimez les fichiers supprimés de manière sécurisée :
 +
-`volume encryption secure-purge start -vserver SVM_name -volume volume_name`
+`volume encryption secure-purge start -vserver _SVM_name_ -volume _volume_name_`
 
 +
 Répétez cette étape pour chaque volume de la relation SnapMirror synchrone.

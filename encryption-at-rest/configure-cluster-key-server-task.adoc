@@ -22,7 +22,7 @@ Les serveurs de clés externes peuvent être utilisés pour les clés NSE, NVE, 
 
 == Avant de commencer
 
-* link:install-ssl-certificates-hardware-task.html["La gestion des clés KMIP est déjà activée pour le SVM"].
+* link:install-ssl-certificates-hardware-task.html["La gestion des clés KMIP doit être activée pour le SVM"].
 * Ce processus prend uniquement en charge les serveurs de clés qui utilisent KMIP. Pour obtenir la liste des serveurs de clés pris en charge, reportez-vous à la link:http://mysupport.netapp.com/matrix/["Matrice d'interopérabilité NetApp"^].
 * Tous les nœuds du cluster doivent exécuter ONTAP 9.11.1 ou une version ultérieure.
 * L'ordre des serveurs répertorie les arguments dans `-secondary-key-servers` Paramètre correspond à l'ordre d'accès des serveurs de gestion externe des clés (KMIP).
@@ -39,19 +39,19 @@ La procédure de configuration varie selon que vous avez configuré ou non un se
 .Ajout de serveurs de clés primaires et secondaires à un SVM
 --
 . Vérifier qu'aucune gestion des clés n'a été activée pour le cluster :
-`security key-manager external show -vserver _vserver_name_`
+`security key-manager external show -vserver _svm_name_`
 Si le SVM possède déjà le maximum de quatre serveurs de clés principaux activés, vous devez supprimer l'un des serveurs de clés principaux existants avant d'en ajouter un nouveau.
 . Activez le gestionnaire de clés principal :
-`security key-manager external enable -vserver _vserver_name_ -key-servers _server_ip_ -client-cert _client_cert_name_ -server-ca-certs _server_ca_cert_names_`
+`security key-manager external enable -vserver _svm_name_ -key-servers _server_ip_ -client-cert _client_cert_name_ -server-ca-certs _server_ca_cert_names_`
 . Modifiez le serveur de clés principal pour ajouter des serveurs de clés secondaires. Le `-secondary-key-servers` paramètre accepte une liste séparée par des virgules de trois serveurs de clés au maximum.
-`security key-manager external modify-server -vserver _vserver_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
+`security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
 
 
 --
 .Ajoutez des serveurs de clés secondaires à un serveur de clés principal existant
 --
 . Modifiez le serveur de clés principal pour ajouter des serveurs de clés secondaires. Le `-secondary-key-servers` paramètre accepte une liste séparée par des virgules de trois serveurs de clés au maximum.
-`security key-manager external modify-server -vserver _vserver_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
+`security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
 Pour plus d'informations sur les serveurs de clés secondaires, reportez-vous à la section  <<mod-secondary>>.
 
 
@@ -73,7 +73,7 @@ Pour convertir un serveur de clés secondaire en serveur de clés principal, vou
 
 
 
-=== Modification des serveurs de clés secondaires
+=== Modifier les serveurs de clés secondaires
 
 Les serveurs de clés secondaires sont gérés à l'aide du `-secondary-key-servers` paramètre du `security key-manager external modify-server` commande. Le `-secondary-key-servers` le paramètre accepte une liste séparée par des virgules. L'ordre spécifié des serveurs de clés secondaires dans la liste détermine la séquence d'accès des serveurs de clés secondaires. L'ordre d'accès peut être modifié en exécutant la commande `security key-manager external modify-server` les serveurs de clés secondaires étant entrés dans une séquence différente.
 

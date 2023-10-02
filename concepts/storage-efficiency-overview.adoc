@@ -1,0 +1,71 @@
+---
+permalink: concepts/storage-efficiency-overview.html 
+sidebar: sidebar 
+keywords: storage efficiency, storage efficiencies, storage efficiency technologies, space utliziation, space savings, optimizing, space optimization, minimizing, wasted space, reducing, footprint, thin provisioning, deduplication, zero block, zero-block, inline, deduplication, backgroud deduplication, postprocessing, post-processing, compression, compaction, flex-clone technologies 
+summary: 'L"efficacité du stockage mesure la manière dont un système de stockage utilise l"espace disponible en optimisant les ressources de stockage, en minimisant le gaspillage d"espace et en réduisant l"encombrement physique des données écrites.' 
+---
+= Présentation de l'efficacité du stockage ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+L'efficacité du stockage mesure la manière dont un système de stockage utilise l'espace disponible en optimisant les ressources de stockage, en minimisant le gaspillage d'espace et en réduisant l'encombrement physique des données écrites. Un stockage plus efficace vous permet de stocker un maximum de données dans un minimum d'espace et à moindre coût. Par exemple, l'utilisation de technologies d'efficacité du stockage qui détectent et éliminent les blocs de données dupliqués et les blocs de données remplis de zéros réduit la quantité globale de stockage physique nécessaire et le coût global.
+
+ONTAP propose une large gamme de technologies d'efficacité du stockage qui réduisent la quantité de matériel physique ou de stockage cloud consommée par vos données et qui améliorent considérablement les performances du système. Ces technologies incluent une lecture plus rapide des données, des copies plus rapides des jeux de données et un provisionnement plus rapide des machines virtuelles.
+
+.Les technologies ONTAP d'efficacité du stockage incluent :
+* *Provisionnement fin*
++
+xref:thin-provisioning-concept.html[Provisionnement fin] Vous permet d'allouer du stockage dans un volume ou une LUN en fonction des besoins au lieu de le réserver à l'avance.  Cela réduit la quantité de stockage physique nécessaire en vous permettant de surallouer vos volumes ou LUN en fonction de leur utilisation potentielle, sans réserver un espace qui n'est pas utilisé actuellement.
+
+* *Déduplication*
++
+xref:deduplication-concept.html[Déduplication] réduit la quantité de stockage physique nécessaire pour un volume de trois manières distinctes.
+
++
+** *Déduplication de blocs zéro*
++
+La déduplication de blocs « zéro » détecte et élimine les blocs de données remplis de zéros, et met uniquement à jour les métadonnées. 100 % de l'espace généralement utilisé par les blocs « zéro » est ensuite économisé.  La déduplication de blocs « zéro » est activée par défaut sur tous les volumes dédupliqués.
+
+** *Déduplication à la volée*
++
+La déduplication à la volée détecte les blocs de données dupliqués et les remplace par des références à un bloc partagé unique avant l'écriture des données sur le disque. La déduplication à la volée accélère le provisionnement des machines virtuelles de 20 à 30 %.  Selon votre version d'ONTAP et votre plateforme, la déduplication à la volée est disponible au niveau du volume ou de l'agrégat.  Il est activé par défaut sur les systèmes AFF et ASA. Vous devez activer manuellement la déduplication à la volée sur les systèmes FAS.
+
+** *Déduplication en arrière-plan*
++
+La déduplication en arrière-plan détecte également les blocs de données dupliqués et les remplace par des références à un bloc partagé unique. Elle améliore également l'efficacité du stockage après l'écriture des données sur le disque.  Vous pouvez configurer la déduplication en arrière-plan pour qu'elle s'exécute lorsque certains critères sont remplis sur votre système de stockage. Par exemple, vous pouvez activer la déduplication en arrière-plan lorsque votre volume atteint 10 % d'utilisation.  Vous pouvez également déclencher manuellement la déduplication en arrière-plan ou la configurer pour qu'elle s'exécute selon un planning spécifique. Il est activé par défaut sur les systèmes AFF et ASA. Vous devez activer manuellement la déduplication en arrière-plan sur les systèmes FAS.
+
+
+
++
+La déduplication est prise en charge au sein des volumes et entre les volumes d'un agrégat.  Les lectures de données dédupliquées n'entraînent en général aucun frais de performances.
+
+* *Compression*
++
+xref:compression-concept.html[Compression] réduit la quantité de stockage physique nécessaire pour un volume en combinant les blocs de données dans des groupes de compression, chacun étant stocké sous forme de bloc unique. Lorsqu'une demande de lecture ou de remplacement est reçue, seul un petit groupe de blocs est lu, et non le fichier entier. Ce processus optimise les performances de lecture et d'écrasement et permet une plus grande évolutivité de la taille des fichiers compressés.
+
++
+Elle peut être exécutée à la volée ou en post-traitement.  La compression à la volée permet des gains d'espace immédiats en compressant les données dans la mémoire avant d'être écrites sur le disque. La compression post-traitement écrit d'abord les blocs sur le disque comme non compressés, puis compresse les données à un moment prédéfini. Vous devez activer manuellement la compression.
+
+* *Compactage*
++
+La compaction réduit la quantité de stockage physique requise pour un volume en prenant des segments de données stockés dans des blocs de 4 Ko mais dont la taille est inférieure à 4 Ko et en les combinant dans un seul bloc. La compaction a lieu lorsque les données sont encore dans la mémoire. Ainsi, l'espace inutile n'est jamais consommé sur les disques.  Il est activé par défaut sur les systèmes AFF et ASA. Vous devez activer manuellement la compaction sur les systèmes FAS.
+
+* *Volumes FlexClone, fichiers et LUN*
++
+xref:flexclone-volumes-files-luns-concept.html[Technologie FlexClone] Exploite les métadonnées Snapshot pour créer des copies instantanées inscriptibles d'un volume, d'un fichier ou d'une LUN. Les copies partagent les blocs de données avec leurs parents. Elles ne consomment pas d'espace de stockage, à l'exception des éléments requis pour les métadonnées jusqu'à ce que les modifications soient écrites sur une copie ou sur son parent.  Lorsqu'une modification est écrite, seul le delta est stocké.
+
++
+Là où la création de copies de datasets classiques peut prendre quelques minutes, voire plusieurs heures, la technologie FlexClone vous permet de copier même les jeux de données les plus volumineux de manière quasi instantanée.
+
+
+
+Et si vous le souhaitez, vous pouvez tirer parti de ces technologies dans vos opérations quotidiennes en toute simplicité.  Supposons par exemple que vous devez fournir à 5,000 utilisateurs du stockage pour les répertoires locaux, et que vous estimez que l'espace maximal requis par un utilisateur est de 1 Go. Vous pouvez réserver un agrégat de 5 To à l'avance pour répondre au besoin total de stockage potentiel.  Cependant, vous savez également que les besoins en capacité des répertoires locaux varient considérablement dans votre organisation.  Au lieu de réserver 5 To d'espace total à votre entreprise, vous pouvez créer un agrégat de 2 To.  Vous pouvez ensuite utiliser le provisionnement fin pour attribuer nominalement 1 Go de stockage à chaque utilisateur, mais allouer le stockage uniquement en fonction des besoins.  Vous pouvez activement surveiller l'agrégat dans le temps et augmenter sa taille physique réelle si nécessaire.
+
+Dans un autre exemple, supposons que vous utilisiez une infrastructure de postes de travail virtuels (VDI) avec une grande quantité de données dupliquées au sein de vos postes de travail virtuels. La déduplication réduit l'utilisation du stockage en éliminant automatiquement les blocs d'informations dupliqués dans l'infrastructure VDI, puis en les remplaçant par un pointeur vers le bloc d'origine. D'autres technologies d'efficacité du stockage ONTAP, telles que la compression, peuvent également s'exécuter en arrière-plan sans intervention de votre part.
+
+La technologie de partitionnement de disque ONTAP offre également une meilleure efficacité du stockage.  La technologie RAID DP protège contre les doubles défaillances de disques sans sacrifier les performances ni augmenter la surcharge liée à la mise en miroir des disques. Le partitionnement SSD avancé avec ONTAP 9 augmente la capacité exploitable de près de 20 %.
+
+NetApp fournit les mêmes fonctionnalités d'efficacité du stockage que celles disponibles avec ONTAP sur site dans le cloud. La migration des données depuis un environnement ONTAP sur site vers le cloud préserve l'efficacité du stockage. Supposons que vous disposiez d'une base de données SQL contenant des données stratégiques que vous souhaitez déplacer d'un système sur site vers le cloud.  Vous pouvez utiliser la réplication des données dans BlueXP pour migrer vos données et, dans le cadre du processus de migration, vous pouvez activer votre dernière règle sur site pour les copies Snapshot dans le cloud.

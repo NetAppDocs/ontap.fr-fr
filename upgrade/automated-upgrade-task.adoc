@@ -1,0 +1,347 @@
+---
+sidebar: sidebar 
+permalink: upgrade/automated-upgrade-task.html 
+keywords: netapp, ontap, automate, automatic, automated, upgrade, nondisruptive, nondisruptively, non-disruptive update, nondisruptive upgrade, upgrade a cluster, shift workload between clusters, hardware platform, configuration, software image, update, update ONTAP, update software, ndu 
+summary: Vous pouvez mettre à jour la version de ONTAP sur votre cluster sans interruption. 
+---
+= Mise à niveau automatisée sans interruption du ONTAP
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toc: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+:toc-position: content
+
+
+[role="lead"]
+Lorsque vous effectuez une mise à niveau automatisée, ONTAP installe automatiquement l'image ONTAP cible sur chaque nœud, vérifie que le cluster peut être mis à niveau correctement, puis exécute un ou plusieurs xref:concept_upgrade_methods.html[mise à niveau par lot ou déploiement] en arrière-plan basé sur le nombre de nœuds dans le cluster.
+
+Si votre configuration le prend en charge, vous devez utiliser System Manager pour effectuer une mise à niveau automatisée.  Si votre configuration ne prend pas en charge la mise à niveau automatisée à l'aide de System Manager, vous pouvez utiliser l'interface de ligne de commandes ONTAP pour effectuer une mise à niveau automatisée.
+
+
+IMPORTANT: Modification du paramètre de l' `storage failover modify-auto-giveback` L'option de commande avant le début d'une mise à niveau automatique sans interruption (ANDU) n'a aucun impact sur le processus de mise à niveau. Le processus ANDU ignore toute valeur prédéfinie à cette option lors du basculement/retour requis pour la mise à jour. Par exemple, paramètre `-autogiveback` À false avant de commencer ANDU n'interrompt pas la mise à jour automatique avant le retour.
+
+.Avant de commencer
+* Vous devriez link:prepare.html["préparez votre mise à niveau"].
+* Vous devriez link:download-software-image.html["Téléchargez l'image du logiciel ONTAP"] Pour votre version cible de ONTAP.
++
+Si vous exécutez un link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths["mise à niveau directe à plusieurs sauts"], Vous devez télécharger les deux images ONTAP requises pour votre spécifique link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#supported-upgrade-paths["chemin de mise à niveau"].
+
+* Pour chaque paire haute disponibilité, chaque nœud doit avoir un ou plusieurs ports sur le même broadcast domain.
++
+Si vous avez 8 nœuds ou plus, la méthode de mise à niveau par lot est utilisée dans la mise à niveau automatique sans interruption.  Dans ONTAP 9.7 et version antérieure, si la méthode de traitement par lots est utilisée, les LIF sont migrées vers le partenaire de haute disponibilité du nœud mis à niveau.  Si les partenaires ne disposent d'aucun port dans le même broadcast domain, la migration de LIF échoue.
+
++
+Dans ONTAP 9.8 et version ultérieure, si la méthode de traitement par lots est utilisée, les LIF sont migrées vers l'autre groupe de batchs.
+
+* Si vous mettez à niveau ONTAP dans une configuration MetroCluster FC, le cluster doit être activé en vue du basculement automatique non planifié.
+* Si vous ne prévoyez pas de suivre la progression du processus de mise à niveau, vous devriez link:task_requesting_notification_of_issues_encountered_in_nondisruptive_upgrades.html["Demandez des notifications EMS d'erreurs susceptibles de nécessiter une intervention manuelle"].
+
+
+.Étapes
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Valider l'image cible ONTAP :
++
+
+NOTE: Si vous mettez à niveau une configuration MetroCluster, vous devez valider le cluster A, puis répéter le processus de validation sur le cluster B.
+
++
+.. Selon la version de ONTAP que vous utilisez, effectuez l'une des opérations suivantes :
++
+|===
+
+
+| Si vous exécutez... | Procédez comme ça... 
+
+
+| ONTAP 9.8 ou version ultérieure  a| 
+Cliquez sur *Cluster > Présentation*.
+
+
+
+| ONTAP 9.5, 9.6 et 9.7  a| 
+Cliquez sur *Configuration* > *Cluster* > *Update*.
+
+
+
+| ONTAP 9.4 ou version antérieure  a| 
+Cliquez sur *Configuration* > *Cluster Update*.
+
+|===
+.. Dans le coin droit du volet *vue d'ensemble*, cliquez sur image:icon_kabob.gif["icône de menu"].
+.. Cliquez sur *mise à jour ONTAP*.
+.. Dans l'onglet *mise à jour du cluster*, ajoutez une nouvelle image ou sélectionnez une image disponible.
++
+|===
+
+
+| Les fonctions que vous recherchez... | Alors... 
+
+
+ a| 
+Ajoutez une nouvelle image logicielle à partir d'un dossier local
+
+Vous devriez déjà avoir link:download-software-image.html["téléchargez l'image - effectué"] au client local.
+ a| 
+... Sous *Images logicielles disponibles*, cliquez sur *Ajouter à partir de local*.
+... Accédez à l'emplacement où vous avez enregistré l'image logicielle, sélectionnez l'image, puis cliquez sur *Ouvrir*.
+
+
+
+
+ a| 
+Ajoutez une nouvelle image logicielle à partir d'un serveur HTTP ou FTP
+ a| 
+... Cliquez sur *Ajouter à partir du serveur*.
+... Dans la boîte de dialogue *Ajouter une nouvelle image logicielle*, entrez l'URL du serveur HTTP ou FTP vers lequel vous avez téléchargé l'image du logiciel ONTAP à partir du site de support NetApp.
++
+Pour le FTP anonyme, vous devez spécifier l'URL dans le ftp://anonymous@ftpserver[] format.
+
+... Cliquez sur *Ajouter*.
+
+
+
+
+ a| 
+Sélectionnez une image disponible
+ a| 
+Choisissez l'une des images répertoriées.
+
+|===
+.. Cliquez sur *Valider* pour exécuter les vérifications de validation de pré-mise à niveau.
++
+Si des erreurs ou des avertissements sont détectés pendant la validation, ils s'affichent avec une liste d'actions correctives. Vous devez résoudre toutes les erreurs avant de poursuivre la mise à niveau.  Il est recommandé de résoudre également les avertissements.
+
+
+
+. Cliquez sur *Suivant*.
+. Cliquez sur *mettre à jour*.
++
+La validation est à nouveau effectuée. Les erreurs ou avertissements restants s'affichent avec une liste d'actions correctives.  Les erreurs doivent être corrigées avant de pouvoir procéder à la mise à niveau.  Si la validation est terminée avec des avertissements, vous corrigez les avertissements ou choisissez *mettre à jour avec des avertissements*.
+
++
+
+NOTE: Par défaut, ONTAP utilise le link:concept_upgrade_methods.html["processus de mise à niveau par lot"] pour mettre à niveau les clusters avec huit nœuds ou plus.  À partir de ONTAP 9.10.1, si vous le souhaitez, vous pouvez sélectionner *mettre à jour une paire haute disponibilité à la fois* pour remplacer la valeur par défaut et demander à votre cluster de mettre à niveau une paire haute disponibilité à la fois à l'aide du processus de mise à niveau par déploiement.
+
++
+Pour les configurations MetroCluster de plus de 2 nœuds, le processus de mise à niveau ONTAP démarre simultanément sur les paires haute disponibilité des deux sites.  Dans le cas d'une configuration MetroCluster à 2 nœuds, la mise à niveau commence par être démarrée sur le site sur lequel la mise à niveau n'est pas lancée. La mise à niveau sur le site restant commence une fois la première mise à niveau terminée.
+
+. Si votre mise à niveau s'interrompt en raison d'une erreur, cliquez sur le message d'erreur pour afficher les détails, puis corrigez l'erreur et link:resume-upgrade-after-andu-error.html["reprenez la mise à niveau"].
+
+
+.Une fois que vous avez terminé
+Une fois la mise à niveau terminée, le nœud redémarre et vous êtes redirigé vers la page de connexion de System Manager. Si le redémarrage du nœud prend beaucoup de temps, vous devez actualiser votre navigateur.
+
+--
+.CLI
+--
+. Validez l'image logicielle cible ONTAP
++
+
+NOTE: Si vous mettez à niveau une configuration MetroCluster, vous devez d'abord exécuter les étapes suivantes sur le cluster A, puis exécuter les mêmes étapes sur le cluster B.
+
++
+.. Supprimez le pack logiciel ONTAP précédent :
++
+[source, cli]
+----
+cluster image package delete -version previous_ONTAP_Version
+----
+.. Charger l'image logicielle ONTAP cible dans le référentiel de packages de clusters :
++
+[source, cli]
+----
+cluster image package get -url location
+----
++
+[listing]
+----
+cluster1::> cluster image package get -url http://www.example.com/software/9.13.1/image.tgz
+
+Package download completed.
+Package processing completed.
+----
++
+Si vous exécutez un link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths["mise à niveau directe à plusieurs sauts"], Vous devez également charger le progiciel pour la version intermédiaire de ONTAP requise pour votre mise à niveau. Par exemple, si vous effectuez une mise à niveau de 9.8 vers 9.13.1, vous devez charger le progiciel pour ONTAP 9.12.1, puis utiliser la même commande pour charger le progiciel pour 9.13.1.
+
+.. Vérifiez que le pack logiciel est disponible dans le référentiel du package de cluster :
++
+[source, cli]
+----
+cluster image package show-repository
+----
++
+[listing]
+----
+cluster1::> cluster image package show-repository
+Package Version  Package Build Time
+---------------- ------------------
+9.13.1              MM/DD/YYYY 10:32:15
+----
+.. Exécuter les vérifications automatiques préalables à la mise à niveau :
++
+[source, cli]
+----
+cluster image validate -version package_version_number
+----
++
+Si vous exécutez un link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths["mise à niveau directe à plusieurs sauts"],Vous n'avez besoin que d'utiliser le paquet ONTAP cible pour la vérification.  Il n'est pas nécessaire de valider séparément l'image de mise à niveau intermédiaire.  Par exemple, si vous effectuez une mise à niveau de 9.8 vers 9.13.1, utilisez le package 9.13.1 pour la vérification. Vous n'avez pas besoin de valider le package 9.12.1 séparément.
+
++
+[listing]
+----
+cluster1::> cluster image validate -version 9.13.1
+
+WARNING: There are additional manual upgrade validation checks that must be performed after these automated validation checks have completed...
+----
+.. Surveiller la progression de la validation :
++
+[source, cli]
+----
+cluster image show-update-progress
+----
+.. Effectuez toutes les actions requises identifiées par la validation.
+
+
+. Générer une estimation de mise à niveau logicielle :
++
+[source, cli]
+----
+cluster image update -version package_version_number -estimate-only
+----
++
+
+NOTE: Si vous mettez à niveau une configuration MetroCluster, vous pouvez exécuter cette commande sur le cluster A ou le cluster B.  Vous n'avez pas besoin de l'exécuter sur les deux clusters.
+
++
+L'estimation de la mise à niveau logicielle affiche des détails sur chaque composant à mettre à jour, ainsi que la durée estimée de la mise à niveau.
+
+. Effectuez la mise à niveau logicielle :
++
+[source, cli]
+----
+cluster image update -version package_version_number
+----
++
+** Si vous exécutez un link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths["mise à niveau directe à plusieurs sauts"], Utilisez la version ONTAP cible pour le numéro_version_paquet. Par exemple, si vous effectuez une mise à niveau de ONTAP 9.8 vers 9.13.1, utilisez 9.13.1 comme numéro_version_paquet.
+** Par défaut, ONTAP utilise le link:concept_upgrade_methods.html["processus de mise à niveau par lot"] pour mettre à niveau les clusters avec huit nœuds ou plus.  Si vous le souhaitez, vous pouvez utiliser le `-force-rolling` paramètre permettant de remplacer le processus par défaut et de faire mettre votre cluster à niveau un nœud à la fois à l'aide du processus de mise à niveau par déploiement.
+** À l'issue de chaque basculement et rétablissement, la mise à niveau attend 8 minutes pour que les applications client puissent restaurer les données après la pause des E/S qui a lieu lors du basculement et du rétablissement. Si votre environnement nécessite plus ou moins de temps pour la stabilisation du client, vous pouvez utiliser le `-stabilize-minutes` paramètre pour spécifier une durée de stabilisation différente.
+** Pour les configurations MetroCluster avec 4 nœuds de plus, la mise à niveau automatisée démarre simultanément sur les paires haute disponibilité des deux sites.  Dans le cas d'une configuration MetroCluster à 2 nœuds, la mise à niveau commence sur le site où elle n'est pas initiée. La mise à niveau sur le site restant commence une fois la première mise à niveau terminée.
+
+
++
+[listing]
+----
+cluster1::> cluster image update -version 9.13.1
+
+Starting validation for this update. Please wait..
+
+It can take several minutes to complete validation...
+
+WARNING: There are additional manual upgrade validation checks...
+
+Pre-update Check      Status     Error-Action
+--------------------- ---------- --------------------------------------------
+...
+20 entries were displayed
+
+Would you like to proceed with update ? {y|n}: y
+Starting update...
+
+cluster-1::>
+----
+. Afficher la progression de la mise à jour du cluster :
++
+[source, cli]
+----
+cluster image show-update-progress
+----
++
+Si vous mettez à niveau une configuration MetroCluster à 4 ou 8 nœuds, le `cluster image show-update-progress` commande uniquement affiche la progression du nœud sur lequel vous exécutez la commande. Vous devez exécuter la commande sur chaque nœud pour voir la progression de chaque nœud.
+
+. Vérifiez que la mise à niveau a été effectuée correctement sur chaque nœud.
++
+[source, cli]
+----
+cluster image show-update-progress
+----
++
+[listing]
+----
+cluster1::> cluster image show-update-progress
+
+                                             Estimated         Elapsed
+Update Phase         Status                   Duration        Duration
+-------------------- ----------------- --------------- ---------------
+Pre-update checks    completed                00:10:00        00:02:07
+Data ONTAP updates   completed                01:31:00        01:39:00
+Post-update checks   completed                00:10:00        00:02:00
+3 entries were displayed.
+
+Updated nodes: node0, node1.
+----
+. Déclencher une notification AutoSupport :
++
+[source, cli]
+----
+autosupport invoke -node * -type all -message "Finishing_NDU"
+----
++
+Si votre cluster n'est pas configuré pour envoyer des messages AutoSupport, une copie de la notification est enregistrée localement.
+
+. Si vous mettez à niveau une configuration MetroCluster FC, vérifiez que le cluster est activé pour le basculement automatique non planifié.
++
+
+NOTE: Si vous mettez à niveau une configuration standard ou une configuration IP MetroCluster, vous n'avez pas besoin d'effectuer cette étape.
+
++
+.. Vérifier si le basculement automatique non planifié est activé :
++
+[source, cli]
+----
+metrocluster show
+----
++
+Si le basculement automatique non planifié est activé, l'instruction suivante apparaît dans la sortie de la commande :
+
++
+....
+AUSO Failure Domain    auso-on-cluster-disaster
+....
+.. Si l'instruction n'apparaît pas dans la sortie, activez le basculement automatique non planifié :
++
+[source, cli]
+----
+metrocluster modify -auto-switchover-failure-domain auso-on-cluster-disaster
+----
+.. Vérifier que le basculement automatique non planifié a été activé :
++
+[source, cli]
+----
+metrocluster show
+----
+
+
+
+
+--
+====
+
+
+== Vidéo : des mises à niveau simplifiées
+
+Découvrez les fonctionnalités simplifiées de mise à niveau de ONTAP de System Manager dans ONTAP 9.8.
+
+video::xwwX8vrrmIk[youtube,width=848,height=480]
+.Informations associées
+* https://aiq.netapp.com/["Lancez Active IQ"]
+* https://docs.netapp.com/us-en/active-iq/["Documentation Active IQ"]
+

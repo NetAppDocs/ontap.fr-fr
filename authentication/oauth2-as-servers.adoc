@@ -1,0 +1,139 @@
+---
+sidebar: sidebar 
+permalink: authentication/oauth2-as-servers.html 
+keywords: oauth 2.0, oauth2, access token, grant type, jwt 
+summary: 'Les serveurs d"autorisation effectuent plusieurs fonctions importantes en tant que composant central dans le cadre d"autorisation OAuth 2.0.' 
+---
+= Serveurs d'autorisation et jetons d'accès
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Les serveurs d'autorisation effectuent plusieurs fonctions importantes en tant que composant central dans le cadre d'autorisation OAuth 2.0.
+
+
+
+== Serveurs d'autorisation OAuth 2.0
+
+Les serveurs d'autorisation sont principalement responsables de la création et de la signature des jetons d'accès. Ces tokens contiennent des informations d'identité et d'autorisation permettant à une application client d'accéder de manière sélective aux ressources protégées. Les serveurs sont généralement isolés les uns des autres et peuvent être mis en œuvre de différentes manières, notamment en tant que serveur dédié autonome ou dans le cadre d'un produit de gestion des identités et des accès plus large.
+
+
+NOTE: Une terminologie différente peut parfois être utilisée pour un serveur d'autorisation, en particulier lorsque la fonctionnalité OAuth 2.0 est intégrée dans un produit ou une solution de gestion des identités et des accès plus large. Par exemple, le terme *Identity Provider (IDP)* est fréquemment utilisé de manière interchangeable avec *Authorization Server*.
+
+
+
+=== L'administration
+
+Outre l'émission de jetons d'accès, les serveurs d'autorisation fournissent également des services administratifs connexes, généralement via une interface utilisateur Web. Par exemple, vous pouvez définir et administrer :
+
+* Authentification des utilisateurs et des utilisateurs
+* Étendues
+* Ségrégation administrative par les locataires et les royaumes
+* Application des règles
+* Connexion à divers services externes
+* Prise en charge d'autres protocoles d'identité (tels que SAML)
+
+
+ONTAP est compatible avec les serveurs d'autorisation conformes à la norme OAuth 2.0.
+
+
+
+=== Définition de ONTAP
+
+Vous devez définir un ou plusieurs serveurs d'autorisation sur ONTAP. ONTAP communique en toute sécurité avec chaque serveur pour vérifier les tokens et effectuer d'autres tâches connexes pour la prise en charge des applications client.
+
+Les principaux aspects de la configuration ONTAP sont présentés ci-dessous. Voir aussi link:../authentication/oauth2-deployment-scenarios.html["Scénarios de déploiement OAuth 2.0"] pour en savoir plus.
+
+.Comment et où les jetons d'accès sont validés
+Il existe deux options pour valider les jetons d'accès.
+
+* Validation locale
++
+ONTAP peut valider les jetons d'accès localement en fonction des informations fournies par le serveur d'autorisation qui a émis le token. Les informations extraites du serveur d'autorisation sont mises en cache par ONTAP et actualisées à intervalles réguliers.
+
+* Introspection à distance
++
+Vous pouvez également utiliser l'introspection à distance pour valider les tokens sur le serveur d'autorisation. L'introspection est un protocole permettant aux parties autorisées d'interroger un serveur d'autorisation sur un jeton d'accès. Il permet à ONTAP d'extraire certaines métadonnées d'un jeton d'accès et de valider le jeton. ONTAP met en cache une partie des données pour des raisons de performances.
+
+
+
+.Emplacement réseau
+ONTAP peut se trouver derrière un pare-feu. Dans ce cas, vous devez identifier un proxy comme faisant partie de la configuration.
+
+.Définition des serveurs d'autorisation
+Vous pouvez définir un serveur d'autorisation pour ONTAP à l'aide de n'importe quelle interface d'administration, notamment l'interface de ligne de commandes, System Manager ou l'API REST. Par exemple, avec l'interface de ligne de commandes, vous utilisez la commande `security oauth2 client create`.
+
+.Nombre de serveurs d'autorisation
+Vous pouvez définir jusqu'à huit serveurs d'autorisation sur un seul cluster ONTAP. Le même serveur d'autorisation peut être défini plusieurs fois sur le même cluster ONTAP tant que les demandes d'émetteur ou d'émetteur/d'audience sont uniques. Par exemple, avec Keycloak, ce sera toujours le cas lorsque vous utilisez des domaines différents.
+
+
+
+== Utilisation des jetons d'accès OAuth 2.0
+
+Les jetons d'accès OAuth 2.0 émis par les serveurs d'autorisation sont vérifiés par ONTAP et utilisés pour prendre des décisions d'accès basées sur les rôles pour les requêtes client de l'API REST.
+
+
+
+=== Acquisition d'un jeton d'accès
+
+Vous devez acquérir un jeton d'accès à partir d'un serveur d'autorisation défini sur le cluster ONTAP où vous utilisez l'API REST. Pour acquérir un jeton, vous devez contacter directement le serveur d'autorisation.
+
+
+CAUTION: ONTAP n'émet pas de tokens d'accès ni ne redirige pas les requêtes des clients vers les serveurs d'autorisation.
+
+La façon dont vous demandez un jeton dépend de plusieurs facteurs, notamment :
+
+* Serveur d'autorisation et ses options de configuration
+* Type de subvention OAuth 2.0
+* Client ou outil logiciel utilisé pour émettre la demande
+
+
+
+
+=== Types de subventions
+
+Un _Grant_ est un processus bien défini, comprenant un ensemble de flux réseau, utilisé pour demander et recevoir un jeton d'accès OAuth 2.0. Plusieurs types d'octroi différents peuvent être utilisés en fonction du client, de l'environnement et des exigences de sécurité. Une liste des types de subventions les plus populaires est présentée dans le tableau ci-dessous.
+
+[cols="25,75"]
+|===
+| Type de subvention | Description 
+
+
+| Informations d'identification du client | Type de subvention populaire basé sur l'utilisation de références uniquement (par exemple, un ID et un secret partagé). Le client est supposé avoir une relation de confiance étroite avec le propriétaire de la ressource. 
+
+
+| Mot de passe | Le type d'octroi d'autorisations de mot de passe du propriétaire de ressource peut être utilisé lorsque le propriétaire de la ressource a une relation de confiance établie avec le client. Elle peut également être utile lors de la migration de clients HTTP hérités vers OAuth 2.0. 
+
+
+| Code d'autorisation | Il s'agit d'un type d'octroi idéal pour les clients confidentiels et basé sur un flux basé sur la redirection. Il peut être utilisé pour obtenir à la fois un jeton d'accès et un jeton d'actualisation. 
+|===
+
+
+=== Contenu JWT
+
+Un jeton d'accès OAuth 2.0 est formaté en JWT. Le contenu est créé par le serveur d'autorisation en fonction de votre configuration. Cependant, les tokens sont opaques pour les applications client. Un client n'a aucune raison d'inspecter un jeton ou d'être au courant du contenu.
+
+Chaque jeton d'accès JWT contient un ensemble de réclamations. Les réclamations décrivent les caractéristiques de l'émetteur et l'autorisation en fonction des définitions administratives du serveur d'autorisation. Certaines des réclamations enregistrées avec la norme sont décrites dans le tableau ci-dessous. Toutes les chaînes sont sensibles à la casse.
+
+[cols="20,15,65"]
+|===
+| Réclamation | Mot-clé | Description 
+
+
+| Émetteur | iss | Identifie le principal qui a émis le token. Le traitement de la demande est spécifique à l'application. 
+
+
+| Objet | sous | L'objet ou l'utilisateur du jeton. Le nom est défini comme unique au niveau global ou local. 
+
+
+| Public | aud | Destinataires pour lequel le token est destiné. Implémenté en tant que tableau de chaînes. 
+
+
+| Expiration | date | Heure après laquelle le jeton expire et doit être rejeté. 
+|===
+Voir https://www.rfc-editor.org/info/rfc7519["RFC 7519 : tokens Web JSON"^] pour en savoir plus.

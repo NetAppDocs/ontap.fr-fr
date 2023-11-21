@@ -1,0 +1,149 @@
+---
+permalink: s3-config/create-bucket-mcc-task.html 
+sidebar: sidebar 
+keywords: s3, bucket, system manager, metrocluster, unmirrored, mirrored, aggregate 
+summary: À partir de ONTAP 9.14.1, vous pouvez provisionner un compartiment sur un agrégat en miroir ou sans miroir dans des configurations MetroCluster FC et IP. 
+---
+= Créez un compartiment sur un agrégat en miroir ou sans miroir dans une configuration MetroCluster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de ONTAP 9.14.1, vous pouvez provisionner un compartiment sur un agrégat en miroir ou sans miroir dans des configurations MetroCluster FC et IP.
+
+.Description de la tâche
+* Par défaut, les compartiments sont provisionnés sur les agrégats en miroir.
+* Les mêmes instructions de provisionnement que celles de la section link:create-bucket-task.html["Créer un compartiment"] S'applique à la création d'un compartiment dans un environnement MetroCluster.
+* Les fonctionnalités de stockage objet S3 suivantes sont *non* prises en charge dans les environnements MetroCluster :
++
+** SnapMirror S3
+** Gestion du cycle de vie des compartiments S3
+** Verrouillage d'objet S3 en mode *Compliance*
++
+
+NOTE: Le verrouillage d'objet S3 en mode *gouvernance* est pris en charge.
+
+** Tiering FabricPool local
+
+
+
+
+.Avant de commencer
+Un SVM contenant un serveur S3 doit déjà exister.
+
+
+
+== Processus de création de compartiments
+
+[role="tabbed-block"]
+====
+.CLI
+--
+. Si vous prévoyez de sélectionner vous-même les agrégats et les composants FlexGroup, définissez le niveau de privilège sur Avancé (sinon, le niveau de privilège admin est suffisant) : `set -privilege advanced`
+. Création d'un compartiment :
++
+`vserver object-store-server bucket create -vserver <svm_name> -bucket <bucket_name> [-size integer[KB|MB|GB|TB|PB]] [-use-mirrored-aggregates true/false]`
+
++
+Réglez le `-use-mirrored-aggregates` option à `true` ou `false` selon que vous souhaitez utiliser un agrégat en miroir ou sans miroir.
+
++
+
+NOTE: Par défaut, le `-use-mirrored-aggregates` l'option est définie sur `true`.
+
++
+** Le nom du SVM doit être un SVM de données.
+** Si vous ne spécifiez aucune option, ONTAP crée un compartiment de 5 Go avec un niveau de service défini au niveau le plus élevé disponible pour votre système.
+** Si vous souhaitez que ONTAP crée un compartiment en fonction de la performance ou de l'utilisation, choisissez l'une des options suivantes :
++
+*** niveau de service
++
+Incluez le `-storage-service-level` option avec l'une des valeurs suivantes : `value`, `performance`, ou `extreme`.
+
+*** tiering
++
+Incluez le `-used-as-capacity-tier true` option.
+
+
+
+** Pour spécifier les agrégats sur lesquels créer le volume FlexGroup sous-jacent, utilisez les options suivantes :
++
+*** Le `-aggr-list` Le paramètre spécifie la liste des agrégats à utiliser pour les composants de volume FlexGroup.
++
+Chaque entrée de la liste crée un composant sur l'agrégat spécifié. Vous pouvez spécifier un agrégat plusieurs fois afin d'avoir plusieurs composants créés sur l'agrégat.
+
++
+Pour assurer des performances prévisibles sur l'ensemble du volume FlexGroup, tous les agrégats doivent utiliser les mêmes configurations de type de disque et de groupe RAID.
+
+*** Le `-aggr-list-multiplier` le paramètre spécifie le nombre de fois pour effectuer l'itération sur les agrégats répertoriés avec le `-aggr-list` Paramètre lors de la création d'un volume FlexGroup.
++
+La valeur par défaut du `-aggr-list-multiplier` le paramètre est 4.
+
+
+
+
+
+. Ajout d'une « policy group » QoS le cas échéant :
++
+`vserver object-store-server bucket modify -bucket _bucket_name_ -qos-policy-group _qos_policy_group_`
+
+. Vérification de la création de compartiment :
++
+`vserver object-store-server bucket show [-instance]`
+
+
+
+.Exemple
+L'exemple suivant illustre la création d'un compartiment pour le SVM vs1 de 1 To sur un agrégat en miroir :
+
+[listing]
+----
+cluster-1::*> vserver object-store-server bucket create -vserver svm1.example.com -bucket testbucket  -size 1TB -use-mirrored-aggregates true
+----
+--
+.System Manager
+--
+. Ajoutez un nouveau compartiment à une machine virtuelle de stockage compatible S3.
++
+.. Cliquez sur *stockage > compartiments*, puis sur *Ajouter*.
+.. Entrez un nom, sélectionnez la machine virtuelle de stockage, puis entrez une taille.
++
+Par défaut, le compartiment est provisionné sur un agrégat en miroir. Si vous souhaitez créer un compartiment sur un agrégat sans miroir, sélectionnez *plus d'options* et décochez la case *utiliser le niveau SyncMirror* sous *protection*, comme illustré dans l'image suivante :
+
++
+image:../media/SM_create_bucket_MCC.png["Création de compartiments MetroCluster System Manager"]
+
++
+*** Si vous cliquez sur *Enregistrer* à ce stade, un compartiment est créé avec les paramètres par défaut suivants :
++
+**** L'accès au compartiment n'est accordé à aucun utilisateur, sauf si des règles de groupes sont déjà en vigueur.
++
+
+NOTE: Vous ne devez pas utiliser l'utilisateur root S3 pour gérer le stockage objet ONTAP et partager ses autorisations, car il dispose d'un accès illimité au magasin d'objets. Créez plutôt un utilisateur ou un groupe avec les privilèges d'administration que vous attribuez.
+
+**** Niveau de qualité de service (performance) le plus élevé disponible pour votre système
+
+
+*** Vous pouvez cliquer sur *plus d'options* pour configurer les autorisations utilisateur et le niveau de performances lorsque vous configurez le compartiment, ou vous pouvez modifier ces paramètres ultérieurement.
++
+**** Vous devez avoir déjà créé des utilisateurs et des groupes avant d'utiliser *plus d'options* pour configurer leurs autorisations.
+**** Si vous prévoyez d'utiliser le stockage d'objets S3 pour le Tiering FabricPool, choisissez *use pour le Tiering* (utilisez des supports à faible coût avec des performances optimales pour les données hiérarchisées) plutôt que un niveau de service de performance.
+
+
+
+
+
+
+. Pour les applications client S3, un autre système ONTAP ou une application tierce externe, vérifiez l'accès au nouveau compartiment en saisissant les éléments suivants :
++
+** Certificat CA de serveur S3.
+** Clé d'accès et clé secrète de l'utilisateur.
+** Nom de domaine complet du serveur S3 et nom de compartiment.
+
+
+
+
+--
+====

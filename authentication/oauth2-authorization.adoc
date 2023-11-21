@@ -1,0 +1,213 @@
+---
+sidebar: sidebar 
+permalink: authentication/oauth2-authorization.html 
+keywords: scopes, self-contained scopes, active directory, ldap, rest role, local users, groups 
+summary: 'Plusieurs options sont disponibles pour personnaliser votre autorisation client ONTAP. Les décisions d"autorisation sont finalement basées sur les rôles REST ONTAP contenus dans ou dérivés des jetons d"accès.' 
+---
+= Options pour l'autorisation client ONTAP
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Plusieurs options sont disponibles pour personnaliser votre autorisation client ONTAP. Les décisions d'autorisation sont finalement basées sur les rôles REST ONTAP contenus dans ou dérivés des jetons d'accès.
+
+
+CAUTION: Vous pouvez uniquement utiliser link:../authentication/overview-oauth2.html#selected-terminology["Rôles REST ONTAP"] Lors de la configuration de l'autorisation pour OAuth 2.0. Les anciens rôles ONTAP traditionnels ne sont pas pris en charge.
+
+
+
+== Introduction
+
+La mise en œuvre OAuth 2.0 au sein de ONTAP est conçue pour être flexible et robuste, offrant les options dont vous avez besoin pour sécuriser l'environnement ONTAP. À un niveau élevé, il existe trois principales catégories de configuration permettant de définir l'autorisation du client ONTAP. Ces options de configuration s'excluent mutuellement.
+
+ONTAP applique l'option la plus appropriée en fonction de votre configuration. Voir link:../authentication/oauth2-authorization.html#how-ontap-determines-access["Comment ONTAP détermine l'accès"] Pour en savoir plus sur la façon dont ONTAP traite vos définitions de configuration pour prendre des décisions d'accès.
+
+.Oscilloscopes autonomes OAuth 2.0
+Ces étendues contiennent un ou plusieurs rôles REST personnalisés, chacun encapsulé dans une seule chaîne. Ils sont indépendants des définitions de rôles ONTAP. Vous devez définir ces chaînes de portée sur votre serveur d'autorisation.
+
+.Utilisateurs et rôles REST spécifiques à ONTAP en local
+En fonction de votre configuration, les définitions d'identité ONTAP locales peuvent être utilisées pour prendre des décisions d'accès. Les options sont les suivantes :
+
+* Rôle REST nommé unique
+* Correspondance du nom d'utilisateur avec un utilisateur ONTAP local
+
+
+La syntaxe de portée d'un rôle nommé est *ontap-role-*<URL-encoded-ONTAP-role-name>. Par exemple, si le rôle est « admin », la chaîne de portée sera « ontap-role-admin ».
+
+.Groupes Active Directory ou LDAP
+Si les définitions ONTAP locales sont examinées mais qu'aucune décision d'accès ne peut être prise, les groupes Active Directory (« domaine ») ou LDAP (« nsswitch ») sont utilisés. Les informations de groupe peuvent être spécifiées de deux manières :
+
+* Chaîne de portée OAuth 2.0
++
+Prend en charge les applications confidentielles en utilisant le flux d'informations d'identification du client lorsqu'aucun utilisateur n'est membre d'un groupe. Le périmètre doit être nommé *ontap-group-*<URL-encoded-ONTAP-group-name>. Par exemple, si le groupe est « développement », la chaîne de portée sera « ontap-groupe-développement ».
+
+* Dans la réclamation « Groupe »
++
+Ceci est destiné aux jetons d'accès émis par ADFS à l'aide du flux propriétaire de la ressource (mot de passe Grant).
+
+
+
+
+
+== Oscilloscopes OAuth 2.0 autonomes
+
+Les étendues autonomes sont des chaînes portées dans le jeton d'accès. Chacune d'entre elles constitue une définition de rôle personnalisée complète et comprend tout ce dont ONTAP a besoin pour prendre une décision d'accès. Le périmètre est distinct et celui de tous les rôles REST définis au sein de ONTAP lui-même.
+
+
+
+=== Format de la chaîne de portée
+
+Au niveau de la base, la portée est représentée sous la forme d'une chaîne contiguë et composée de six valeurs séparées par deux points. Les paramètres utilisés dans la chaîne de portée sont décrits ci-dessous.
+
+
+
+==== Littéral ONTAP
+
+La portée doit commencer par la valeur littérale `ontap` en minuscules. Cette opération identifie la portée en tant que spécifique à ONTAP.
+
+
+
+==== Cluster
+
+Il définit le cluster ONTAP auquel la portée s'applique. Les valeurs peuvent inclure :
+
+* UUID de cluster
++
+Identifie un seul cluster.
+
+* Astérisque (***)
++
+Indique que la portée s'applique à tous les clusters.
+
+
+
+Vous pouvez utiliser la commande CLI de ONTAP `cluster identity show` Pour afficher l'UUID de votre cluster. Si elle n'est pas spécifiée, la portée s'applique à tous les clusters.
+
+
+
+==== Rôle
+
+Nom du rôle REST contenu dans le périmètre autonome. Cette valeur n'est pas examinée par ONTAP ou associée à tout rôle REST existant défini sur ONTAP. Le nom est utilisé pour la journalisation.
+
+
+
+==== Niveau d'accès
+
+Cette valeur indique le niveau d'accès appliqué à l'application client lors de l'utilisation du noeud final de l'API dans le périmètre. Il existe six valeurs possibles, comme décrit dans le tableau ci-dessous.
+
+[cols="25,75"]
+|===
+| Niveau d'accès | Description 
+
+
+| Aucune | Refuse tout accès au noeud final spécifié. 
+
+
+| lecture seule | Autorise uniquement l'accès en lecture à l'aide de GET. 
+
+
+| read_create | Permet l'accès en lecture ainsi que la création de nouvelles instances de ressources à l'aide de POST. 
+
+
+| lire_modifier | Permet l'accès en lecture ainsi que la mise à jour des ressources existantes à l'aide d'un CORRECTIF. 
+
+
+| read_create_modify | Permet tous les accès sauf supprimer. Les opérations autorisées comprennent OBTENIR (lire), POST (créer) et PATCH (mettre à jour). 
+
+
+| tous | Permet un accès complet. 
+|===
+
+
+==== SVM
+
+Nom du SVM au sein du cluster auquel la portée s'applique. Utilisez la valeur *** (astérisque) pour indiquer tous les SVM.
+
+
+CAUTION: Cette fonctionnalité n'est pas entièrement prise en charge par ONTAP 9.14.1. Vous pouvez ignorer le paramètre du SVM et utiliser un astérisque comme emplacement réservé. Vérifiez le https://library.netapp.com/ecm/ecm_download_file/ECMLP2492508["Notes de version de ONTAP"^] Pour vérifier la prise en charge future des SVM.
+
+
+
+==== URI DE L'API REST
+
+Chemin complet ou partiel d'une ressource ou d'un ensemble de ressources associées. La chaîne doit commencer par `/api`. Si vous ne spécifiez pas de valeur, la portée s'applique à tous les terminaux d'API du cluster ONTAP.
+
+
+
+=== Exemples de portée
+
+Quelques exemples de portées autonomes sont présentés ci-dessous.
+
+ontap:*:joes-role:read_create_modify:*:/api/cluster:: Permet à l'utilisateur affecté à ce rôle d'accéder en lecture, création et modification à `/cluster` point final.
+
+
+
+
+=== Outil d'administration CLI
+
+Pour faciliter l'administration des étendues autonomes et réduire le risque d'erreur, ONTAP fournit la commande CLI `security oauth2 scope` pour générer des chaînes de portée basées sur vos paramètres d'entrée.
+
+La commande `security oauth2 scope` propose deux cas d'utilisation basés sur vos commentaires :
+
+* Paramètres de l'interface de ligne de commande pour la chaîne de périmètre
++
+Vous pouvez utiliser cette version de la commande pour générer une chaîne de portée basée sur les paramètres d'entrée.
+
+* Chaîne d'étendue aux paramètres CLI
++
+Vous pouvez utiliser cette version de la commande pour générer les paramètres de la commande en fonction de la chaîne de périmètre d'entrée.
+
+
+
+.Exemple
+L'exemple suivant génère une chaîne de périmètre avec le résultat inclus après l'exemple de commande ci-dessous. La définition s'applique à tous les clusters.
+
+[source, cli]
+----
+security oauth2 scope cli-to-scope -role joes-role -access readonly -api /api/cluster
+----
+`ontap:*:joes-role:readonly:*:/api/cluster`
+
+
+
+== Comment ONTAP détermine l'accès
+
+Pour bien concevoir et mettre en œuvre OAuth 2.0, vous devez comprendre comment ONTAP utilise votre configuration d'autorisation pour prendre des décisions d'accès pour les clients.
+
+.Étape 1 : oscilloscopes autonomes
+Si le jeton d'accès contient des périmètres autonomes, ONTAP examine d'abord ces périmètres. S'il n'y a pas de portées autonomes, passez à l'étape 2.
+
+Avec une ou plusieurs portées autonomes présentes, ONTAP applique chaque portée jusqu'à ce qu'une décision explicite *ALLOW* ou *DENY* puisse être prise. Si une décision explicite est prise, le traitement prend fin.
+
+Si ONTAP ne peut pas prendre de décision explicite en matière d'accès, passez à l'étape 2.
+
+.Étape 2 : vérifiez l'indicateur de rôles locaux
+ONTAP examine la valeur de l'indicateur `use-local-roles-if-present`. La valeur de cet indicateur est définie séparément pour chaque serveur d'autorisation défini sur ONTAP.
+
+* Si la valeur est de `true` passez à l'étape 3.
+* Si la valeur est de `false` le traitement se termine et l'accès est refusé.
+
+
+.Étape 3 : rôle REST ONTAP nommé
+Si le jeton d'accès contient un rôle REST nommé, ONTAP utilise ce rôle pour prendre la décision d'accès. Cela entraîne toujours une décision *ALLOW* ou *DENY* et la fin du traitement.
+
+S'il n'y a pas de rôle REST nommé ou si le rôle est introuvable, passez à l'étape 4.
+
+.Étape 4 : utilisateurs ONTAP locaux
+Extrayez le nom d'utilisateur du jeton d'accès et essayez de le faire correspondre à un utilisateur ONTAP local.
+
+Si un utilisateur ONTAP local est associé, ONTAP utilise le rôle défini pour que l'utilisateur puisse prendre une décision d'accès. Cela entraîne toujours une décision *ALLOW* ou *DENY* et la fin du traitement.
+
+Si un utilisateur ONTAP local ne correspond pas ou s'il n'y a pas de nom d'utilisateur dans le jeton d'accès, passez à l'étape 5.
+
+.Étape 5 : mappage groupe-rôle
+Extrayez le groupe du jeton d'accès et essayez de le faire correspondre à un groupe. Les groupes sont définis à l'aide d'Active Directory ou d'un serveur LDAP équivalent.
+
+S'il existe une correspondance de groupe, ONTAP utilise le rôle défini pour le groupe pour prendre une décision d'accès. Cela entraîne toujours une décision *ALLOW* ou *DENY* et la fin du traitement.
+
+S'il n'y a pas de correspondance de groupe ou s'il n'y a pas de groupe dans le jeton d'accès, l'accès est refusé et le traitement se termine.

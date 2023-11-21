@@ -36,16 +36,16 @@ image::../media/workflow_svm_migrate.gif[Flux de production de la migration SVM]
 | Famille de contrôleurs | Versions de ONTAP prises en charge 
 
 
-| Gamme AFF A-Series | ONTAP 9.10.1 et versions ultérieures 
+| AFF A-Series | ONTAP 9.10.1 et versions ultérieures 
 
 
-| Gammes AFF-C. | ONTAP 9.12.1 correctif 4 et ultérieur 
+| AFF série C. | ONTAP 9.12.1 correctif 4 et ultérieur 
 
 
 | FAS | ONTAP 9.12.1 et versions ultérieures 
 |===
 
-NOTE:  Lors de la migration d'un cluster AFF vers un cluster FAS avec des agrégats hybrides, le placement automatique de volumes tente d'effectuer une correspondance d'agrégat similaire à celle-ci. Par exemple, si le cluster source compte 60 volumes, le placement du volume tente de trouver un agrégat AFF sur la destination pour placer les volumes. Lorsqu'il n'y a pas suffisamment d'espace sur les agrégats AFF, les volumes sont placés sur des agrégats non Flash.
+NOTE:  Lors de la migration d'un cluster AFF vers un cluster FAS avec des agrégats hybrides, le placement automatique de volumes tente d'effectuer une correspondance d'agrégat similaire à celle-ci. Par exemple, si le cluster source compte 60 volumes, le placement du volume tente de trouver un agrégat AFF sur la destination pour placer les volumes. Lorsqu'il n'y a pas suffisamment d'espace sur les agrégats AFF, les volumes sont placés sur des agrégats avec des disques non Flash.
 
 
 
@@ -58,13 +58,16 @@ NOTE:  Lors de la migration d'un cluster AFF vers un cluster FAS avec des agrég
 | Version ONTAP | Paires HAUTE DISPONIBILITÉ dans la source et la destination 
 
 
-| ONTAP 9.10.1 | 1 
+| ONTAP 9.14.1 | 12 
+
+
+| ONTAP 9.13.1 | 6 
 
 
 | ONTAP 9.11.1 | 3 
 
 
-| ONTAP 9.13.1 | 6 
+| ONTAP 9.10.1 | 1 
 |===
 
 
@@ -78,32 +81,32 @@ En fonction de la version ONTAP installée sur le cluster, le réseau qui connec
 | Version ONTAP | RTT maximum 
 
 
-| ONTAP 9.11.1 et versions antérieures | 2 ms. 
-
-
 | ONTAP 9.12.1 et versions ultérieures | 10 ms. 
+
+
+| ONTAP 9.11.1 et versions antérieures | 2 ms. 
 |===
 
 
 == Nombre maximal de volumes pris en charge par SVM
 
-[cols="1,1,1,1,1"]
+[cols="1,1,1,1,1,1"]
 |===
 
 
-| Source | Destination | ONTAP 9.11.1 et versions antérieures | ONTAP 9.12.1 | ONTAP 9.13.1 
+| Source | Destination | ONTAP 9.14.1 | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 et versions antérieures 
 
 
-| AFF | AFF | 100 | 100 | 200 
+| AFF | AFF | 400 | 200 | 100 | 100 
 
 
-| FAS | FAS | S/O | 80 | 80 
+| FAS | FAS | 80 | 80 | 80 | S/O 
 
 
-| FAS | AFF | S/O | 80 | 80 
+| FAS | AFF | 80 | 80 | 80 | S/O 
 
 
-| AFF | FAS | S/O | 80 | 80 
+| AFF | FAS | 80 | 80 | 80 | S/O 
 |===
 
 
@@ -113,7 +116,7 @@ Avant de lancer une migration d'un SVM, vous devez réunir les conditions préal
 
 * Vous devez être un administrateur de cluster.
 * link:https://docs.netapp.com/us-en/ontap/peering/create-cluster-relationship-93-later-task.html["Les clusters source et destination doivent être mis en cluster par groupes"^].
-* La licence Data protection Bundle doit être installée sur les clusters source et cible.
+* La licence SnapMirror synchrone doit être installée sur les clusters source et cible.
 * Tous les nœuds du cluster source doivent exécuter ONTAP 9.10.1 ou une version ultérieure. Pour connaître la prise en charge spécifique du contrôleur de baie ONTAP, reportez-vous à la section link:https://hwu.netapp.com/["Hardware Universe"^].
 * Tous les nœuds du cluster source doivent exécuter la même version de ONTAP.
 * Tous les nœuds du cluster destination doivent exécuter la même version de ONTAP.
@@ -149,26 +152,6 @@ Le tableau présente les fonctionnalités ONTAP prises en charge par la mobilit�
 | Fonction | Version d'abord prise en charge | Commentaires 
 
 
-| Relations SnapMirror asynchrones vers le cloud | ONTAP 9.12.1 | Depuis ONTAP 9.12.1, lorsque vous migrez un SVM avec des relations SnapMirror copie vers le cloud, le cluster de destination doit disposer de la copie vers la licence cloud et doit disposer de suffisamment de capacité pour prendre en charge le déplacement de la capacité des volumes en cours de mise en miroir vers le cloud. 
-
-
-| Destination SnapMirror asynchrone | ONTAP 9.12.1 |  
-
-
-| Source SnapMirror asynchrone | ONTAP 9.11.1  a| 
-* Les transferts peuvent se poursuivre normalement sur les relations FlexVol SnapMirror pendant la majeure partie de la migration.
-* Tout transfert en cours est annulé pendant la mise en service et les nouveaux transferts échouent pendant la mise en service et ils ne peuvent pas être redémarrés tant que la migration n'est pas terminée.
-* Les transferts programmés qui ont été annulés ou manqués pendant la migration ne sont pas démarrés automatiquement une fois la migration terminée.
-+
-[NOTE]
-====
-Lorsqu'une source SnapMirror est migrée, ONTAP n'empêche pas la suppression du volume après la migration jusqu'à ce que la mise à jour SnapMirror ait lieu après. Cela se produit car les informations relatives à SnapMirror pour les volumes source SnapMirror migrés sont connues uniquement après la première mise à jour effectuée.
-
-====
-
-
-
-
 | Protection autonome contre les ransomwares | ONTAP 9.12.1 |  
 
 
@@ -183,7 +166,7 @@ En savoir plus sur xref:FabricPool support[Prise en charge de FabricPool].
 
 
 
-| Relations « fan out » (la source migrée possède un volume SnapMirror source offrant plusieurs cibles) | ONTAP 9.11.1 |  
+| Relation de type « fanout » (la source de migration possède un volume source SnapMirror avec plusieurs destinations) | ONTAP 9.11.1 |  
 
 
 | SAN FC | Non pris en charge |  
@@ -240,16 +223,19 @@ Avant la migration des SVM :
 | NFS v4.0 | ONTAP 9.12.1 |  
 
 
+| NFSv4.1 avec pNFS | ONTAP 9.14.1 |  
+
+
 | NVMe over Fabric | Non pris en charge |  
 
 
 | Gestionnaire de clés intégré OKM (Onboard Key Manager) avec le mode critères communs activé sur le cluster source | Non pris en charge |  
 
 
-| Qtrees | Non pris en charge |  
+| Qtrees | ONTAP 9.14.1 |  
 
 
-| Quotas | Non pris en charge |  
+| Quotas | ONTAP 9.14.1 |  
 
 
 | S3 | Non pris en charge |  
@@ -257,6 +243,26 @@ Avant la migration des SVM :
 
 | Protocole SMB | ONTAP 9.12.1  a| 
 Les migrations SMB sont perturbatrices et qui nécessitent une mise à jour du client après la migration.
+
+
+
+| Relations de copie asynchrone SnapMirror vers le cloud | ONTAP 9.12.1 | À partir de ONTAP 9.12.1, lorsque vous migrez un SVM avec des relations copie vers le cloud SnapMirror, la licence copie vers le cloud doit être installée sur le cluster de destination et la capacité disponible doit être suffisante pour prendre en charge le déplacement de la capacité des volumes mis en miroir vers le cloud. 
+
+
+| Destination asynchrone SnapMirror | ONTAP 9.12.1 |  
+
+
+| Source asynchrone SnapMirror | ONTAP 9.11.1  a| 
+* Les transferts peuvent se poursuivre normalement sur les relations FlexVol SnapMirror pendant la majeure partie de la migration.
+* Tout transfert en cours est annulé pendant la mise en service et les nouveaux transferts échouent pendant la mise en service et ils ne peuvent pas être redémarrés tant que la migration n'est pas terminée.
+* Les transferts planifiés annulés ou manqués pendant la migration ne sont pas automatiquement démarrés une fois la migration terminée.
++
+[NOTE]
+====
+Lors de la migration d'une source SnapMirror, ONTAP n'empêche pas la suppression du volume après la migration tant que la mise à jour SnapMirror n'a pas lieu. Cela se produit car les informations relatives à SnapMirror pour les volumes source SnapMirror migrés sont disponibles uniquement une fois la migration terminée et après la première mise à jour.
+
+====
+
 
 
 
@@ -279,6 +285,9 @@ Les migrations SMB sont perturbatrices et qui nécessitent une mise à jour du c
 
 
 | La copie Snapshot | ONTAP 9.10.1 |  
+
+
+| Verrouillage inviolable des copies Snapshot | ONTAP 9.14.1 | Le verrouillage inviolable des copies Snapshot n'est pas équivalent à SnapLock. SnapLock reste non pris en charge. 
 
 
 | LIF/BGP IP virtuelles | Non pris en charge |  
@@ -327,7 +336,7 @@ Le tableau suivant indique les opérations de volume prises en charge au sein du
 | Désactivation de l'analyse du système de fichiers | Autorisé | Autorisé | Non pris en charge 
 
 
-| Activer l'analyse des systèmes de fichiers | Non autorisé | Autorisé | Non pris en charge 
+| Activation de l'analyse du système de fichiers | Non autorisé | Autorisé | Non pris en charge 
 
 
 | Modifier | Autorisé | Autorisé | Non pris en charge 
@@ -339,10 +348,10 @@ Le tableau suivant indique les opérations de volume prises en charge au sein du
 | Déplacer/réhéberger | Non autorisé | Autorisé | Non pris en charge 
 
 
-| Création/modification qtree | Non autorisé | Non autorisé | Non pris en charge 
+| Création/modification qtree | Non autorisé | Autorisé | Non pris en charge 
 
 
-| Création/modification de quotas | Non autorisé | Non autorisé | Non pris en charge 
+| Création/modification de quotas | Non autorisé | Autorisé | Non pris en charge 
 
 
 | Renommer | Non autorisé | Autorisé | Non pris en charge 

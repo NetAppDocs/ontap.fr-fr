@@ -1,0 +1,59 @@
+---
+permalink: nfs-trunking/index.html 
+sidebar: sidebar 
+keywords: NFSv4.1, trunking, Linux, VMware, FlexGroup, volumes, multipathing, AI/ML, rdma, data lake 
+summary: 'À partir de ONTAP 9.14.1, les clients NFS exécutant v4.1 ou une version ultérieure peuvent tirer parti de la fonctionnalité d"agrégation de sessions pour ouvrir plusieurs connexions au serveur NFS, augmentant ainsi la vitesse du transfert de données et assurant la résilience via les chemins d"accès multiples' 
+---
+= Présentation de l'agrégation NFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de ONTAP 9.14.1, les clients NFSv4.1 peuvent exploiter la mise en circuit de session pour ouvrir plusieurs connexions à différentes LIF sur le serveur NFS, augmentant ainsi la vitesse du transfert de données et fournissant de la résilience via les chemins d'accès multiples.
+
+L'agrégation est avantageuse pour l'exportation de volumes FlexVol vers des clients compatibles avec l'agrégation, en particulier des clients VMware et Linux, ou pour NFS via RDMA, TCP ou pNFS.
+
+Dans ONTAP 9.14.1, la mise en circuits est limitée aux LIF sur un seul nœud ; la mise en circuits ne peut pas couvrir des LIF sur plusieurs nœuds.
+
+Les volumes FlexGroup sont pris en charge pour l'agrégation. Bien que cela puisse fournir de meilleures performances, l'accès multivoie à un volume FlexGroup ne peut être configuré que sur un seul nœud.
+
+Dans cette version, seule la mise en circuit de session est prise en charge pour les chemins d'accès multiples.
+
+
+
+== Comment utiliser l'agrégation
+
+Pour tirer parti des avantages des chemins d'accès multiples offerts par l'agrégation, vous devez disposer d'un ensemble de LIF, appelé _trunking group_, associées au SVM contenant un serveur NFS à ressources partagées. Les LIF d'un groupe à trunking doivent avoir des ports home sur le même nœud du cluster, et elles doivent résider sur ces ports home. Il est recommandé que toutes les LIFs d'un groupe à ressources partagées appartiennent au même groupe de basculement.
+
+ONTAP prend en charge jusqu'à 16 connexions à ressources partagées par nœud à partir d'un client donné.
+
+Lorsqu'un client monte des exportations à partir d'un serveur à ressources partagées, il spécifie un certain nombre d'adresses IP pour les LIF d'un groupe à ressources partagées. Une fois le client connecté à la première LIF, des LIFs supplémentaires ne sont ajoutées à la session NFSv4.1 et utilisées pour la mise en circuit que si elles sont conformes aux exigences des groupes à ressources partagées. Le client distribue ensuite les opérations NFS sur plusieurs connexions en fonction de son propre algorithme (comme la séquence round-Robin).
+
+Pour optimiser les performances, il est conseillé de configurer l'agrégation dans un SVM qui fournit des exportations multivoies, et non des exportations à chemin unique. En d'autres termes, vous devez activer la mise en circuits uniquement sur un serveur NFS d'un SVM dont les exportations sont fournies aux clients à ressources partagées uniquement.
+
+
+
+== Clients pris en charge
+
+Le serveur ONTAP NFSv4.1 prend en charge la mise en circuit avec tout client capable de la mise en circuit de session NFSv4.1.
+
+Les clients suivants ont été testés avec ONTAP 9.14.1 :
+
+* VMware - ESXi 7.0U3F et versions ultérieures
+* Linux : Red Hat Enterprise Linux (RHEL) 8.8 et 9.3
+
+
+
+NOTE: Lorsque l'agrégation est activée sur un serveur NFS, les utilisateurs qui accèdent à des partages exportés sur des clients NFS qui ne prennent pas en charge l'agrégation peuvent voir une baisse des performances. En effet, une seule connexion TCP est utilisée pour plusieurs montages des LIFs de données du SVM.
+
+
+
+== Différence entre l'agrégation NFS et nconnect
+
+Depuis ONTAP 9.8, la fonctionnalité nconnect est disponible par défaut lorsque NFSv4.1 est activé. Sur les clients compatibles nconnect, un seul montage NFS peut avoir plusieurs connexions TCP (jusqu'à 16) sur une seule LIF.
+
+En revanche, l'agrégation est _multipathing_ fonctionnalité, qui fournit plusieurs connexions TCP sur plusieurs LIFs. Si vous avez la possibilité d'utiliser des cartes réseau supplémentaires dans votre environnement, l'agrégation offre un parallélisme et des performances supérieurs à ceux de nconnect.
+
+En savoir plus sur link:../nfs-admin/ontap-support-nfsv41-concept.html["nconnect."]

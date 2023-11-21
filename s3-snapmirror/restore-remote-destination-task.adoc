@@ -2,7 +2,7 @@
 sidebar: sidebar 
 permalink: s3-snapmirror/restore-remote-destination-task.html 
 keywords: restore a bucket from the destination storage VM remote cluster, source bucket data lost or corrupt, snapmirror restore, restore data, restore to destination bucket, remote cluster, snapmirror restore back up, snapmirror, bucket, restore to new bucket, storage vm, snapmirror data loss 
-summary: 'En cas de perte ou de corruption des données dans un compartiment source, vous reremplissez vos données en les restaurant à partir d"un compartiment de destination.' 
+summary: 'En cas de perte ou de corruption des données d"un compartiment source, vous pouvez les remplir à nouveau en les restaurant à partir d"un compartiment de destination.' 
 ---
 = Restauration d'un compartiment à partir de la machine virtuelle de stockage de destination (cluster distant)
 :toc: macro
@@ -19,10 +19,10 @@ summary: 'En cas de perte ou de corruption des données dans un compartiment sou
 
 
 [role="lead"]
-En cas de perte ou de corruption des données dans un compartiment source, vous reremplissez vos données en les restaurant à partir d'un compartiment de destination.
+En cas de perte ou de corruption des données d'un compartiment source, vous pouvez restaurer les objets à partir d'un compartiment de destination.
 
 .Description de la tâche
-Ce compartiment de destination peut être restauré vers un compartiment existant ou vers un nouveau compartiment. Le compartiment cible pour l'opération de restauration doit être supérieur à l'espace logique utilisé du compartiment de destination.
+Ce compartiment de destination peut être restauré vers un compartiment existant ou vers un nouveau compartiment. Le compartiment cible pour l'opération de restauration doit être supérieur à l'espace logique utilisé par le compartiment de destination.
 
 Si vous utilisez un compartiment existant, celui-ci doit être vide au démarrage d'une opération de restauration.  La restauration ne « restaure » pas un compartiment à la fois ; le contenu du compartiment est alors vide.
 
@@ -32,7 +32,7 @@ L'opération de restauration doit être démarrée à partir du cluster distant.
 ====
 .System Manager
 --
-Restaurer les données de sauvegarde :
+Restaurez les données sauvegardées :
 
 . Cliquez sur *protection > relations*, puis sélectionnez *SnapMirror S3*.
 . Cliquez sur image:icon_kabob.gif["plus d'icône"] Puis sélectionnez *Restaurer*.
@@ -48,7 +48,7 @@ Restaurer les données de sauvegarde :
 ** Pour restaurer un *Nouveau godet*, entrez les valeurs suivantes :
 +
 *** Machine virtuelle de cluster et de stockage pour héberger le nouveau compartiment.
-*** Le nouveau compartiment : niveau de service du nom, de la capacité et des performances.
+*** Nom du nouveau compartiment, niveau de service de capacité et de performance.
 Voir link:../s3-config/storage-service-definitions-reference.html["Niveaux de services de stockage"] pour en savoir plus.
 *** Contenu du certificat CA du serveur _destination_ S3.
 
@@ -59,10 +59,20 @@ Voir link:../s3-config/storage-service-definitions-reference.html["Niveaux de se
 . Cliquez sur *protection > relations* pour contrôler la progression de la restauration.
 
 
+.Restaurer les compartiments verrouillés
+À partir de ONTAP 9.14.1, vous pouvez sauvegarder les compartiments verrouillés et les restaurer si nécessaire.
+
+Vous pouvez restaurer un compartiment verrouillé par objet vers un nouveau compartiment ou un compartiment existant. Vous pouvez sélectionner un compartiment verrouillé par objet comme destination dans les scénarios suivants :
+
+* *Restaurer dans un nouveau compartiment* : lorsque le verrouillage d'objet est activé, un compartiment peut être restauré en créant un compartiment pour lequel le verrouillage d'objet est également activé. Lorsque vous restaurez un compartiment verrouillé, le mode de verrouillage des objets et la période de conservation du compartiment d'origine sont répliqués. Vous pouvez également définir une période de conservation de verrouillage différente pour le nouveau compartiment. Cette période de conservation est appliquée aux objets non verrouillés provenant d'autres sources.
+* *Restaurer dans un compartiment existant* : un compartiment verrouillé par objet peut être restauré dans un compartiment existant, tant que la gestion des versions et un mode de verrouillage d'objet similaire sont activés sur le compartiment existant. La durée de conservation du godet d'origine est maintenue.
+* *Restore non-locked bucket* : même si le verrouillage d'objet n'est pas activé sur un compartiment, vous pouvez le restaurer dans un compartiment dont le verrouillage d'objet est activé et qui se trouve sur le cluster source. Lorsque vous restaurez le compartiment, tous les objets non verrouillés sont verrouillés et le mode de conservation et la durée de conservation du compartiment de destination s'appliquent.
+
+
 --
 .CLI
 --
-. Si vous effectuez une restauration vers un nouveau compartiment, créez-le. Pour plus d'informations, voir link:create-cloud-backup-new-bucket-task.html["Création d'une relation de sauvegarde pour un nouveau compartiment (cible cloud)"].
+. Créez le compartiment de destination à restaurer. Pour plus d'informations, voir link:create-cloud-backup-new-bucket-task.html["Création d'une relation de sauvegarde pour un nouveau compartiment (cible cloud)"].
 . Lancer une opération de restauration pour le compartiment de destination :
 `snapmirror restore -source-path _svm_name_:/bucket/_bucket_name_  -destination-path _svm_name_:/bucket/_bucket_name_`
 

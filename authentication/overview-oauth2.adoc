@@ -1,0 +1,149 @@
+---
+sidebar: sidebar 
+permalink: authentication/overview-oauth2.html 
+keywords: oauth 2.0, oauth2, access token, bearer token, authentication, authorization, mutual tls, mtls, adfs, auth0, oidc 
+summary: 'Depuis ONTAP 9.14, vous avez la possibilité de contrôler l"accès à vos clusters ONTAP à l"aide de l"infrastructure d"autorisation ouverte (OAuth 2.0). Vous pouvez configurer cette fonctionnalité à l"aide de n"importe quelle interface d"administration ONTAP, notamment l"interface de ligne de commandes ONTAP, System Manager et l"API REST. Cependant, les décisions d"autorisation et de contrôle d"accès OAuth 2.0 ne peuvent être appliquées que lorsqu"un client accède à ONTAP à l"aide de l"API REST.' 
+---
+= Présentation de la mise en œuvre de ONTAP OAuth 2.0
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Depuis ONTAP 9.14, vous avez la possibilité de contrôler l'accès à vos clusters ONTAP à l'aide de l'infrastructure d'autorisation ouverte (OAuth 2.0). Vous pouvez configurer cette fonctionnalité à l'aide de n'importe quelle interface d'administration ONTAP, notamment l'interface de ligne de commandes ONTAP, System Manager et l'API REST. Cependant, les décisions d'autorisation et de contrôle d'accès OAuth 2.0 ne peuvent être appliquées que lorsqu'un client accède à ONTAP à l'aide de l'API REST.
+
+
+NOTE: La prise en charge d'OAuth 2.0 a été introduite pour la première fois avec ONTAP 9.14.0. Sa disponibilité dépend donc de la version ONTAP que vous utilisez. Voir la https://library.netapp.com/ecm/ecm_download_file/ECMLP2492508["Notes de version de ONTAP"^] pour en savoir plus.
+
+
+
+== Caractéristiques et avantages
+
+Les principales caractéristiques et avantages de l'utilisation d'OAuth 2.0 avec ONTAP sont décrits ci-dessous.
+
+.Prise en charge de la norme OAuth 2.0
+OAuth 2.0 est le cadre d'autorisation standard de l'industrie. Il permet de restreindre et de contrôler l'accès aux ressources protégées à l'aide de jetons d'accès signés. L'utilisation d'OAuth 2.0 présente plusieurs avantages :
+
+* De nombreuses options pour la configuration de l'autorisation
+* Ne jamais révéler les informations d'identification du client, y compris les mots de passe
+* Les tokens peuvent être définis pour expirer en fonction de votre configuration
+* La solution est idéale pour une utilisation avec les API REST
+
+
+.Testé avec plusieurs serveurs d'autorisation courants
+L'implémentation ONTAP est conçue pour être compatible avec tout serveur d'autorisation compatible OAuth 2.0. Il a été testé avec les serveurs ou services populaires suivants, notamment :
+
+* Auth0
+* ADFS (Active Directory Federation Service)
+* Porte-clés
+
+
+.Prise en charge de plusieurs serveurs d'autorisation simultanés
+Vous pouvez définir jusqu'à huit serveurs d'autorisation pour un seul cluster ONTAP. Vous disposez ainsi de la flexibilité nécessaire pour répondre aux besoins de votre environnement de sécurité diversifié.
+
+.Intégration avec les rôles REST
+Les décisions d'autorisation ONTAP sont finalement basées sur les rôles REST attribués aux utilisateurs ou aux groupes. Ces rôles sont soit portés dans le jeton d'accès en tant que étendues autonomes, soit basés sur des définitions ONTAP locales avec Active Directory ou des groupes LDAP.
+
+.Option permettant d'utiliser des jetons d'accès limités par l'expéditeur
+Vous pouvez configurer ONTAP et les serveurs d'autorisation pour utiliser MTLS (Mutual transport Layer Security) qui renforce l'authentification des clients. Il garantit que les jetons d'accès OAuth 2.0 ne sont utilisés que par les clients auxquels ils ont été émis à l'origine. Cette fonction prend en charge et s'aligne sur plusieurs recommandations de sécurité courantes, y compris celles établies par FAPI et MITRE.
+
+
+
+== Implémentation et configuration
+
+À un niveau élevé, il existe plusieurs aspects de la mise en œuvre et de la configuration d'OAuth 2.0 que vous devez prendre en compte lors de la mise en route.
+
+.OAuth 2.0 entités au sein de ONTAP
+Le cadre d'autorisation OAuth 2.0 définit plusieurs entités qui peuvent être mappées à des éléments réels ou virtuels au sein de votre centre de données ou de votre réseau. Les entités OAuth 2.0 et leur adaptation à ONTAP sont présentées dans le tableau ci-dessous.
+
+[cols="30,70"]
+|===
+| OAuth 2.0 entité | Description 
+
+
+| Ressource | Les terminaux d'API REST qui fournissent l'accès aux ressources ONTAP via des commandes ONTAP internes. 
+
+
+| Propriétaire de la ressource | Utilisateur du cluster ONTAP qui a créé ou possède la ressource protégée par défaut. 
+
+
+| Serveur de ressources | Hôte des ressources protégées qui correspond au cluster ONTAP. 
+
+
+| Client | Application demandant l'accès à un point de terminaison d'API REST pour le compte ou avec l'autorisation du propriétaire de la ressource. 
+
+
+| Serveur d'autorisation | Généralement un serveur dédié responsable de l'émission des jetons d'accès et de l'application de la stratégie administrative. 
+|===
+.Configuration ONTAP principale
+Vous devez configurer le cluster ONTAP pour activer et utiliser OAuth 2.0. Cela inclut l'établissement d'une connexion au serveur d'autorisation et la définition de la configuration d'autorisation ONTAP requise. Vous pouvez effectuer cette configuration à l'aide de n'importe quelle interface d'administration, notamment :
+
+* Interface de ligne de commande ONTAP
+* System Manager
+* L'API REST DE ONTAP
+
+
+.Environnement et services de soutien
+Outre les définitions ONTAP, vous devez également configurer les serveurs d'autorisation. Si vous utilisez le mappage groupe-rôle, vous devez également configurer les groupes Active Directory ou l'équivalent LDAP.
+
+.Clients ONTAP pris en charge
+À partir de ONTAP 9.14, un client d'API REST peut accéder à ONTAP à l'aide d'OAuth 2.0. Avant d'émettre un appel API REST, vous devez obtenir un jeton d'accès auprès du serveur d'autorisation. Le client transmet ensuite ce token au cluster ONTAP en tant que _bearer token_ à l'aide de l'en-tête de requête d'autorisation HTTP. Selon le niveau de sécurité requis, vous pouvez également créer et installer un certificat au niveau du client pour utiliser des jetons limités par l'expéditeur basés sur MTLS.
+
+
+
+== Terminologie sélectionnée
+
+Lorsque vous commencez à explorer un déploiement OAuth 2.0 avec ONTAP, il est utile de vous familiariser avec une partie de la terminologie. Voir link:../authentication/overview-oauth2.html#additional-resources["Ressources supplémentaires"] Pour obtenir des liens vers des informations supplémentaires sur OAuth 2.0.
+
+Jeton d'accès:: Jeton émis par un serveur d'autorisation et utilisé par une application client OAuth 2.0 pour faire des demandes d'accès aux ressources protégées.
+Jeton Web JSON:: Norme utilisée pour formater les jetons d'accès. JSON est utilisé pour représenter les réclamations OAuth 2.0 dans un format compact avec les réclamations disposées en trois sections principales.
+Jeton d'accès contraint par l'expéditeur:: Fonctionnalité facultative basée sur le protocole MTLS (Mutual transport Layer Security). En utilisant une demande de confirmation supplémentaire dans le jeton, cela garantit que le jeton d'accès n'est utilisé que par le client auquel il a été émis à l'origine.
+Jeu de clés Web JSON:: Un JWKS est un ensemble de clés publiques utilisées par ONTAP pour vérifier les jetons JWT présentés par les clients. Les jeux de clés sont généralement disponibles au niveau du serveur d'autorisation via un URI dédié.
+Portée:: Les étendues permettent de limiter ou de contrôler l'accès d'une application à des ressources protégées telles que l'API REST ONTAP. Ils sont représentés sous forme de chaînes dans le jeton d'accès.
+Rôle REST ONTAP:: Les rôles REST ont été introduits avec ONTAP 9.6 et constituent une partie centrale du framework ONTAP RBAC. Ces rôles sont différents des rôles traditionnels antérieurs qui sont encore pris en charge par ONTAP. L'implémentation OAuth 2.0 dans ONTAP ne prend en charge que les rôles REST.
+En-tête d'autorisation HTTP:: En-tête inclus dans la requête HTTP pour identifier le client et les autorisations associées dans le cadre d'un appel d'API REST. Plusieurs versions ou implémentations sont disponibles selon la manière dont l'authentification et l'autorisation sont effectuées. Lors de la présentation d'un jeton d'accès OAuth 2.0 à ONTAP, le jeton est identifié comme un _jeton porteur_.
+Authentification de base HTTP:: Une technique d'authentification HTTP précoce encore prise en charge par ONTAP. Les informations d'identification en texte clair (nom d'utilisateur et mot de passe) sont concaténées avec un deux-points et codées en base64. La chaîne est placée dans l'en-tête de la demande d'autorisation et envoyée au serveur.
+FAPI:: Un groupe de travail de la Fondation OpenID qui fournit des protocoles, des schémas de données et des recommandations de sécurité pour le secteur financier. L'API était à l'origine connue sous le nom d'API de qualité financière.
+ONGLET:: Une société privée à but non lucratif fournissant des conseils techniques et de sécurité à l'armée de l'air américaine et au gouvernement américain.
+
+
+
+
+== Ressources supplémentaires
+
+Plusieurs ressources supplémentaires sont fournies ci-dessous. Vous devriez consulter ces sites pour obtenir plus d'informations sur OAuth 2.0 et les normes connexes.
+
+.Protocoles et normes
+* https://www.rfc-editor.org/info/rfc6749["RFC 6749 : cadre d'autorisation OAuth 2.0"^]
+* https://www.rfc-editor.org/info/rfc7519["RFC 7519 : tokens Web JSON (JWT)"^]
+* https://www.rfc-editor.org/info/rfc7523["RFC 7523 : profil JSON Web Token (JWT) pour les autorisations et l'authentification des clients OAuth 2.0"^]
+* https://www.rfc-editor.org/info/rfc7662["RFC 7662 : introspection de tokens OAuth 2.0"^]
+* https://www.rfc-editor.org/info/rfc7800["RFC 7800 : clé de preuve de possession pour JWT"^]
+* https://www.rfc-editor.org/info/rfc8705["RFC 8705 : authentification du client mutuelle OAuth 2.0 et jetons d'accès liés au certificat"^]
+
+
+.Organisations
+* https://openid.net["Fondation OpenID"^]
+* https://openid.net/wg/fapi["Groupe de travail de l'IFAI"^]
+* https://www.mitre.org["ONGLET"^]
+* https://www.iana.org/assignments/jwt/jwt.xhtml["IANA - JWT"^]
+
+
+.Produits et services
+* https://auth0.com["Auth0"^]
+* https://learn.microsoft.com/en-us/windows-server/identity/ad-fs/ad-fs-overview["Présentation de l'ADFS"^]
+* https://www.keycloak.org["Porte-clés"^]
+
+
+.Outils et utilitaires supplémentaires
+* https://jwt.io["JWT par Auth0"^]
+* https://www.openssl.org["OpenSSL"^]
+
+
+.Documentation et ressources de NetApp
+* https://docs.netapp.com/us-en/ontap-automation["Automatisation ONTAP"^] documentation
+

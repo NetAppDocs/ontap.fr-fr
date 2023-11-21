@@ -1,0 +1,73 @@
+---
+permalink: encryption-at-rest/configure-nve-svm-root-task.html 
+keywords: volume encryption, nve, svm root, encrypt 
+summary: 'NetApp Volume Encryption (NVE) est une technologie logicielle de chiffrement des données au repos d"un volume à la fois. Vous pouvez configurer NVE sur un racine de SVM depuis ONTAP 9.14.1.' 
+---
+= Configurer le chiffrement de volume NetApp sur un volume root SVM
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de la version ONTAP 9.14.1, vous pouvez activer NetApp Volume Encryption (NVE) sur un volume racine de machine virtuelle de stockage (SVM). Avec NVE, le volume racine est chiffré avec une clé unique, pour renforcer la sécurité au niveau du SVM.
+
+.Description de la tâche
+NVE sur un volume root SVM ne peut être activé qu'une fois le SVM créé.
+
+.Avant de commencer
+* Le volume racine du SVM ne doit pas se trouver sur un agrégat chiffré avec le chiffrement d'agrégat NetApp (NAE).
+* Vous devez avoir activé le chiffrement avec Onboard Key Manager ou un gestionnaire de clés externe.
+* Vous devez exécuter ONTAP 9.14.1 ou une version ultérieure.
+* Pour migrer un SVM contenant un volume racine chiffré avec NVE, vous devez convertir le volume racine du SVM en volume texte brut une fois la migration terminée, puis re-chiffrer le volume racine du SVM.
++
+** Si l'agrégat de destination de la migration du SVM utilise NAE, le volume racine hérite de NAE par défaut.
+
+
+* Si la SVM est dans une relation de SVM DR :
++
+** Les paramètres de chiffrement d'un SVM en miroir ne sont pas copiés vers la destination. Si vous activez NVE sur la source ou la destination, vous devez activer NVE séparément sur le volume racine du SVM en miroir.
+** Si tous les agrégats du cluster de destination utilisent NAE, le volume racine du SVM utilisera NAE.
+
+
+
+
+.Étapes
+Vous pouvez activer NVE sur un volume root SVM via l'interface de ligne de commandes ONTAP ou System Manager.
+
+[role="tabbed-block"]
+====
+.CLI
+--
+Vous pouvez activer NVE sur le volume racine du SVM sans déplacement ou en déplaçant le volume entre les agrégats.
+
+.Chiffrez le volume racine sur place
+. Convertir le volume root en volume chiffré :
++
+`volume encryption conversion start -vserver _svm_name_ -volume _volume_`
+
+. Confirmez que le chiffrement a réussi. Le `volume show -encryption-type volume` Affiche la liste de tous les volumes qui utilisent NVE.
+
+
+.Chiffrer le volume root du SVM en le déplaçant
+. Lancer un déplacement de volume :
++
+`volume move start -vserver _svm_name_ -volume _volume_ -destination-aggregate _aggregate_ -encrypt-with-aggr-key false -encrypt-destination true`
+
++
+Pour plus d'informations sur `volume move`, voir xref:../volumes/move-volume-task.html[Déplacer un volume].
+
+. Confirmez le `volume move` l'opération a réussi avec le `volume move show` commande. Le `volume show -encryption-type volume` Affiche la liste de tous les volumes qui utilisent NVE.
+
+
+--
+.System Manager
+--
+. Accédez à **stockage** > **volumes**.
+. En regard du nom du volume root du SVM à chiffrer, sélectionner image:icon_kabob.gif["trois points verticaux"] Puis **Modifier**.
+. Sous l'en-tête **stockage et optimisation**, sélectionnez **Activer le cryptage**.
+. Sélectionnez **Enregistrer**.
+
+
+--
+====

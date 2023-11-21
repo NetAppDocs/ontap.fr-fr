@@ -1,0 +1,55 @@
+---
+permalink: nas-audit/create-persistent-stores.html 
+sidebar: sidebar 
+keywords: create, persistent store, fpolicy 
+summary: 'À partir de ONTAP 9.14.1, FPolicy permet de configurer un magasin persistant pour capturer les événements d"accès aux fichiers pour des règles asynchrones non obligatoires dans la SVM. Les magasins persistants peuvent aider à découpler le traitement des E/S client du traitement des notifications FPolicy afin de réduire la latence du client. Les configurations obligatoires synchrones et asynchrones ne sont pas prises en charge.' 
+---
+= Créez des magasins persistants
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de ONTAP 9.14.1, FPolicy vous permet de configurer un link:persistent-stores.html["Magasins persistants"] Pour capturer les événements d'accès aux fichiers pour les politiques asynchrones non obligatoires dans la SVM. Les magasins persistants peuvent aider à découpler le traitement des E/S client du traitement des notifications FPolicy afin de réduire la latence du client. Les configurations obligatoires synchrones (obligatoires ou non) et asynchrones ne sont pas prises en charge.
+
+.Et des meilleures pratiques
+* Avant d'utiliser la fonction de stockage persistant, assurez-vous que vos applications partenaires prennent en charge cette configuration.
+* Le volume de stockage persistant est configuré par SVM. Pour chaque SVM activé FPolicy, vous avez besoin d'un volume de stockage persistant.
+* Le nom du volume de stockage persistant et le chemin de jonction spécifiés au moment de la création du volume doivent correspondre.
+* Créez le volume de stockage persistant sur le nœud avec les LIF qui prévoient que le trafic maximal sera surveillé par Fpolicy.
+* Définissez la règle de snapshot sur `none` pour ce volume au lieu de `default`. Cela permet de s'assurer qu'il n'y a pas de restauration accidentelle de l'instantané, ce qui entraîne la perte des événements actuels et d'empêcher le traitement des événements en double.
+* Rendre le volume de stockage persistant inaccessible pour l'accès au protocole utilisateur externe (CIFS/NFS) afin d'éviter toute corruption accidentelle ou suppression des enregistrements d'événements persistants. Pour ce faire, une fois FPolicy activé, démontez le volume dans ONTAP pour supprimer le chemin de jonction, ce qui le rend inaccessible pour l'accès au protocole utilisateur.
+
+
+.Étapes
+. Créer sur le SVM un volume vide pouvant être provisionné pour le magasin persistant :
++
+`volume create -vserver <SVM Name> -volume <volume> -state <online> -junction-path <path> -policy <default> -unix-permissions <777> -size <value> -aggregate <aggregate name> -snapshot-policy <none>`
+
++
+** La taille du volume de stockage persistant dépend de la durée pendant laquelle vous souhaitez conserver les événements qui ne sont pas livrés au serveur externe (application partenaire).
++
+Par exemple, si vous souhaitez que 30 minutes d'événements se poursuivent dans un cluster avec une capacité de 30 000 notifications par seconde :
+
++
+Taille du volume requis = 30000 x 30 x 60 x 0,6 Ko (taille moyenne des enregistrements de notification) = 32400000 Ko = ~32 Go
+
++
+Pour connaître le taux de notification approximatif, vous pouvez accéder à votre application partenaire FPolicy ou utiliser le compteur FPolicy `requests_dispatched_rate`.
+
+** Un utilisateur administrateur disposant de privilèges RBAC suffisants (pour créer un volume) créera un volume (à l'aide de la commande cli du volume ou de l'API REST) de la taille souhaitée et fournira le nom de ce volume en tant que `-volume` Dans le magasin persistant, créez la commande CLI ou l'API REST.
+
+
+. Créez le magasin persistant :
++
+`vserver fpolicy persistent store create -vserver <SVM> -persistent-store <PS_name> -volume <volume>`
+
++
+** Stockage persistant : nom du magasin persistant
+** Volume : volume du magasin persistant
+
+
+. Une fois le magasin persistant créé, vous pouvez créer la règle FPolicy et ajouter le nom du magasin persistant à cette règle.
+Pour plus d'informations, voir link:https://docs.netapp.com/us-en/ontap/nas-audit/create-fpolicy-policy-task.html["Créez la règle FPolicy"].
+

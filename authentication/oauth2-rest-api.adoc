@@ -1,0 +1,82 @@
+---
+sidebar: sidebar 
+permalink: authentication/oauth2-rest-api.html 
+keywords: acquire token, curl, rest api call, keycloak 
+summary: 'L"implémentation OAuth 2.0 dans ONTAP prend en charge les applications clientes de l"API REST. Vous pouvez émettre un appel d"API REST simple en utilisant curl pour commencer à utiliser OAuth 2.0.' 
+---
+= Émettre un appel API REST à l'aide d'OAuth 2.0
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+L'implémentation OAuth 2.0 dans ONTAP prend en charge les applications clientes de l'API REST. Vous pouvez émettre un appel d'API REST simple en utilisant curl pour commencer à utiliser OAuth 2.0. L'exemple présenté ci-dessous récupère la version du cluster ONTAP.
+
+
+
+== Avant de commencer
+
+Vous devez configurer et activer la fonction OAuth 2.0 pour votre cluster ONTAP. Cela inclut la définition d'un serveur d'autorisation.
+
+
+
+== Étape 1 : acquérir un jeton d'accès
+
+Vous devez acquérir un jeton d'accès à utiliser avec l'appel de l'API REST. La requête de jeton est effectuée en dehors de ONTAP et la procédure exacte dépend du serveur d'autorisation et de sa configuration. Vous pouvez demander le token via un navigateur Web, une commande curl ou un langage de programmation.
+
+À des fins d'illustration, un exemple de la façon dont un jeton d'accès peut être demandé à Keycloak à l'aide de curl est présenté ci-dessous.
+
+.Exemple de Keycloak
+[source, curl]
+----
+curl --request POST \
+--location 'https://superzap.dev.netapp.com:8443/realms/peterson/protocol/openid-connect/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'client_id=dp-client-1' \
+--data-urlencode 'grant_type=client_credentials' \
+--data-urlencode 'client_secret=5iTUf9QKLGxAoYa1iR33vlD5A2xq09V7'
+----
+Vous devez copier et enregistrer le jeton renvoyé.
+
+
+
+== Étape 2 : lancez l'appel de l'API REST
+
+Après avoir un jeton d'accès valide, vous pouvez utiliser une commande curl avec le jeton d'accès pour émettre un appel d'API REST.
+
+.Paramètres et variables
+Les deux variables de l'exemple curl sont décrites dans le tableau ci-dessous.
+
+[cols="25,75"]
+|===
+| Variable | Description 
+
+
+| $FQDN_IP | Nom de domaine complet ou adresse IP du LIF de gestion ONTAP. 
+
+
+| $ACCESS_TOKEN | Jeton d'accès OAuth 2.0 émis par le serveur d'autorisation. 
+|===
+Vous devez d'abord définir ces variables dans l'environnement de shell Bash avant de lancer l'exemple de bouclage. Par exemple, dans l'interface de ligne de commande Linux, tapez la commande suivante pour définir et afficher la variable FQDN :
+
+[listing]
+----
+FQDN_IP=172.14.31.224
+echo $FQDN_IP
+172.14.31.224
+----
+Une fois les deux variables définies dans votre shell Bash local, vous pouvez copier la commande curl et la coller dans l'interface de ligne de commande. Appuyez sur *entrée* pour remplacer les variables et émettre la commande.
+
+.Exemple de boucle
+[source, curl]
+----
+curl --request GET \
+--location "https://$FQDN_IP/api/cluster?fields=version" \
+--include \
+--header "Accept: */*" \
+--header "Authorization: Bearer $ACCESS_TOKEN"
+----

@@ -1,0 +1,51 @@
+---
+permalink: nfs-trunking/reestablish-client-mount-task.html 
+sidebar: sidebar 
+keywords: NFS, servers, network, NFS trunking, data, shares, Linux, VMware, mounts, client 
+summary: 'Pour convertir les connexions client sans ressources partagées en connexions à ressources partagées, les montages existants sur les clients Linux et VMware doivent être démontés et remontés à l"aide des informations relatives aux LIF.' 
+---
+= Rétablissez les montages client
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour convertir les connexions client sans ressources partagées en connexions à ressources partagées, les montages existants sur les clients Linux et VMware doivent être démontés et remontés à l'aide des informations relatives aux LIF.
+
+Lorsque vous entrez des commandes de montage sur les clients, vous devez entrer des adresses IP pour chaque LIF du groupe de trunking.
+
+Découvrez link:index.html#supported-clients["clients pris en charge"].
+
+
+NOTE: Le démontage des clients VMware entraîne des interruptions pour toutes les machines virtuelles du datastore. Une alternative consisterait à créer un nouveau datastore activé pour l'agrégation et à utiliser *Storage vmotion* pour déplacer vos machines virtuelles de l'ancien datastore vers le nouveau. Pour plus de détails, reportez-vous à votre documentation VMware.
+
+[role="tabbed-block"]
+====
+.Configuration requise pour le client Linux
+--
+Un point de montage distinct est requis pour chaque connexion dans le groupe d'agrégation.
+
+Montez les volumes exportés avec des commandes similaires à celles ci-dessous :
+
+`mount lif1_ip:/vol-test /mnt/test1 -o vers=4.1,max_connect=2`
+
+`mount lif2_ip:/vol-test /mnt/test2 -o vers=4.1,max_connect=2`
+
+Le `vers` la valeur doit être de `4.1` ou ultérieure.
+
+Le `max_connect` la valeur doit correspondre au nombre de connexions dans le groupe de ressources partagées.
+
+--
+.Configuration requise pour le client VMware
+--
+Une instruction mount est requise, qui inclut une adresse IP pour chaque connexion du groupe d'agrégation.
+
+Montez le datastore exporté avec une commande similaire à la suivante :
+
+`#esxcli storage nfs41 -H lif1_ip, lif2_ip -s /mnt/sh are1 -v nfs41share`
+
+Le `-H` les valeurs doivent correspondre aux connexions dans le groupe d'agrégation.
+
+--
+====

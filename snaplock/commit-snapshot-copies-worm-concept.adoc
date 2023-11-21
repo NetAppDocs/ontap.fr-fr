@@ -11,7 +11,7 @@ summary: 'Vous pouvez utiliser SnapLock pour SnapVault pour protéger les copies
 
 
 [role="lead"]
-Vous pouvez utiliser SnapLock pour SnapVault pour protéger les copies Snapshot WORM sur le stockage secondaire. Vous pouvez effectuer toutes les tâches SnapLock de base sur la destination SnapVault. Le volume de destination est automatiquement monté en lecture seule. Il est donc inutile de valider de manière explicite les copies Snapshot sur WORM. Ainsi, la création de copies Snapshot planifiées sur le volume de destination à l'aide des règles SnapMirror n'est pas prise en charge.
+Vous pouvez utiliser SnapLock pour SnapVault pour protéger les copies Snapshot WORM sur le stockage secondaire. Vous exécutez toutes les tâches SnapLock de base sur la destination du coffre-fort. Le volume de destination est automatiquement monté en lecture seule. Il est donc inutile de valider de manière explicite les copies Snapshot sur WORM. Ainsi, la création de copies Snapshot planifiées sur le volume de destination à l'aide des règles SnapMirror n'est pas prise en charge.
 
 .Avant de commencer
 * Le cluster source doit exécuter ONTAP 8.2.2 ou version ultérieure.
@@ -35,7 +35,9 @@ Vous pouvez cloner des volumes SnapLock, mais vous ne pouvez pas cloner des fich
 
 NOTE: Les LUN ne sont pas prises en charge dans les volumes SnapLock. Les LUN ne sont prises en charge dans les volumes SnapLock que dans les cas où les copies Snapshot créées sur un volume non SnapLock sont transférées vers un volume SnapLock pour être protégées dans le cadre de la relation de copie SnapLock. Les LUN ne sont pas prises en charge dans les volumes SnapLock en lecture/écriture. Toutefois, les copies Snapshot inviolables sont prises en charge à la fois sur les volumes source SnapMirror et les volumes de destination qui contiennent des LUN.
 
-À partir de ONTAP 9.13.1, vous pouvez restaurer instantanément une copie Snapshot verrouillée sur le volume SnapLock de destination d'une relation SnapLock pour SnapVault en créant une copie FlexClone avec `snaplock-type` Défini sur non snaplock et spécifiant la copie Snapshot comme « snapshot-parent » lors de l'exécution de l'opération de création du clone de volume. En savoir plus sur link:https://docs.netapp.com/us-en/ontap/volumes/create-flexclone-task.html?q=volume+clone["Création d'un volume FlexClone avec un type SnapLock"].
+Depuis la version ONTAP 9.14.1, vous pouvez spécifier des périodes de conservation pour des étiquettes SnapMirror spécifiques dans la règle SnapMirror de la relation SnapMirror, de sorte que les copies Snapshot répliquées du volume source vers le volume de destination soient conservées pendant la période de conservation spécifiée dans la règle. Si aucune période de conservation n'est spécifiée, la période de rétention par défaut du volume de destination est utilisée.
+
+À partir de ONTAP 9.13.1, vous pouvez restaurer instantanément une copie Snapshot verrouillée sur le volume SnapLock de destination d'une relation de copie SnapLock en créant une copie FlexClone avec `snaplock-type` Défini sur non snaplock et spécifiant la copie Snapshot comme « snapshot-parent » lors de l'exécution de l'opération de création du clone de volume. En savoir plus sur link:https://docs.netapp.com/us-en/ontap/volumes/create-flexclone-task.html?q=volume+clone["Création d'un volume FlexClone avec un type SnapLock"].
 
 Pour les configurations MetroCluster, il est important de connaître les éléments suivants :
 
@@ -44,13 +46,13 @@ Pour les configurations MetroCluster, il est important de connaître les éléme
 * Vous pouvez créer une relation SnapVault depuis un volume d'une SVM diffusant les données vers un volume DP au sein d'un SVM source synchrone.
 
 
-L'illustration suivante montre la procédure d'initialisation d'une relation SnapVault :
+L'illustration suivante montre la procédure d'initialisation d'une relation de coffre-fort SnapLock :
 
-image::../media/snapvault-steps-clustered.gif[Cette illustration montre la procédure d'initialisation d'une relation SnapVault : identification du cluster destination,creating a destination volume,creating a policy]
+image::../media/snapvault-steps-clustered.gif[Cette illustration montre la procédure d'initialisation d'une relation de coffre-fort SnapLock : identification du cluster de destination,creating a destination volume,creating a policy]
 
 .Étapes
 . Identifier le cluster de destination
-. Sur le cluster de destination, installez la licence SnapLock, initialisez la fonctionnalité ComplanceClock et, si vous utilisez une version ONTAP antérieure à la version 9.10.1, créez un agrégat SnapLock, comme décrit à la xref:workflow-concept.html[Workflow SnapLock].
+. Sur le cluster de destination, installez la licence SnapLock, initialisez l'horloge de conformité et, si vous utilisez une version ONTAP antérieure à la version 9.10.1, créez un agrégat SnapLock, comme décrit dans xref:workflow-concept.html[Workflow SnapLock].
 . Sur le cluster de destination, créez un volume de destination SnapLock de type `DP` taille identique ou supérieure à celle du volume source :
 +
 `*volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -snaplock-type compliance|enterprise -type DP -size _size_*`

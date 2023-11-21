@@ -4,7 +4,7 @@ permalink: anti-ransomware/manage-parameters-task.html
 keywords: anti-ransomware overview, ransomware, security, modify, security anti-ransomware attack, parameters 
 summary: À partir de la version ONTAP 9.11.1, les paramètres de détection de la protection anti-ransomware autonome peuvent être modifiés en fonction du workload. 
 ---
-= Gérer les paramètres de détection d'attaque ARP
+= Gérez les paramètres de détection des attaques par protection anti-ransomware autonome
 :toc: macro
 :hardbreaks:
 :toclevels: 1
@@ -14,7 +14,7 @@ summary: À partir de la version ONTAP 9.11.1, les paramètres de détection de 
 :nofooter: 
 :icons: font
 :linkattrs: 
-:imagesdir: ./media/
+:imagesdir: ../media/
 :toc-position: content
 
 
@@ -29,11 +29,13 @@ Lorsque la protection anti-ransomware autonome (ARP) est en mode d'apprentissage
 
 Dans ONTAP 9.10.1, ARP émet un avertissement s'il détecte les deux conditions suivantes :
 
-* plus de 20 fichiers avec des extensions de fichier qui n'ont pas été précédemment observés dans le volume
+* plus de 20 fichiers avec des extensions de fichier qui n'ont pas été observées précédemment dans le volume
 * données d'entropie élevées
 
 
 À partir de ONTAP 9.11.1, ARP émet un avertissement de menace si _seule_ une condition est remplie. Par exemple, si plus de 20 fichiers avec des extensions de fichier qui n'ont pas été observées précédemment dans le volume sont observés dans une période de 24 heures, ARP catégorise ceci comme une menace _indépendamment_ de l'entropie observée. (Les valeurs de fichier 24 heures et 20 sont des valeurs par défaut, qui peuvent être modifiées.)
+
+À partir de ONTAP 9.14.1, vous pouvez configurer des alertes lorsque ARP observe une nouvelle extension de fichier et lorsque ARP crée un instantané. Pour plus d'informations, voir <<modify-alerts>>
 
 Certains volumes et charges de travail requièrent des paramètres de détection différents. Par exemple, votre volume ARP peut héberger de nombreux types d'extensions de fichiers. Dans ce cas, vous pouvez modifier le nombre de seuils pour les extensions de fichiers jamais vues à un nombre supérieur à la valeur par défaut de 20 ou désactiver les avertissements basés sur des extensions de fichiers jamais vues. À partir de ONTAP 9.11.1, vous pouvez modifier les paramètres de détection des attaques afin qu'ils s'adaptent mieux à vos workloads spécifiques.
 
@@ -78,7 +80,7 @@ Pour obtenir la liste complète des paramètres, reportez-vous à la section lin
 
 ARP continue de modifier les valeurs de base pour les paramètres de détection, même en mode actif. Si vous connaissez des surtensions dans votre activité de volume--des surtensions ou une surtension qui est caractéristique d'une nouvelle normale--vous devriez la signaler comme sûre. La déclaration manuelle de ces surtensions comme étant sûres contribue à améliorer la précision des évaluations des menaces d'ARP.
 
-.Surtensions
+.Signaler une surtension ponctuelle
 . Si une surtension ponctuelle se produit dans des circonstances connues et que vous souhaitez que ARP signale une surtension similaire dans des circonstances futures, éliminez la poussée du comportement de la charge de travail :
 +
 `security anti-ransomware volume workload-behavior clear-surge -vserver _svm_name_ -volume _volume_name_`
@@ -92,6 +94,67 @@ ARP continue de modifier les valeurs de base pour les paramètres de détection,
 
 
 
+
+
+== Configurez les alertes ARP
+
+Depuis ONTAP 9.14.1, ARP vous permet de spécifier des alertes pour deux événements ARP :
+
+* Observation de la nouvelle extension de fichier sur un volume
+* Création d'un instantané ARP
+
+
+Les alertes liées à ces deux événements peuvent être définies sur des volumes individuels ou pour l'ensemble du SVM. Si vous activez des alertes pour le SVM, les paramètres d'alerte ne sont hérités que par les volumes créés après l'activation de l'alerte. Par défaut, les alertes ne sont activées sur aucun volume.
+
+Les alertes d'événements peuvent être contrôlées par une vérification multiadministrateur. Pour plus d'informations, voir xref:use-cases-restrictions-concept.html#multi-admin-verification-with-volumes-protected-with-ARP[Vérification multiadministrateur avec volumes protégés par ARP].
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Définir des alertes pour un volume
+. Accédez à **volumes**. Sélectionnez le volume individuel pour lequel vous souhaitez modifier les paramètres.
+. Sélectionnez l'onglet **sécurité**, puis **Paramètres de sécurité des événements**.
+. Pour recevoir des alertes pour **Nouvelle extension de fichier détectée** et **instantané de ransomware créé**, sélectionnez le menu déroulant sous l'en-tête **gravité**. Modifiez le paramètre de **ne pas générer l'événement** à **Avis**.
+. Sélectionnez **Enregistrer**.
+
+
+.Définir des alertes pour un SVM
+. Naviguer jusqu'à **Storage VM** puis sélectionner le SVM pour lequel vous voulez activer les paramètres.
+. Sous la rubrique **sécurité**, repérez la carte **anti-ransomware**. Sélectionnez image:../media/icon_kabob.gif["trois points"] Puis **Modifier la gravité des événements ransomware**.
+. Pour recevoir des alertes pour **Nouvelle extension de fichier détectée** et **instantané de ransomware créé**, sélectionnez le menu déroulant sous l'en-tête **gravité**. Modifiez le paramètre de **ne pas générer l'événement** à **Avis**.
+. Sélectionnez **Enregistrer**.
+
+
+--
+.CLI
+--
+.Définir des alertes pour un volume
+* Pour définir des alertes pour une nouvelle extension de fichier :
++
+`security anti-ransomware volume event-log modify -vserver _svm_name_ -is-enabled-on-new-file-extension-seen true`
+
+* Pour définir des alertes pour la création d'un instantané ARP :
++
+`security anti-ransomware volume event-log modify -vserver _svm_name_ -is-enabled-on-snapshot-copy-creation true`
+
+* Confirmez vos paramètres à l'aide du `anti-ransomware volume event-log show` commande.
+
+
+.Définir des alertes pour un SVM
+* Pour définir des alertes pour une nouvelle extension de fichier :
++
+`security anti-ransomware vserver event-log modify -vserver _svm_name_ -is-enabled-on-new-file-extension-seen true`
+
+* Pour définir des alertes pour la création d'un instantané ARP :
++
+`security anti-ransomware vserver event-log modify -vserver _svm_name_ -is-enabled-on-snapshot-copy-creation true`
+
+* Confirmez vos paramètres à l'aide du `security anti-ransomware vserver event-log show` commande.
+
+
+--
+====
 .Plus d'informations
 * link:https://kb.netapp.com/onprem/ontap/da/NAS/Understanding_Autonomous_Ransomware_Protection_attacks_and_the_Autonomous_Ransomware_Protection_snapshot["Apprenez à comprendre les attaques de protection anti-ransomware autonomes et le snapshot de protection anti-ransomware autonome"^]
 

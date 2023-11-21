@@ -1,0 +1,144 @@
+---
+sidebar: sidebar 
+permalink: authentication/oauth2-deployment-scenarios.html 
+keywords: oauth 2.0, deployment, configuration, parameters, local validation, remote introspection 
+summary: 'Plusieurs options de configuration sont disponibles lors de la définition d"un serveur d"autorisation dans ONTAP. En fonction de ces options, vous pouvez créer un serveur d"autorisation adapté à votre environnement de déploiement.' 
+---
+= Scénarios de déploiement OAuth 2.0
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Plusieurs options de configuration sont disponibles lors de la définition d'un serveur d'autorisation dans ONTAP. En fonction de ces options, vous pouvez créer un serveur d'autorisation adapté à votre environnement de déploiement.
+
+
+
+== Résumé des paramètres de configuration
+
+Plusieurs paramètres de configuration sont disponibles lors de la définition d'un serveur d'autorisation dans ONTAP. Ces paramètres sont généralement pris en charge dans toutes les interfaces administratives.
+
+Les noms des paramètres peuvent varier légèrement en fonction de l'interface d'administration de ONTAP. Par exemple, lors de la configuration de l'introspection à distance, le noeud final est identifié à l'aide du paramètre de commande CLI `-introspection-endpoint`. Mais avec System Manager, le champ équivalent est _URI_ d'introspection de jeton de serveur d'autorisation. Pour prendre en charge toutes les interfaces administratives ONTAP, une description générale des paramètres est fournie. Le paramètre ou le champ exact doit être évident en fonction du contexte.
+
+[cols="25,75"]
+|===
+| Paramètre | Description 
+
+
+| Nom | Nom du serveur d'autorisation tel qu'il est connu de ONTAP. 
+
+
+| Client supplémentaire | Application interne ONTAP à laquelle s'applique la définition. Ce doit être *http*. 
+
+
+| URI de l'émetteur | Nom de domaine complet avec chemin identifiant le site ou l'organisation qui émet les jetons. 
+
+
+| URI du fournisseur JWKS | Nom de domaine complet avec chemin et nom de fichier où ONTAP obtient les jeux de clés Web JSON utilisés pour valider les jetons d'accès. 
+
+
+| Intervalle de rafraîchissement JWKS | Intervalle de temps déterminant la fréquence à laquelle ONTAP actualise les informations de certificat à partir de l'URI JWKS du fournisseur. La valeur est spécifiée au format ISO-8601. 
+
+
+| Point d'extrémité d'introspection | Nom de domaine complet avec chemin utilisé par ONTAP pour effectuer la validation de jeton à distance via l'introspection. 
+
+
+| ID client | Nom du client tel que défini sur le serveur d'autorisation. Lorsque cette valeur est incluse, vous devez également fournir le secret client associé en fonction de l'interface. 
+
+
+| Proxy sortant | Cela permet d'accéder au serveur d'autorisation lorsque ONTAP se trouve derrière un pare-feu. L'URI doit être au format curl. 
+
+
+| Utilisez des rôles locaux, le cas échéant | Indicateur booléen déterminant si les définitions ONTAP locales sont utilisées, y compris un rôle REST nommé et des utilisateurs locaux. 
+
+
+| Supprimer la réclamation utilisateur | Autre nom utilisé par ONTAP pour correspondre aux utilisateurs locaux. Utilisez le `sub` champ du jeton d'accès correspondant au nom d'utilisateur local. 
+|===
+
+
+== Scénarios de déploiement
+
+Vous trouverez ci-dessous plusieurs scénarios de déploiement courants. Ils sont organisés selon que la validation des tokens est effectuée localement par ONTAP ou à distance par le serveur d'autorisation. Chaque scénario inclut une liste des options de configuration requises. Voir link:../authentication/oauth2-deploy-ontap.html["Déployer OAuth 2.0 dans ONTAP"] pour des exemples de commandes de configuration.
+
+
+TIP: Après avoir défini un serveur d'autorisation, vous pouvez afficher sa configuration via l'interface d'administration ONTAP. Par exemple, utilisez la commande `security oauth2 client show` Via l'interface de ligne de commandes ONTAP.
+
+
+
+=== Validation locale
+
+Les scénarios de déploiement suivants sont basés sur l'exécution locale de la validation des jetons par ONTAP.
+
+.Utilisez des oscilloscopes autonomes sans proxy
+Il s'agit du déploiement le plus simple utilisant uniquement des oscilloscopes autonomes OAuth 2.0. Aucune définition d'identité ONTAP locale n'est utilisée. Vous devez inclure les paramètres suivants :
+
+* Nom
+* Application (http)
+* URI du fournisseur JWKS
+* URI de l'émetteur
+
+
+Vous devez également ajouter les étendues au niveau du serveur d'autorisation.
+
+.Utiliser des portées autonomes avec un proxy
+Ce scénario de déploiement utilise les étendues autonomes OAuth 2.0. Aucune définition d'identité ONTAP locale n'est utilisée. Mais le serveur d'autorisation est derrière un pare-feu et vous devez donc configurer un proxy. Vous devez inclure les paramètres suivants :
+
+* Nom
+* Application (http)
+* URI du fournisseur JWKS
+* Proxy sortant
+* URI de l'émetteur
+* Public
+
+
+Vous devez également ajouter les étendues au niveau du serveur d'autorisation.
+
+.Utilisez les rôles d'utilisateur local et le mappage de nom d'utilisateur par défaut avec un proxy
+Ce scénario de déploiement utilise des rôles d'utilisateur local avec un mappage de noms par défaut. Le sinistre utilisateur distant utilise la valeur par défaut de `sub` ce champ du jeton d'accès est donc utilisé pour correspondre au nom d'utilisateur local. Le nom d'utilisateur doit comporter au maximum 40 caractères. Le serveur d'autorisation se trouve derrière un pare-feu, vous devez donc également configurer un proxy. Vous devez inclure les paramètres suivants :
+
+* Nom
+* Application (http)
+* URI du fournisseur JWKS
+* Utilisez des rôles locaux, le cas échéant (`true`)
+* Proxy sortant
+* Émetteur
+
+
+Vous devez vous assurer que l'utilisateur local est défini sur ONTAP.
+
+.Utilisez des rôles d'utilisateur locaux et un mappage de nom d'utilisateur alternatif avec un proxy
+Ce scénario de déploiement utilise des rôles d'utilisateur local avec un autre nom d'utilisateur qui est utilisé pour correspondre à un utilisateur ONTAP local. Le serveur d'autorisation est derrière un pare-feu, vous devez donc configurer un proxy. Vous devez inclure les paramètres suivants :
+
+* Nom
+* Application (http)
+* URI du fournisseur JWKS
+* Utilisez des rôles locaux, le cas échéant (`true`)
+* Demande d'utilisateur à distance
+* Proxy sortant
+* URI de l'émetteur
+* Public
+
+
+Vous devez vous assurer que l'utilisateur local est défini sur ONTAP.
+
+
+
+=== Introspection à distance
+
+Les configurations de déploiement suivantes sont basées sur ONTAP qui effectue la validation des jetons à distance via l'introspection.
+
+.Utilisez des oscilloscopes autonomes sans proxy
+Il s'agit d'un déploiement simple basé sur l'utilisation des oscilloscopes autonomes OAuth 2.0. Aucune définition d'identité ONTAP n'est utilisée. Vous devez inclure les paramètres suivants :
+
+* Nom
+* Application (http)
+* Point d'extrémité d'introspection
+* ID client
+* URI de l'émetteur
+
+
+Vous devez définir les étendues ainsi que le secret client et client sur le serveur d'autorisation.

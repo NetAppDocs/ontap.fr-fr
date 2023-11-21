@@ -1,0 +1,91 @@
+---
+permalink: s3-config/configure-access-ldap.html 
+sidebar: sidebar 
+keywords: generate, ldap, s3, access keys, secret keys using API 
+summary: 'Les clés permettant d"accéder aux clients S3 peuvent être régénérées par les utilisateurs S3 à l"aide d"une API.' 
+---
+= Configurez l'accès S3 pour les services d'annuaire externes
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Depuis ONTAP 9.14.1, les services pour les répertoires externes ont été intégrés au stockage objet ONTAP S3. Cette intégration simplifie la gestion des utilisateurs et des accès via des services d'annuaire externes.
+
+Vous pouvez fournir des groupes d'utilisateurs appartenant à un service d'annuaire externe ayant accès à votre environnement de stockage objet ONTAP. Le protocole LDAP (Lightweight Directory Access Protocol) est une interface permettant de communiquer avec des services d'annuaire, tels qu'Active Directory, qui fournit une base de données et des services de gestion des identités et des accès (IAM). Pour y accéder, vous devez configurer les groupes LDAP dans votre environnement ONTAP S3. Une fois l'accès configuré, les membres du groupe disposent des autorisations nécessaires pour les compartiments ONTAP S3. Pour plus d'informations sur LDAP, reportez-vous à la section link:../nfs-config/using-ldap-concept.html["Présentation de l'utilisation de LDAP"].
+
+Vous pouvez également configurer des groupes d'utilisateurs Active Directory en mode de liaison rapide, de sorte que les informations d'identification des utilisateurs puissent être validées et que les applications S3 tierces et open source puissent être authentifiées via des connexions LDAP.
+
+.Avant de commencer
+Avant de configurer les groupes LDAP et d'activer le mode de liaison rapide pour l'accès aux groupes, vérifiez les points suivants :
+
+. Une VM de stockage compatible S3 contenant un serveur S3 a été créée. Voir link:../s3-config/create-svm-s3-task.html["Création d'un SVM pour S3"].
+. Un compartiment a été créé dans cette VM de stockage. Voir link:../s3-config/create-bucket-task.html["Créer un compartiment"].
+. DNS est configuré sur la machine virtuelle de stockage. Voir link:../networking/configure_dns_services_manual.html["Configurez les services DNS"].
+. Un certificat d'autorité de certification racine (CA) auto-signé du serveur LDAP est installé sur la machine virtuelle de stockage. Voir link:../nfs-config/install-self-signed-root-ca-certificate-svm-task.html["Installer le certificat d'autorité de certification racine auto-signé sur le SVM"].
+. Un client LDAP est configuré avec TLS activé sur le SVM. Voir link:../nfs-config/create-ldap-client-config-task.html["Créez une configuration client LDAP"] et link:../nfs-config/enable-ldap-svms-task.html["Associez la configuration client LDAP aux SVM pour plus d'informations"].
+
+
+
+
+== Configurez l'accès S3 pour les services d'annuaire externes
+
+. Préciser LDAP comme _NAME service database_ du SVM pour le groupe et password pour LDAP:
++
+[listing]
+----
+ns-switch modify -vserver <vserver-name> -database group -sources files,ldap
+ns-switch modify -vserver <vserver-name> -database passwd -sources files,ldap
+----
++
+Pour plus d'informations sur cette commande, reportez-vous au `vserver services name-service ns-switch modify` commande.
+
+. Créez une instruction de stratégie de compartiment de magasin d'objets avec `principal` Sélectionnez le groupe LDAP auquel vous souhaitez accorder l'accès :
++
+[listing]
+----
+object-store-server bucket policy statement create -bucket <bucket-name> -effect allow -principal nasgroup/<ldap-group-name> -resource <bucket-name>, <bucket-name>/*
+----
++
+Exemple : l'exemple suivant crée une instruction de politique de compartiment pour `buck1`. La stratégie autorise l'accès au groupe LDAP `group1` à la ressource (compartiment et ses objets) `buck1`.
+
++
+[listing]
+----
+vserver object-store-server bucket policy add-statement -bucket buck1 -effect allow -action
+GetObject,PutObject,DeleteObject,ListBucket,GetBucketAcl,GetObjectAcl,ListBucketMultipartUploads,ListMultipartUploadParts, ListBucketVersions,GetObjectTagging,PutObjectTagging,DeleteObjectTagging,GetBucketVersioning,PutBucketVersioning -principal nasgroup/group1 -resource buck1, buck1/*
+----
+. Vérifiez qu'un utilisateur du groupe LDAP `group1` Est capable d'effectuer des opérations S3 à partir du client S3.
+
+
+
+
+== Utilisez le mode de liaison rapide LDAP pour l'authentification
+
+. Préciser LDAP comme _NAME service database_ du SVM pour le groupe et password pour LDAP:
++
+[listing]
+----
+ns-switch modify -vserver <vserver-name> -database group -sources files,ldap
+ns-switch modify -vserver <vserver-name> -database passwd -sources files,ldap
+----
++
+Pour plus d'informations sur cette commande, reportez-vous au `vserver services name-service ns-switch modify` commande.
+
+. Assurez-vous qu'un utilisateur LDAP accédant au compartiment S3 dispose des autorisations définies dans les règles de compartiment. Pour plus d'informations, voir link:../s3-config/create-modify-bucket-policy-task.html["Modifier une règle de compartiment"].
+. Vérifiez qu'un utilisateur du groupe LDAP peut effectuer les opérations suivantes :
++
+.. Configurez la clé d'accès sur le client S3 dans le format suivant :
+`"NTAPFASBIND" + base64-encode(user-name:password)`
+Exemple : `"NTAPFASTBIND"` + base64-encode(ldapuser:password), qui résulte en
+                      `NTAPFASTBINDbGRhcHVzZXI6cGFzc3dvcmQ=`
++
+
+NOTE: Le client S3 peut vous inviter à saisir une clé secrète. En l'absence d'une clé secrète, vous pouvez saisir un mot de passe d'au moins 16 caractères.
+
+.. Effectuez des opérations S3 de base à partir du client S3 pour lequel l'utilisateur dispose des autorisations nécessaires.
+
+
+

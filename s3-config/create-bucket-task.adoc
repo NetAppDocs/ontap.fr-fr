@@ -14,14 +14,14 @@ summary: 'Les objets S3 sont conservés dans _seaux_--ils ne sont pas imbriqués
 Les objets S3 sont conservés dans _seaux_--ils ne sont pas imbriqués en tant que fichiers dans un répertoire à l'intérieur d'autres répertoires.
 
 .Avant de commencer
-Un SVM contenant un serveur S3 doit déjà exister.
+Une VM de stockage contenant un serveur S3 doit déjà exister.
 
 .Description de la tâche
 Pour l'interface de ligne de commandes, lorsque vous créez un compartiment, deux options de provisionnement sont disponibles :
 
 * Laissez ONTAP Select les agrégats sous-jacents et les composants FlexGroup (par défaut)
 +
-** ONTAP crée et configure un volume FlexGroup pour le premier compartiment en sélectionnant automatiquement les agrégats. Il sélectionne automatiquement le niveau de service le plus élevé disponible pour votre plateforme, ou vous pouvez spécifier le niveau de service de stockage. Tous les compartiments supplémentaires que vous ajoutez ultérieurement dans le SVM auront le même volume FlexGroup sous-jacent.
+** ONTAP crée et configure un volume FlexGroup pour le premier compartiment en sélectionnant automatiquement les agrégats. Il sélectionne automatiquement le niveau de service le plus élevé disponible pour votre plateforme, ou vous pouvez spécifier le niveau de service de stockage. Tout compartiment supplémentaire que vous ajoutez ultérieurement dans la VM de stockage aura le même volume FlexGroup sous-jacent.
 ** Vous pouvez également indiquer si le compartiment sera utilisé pour le Tiering, dans ce cas, ONTAP tente de sélectionner un support économique avec des performances optimales pour les données hiérarchisées.
 
 
@@ -41,74 +41,35 @@ Lorsque vous spécifiez des agrégats et des composants lors de la création d'u
 
 
 
+À partir de ONTAP 9.14.1, vous pouvez link:create-bucket-mcc-task.html["Créez un compartiment sur un agrégat en miroir ou sans miroir dans une configuration MetroCluster"].
+
 *Remarque :* si vous utilisez des compartiments à partir de Cloud Volumes ONTAP, vous devez utiliser la procédure CLI. Il est fortement recommandé de sélectionner manuellement les agrégats sous-jacents pour s'assurer qu'ils n'utilisent qu'un seul nœud. L'utilisation d'agrégats des deux nœuds peut avoir un impact sur les performances, car les nœuds se trouvent dans des zones de disponibilité séparées géographiquement et sont donc sujets aux problèmes de latence.
 
 Les niveaux de service de stockage sont des groupes de règles prédéfinies de qualité de service (QoS) adaptative, avec des niveaux par défaut _Value_, _performance_ et _Extreme_. Au lieu d'un des niveaux de service de stockage par défaut, vous pouvez également définir un groupe de règles de QoS personnalisé et le appliquer à un compartiment.
 
 Depuis ONTAP 9.8, lorsque vous provisionnez le stockage, la QoS est activée par défaut. Vous pouvez désactiver QoS ou choisir une règle de QoS personnalisée lors du processus de provisionnement ou ultérieurement.
 
-link:storage-service-definitions-reference.html["Définitions des services de stockage"]
+Pour plus d'informations sur les définitions de service de stockage, reportez-vous à la section link:storage-service-definitions-reference.html["Définitions des services de stockage"]
 
-Si vous configurez le Tiering de capacité locale, vous créez des compartiments et des utilisateurs dans une SVM de données, et non dans la SVM système où est situé le serveur S3.
+Si vous configurez la hiérarchisation de la capacité locale, vous créez des compartiments et des utilisateurs dans une VM de stockage des données, et non dans la VM de stockage du système où se trouve le serveur S3.
 
 Pour l'accès client à distance, vous devez configurer des compartiments dans une VM de stockage compatible S3. Si vous créez un compartiment dans une machine virtuelle de stockage non compatible S3, il sera uniquement disponible pour le Tiering local.
 
-link:../performance-admin/index.html["Gestion des performances"]
+Pour plus d'informations sur la gestion des performances, reportez-vous à la section link:../performance-admin/index.html["Gestion des performances"]
 
 Voir la `vserver object-store-server bucket` pages de manuel pour des options de configuration et d'affichage supplémentaires.
 
 
 
-== Processus de création de compartiments
+== Créez des compartiments S3 avec l'interface de ligne de commandes de ONTAP
 
-[role="tabbed-block"]
-====
-.System Manager
---
-. Ajoutez un nouveau compartiment à une machine virtuelle de stockage compatible S3.
-+
-.. Cliquez sur *stockage > compartiments*, puis sur *Ajouter*.
-.. Entrez un nom, sélectionnez la machine virtuelle de stockage, puis entrez une taille.
-+
-*** Si vous cliquez sur *Enregistrer* à ce stade, un compartiment est créé avec les paramètres par défaut suivants :
-+
-**** L'accès au compartiment n'est accordé à aucun utilisateur, sauf si des règles de groupes sont déjà en vigueur.
-+
-
-NOTE: Vous ne devez pas utiliser l'utilisateur root S3 pour gérer le stockage objet ONTAP et partager ses autorisations, car il dispose d'un accès illimité au magasin d'objets. Créez plutôt un utilisateur ou un groupe avec les privilèges d'administration que vous attribuez.
-
-**** Niveau de qualité de service (performance) le plus élevé disponible pour votre système
-
-
-*** Vous pouvez cliquer sur *plus d'options* pour configurer les autorisations utilisateur et le niveau de performances lorsque vous configurez le compartiment, ou vous pouvez modifier ces paramètres ultérieurement.
-+
-**** Vous devez avoir déjà créé des utilisateurs et des groupes avant d'utiliser *plus d'options* pour configurer leurs autorisations.
-**** Si vous prévoyez d'utiliser le stockage d'objets S3 pour le Tiering FabricPool, choisissez *use pour le Tiering* (utilisez des supports à faible coût avec des performances optimales pour les données hiérarchisées) plutôt que un niveau de service de performance.
-
-
-
-
-
-
-. Pour les applications client S3, un autre système ONTAP ou une application tierce externe, vérifiez l'accès au nouveau compartiment en saisissant les éléments suivants :
-+
-** Certificat CA de serveur S3.
-** Clé d'accès et clé secrète de l'utilisateur.
-** Nom de domaine complet du serveur S3 et nom de compartiment.
-
-
-
-
---
-.CLI
---
 . Si vous prévoyez de sélectionner vous-même les agrégats et les composants FlexGroup, définissez le niveau de privilège sur Avancé (sinon, le niveau de privilège admin est suffisant) : `set -privilege advanced`
 . Création d'un compartiment :
 +
 `vserver object-store-server bucket create -vserver _svm_name_ -bucket _bucket_name_ [-size integer[KB|MB|GB|TB|PB]] [-comment text] [additional_options]`
 
 +
-Le nom de SVM peut être un SVM de données ou `Cluster` (Nom du SVM système) si vous configurez le Tiering local.
+Le nom de la VM de stockage peut être soit une VM de stockage de données, soit `Cluster` (Nom de la machine virtuelle de stockage du système) si vous configurez la hiérarchisation locale.
 
 +
 Si vous ne spécifiez aucune option, ONTAP crée un compartiment de 5 Go avec un niveau de service défini au niveau le plus élevé disponible pour votre système.
@@ -155,11 +116,74 @@ La valeur par défaut du `-aggr-list-multiplier` le paramètre est 4.
 
 
 .Exemple
-L'exemple suivant crée un compartiment pour le SVM vs1 de taille 1 To et spécification de l'agrégat :
+L'exemple suivant crée un compartiment pour la VM de stockage vs1 de 1 To avec la spécification de l'agrégat :
 
 [listing]
 ----
 cluster-1::*> vserver object-store-server bucket create -vserver svm1.example.com -bucket testbucket -aggr-list aggr1 -size 1TB
 ----
---
-====
+
+
+== Création de compartiments S3 avec System Manager
+
+. Ajoutez un nouveau compartiment à une machine virtuelle de stockage compatible S3.
++
+.. Cliquez sur *stockage > compartiments*, puis sur *Ajouter*.
+.. Entrez un nom, sélectionnez la machine virtuelle de stockage, puis entrez une taille.
++
+*** Si vous cliquez sur *Enregistrer* à ce stade, un compartiment est créé avec les paramètres par défaut suivants :
++
+**** L'accès au compartiment n'est accordé à aucun utilisateur, sauf si des règles de groupes sont déjà en vigueur.
++
+
+NOTE: Vous ne devez pas utiliser l'utilisateur root S3 pour gérer le stockage objet ONTAP et partager ses autorisations, car il dispose d'un accès illimité au magasin d'objets. Créez plutôt un utilisateur ou un groupe avec les privilèges d'administration que vous attribuez.
+
+**** Niveau de qualité de service (performance) le plus élevé disponible pour votre système
+
+
+*** Cliquez sur *Enregistrer* pour créer un compartiment avec ces valeurs par défaut.
+
+
+
+
+
+
+
+
+=== Configurer des autorisations et restrictions supplémentaires
+
+Vous pouvez cliquer sur *plus d'options* pour configurer les paramètres de verrouillage d'objet, les autorisations utilisateur et le niveau de performances lorsque vous configurez le compartiment, ou vous pouvez modifier ces paramètres ultérieurement.
+
+Si vous prévoyez d'utiliser le stockage d'objets S3 pour le Tiering FabricPool, choisissez *use pour le Tiering* (utilisez des supports à faible coût avec des performances optimales pour les données hiérarchisées) plutôt que un niveau de service de performance.
+
+Si vous souhaitez activer la gestion des versions de vos objets pour une récupération ultérieure, sélectionnez *Activer la gestion des versions*. La gestion des versions est activée par défaut si vous activez le verrouillage des objets sur le compartiment. Pour plus d'informations sur la gestion des versions d'objet, reportez-vous à la section https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html["Gestion des versions dans des compartiments S3 pour Amazon"].
+
+À partir de la version 9.14.1, le verrouillage des objets est pris en charge par les compartiments S3. Si vous souhaitez protéger les objets de votre compartiment de la suppression ou de l'écrasement, sélectionnez *Activer le verrouillage d'objet*. Le verrouillage peut être activé sur l'ensemble des versions d'objets ou sur des versions spécifiques, et uniquement lorsque l'horloge de conformité SnapLock est initialisée pour les nœuds de cluster. Voici la procédure à suivre :
+
+. Si l'horloge de conformité SnapLock n'est pas initialisée sur un nœud du cluster, le bouton *initialiser horloge de conformité SnapLock* apparaît. Cliquez sur *initialiser horloge de conformité SnapLock* pour initialiser l'horloge de conformité SnapLock sur les nœuds du cluster.
+. Sélectionnez le mode *Governance* pour activer un verrouillage basé sur le temps qui autorise les autorisations _Write Once, Read Many (WORM)_ sur les objets. Même en mode _Governance_, les objets peuvent être supprimés par les utilisateurs administrateurs disposant d'autorisations spécifiques.
+. Sélectionnez le mode *conformité* si vous souhaitez affecter des règles plus strictes de suppression et de mise à jour des objets. Dans ce mode de verrouillage d'objet, les objets ne peuvent être expirés qu'à la fin de la période de conservation spécifiée. À moins qu'une période de conservation ne soit spécifiée, les objets restent verrouillés indéfiniment.
+. Spécifiez la durée de conservation du verrou en jours ou en années si vous souhaitez que le verrouillage soit effectif pendant une certaine période.
++
+
+NOTE: Le verrouillage s'applique aux compartiments S3 avec et sans version. Le verrouillage d'objet ne s'applique pas aux objets NAS.
+
+
+
+Vous pouvez configurer les paramètres de protection et d'autorisation, ainsi que le niveau de service de performances du compartiment.
+
+
+NOTE: Vous devez avoir déjà créé un utilisateur et des groupes avant de configurer les autorisations.
+
+Pour plus d'informations, reportez-vous à la section link:../s3-snapmirror/create-remote-mirror-new-bucket-task.html#system-manager-procedure["Créer un miroir pour le nouveau godet"].
+
+
+
+=== Vérifier l'accès au godet
+
+Sur les applications client S3 (ONTAP S3 ou une application externe 3^rd^), vous pouvez vérifier votre accès au nouveau compartiment en saisissant les informations suivantes :
+
+* Certificat CA de serveur S3.
+* La clé d'accès et la clé secrète de l'utilisateur.
+* Nom de domaine complet du serveur S3 et nom de compartiment.
+

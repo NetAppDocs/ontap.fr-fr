@@ -1,0 +1,120 @@
+---
+permalink: s3-config/generate-access-keys-api.html 
+sidebar: sidebar 
+keywords: generate, ldap, s3, access keys, secret keys using API 
+summary: 'Les clés permettant d"accéder aux clients S3 peuvent être régénérées par les utilisateurs S3 à l"aide d"une API.' 
+---
+= Activez les utilisateurs LDAP ou du domaine pour générer leurs propres clés d'accès S3
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de ONTAP 9.14.1, en tant qu'administrateur ONTAP, vous pouvez créer des rôles personnalisés et les attribuer à des groupes locaux ou de domaine ou à des groupes LDAP (Lightweight Directory Access Protocol), de sorte que les utilisateurs appartenant à ces groupes puissent générer leur propre accès et leurs propres clés secrètes pour l'accès client S3.
+
+.Avant de commencer
+Vérifiez les points suivants :
+
+. Une VM de stockage compatible S3 contenant un serveur S3 a été créée. Voir link:../s3-config/create-svm-s3-task.html["Création d'un SVM pour S3"].
+. Un compartiment a été créé dans cette VM de stockage. Voir link:../s3-config/create-bucket-task.html["Créer un compartiment"].
+. DNS est configuré sur la machine virtuelle de stockage. Voir link:../networking/configure_dns_services_manual.html["Configurez les services DNS"].
+. Un certificat d'autorité de certification racine (CA) auto-signé du serveur LDAP est installé sur la machine virtuelle de stockage. Voir link:../nfs-config/install-self-signed-root-ca-certificate-svm-task.html["Installer le certificat d'autorité de certification racine auto-signé sur le SVM"].
+. Un client LDAP est configuré avec TLS activé sur la VM de stockage. Voir link:../nfs-config/create-ldap-client-config-task.html["Créez une configuration client LDAP"] et link:../nfs-config/enable-ldap-svms-task.html["Associer la configuration client LDAP aux SVM"].
+
+
+
+
+== Configurer les utilisateurs pour la génération de clés d'accès
+
+. Spécifiez LDAP comme _name service database_ de la machine virtuelle de stockage pour le groupe et le mot de passe pour LDAP :
++
+[listing]
+----
+ns-switch modify -vserver <vserver-name> -database group -sources files,ldap
+ns-switch modify -vserver <vserver-name> -database passwd -sources files,ldap
+----
++
+Pour plus d'informations sur cette commande, reportez-vous au `vserver services name-service ns-switch modify` commande.
+
+. Créez un rôle personnalisé en accédant au terminal de l'API REST de l'utilisateur S3 :
+`security login rest-role create -vserver <vserver-name> -role <custom-role-name> -api "/api/protocols/s3/services/*/users" -access <access-type>`
+Dans cet exemple, le `s3-role` Le rôle est généré pour les utilisateurs de la VM de stockage `svm-1`, auquel tous les droits d'accès, lecture, création et mise à jour sont accordés.
++
+[listing]
+----
+security login rest-role create -vserver svm-1 -role s3role -api "/api/protocols/s3/services/*/users" -access all
+----
++
+Pour plus d'informations sur cette commande, reportez-vous au `security login rest-role create` commande.
+
+. Créez un groupe d'utilisateurs LDAP avec la commande Security login et ajoutez le nouveau rôle personnalisé pour accéder au point final de l'API REST de l'utilisateur S3. Pour plus d'informations sur cette commande, reportez-vous au `security login create` commande.
++
+[listing]
+----
+security login create -user-or-group-name <ldap-group-name> -application http -authentication-method nsswitch -role <custom-role-name> -is-ns-switch-group yes
+----
++
+Dans cet exemple, le groupe LDAP `ldap-group-1` est créé dans `svm-1`, et le rôle personnalisé `s3role` Est ajouté pour accéder au noeud final de l'API, ainsi que pour activer l'accès LDAP en mode de liaison rapide.
+
++
+[listing]
+----
+security login create -user-or-group-name ldap-group-1 -application http -authentication-method nsswitch -role s3role -is-ns-switch-group yes -second-authentication-method none -vserver svm-1 -is-ldap-fastbind yes
+----
++
+Pour plus d'informations, voir link:../nfs-admin/ldap-fast-bind-nsswitch-authentication-task.html["Utilisez LDAP FAST bind pour l'authentification nsswitch"].
+
+
+
+L'ajout du rôle personnalisé au domaine ou au groupe LDAP permet aux utilisateurs de ce groupe d'avoir un accès limité à ONTAP `/api/protocols/s3/services/{svm.uuid}/users` point final. En appelant l'API, les utilisateurs du domaine ou du groupe LDAP peuvent générer leurs propres clés d'accès et secrètes pour accéder au client S3. Ils peuvent générer les clés pour eux-mêmes et non pour les autres utilisateurs.
+
+
+
+== En tant qu'utilisateur S3 ou LDAP, générez vos propres clés d'accès
+
+À partir de ONTAP 9.14.1, vous pouvez générer vos propres clés d'accès et vos clés secrètes pour accéder aux clients S3, si votre administrateur vous a accordé le rôle de génération de vos propres clés. Vous ne pouvez générer les clés que vous-même à l'aide du terminal d'API REST ONTAP suivant.
+
+.Méthode HTTP et noeud final
+Cet appel d'API REST utilise la méthode et le point de terminaison suivants. Pour plus d'informations sur les autres méthodes de ce noeud final, reportez-vous à la référence https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-a-copy-of-the-ontap-rest-api-reference-documentation["Documentation de l'API"].
+
+[cols="25,75"]
+|===
+| Méthode HTTP | Chemin 
+
+
+| POST | /api/protocoles/s3/services/{svm.uuid}/utilisateurs 
+|===
+.Exemple de boucle
+[source, curl]
+----
+curl --request POST \
+--location "https://$FQDN_IP /api/protocols/s3/services/{svm.uuid}/users " \
+--include \
+--header "Accept: */*" \
+--header "Authorization: Basic $BASIC_AUTH"
+----
+.Exemple de sortie JSON
+[listing]
+----
+{
+  "records": [
+    {
+      "access_key": "Pz3SB54G2B_6dsXQPrA5HrTPcf478qoAW6_Xx6qyqZ948AgZ_7YfCf_9nO87YoZmskxx3cq41U2JAH2M3_fs321B4rkzS3a_oC5_8u7D8j_45N8OsBCBPWGD_1d_ccfq",
+      "_links": {
+        "next": {
+          "href": "/api/resourcelink"
+        },
+        "self": {
+          "href": "/api/resourcelink"
+        }
+      },
+      "name": "user-1",
+      "secret_key": "A20_tDhC_cux2C2BmtL45bXB_a_Q65c_96FsAcOdo14Az8V31jBKDTc0uCL62Bh559gPB8s9rrn0868QrF38_1dsV2u1_9H2tSf3qQ5xp9NT259C6z_GiZQ883Qn63X1"
+    }
+  ],
+  "num_records": "1"
+}
+
+----

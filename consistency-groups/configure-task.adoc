@@ -13,10 +13,10 @@ summary: Créez un groupe de cohérence unique pour la gestion des charges de tr
 [role="lead"]
 Les groupes de cohérence peuvent être créés avec des volumes existants ou de nouveaux LUN ou volumes (selon la version de ONTAP). Un volume ou une LUN ne peut être associé qu'à un seul groupe de cohérence à la fois.
 
-.Avant de commencer
+.Description de la tâche
 * Dans les ONTAP 9.10.1 à 9.11.1, la modification des volumes membres d'un groupe de cohérence après sa création n'est pas prise en charge.
 +
-Depuis la ONTAP 9.12.1, vous pouvez modifier les volumes membres d'un groupe de cohérence. Pour plus d'informations sur ce processus, reportez-vous à la section xref:modify-task.html[Modifier un groupe de cohérence].
+Depuis la version ONTAP 9.12.1, vous pouvez modifier les volumes membres d'un groupe de cohérence. Pour plus d'informations sur ce processus, reportez-vous à la section xref:modify-task.html[Modifier un groupe de cohérence].
 
 
 
@@ -26,6 +26,10 @@ Depuis la ONTAP 9.12.1, vous pouvez modifier les volumes membres d'un groupe de 
 
 Dans ONTAP 9.10.1 à 9.12.1, vous pouvez créer un groupe de cohérence à l'aide de nouvelles LUN. Depuis ONTAP 9.13.1, System Manager prend également en charge la création d'un groupe de cohérence avec de nouveaux namespaces NVMe ou de nouveaux volumes NAS. (Ceci est également pris en charge par l'API REST ONTAP à partir de ONTAP 9.12.1.)
 
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Étapes
 . Sélectionnez *stockage > groupes de cohérence*.
 . Sélectionnez *+Add*, puis sélectionnez le protocole de votre objet de stockage.
@@ -34,7 +38,7 @@ Dans ONTAP 9.10.1 à 9.12.1, la seule option pour un nouvel objet de stockage es
 
 . Nommer le groupe de cohérence. Indiquez le nombre de volumes ou de LUN et la capacité par volume ou LUN.
 +
-.. **Type d'application** : si vous utilisez ONTAP 9.12.1 ou version ultérieure, sélectionnez un type d'application. Si aucune valeur n'est sélectionnée, le groupe de cohérence se voit attribuer le type de **autre** par défaut. En savoir plus sur la cohérence du balisage dans xref:index.html#application-and-component-tags[Balises d'application et de composant]. Si vous prévoyez de créer un groupe de cohérence avec une stratégie de protection à distance, vous devez utiliser *Other*.
+.. **Type d'application** : si vous utilisez ONTAP 9.12.1 ou version ultérieure, sélectionnez un type d'application. Si aucune valeur n'est sélectionnée, le groupe de cohérence se voit attribuer le type de **autre** par défaut. En savoir plus sur la cohérence du balisage dans xref:modify-tags-task.html[Balises d'application et de composant]. Si vous prévoyez de créer un groupe de cohérence avec une stratégie de protection à distance, vous devez utiliser *Other*.
 .. Pour **nouveaux LUN** : sélectionnez le système d'exploitation hôte et le format de LUN. Entrez les informations sur l'initiateur hôte.
 .. Pour **nouveaux volumes NAS** : choisissez l'option d'exportation appropriée (NFS ou SMB/CIFS) en fonction de la configuration NAS de votre SVM.
 .. Pour **nouveaux espaces de noms NVMe** : sélectionnez le système d'exploitation hôte et le sous-système NVMe.
@@ -45,12 +49,48 @@ Dans ONTAP 9.10.1 à 9.12.1, la seule option pour un nouvel objet de stockage es
 . Vérifiez que votre groupe de cohérence a été créé en retournant au menu principal du groupe de cohérence sur lequel il apparaîtra une fois le travail terminé. Si vous définissez une stratégie de protection, vous savez qu'elle a été appliquée lorsque vous voyez un bouclier vert sous regarder sous la stratégie appropriée, distant ou local.
 
 
+--
+.CLI
+--
+À partir de la version ONTAP 9.14.1, vous pouvez créer un groupe de cohérence avec les nouveaux volumes via l'interface de ligne de commandes ONTAP. Les paramètres spécifiques dépendent si les volumes sont SAN, NVMe ou NFS.
+
+.Créez un groupe de cohérence avec les volumes NFS
+. Créer le groupe de cohérence :
++
+`consistency-group create -vserver _SVM_name_ -consistency-group _consistency-group-name_ -volume _volume-prefix_ -volume-count _number_ -size _size_ -export-policy _policy_name_`
+
+
+
+.Créez un groupe de cohérence avec des volumes SAN
+. Créer le groupe de cohérence :
++
+`consistency-group create -vserver _SVM_name_ -consistency-group _consistency-group-name_ -lun _lun_name_ -size _size_ -lun-count _number_ -igroup _igroup_name_`
+
+
+
+.Créez un groupe de cohérence avec les namespaces NVMe
+. Créer le groupe de cohérence :
++
+`consistency-group create -vserver _SVM_name_ -consistency-group _consistency_group_name_ -namespace _namespace_name_ -volume-count _number_ -namespace-count _number_ -size _size_ -subsystem _subsystem_name_`
+
+
+
+.Après avoir terminé
+. Vérifiez que votre groupe de cohérence a été créé à l'aide de `consistency-group show` commande.
+
+
+--
+====
 
 
 == Créez un groupe de cohérence avec les volumes existants
 
 Vous pouvez utiliser des volumes existants pour créer un groupe de cohérence.
 
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Étapes
 . Sélectionnez *stockage > groupes de cohérence*.
 . Sélectionnez *+Ajouter* puis *en utilisant des volumes existants*.
@@ -68,6 +108,21 @@ NOTE: Si vous créez un groupe de cohérence avec des volumes existants, le grou
 . Vérifiez que votre groupe de cohérence a été créé en retournant au menu principal du groupe de cohérence sur lequel il apparaîtra une fois le travail ONTAP terminé. Si vous avez choisi une règle de protection, vérifiez qu'elle a été correctement définie en sélectionnant votre groupe de cohérence dans le menu. Si vous définissez une stratégie de protection, vous savez qu'elle a été appliquée lorsque vous voyez un bouclier vert sous regarder sous la stratégie appropriée, distant ou local.
 
 
+--
+.CLI
+--
+Depuis la version ONTAP 9.14.1, vous pouvez créer un groupe de cohérence avec les volumes existants à l'aide de l'interface de ligne de commandes ONTAP.
+
+.Étapes
+. Émettez le `consistency-group create` commande. Le `-volumes` le paramètre accepte une liste de noms de volumes séparés par des virgules.
++
+`consistency-group create -vserver _SVM_name_ -consistency-group _consistency-group-name_ -volume _volumes_`
+
+. Affichez votre groupe de cohérence à l'aide du `consistency-group show` commande.
+
+
+--
+====
 .Étapes suivantes
 * xref:protect-task.html[Protéger un groupe de cohérence]
 * xref:modify-task.html[Modifier un groupe de cohérence]

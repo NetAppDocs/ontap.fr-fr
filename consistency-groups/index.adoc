@@ -15,27 +15,27 @@ Un groupe de cohérence est un ensemble de volumes gérés comme une seule unit�
 
 Pour simplifier la gestion du stockage, vous pouvez utiliser des groupes de cohérence. Imaginez que vous disposez d'une base de données importante couvrant 20 LUN. Vous pouvez gérer les LUN de manière individuelle ou les traiter comme un jeu de données unique, les organiser au sein d'un même groupe de cohérence.
 
-Les groupes de cohérence facilitent la gestion des charges de travail des applications en fournissant des règles de protection locales et distantes facilement configurées, ainsi que des copies Snapshot cohérentes au niveau des applications ou après panne d'un ensemble de volumes à un point dans le temps. Les snapshots des groupes de cohérence permettent de restaurer toute une charge de travail applicative.
+Les groupes de cohérence facilitent la gestion des charges de travail des applications en fournissant des règles de protection locales et distantes facilement configurées, ainsi que des copies Snapshot cohérentes au niveau des applications ou après panne d'un ensemble de volumes à un point dans le temps. Les copies Snapshot d'un groupe de cohérence permettent de restaurer l'ensemble d'une charge de travail applicative.
 
 
 
-== Comprendre les groupes de cohérence
+== En savoir plus sur les groupes de cohérence
 
-Les groupes de cohérence prennent en charge n'importe quel volume FlexVol, quel que soit le protocole (NAS, SAN ou NVMe). Ils peuvent être gérés via l'API REST de ONTAP ou dans System Manager, dans l'élément de menu *stockage > groupes de cohérence*.
+Les groupes de cohérence prennent en charge n'importe quel volume FlexVol, quel que soit le protocole (NAS, SAN ou NVMe). Ils peuvent être gérés via l'API REST de ONTAP ou dans System Manager, dans l'élément de menu *stockage > groupes de cohérence*. Depuis la version ONTAP 9.14.1, la gestion des groupes de cohérence peut s'effectuer via l'interface de ligne de commandes ONTAP.
 
-Les groupes de cohérence peuvent exister sous la forme d'entités individuelles, sous la forme d'un ensemble de volumes, ou dans une relation hiérarchique constituée d'autres groupes de cohérence. Les volumes individuels peuvent disposer de leur propre règle Snapshot granulaire par volume. En outre, il peut exister des règles Snapshot à l'échelle du groupe de cohérence. Le groupe de cohérence ne peut avoir qu'une seule relation SnapMirror Business Continuity (SM-BC) et une politique SM-BC partagée, qui peut être utilisée pour restaurer l'ensemble du groupe de cohérence.
+Les groupes de cohérence peuvent exister sous la forme d'entités individuelles, sous la forme d'un ensemble de volumes, ou dans une relation hiérarchique constituée d'autres groupes de cohérence. Les volumes individuels peuvent disposer de leur propre règle Snapshot granulaire par volume. En outre, des règles Snapshot peuvent être définies au niveau du groupe de cohérence. Le groupe de cohérence ne peut avoir qu'une seule relation SnapMirror Business Continuity (SM-BC) et une politique SM-BC partagée, qui peut être utilisée pour restaurer l'ensemble du groupe de cohérence.
 
-Le graphique suivant illustre l'utilisation possible d'un groupe de cohérence individuel. Données d'une application hébergée sur `SVM1` s'étend sur deux volumes : `vol1` et `vol2`. Sur le groupe de cohérence, une règle Snapshot capture des snapshots des données toutes les 15 minutes.
+Le graphique suivant illustre l'utilisation possible d'un groupe de cohérence individuel. Données d'une application hébergée sur `SVM1` s'étend sur deux volumes : `vol1` et `vol2`. Une règle Snapshot définie sur le groupe de cohérence capture des copies Snapshot des données toutes les 15 minutes.
 
 image:../media/consistency-group-single-diagram.gif["Diagramme d'un seul groupe de cohérence avec ses volumes constitutifs et sa règle Snapshot locale"]
 
 Des charges de travail applicatives plus importantes peuvent nécessiter plusieurs groupes de cohérence. Dans ce cas, vous pouvez créer des groupes de cohérence hiérarchiques, où un seul groupe de cohérence devient les composants enfants d'un groupe de cohérence parent. Le groupe de cohérence parent peut inclure au maximum cinq groupes de cohérence enfant. Comme dans les groupes de cohérence individuels, une stratégie de protection SM-BC distante peut être appliquée à la configuration complète des groupes de cohérence (parents et enfants) pour restaurer la charge de travail de l'application.
 
-Dans l'exemple suivant, une application est hébergée sur `SVM1`. L'administrateur a créé un groupe de cohérence parent, `SVM1_app`, qui inclut deux groupes de cohérence enfant : `SVM1appDataCG` pour les données et `SVM1app_logCG` pour les journaux. Chaque groupe de cohérence enfant dispose de sa propre politique de snapshot. Snapshots des volumes dans `SVM1appDataCG` sont prises toutes les 15 minutes. Snapshots de `SVM1app_logCG` sont prises toutes les heures. Groupe de cohérence parent `SVM1_app` Dispose d'une politique SM-BC qui réplique les données pour assurer un service continu en cas d'incident.
+Dans l'exemple suivant, une application est hébergée sur `SVM1`. L'administrateur a créé un groupe de cohérence parent, `SVM1_app`, qui inclut deux groupes de cohérence enfant : `SVM1appDataCG` pour les données et `SVM1app_logCG` pour les journaux. Chaque groupe de cohérence enfant dispose de sa propre règle Snapshot. Copies Snapshot des volumes dans `SVM1appDataCG` sont prises toutes les 15 minutes. Snapshots de `SVM1app_logCG` sont prises toutes les heures. Groupe de cohérence parent `SVM1_app` Dispose d'une politique SM-BC qui réplique les données pour assurer un service continu en cas d'incident.
 
 image:../media/consistency-group-nested-diagram.gif["Diagramme d'un groupe de cohérence imbriqué avec les volumes associés"]
 
-Depuis la version ONTAP 9.12.1, les groupes de cohérence sont pris en charge xref:clone-task.html[clonage] et en modifiant les membres de la cohérence par xref:modify-task.html[ajout ou suppression de volumes] Dans System Manager et dans l'API REST de ONTAP. Depuis ONTAP 9.12.1, l'API REST de ONTAP prend également en charge :
+Depuis la version ONTAP 9.12.1, les groupes de cohérence sont pris en charge xref:clone-task.html[clonage] et en modifiant les membres de la cohérence par xref:modify-task.html[ajout ou suppression de volumes] Dans System Manager et dans l'API REST de ONTAP. Depuis la version ONTAP 9.12.1, l'API REST ONTAP prend également en charge :
 
 * Création de groupes de cohérence avec de nouveaux volumes NFS ou SMB ou espaces de noms NVMe.
 * Ajout de volumes NFS ou SMB ou d'espaces de noms NVMe nouveaux ou existants à des groupes de cohérence existants.
@@ -49,14 +49,16 @@ Pour plus d'informations sur l'API REST de ONTAP, reportez-vous à https://docs.
 
 À partir de la version ONTAP 9.13.1, les groupes de cohérence assurent le contrôle de la capacité et des performances en temps réel et historiques, offrant ainsi un aperçu des performances des applications et des groupes de cohérence individuels.
 
-Les données de surveillance de groupe de cohérence sont conservées pendant un an maximum. Vous pouvez suivre les mesures pour :
+Les données de surveillance sont actualisées toutes les cinq minutes et sont conservées jusqu'à un an. Vous pouvez suivre les mesures pour :
 
 * Performances : IOPS, latence et débit
-* Capacité : taille, capacité disponible, capacité utilisée
+* Capacité : taille, logique utilisée, disponible
 
 
+Vous pouvez afficher les données de surveillance dans l'onglet **Présentation** du menu Groupe de cohérence dans System Manager ou en les demandant dans l'API REST. Depuis la version ONTAP 9.14.1, vous pouvez afficher les metrics des groupes de cohérence via l'interface de ligne de commandes du système `consistency-group metrics show` commande.
 
-NOTE: Vous ne pouvez récupérer des metrics historiques qu'avec l'API REST. Les indicateurs historiques ne sont pas visibles dans System Manager.
+
+NOTE: Dans ONTAP 9.13.1, vous pouvez uniquement récupérer les metrics historiques à l'aide de l'API REST. Depuis la version ONTAP 9.14.1, les indicateurs d'historique sont également disponibles dans System Manager.
 
 
 
@@ -66,8 +68,9 @@ La protection est assurée par des groupes de cohérence :
 
 * Règles relatives aux snapshots
 * xref:../smbc/index.html[Continuité de l'activité SnapMirror (SM-BC)]
-* <<mcc>> (début 9.11.1)
-* xref:../data-protection/snapmirror-disaster-recovery-concept.html[Réplication asynchrone SnapMirror] (début 9.13.1)
+* <<mcc>> (À partir de ONTAP 9.11.1)
+* xref:../data-protection/snapmirror-disaster-recovery-concept.html[Réplication asynchrone SnapMirror] (À partir de ONTAP 9.13.1)
+* link:../data-protection/snapmirror-svm-replication-concept.html["Reprise d'activité de SVM"] (À partir de ONTAP 9.14.1)
 
 
 La création d'un groupe de cohérence n'active pas automatiquement la protection. Il est possible de définir des règles de protection locale et à distance lors de la création ou après la création d'un groupe de cohérence.
@@ -81,27 +84,13 @@ NOTE: Les relations SM-BC ne peuvent pas être établies sur les volumes montés
 
 
 
-== Balises d'application et de composant
-
-Depuis ONTAP 9.12.1, les groupes de cohérence prennent en charge le balisage des composants et des applications. Les balises d'application et de composant sont un outil de gestion qui vous permet de filtrer et d'identifier différentes charges de travail dans vos groupes de cohérence.
-
-Il existe deux types de balises :
-
-* **Balises d'application** : elles s'appliquent aux groupes de cohérence individuel et parent. Les balises d'application fournissent un étiquetage pour les charges de travail telles que MongoDB, Oracle ou SQL Server. La balise d'application par défaut pour les groupes de cohérence est autre.
-* **Balises de composant**: Les enfants des groupes de cohérence hiérarchiques ont des balises de composant au lieu de balises d'application. Les options pour les balises de composant sont « données », « journaux » ou « autre ». La valeur par défaut est autre.
-
-
-Lors de la création de groupes de cohérence ou après la création de groupes de cohérence, vous pouvez appliquer les balises. Si le groupe de cohérence possède une relation SM-BC, vous devez utiliser *Other* comme balise d'application ou de composant.
-
-
-
 == Groupes de cohérence dans les configurations MetroCluster
 
 Depuis ONTAP 9.11.1, vous pouvez provisionner les groupes de cohérence avec de nouveaux volumes sur un cluster dans une configuration MetroCluster. Ces volumes sont provisionnés sur des agrégats en miroir.
 
 Une fois ces agrégats provisionnés, vous pouvez déplacer les volumes associés aux groupes de cohérence entre les agrégats en miroir et non mis en miroir. Les volumes associés à des groupes de cohérence peuvent donc être situés sur des agrégats en miroir, des agrégats sans mise en miroir, ou les deux. Vous pouvez modifier les agrégats en miroir contenant des volumes associés à des groupes de cohérence pour ne plus mettre en miroir. De même, vous pouvez modifier les agrégats non mis en miroir contenant les volumes associés à des groupes de cohérence pour activer la mise en miroir.
 
-Les volumes associés et les snapshots associés aux groupes de cohérence placés sur des agrégats en miroir sont répliqués sur le site distant (site B). Le contenu des volumes sur le site B garantit l'ordre d'écriture du groupe de cohérence, ce qui vous permet d'effectuer une restauration depuis le site B en cas d'incident. Vous pouvez accéder aux snapshots de groupes de cohérence répliqués via une API REST de groupe de cohérence Snapshot et System Manager sur des clusters exécutant ONTAP 9.11.1 ou une version ultérieure.
+Les volumes et les copies Snapshot associés aux groupes de cohérence placés sur des agrégats en miroir sont répliqués sur le site distant (site B). Le contenu des volumes sur le site B garantit l'ordre d'écriture du groupe de cohérence, ce qui vous permet d'effectuer une restauration depuis le site B en cas d'incident. Vous pouvez accéder aux copies Snapshot de groupe de cohérence à l'aide du groupe de cohérence avec l'API REST et System Manager sur les clusters exécutant ONTAP 9.11.1 ou version ultérieure. Depuis la version ONTAP 9.14.1, vous pouvez également accéder aux copies Snapshot via l'interface de ligne de commandes ONTAP.
 
 Si certains ou l'ensemble des volumes associés à un groupe de cohérence se trouvent sur des agrégats non mis en miroir qui ne sont pas actuellement accessibles, LES opérations D'OBTENTION ou DE SUPPRESSION du groupe de cohérence se comportent comme si les volumes locaux ou les agrégats d'hébergement sont hors ligne.
 
@@ -120,60 +109,66 @@ NOTE: Pour optimiser les performances et la disponibilité du stockage, il est r
 
 Les groupes de cohérence créés avec SM-BC dans ONTAP 9.8 et 9.9.1 seront automatiquement mis à niveau et gérables sous *stockage > groupes de cohérence* dans System Manager ou l'API REST ONTAP lors de la mise à niveau vers ONTAP 9.10.1 ou version ultérieure. Pour plus d'informations sur la mise à niveau à partir de ONTAP 9.8 ou 9.9.1, reportez-vous à la section link:../smbc/smbc_admin_upgrade_and_revert_considerations.html["Considérations relatives à la mise à niveau et à la restauration de SM-BC"].
 
-Les snapshots de groupes de cohérence créés dans l'API REST peuvent être gérés via l'interface de groupe de cohérence de System Manager et les terminaux de l'API REST de groupe de cohérence.
+Les copies Snapshot de groupe de cohérence créées dans l'API REST peuvent être gérées via l'interface de groupe de cohérence de System Manager et via les terminaux d'API REST de groupe de cohérence. Depuis la version ONTAP 9.14.1, les snapshots des groupes de cohérence peuvent également être gérés à l'aide de l'interface de ligne de commandes ONTAP.
 
 
-NOTE: Snapshots créés avec les commandes ONTAPI `cg-start` et `cg-commit` Ne seront pas reconnus comme des snapshots de groupe de cohérence et ne pourront donc pas être gérés via l'interface de groupe de cohérence de System Manager ou les terminaux de groupe de cohérence de l'API REST ONTAP.
+NOTE: Copies Snapshot créées à l'aide des commandes ONTAPI `cg-start` et `cg-commit` Sont reconnues comme des copies Snapshot de groupe de cohérence et ne peuvent donc pas être gérées via l'interface de groupe de cohérence de System Manager ou les terminaux de groupe de cohérence de l'API REST ONTAP. Depuis la version ONTAP 9.14.1, ces copies Snapshot peuvent être mises en miroir sur le volume de destination si vous utilisez une règle SnapMirror asynchrone. Pour plus d'informations, voir xref:protect-task.html#configure-asynchronous-snapmirror-protection[Configurer la protection SnapMirror asynchrone].
 
 
 
 == Fonctionnalités prises en charge par version
 
-[cols="3,1,1,1,1"]
+[cols="3,1,1,1,1,1"]
 |===
-|  | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
+|  | ONTAP 9.14.1 | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
 
 
-| Groupes de cohérence hiérarchiques | X | X | X | X 
+| Groupes de cohérence hiérarchiques | ✓ | ✓ | ✓ | ✓ | ✓ 
 
 
-| Protection Snapshot locale | X | X | X | X 
+| Protection locale grâce aux copies Snapshot | ✓ | ✓ | ✓ | ✓ | ✓ 
 
 
-| Continuité de l'activité SnapMirror | X | X | X | X 
+| Continuité de l'activité SnapMirror | ✓ | ✓ | ✓ | ✓ | ✓ 
 
 
-| Prise en charge de MetroCluster | X | X | X |  
+| Prise en charge de MetroCluster | ✓ | ✓ | ✓ | ✓ |  
 
 
-| Validations en deux phases (API REST uniquement) | X | X | X |  
+| Validations en deux phases (API REST uniquement) | ✓ | ✓ | ✓ | ✓ |  
 
 
-| Balises d'application et de composant | X | X |  |  
+| Balises d'application et de composant | ✓ | ✓ | ✓ |  |  
 
 
-| Cloner des groupes de cohérence | X | X |  |  
+| Cloner des groupes de cohérence | ✓ | ✓ | ✓ |  |  
 
 
-| Ajouter et supprimer des volumes | X | X |  |  
+| Ajouter et supprimer des volumes | ✓ | ✓ | ✓ |  |  
 
 
-| Créez un CGS avec de nouveaux volumes NAS | X | API REST uniquement |  |  
+| Créez un CGS avec de nouveaux volumes NAS | ✓ | ✓ | API REST uniquement |  |  
 
 
-| Créez un CGS avec les nouveaux espaces de noms NVMe | X | API REST uniquement |  |  
+| Créez un CGS avec les nouveaux espaces de noms NVMe | ✓ | ✓ | API REST uniquement |  |  
 
 
-| Déplacez des volumes entre des groupes de cohérence enfants | X |  |  |  
+| Déplacez des volumes entre des groupes de cohérence enfants | ✓ | ✓ |  |  |  
 
 
-| Modifier la géométrie du groupe de cohérence | X |  |  |  
+| Modifier la géométrie du groupe de cohérence | ✓ | ✓ |  |  |  
 
 
-| Contrôle | X |  |  |  
+| Contrôle | ✓ | ✓ |  |  |  
 
 
-| SnapMirror asynchrone (groupes de cohérence uniques uniquement) | X |  |  |  
+| SnapMirror asynchrone (groupes de cohérence uniques uniquement) | ✓ | ✓ |  |  |  
+
+
+| Reprise d'activité de SVM (groupes de cohérence uniques uniquement) | ✓ |  |  |  |  
+
+
+| Prise en charge de la CLI | ✓ |  |  |  |  
 |===
 
 

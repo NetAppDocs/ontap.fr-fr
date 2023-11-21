@@ -1,0 +1,65 @@
+---
+permalink: nfs-trunking/create-exports-task.html 
+sidebar: sidebar 
+keywords: servers, network, NFS trunking, NIC, export policies, rule, Linux, VMware, datastores, client 
+summary: 'Pour que le client puisse accéder aux partages de données, vous devez créer un ou plusieurs volumes et disposer de règles d"exportation au moins une pour le volume.' 
+---
+= Exporter les données pour l'accès client
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour que le client puisse accéder aux partages de données, vous devez créer un ou plusieurs volumes et disposer de règles d'exportation au moins une pour le volume.
+
+Conditions requises pour l'exportation du client :
+
+* Les clients Linux doivent disposer d'un point de montage et d'un point de montage distincts pour chaque connexion à ressources partagées (c'est-à-dire, pour chaque LIF).
+* Les clients VMware requièrent un seul point de montage pour un volume exporté, avec plusieurs LIF spécifiées.
++
+Les clients VMware nécessitent un accès racine dans la règle d'export.
+
+
+
+.Étapes
+. Créer une export-policy :
++
+`vserver export-policy create -vserver _svm_name_ -policyname _policy_name_`
+
++
+Le nom de la stratégie peut comporter jusqu'à 256 caractères.
+
+. Vérifier que l'export policy a été créée :
++
+`vserver export-policy show -policyname _policy_name_`
+
++
+.Exemple
+Les commandes suivantes créent et vérifient la création d'une export policy nommée exp1 sur le SVM nommé vs1:
+
++
+`vs1::> vserver export-policy create -vserver vs1 -policyname exp1`
+
+. Créez une règle d'export et ajoutez-la à une export-policy existante :
++
+`vserver export-policy rule create -vserver _svm_name_ -policyname _policy_name_ -ruleindex _integer_ -protocol nfs4 -clientmatch { _text | "text,text,…"_ } -rorule _security_type_ -rwrule _security_type_ -superuser _security_type_ -anon _user_ID_`
+
++
+Le `-clientmatch` Le paramètre doit identifier les clients Linux ou VMware compatibles avec l'agrégation qui vont monter l'exportation.
+
++
+En savoir plus sur link:../nfs-config/add-rule-export-policy-task.html["création de règles d'exportation."]
+
+. Créer le volume avec un point de jonction :
++
+`volume create -vserver _svm_name_ -volume _volume_name_ -aggregate _aggregate_name_-size {integer[KB|MB|GB|TB|PB]} -security-style unix -user _user_name_or_number_ -group _group_name_or_number_ -junction-path _junction_path_ -policy _export_policy_name_`
+
++
+Découvrez link:../nfs-config/create-volume-task.html["création de volumes."]
+
+. Vérifier que le volume a été créé avec le point de jonction souhaité :
++
+`volume show -vserver _svm_name_ -volume _volume_name_ -junction-path`
+
+

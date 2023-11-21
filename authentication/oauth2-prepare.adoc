@@ -1,0 +1,101 @@
+---
+sidebar: sidebar 
+permalink: authentication/oauth2-prepare.html 
+keywords: oauth 2.0, oauth2, prepare, plan, deployment plan 
+summary: Avant de configurer OAuth 2.0 dans un environnement ONTAP, vous devez préparer le déploiement. 
+---
+= Préparez-vous à déployer OAuth 2.0 avec ONTAP
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Avant de configurer OAuth 2.0 dans un environnement ONTAP, vous devez préparer le déploiement. Un résumé des principales tâches et décisions est inclus ci-dessous. L'agencement des sections est généralement aligné sur l'ordre que vous devez suivre. Toutefois, même si cette solution est applicable à la plupart des déploiements, vous devez l'adapter à votre environnement selon les besoins. Vous devez également envisager de créer un plan de déploiement formel.
+
+
+TIP: En fonction de votre environnement, vous pouvez sélectionner la configuration des serveurs d'autorisation définis pour ONTAP. Cela inclut les valeurs de paramètre que vous devez spécifier pour chaque type de déploiement. Voir link:../authentication/oauth2-deployment-scenarios.html["Scénarios de déploiement OAuth 2.0"] pour en savoir plus.
+
+
+
+== Ressources protégées et applications client
+
+OAuth 2.0 est un cadre d'autorisation permettant de contrôler l'accès aux ressources protégées. Dans un premier temps, il est donc important de déterminer quelles sont les ressources disponibles et quels clients ont besoin d'y accéder.
+
+.Identifiez les applications client
+Vous devez décider quels clients utiliseront OAuth 2.0 lors de l'émission d'appels API REST et à quels terminaux API ils ont besoin d'accéder.
+
+.Passez en revue les rôles REST ONTAP et les utilisateurs locaux existants
+Vous devez examiner les définitions d'identité ONTAP existantes, y compris les rôles REST et les utilisateurs locaux. Selon la configuration d'OAuth 2.0, ces définitions peuvent être utilisées pour prendre des décisions d'accès.
+
+.Transition globale vers OAuth 2.0
+Bien que vous puissiez implémenter l'autorisation OAuth 2.0 progressivement, vous pouvez également déplacer tous les clients API REST vers OAuth 2.0 immédiatement en définissant un indicateur global pour chaque serveur d'autorisation. Vous pouvez ainsi prendre des décisions d'accès en fonction de votre configuration ONTAP existante sans avoir à créer de étendues autonomes.
+
+
+
+== Serveurs d'autorisation
+
+Les serveurs d'autorisation jouent un rôle important dans votre déploiement OAuth 2.0 en émettant des jetons d'accès et en appliquant une stratégie administrative.
+
+.Sélectionnez et installez le serveur d'autorisation
+Vous devez sélectionner et installer un ou plusieurs serveurs d'autorisation. Il est important de se familiariser avec les options de configuration et les procédures de vos fournisseurs d'identité, y compris la définition des périmètres.
+
+.Déterminez si le certificat d'autorité de certification racine d'autorisation doit être installé
+ONTAP utilise le certificat du serveur d'autorisation pour valider les jetons d'accès signés présentés par les clients. Pour ce faire, ONTAP a besoin du certificat de l'autorité de certification racine et de tous les certificats intermédiaires. Ils peuvent être pré-installés avec ONTAP. Si ce n'est pas le cas, vous devez les installer.
+
+.Évaluez l'emplacement et la configuration du réseau
+Si le serveur d'autorisation est derrière un pare-feu, ONTAP doit être configuré pour utiliser un serveur proxy.
+
+
+
+== Authentification et autorisation du client
+
+Il existe plusieurs aspects de l'authentification et de l'autorisation des clients que vous devez prendre en compte.
+
+.Étendues autonomes ou définitions d'identité ONTAP locales
+À un niveau élevé, vous pouvez définir des étendues autonomes définies sur le serveur d'autorisation ou vous appuyer sur les définitions d'identité ONTAP locales existantes, y compris les rôles et les utilisateurs.
+
+.Options avec traitement ONTAP local
+Si vous utilisez les définitions d'identité ONTAP, vous devez choisir celles qui doivent être appliquées, notamment :
+
+* Rôle REST nommé
+* Faire correspondre les utilisateurs locaux
+* Groupes Active Directory ou LDAP
+
+
+.Validation locale ou introspection à distance
+Vous devez décider si les jetons d'accès seront validés localement par ONTAP ou au niveau du serveur d'autorisation par introspection. Plusieurs valeurs connexes sont également à prendre en compte, telles que l'intervalle d'actualisation.
+
+.Jetons d'accès limités par l'expéditeur
+Pour les environnements nécessitant un niveau de sécurité élevé, vous pouvez utiliser des jetons d'accès avec limite d'envoi basés sur MTLS. Cela nécessite un certificat pour chaque client.
+
+.Interface d'administration
+Vous pouvez administrer OAuth 2.0 via n'importe quelle interface ONTAP, notamment :
+
+* Interface de ligne de commandes
+* System Manager
+* API REST
+
+
+.Comment les clients demandent des jetons d'accès
+Les applications client doivent demander des jetons d'accès directement à partir du serveur d'autorisation. Vous devez décider de la façon dont cela sera fait, y compris le type de subvention.
+
+
+
+== Configurer ONTAP
+
+Vous devez effectuer plusieurs tâches de configuration ONTAP.
+
+.Définissez les rôles REST et les utilisateurs locaux
+En fonction de votre configuration d'autorisation, le traitement local ONTAP Identify peut être utilisé. Dans ce cas, vous devez revoir et définir les rôles REST et les définitions d'utilisateur.
+
+.Configuration centrale
+Trois étapes principales sont nécessaires pour effectuer la configuration principale de ONTAP, notamment :
+
+* Vous pouvez également installer le certificat racine (ainsi que tous les certificats intermédiaires) de l'autorité de certification qui a signé le certificat du serveur d'autorisation.
+* Définissez le serveur d'autorisation.
+* Activez le traitement OAuth 2.0 pour le cluster.
+

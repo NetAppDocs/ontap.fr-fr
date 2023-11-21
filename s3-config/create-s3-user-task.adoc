@@ -15,36 +15,50 @@ summary: 'Une autorisation utilisateur est requise sur tous les magasins d"objet
 Une autorisation utilisateur est requise sur tous les magasins d'objets ONTAP afin de limiter la connectivité aux clients autorisés.
 
 .Avant de commencer.
-Un SVM compatible S3 doit déjà exister.
+Une VM de stockage compatible avec S3 doit déjà exister.
 
 .Description de la tâche
-Un utilisateur S3 peut avoir accès à n'importe quel compartiment d'un SVM, mais pas à plusieurs SVM.
-
-Lorsque vous créez un utilisateur S3, une clé d'accès et une clé secrète sont générées. Ils doivent être partagés avec l'utilisateur, avec le FQDN et le nom de compartiment du magasin d'objets. Les touches des utilisateurs S3 peuvent être affichées à l'aide du `vserver object-store-server user show` commande.
+Un utilisateur S3 peut se voir accorder l'accès à n'importe quel compartiment d'une VM de stockage. Lorsque vous créez un utilisateur S3, une clé d'accès et une clé secrète sont également générées pour l'utilisateur. Ils doivent être partagés avec l'utilisateur avec le nom de domaine complet du magasin d'objets et du nom du compartiment. Les clés d'un utilisateur S3 peuvent être affichées à l'aide du `vserver object-store-server user show` commande.
 
 Vous pouvez accorder des autorisations d'accès spécifiques aux utilisateurs S3 dans une stratégie de compartiment ou une stratégie de serveur d'objets.
 
 [NOTE]
 ====
-Lorsqu'un serveur de magasin d'objets est créé, un utilisateur root (UID 0) est créé, un utilisateur privilégié ayant accès à tous les compartiments. Il n'est pas recommandé de gérer ONTAP S3 en tant qu'utilisateur root, mais de créer un rôle d'administrateur avec des privilèges spécifiques.
+Lorsque vous créez un nouveau serveur de magasin d'objets, ONTAP crée un utilisateur root (UID 0), qui est un utilisateur privilégié ayant accès à tous les compartiments. Au lieu d'administrer ONTAP S3 en tant qu'utilisateur root, NetApp recommande la création d'un rôle d'utilisateur admin avec des privilèges spécifiques.
 
 ====
 [role="tabbed-block"]
 ====
-.System Manager
---
-. Modifiez la VM de stockage : cliquez sur *stockage > machines virtuelles de stockage*, cliquez sur la VM de stockage, puis sur *Paramètres* et enfin sur image:icon_pencil.gif["icône crayon"] Sous S3.
-. Ajouter un utilisateur : cliquez sur *utilisateurs*, puis sur *Ajouter*.
-. Entrez un nom et cliquez sur *Enregistrer*.
-. Veillez à enregistrer la clé d'accès et la clé secrète pour l'accès à partir des clients S3.
-
-
---
 .CLI
 --
 . Création d'un utilisateur S3 :
-`vserver object-store-server user create -vserver _svm_name_ -user _user_name_ [-comment _text_]`
-. Veillez à enregistrer la clé d'accès et la clé secrète pour l'accès à partir des clients S3.
+`vserver object-store-server user create -vserver svm_name -user user_name -comment [-comment text] -key-time-to-live time`
++
+** L'ajout d'un commentaire est facultatif.
+** À partir de ONTAP 9.14.1, vous pouvez définir la période pendant laquelle la clé sera valide dans le `-key-time-to-live` paramètre. Vous pouvez ajouter la période de conservation dans ce format pour indiquer la période après laquelle la clé d'accès expire : `P[<integer>D]T[<integer>H][<integer>M][<integer>S] | P<integer>W`
+Par exemple, si vous souhaitez entrer une période de conservation d'un jour, de deux heures, de trois minutes et de quatre secondes, entrez la valeur comme `P1DT2H3M4S`. Sauf indication contraire, la clé est valide pour une durée indéterminée.
++
+L'exemple ci-dessous crée un utilisateur avec un nom `sm_user1` Sur la machine virtuelle de stockage `vs0`, avec une période de conservation des clés d'une semaine.
+
++
+[listing]
+----
+vserver object-store-server user create -vserver vs0 -user sm_user1 -key-time-to-live P1W
+----
+
+
+. Veillez à enregistrer la clé d'accès et la clé secrète. Elles seront requises pour l'accès à partir des clients S3.
+
+
+--
+.System Manager
+--
+. Cliquez sur *stockage > machines virtuelles de stockage*. Sélectionnez la VM de stockage à laquelle vous devez ajouter un utilisateur, sélectionnez *Paramètres*, puis cliquez sur image:icon_pencil.gif["icône crayon"] Sous S3.
+. Pour ajouter un utilisateur, cliquez sur *utilisateurs > Ajouter*.
+. Entrez un nom pour l'utilisateur.
+. À partir de ONTAP 9.14.1, vous pouvez spécifier la période de conservation des clés d'accès créées pour l'utilisateur. Vous pouvez spécifier la période de conservation en jours, heures, minutes ou secondes, après laquelle les clés expirent automatiquement. Par défaut, la valeur est définie sur `0` cela indique que la clé est indéfiniment valide.
+. Cliquez sur *Enregistrer*. L'utilisateur est créé et une clé d'accès et une clé secrète sont générées pour l'utilisateur.
+. Téléchargez ou enregistrez la clé d'accès et la clé secrète. Elles seront requises pour l'accès à partir des clients S3.
 
 
 --

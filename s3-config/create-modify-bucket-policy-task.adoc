@@ -14,7 +14,7 @@ summary: 'Vous pouvez ajouter des règles d"accès à la stratégie de compartim
 Vous pouvez ajouter des règles d'accès à la stratégie de compartiment par défaut. L'étendue de son contrôle d'accès est le godet contenant, il est donc le plus approprié lorsqu'il y a un seul godet.
 
 .Avant de commencer
-Un SVM compatible S3 contenant un serveur S3 et un compartiment doivent déjà exister.
+Une VM de stockage compatible avec S3 contenant un serveur S3 et un compartiment doit déjà exister.
 
 Vous devez avoir déjà créé des utilisateurs ou des groupes avant d'accorder des autorisations.
 
@@ -23,7 +23,7 @@ Vous pouvez ajouter de nouvelles instructions pour les nouveaux utilisateurs et 
 
 Des autorisations d'utilisateur et de groupe peuvent être accordées lors de la création du compartiment ou lors de la création de ce dernier. Vous pouvez également modifier la capacité des compartiments et l'affectation des groupes de règles de QoS.
 
-Depuis ONTAP 9.9.1 et les versions ultérieures, si vous prévoyez de prendre en charge la fonctionnalité de balisage d'objets client AWS avec le serveur ONTAP S3, les actions sont nécessaires `GetObjectTagging`, `PutObjectTagging`, et `DeleteObjectTagging` doivent être autorisées à l'aide des règles de compartiment ou de groupe.
+Depuis ONTAP 9.9.1, si vous prévoyez de prendre en charge la fonctionnalité de balisage d'objets du client AWS avec le serveur ONTAP S3, les actions sont les suivantes `GetObjectTagging`, `PutObjectTagging`, et `DeleteObjectTagging` doivent être autorisées à l'aide des règles de compartiment ou de groupe.
 
 La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
 
@@ -46,6 +46,9 @@ Les valeurs par défaut *_bucketname_* et *_bucketname/*_* permettent d'accéder
 
 
 
+
+
+NOTE: À partir de ONTAP 9.14.1, vous pouvez spécifier des variables pour la stratégie de compartiment dans le champ *Resources*. Ces variables sont des espaces réservés qui sont remplacés par des valeurs contextuelles lors de l'évaluation de la règle. Par exemple, si `${aws:username}` est spécifié comme variable pour une stratégie, puis cette variable est remplacée par le nom d'utilisateur du contexte de la demande et l'action de stratégie peut être exécutée comme configuré pour cet utilisateur.
 
 --
 .CLI
@@ -85,7 +88,7 @@ Liste d'un ou plusieurs utilisateurs ou groupes S3.
 ** Vous pouvez spécifier un maximum de 10 utilisateurs ou groupes.
 ** Si un groupe S3 est spécifié, il doit être dans le formulaire `group/group_name.`
 ** `*` peut être spécifié pour signifier l'accès public, c'est-à-dire l'accès sans clé d'accès et clé secrète.
-** Si aucun principal n'est spécifié, tous les utilisateurs S3 du SVM sont autorisés à accéder.
+** Si aucun principal n'est spécifié, l'accès est accordé à tous les utilisateurs S3 de la VM de stockage.
 
 
 
@@ -93,7 +96,7 @@ Liste d'un ou plusieurs utilisateurs ou groupes S3.
  a| 
 `-resource`
  a| 
-Le compartiment et tout objet qu'il contient. Les caractères génériques `*` et `?` peut être utilisé pour former une expression régulière pour spécifier une ressource.
+Le compartiment et tout objet qu'il contient. Les caractères génériques `*` et `?` peut être utilisé pour former une expression régulière pour spécifier une ressource. Pour une ressource, vous pouvez spécifier des variables dans une règle. Il s'agit de variables de stratégie qui sont remplacées par les valeurs contextuelles lors de l'évaluation de la règle.
 
 |===
 +
@@ -102,17 +105,23 @@ Vous pouvez éventuellement spécifier une chaîne de texte sous forme de commen
 
 
 .Exemples
-L'exemple suivant crée une instruction de stratégie de compartiment de serveur de magasin d'objets pour le SVM svm1.example.com et bucket1 qui spécifie l'accès autorisé à un dossier readme pour l'utilisateur de serveur de magasin d'objets user1.
+L'exemple suivant crée une instruction de stratégie de compartiment de serveur de magasin d'objets pour la machine virtuelle de stockage svm1.example.com et le bucket1 qui spécifie l'accès autorisé à un dossier readme pour l'utilisateur du serveur de magasin d'objets user1.
 
 [listing]
 ----
 cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal user1 -resource bucket1/readme/* -sid "fullAccessToReadmeForUser1"
 ----
-L'exemple suivant crée une instruction de politique de compartiment de serveur de magasin d'objets pour le SVM svm1.example.com et bucket1 qui spécifie l'accès autorisé à tous les objets pour le groupe de serveurs de magasin d'objets groupe1.
+L'exemple suivant crée une instruction de stratégie de compartiment de serveur de magasin d'objets pour la VM de stockage svm1.example.com et bucket1 qui spécifie l'accès autorisé à tous les objets pour le groupe de serveurs de magasin d'objets groupe1.
 
 [listing]
 ----
 cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal group/group1 -resource bucket1/* -sid "fullAccessForGroup1"
+----
+Depuis ONTAP 9.14.1, vous pouvez spécifier des variables pour la règle de compartiment. L'exemple suivant crée une instruction de règle de compartiment de serveur de magasin d'objets pour la VM de stockage `svm1` et `bucket1`, et spécifie `${aws:username}` comme variable pour une ressource de stratégie. Lorsque la stratégie est évaluée, la variable de stratégie est remplacée par le nom d'utilisateur du contexte de demande et l'action de stratégie peut être exécutée comme configuré pour cet utilisateur. Par exemple, lorsque l'instruction de règle suivante est évaluée, `${aws:username}` Est remplacé par l'utilisateur effectuant l'opération S3. Si un utilisateur `user1` exécute l'opération, à laquelle l'utilisateur a accès `bucket1` comme `bucket1/user1/*`.
+
+[listing]
+----
+cluster1::> object-store-server bucket policy statement create -vserver svm1 -bucket bucket1 -effect allow -action * -principal - -resource bucket1,bucket1/${aws:username}/*##
 ----
 --
 ====

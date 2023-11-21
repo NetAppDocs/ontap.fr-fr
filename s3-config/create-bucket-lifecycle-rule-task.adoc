@@ -11,20 +11,34 @@ summary: 'À partir de ONTAP 9.13.1, vous pouvez implémenter l"expiration des o
 
 
 [role="lead"]
-À partir de ONTAP 9.13.1, vous pouvez implémenter l'expiration des objets S3. Les actions d'expiration définissent la date d'expiration des objets d'un compartiment. Cette fonctionnalité vous permet de gérer les versions d'objets afin de répondre aux exigences de conservation et de gérer efficacement le stockage objet S3 global.
+À partir de ONTAP 9.13.1, vous pouvez créer des règles de gestion du cycle de vie pour gérer les cycles de vie des objets dans vos compartiments S3. Vous pouvez définir des règles de suppression pour des objets spécifiques d'un compartiment et, par le biais de ces règles, ces objets de compartiment expirent. Cela vous permet de respecter les exigences de conservation et de gérer efficacement l'ensemble du stockage objet S3.
+
+
+NOTE: Si le verrouillage des objets est activé pour vos objets de compartiment, les règles de gestion du cycle de vie pour l'expiration des objets ne seront pas appliquées aux objets verrouillés. Pour plus d'informations sur le verrouillage des objets, reportez-vous à la section link:../s3-config/create-bucket-task.html["Créer un compartiment"].
 
 .Avant de commencer
 Un SVM compatible S3 contenant un serveur S3 et un compartiment doivent déjà exister. Voir link:create-svm-s3-task.html["Création d'un SVM pour S3"] pour en savoir plus.
 
 .Description de la tâche
-Lors de la création de votre règle de gestion du cycle de vie des compartiments, vous devez choisir l'un des trois types d'action d'expiration suivants :
+Lors de la création de vos règles de gestion du cycle de vie, vous pouvez appliquer les actions de suppression suivantes à vos objets de compartiment :
 
-* `Expiration` – L'action d'expiration expire les objets identifiés par la règle. Si la gestion des versions de cas est activée sur le compartiment, S3 rend tous les objets expirés indisponibles. Si la gestion des versions n'est pas activée, cette règle supprimera définitivement l'objet.
-* `NoncurrentVersionExpiration` – Cette action est utilisée pour spécifier quand S3 supprime définitivement les objets non courants. Ces objets supprimés ne peuvent pas être récupérés.
-* `AbortIncompleteMultipartUpload` – L'administrateur peut utiliser cet élément pour définir une durée maximale (en jours) pendant laquelle il souhaite autoriser les téléchargements partitionnés à rester en cours
+* Suppression des versions actuelles - cette action expire les objets identifiés par la règle. Si la gestion des versions est activée sur le compartiment, S3 rend tous les objets expirés indisponibles. Si la gestion des versions n'est pas activée, cette règle supprime définitivement les objets. L'action CLI est `Expiration`.
+* Suppression de versions non actuelles - cette action indique quand S3 peut supprimer définitivement des objets non actuels. L'action CLI est `NoncurrentVersionExpiration`.
+* Suppression des marqueurs de suppression expirés - cette action supprime les marqueurs de suppression d'objet expirés.
+Dans les compartiments avec gestion des versions, les objets avec des marqueurs de suppression deviennent les versions actuelles des objets. Les objets ne sont pas supprimés et aucune action ne peut être effectuée sur eux. Ces objets deviennent expirés lorsqu'aucune version n'est associée à ces objets. L'action CLI est `Expiration`.
+* Suppression des téléchargements partitionnés incomplets : cette action définit une durée maximale (en jours) pendant laquelle vous souhaitez autoriser les téléchargements partitionnés à rester en cours. Après quoi, ils sont supprimés. L'action CLI est `AbortIncompleteMultipartUpload`.
 
 
-Vous devez définir les champs requis pour chaque type d'action d'expiration lors de la création d'une règle de gestion du cycle de vie de compartiment. Ces champs peuvent être modifiés après la création initiale. Le tableau suivant affiche les champs uniques pour chaque type d'action.
+La procédure à suivre dépend de l'interface que vous utilisez. Avec ONTAP 9.13,1, vous devez utiliser l'interface de ligne de commandes. Depuis ONTAP 9.14.1, vous pouvez également utiliser System Manager.
+
+
+
+== Gérez les règles de gestion du cycle de vie avec l'interface de ligne de commande
+
+À partir de ONTAP 9.13.1, vous pouvez utiliser l'interface de ligne de commandes ONTAP pour créer des règles de gestion du cycle de vie et faire expirer les objets de vos compartiments S3.
+
+.Ce dont vous avez besoin
+Pour l'interface de ligne de commandes, vous devez définir les champs requis pour chaque type d'action d'expiration lors de la création d'une règle de gestion du cycle de vie des compartiments. Ces champs peuvent être modifiés après la création initiale. Le tableau suivant affiche les champs uniques pour chaque type d'action.
 
 [cols="30,70"]
 |===
@@ -94,3 +108,67 @@ La commande suivante crée une règle de gestion du cycle de vie des compartimen
 ----
 vserver object-store-server bucket lifecycle-management-rule create -vserver <svm_name> -bucket <bucket_name> -rule-id <rule_name> -action AbortIncompleteMultipartUpload -index <lifecycle_rule_index_integer> -is-enabled {true|false} -prefix <object_name> -tags <text> -obj-size-greater-than {<integer>[KB|MB|GB|TB|PB]} -obj-size-less-than {<integer>[KB|MB|GB|TB|PB]} -after-initiation-days <integer>
 ----
+
+
+== Gérez les règles de gestion du cycle de vie avec System Manager
+
+Depuis ONTAP 9.14.1, vous pouvez implémenter l'expiration des objets à l'aide de System Manager. Vous pouvez ajouter, modifier et supprimer des règles de gestion du cycle de vie pour vos objets S3. En outre, vous pouvez importer une règle de cycle de vie créée pour un compartiment et l'utiliser pour les objets d'un autre compartiment. Vous pouvez désactiver une règle active et l'activer ultérieurement.
+
+
+
+=== Ajoutez une règle de gestion du cycle de vie
+
+. Cliquez sur *stockage > compartiments*.
+. Sélectionnez le compartiment pour lequel vous souhaitez spécifier la règle d'expiration.
+. Cliquez sur le bouton image:icon_kabob.gif["icône kebab"] Et sélectionnez *gérer les règles de cycle de vie*.
+. Cliquez sur *Ajouter > règle de cycle de vie*.
+. Sur la page Ajouter une règle de cycle de vie, ajoutez le nom de la règle.
+. Définissez la portée de la règle, que vous souhaitiez qu'elle s'applique à tous les objets du compartiment ou à des objets spécifiques. Si vous souhaitez spécifier des objets, ajoutez au moins l'un des critères de filtre suivants :
++
+.. Préfixe : spécifiez le préfixe des noms de clés d'objet auxquels la règle doit s'appliquer. Il s'agit généralement du chemin ou du dossier de l'objet. Vous pouvez entrer un préfixe par règle. À moins qu'un préfixe valide ne soit fourni, la règle s'applique à tous les objets d'un compartiment.
+.. Balises : spécifiez jusqu'à trois paires de clés et de valeurs (balises) pour les objets auxquels la règle doit s'appliquer. Seules les clés valides sont utilisées pour le filtrage. La valeur est facultative. Cependant, si vous ajoutez des valeurs, assurez-vous d'ajouter uniquement des valeurs valides pour les clés correspondantes.
+.. Taille : vous pouvez limiter la portée entre la taille minimale et la taille maximale des objets. Vous pouvez entrer l'une ou l'autre des valeurs ou les deux. L'unité par défaut est MIB.
+
+
+. Spécifiez l'action :
++
+.. *Expire la version actuelle des objets* : définissez une règle pour rendre tous les objets actuels définitivement indisponibles après un nombre de jours spécifique depuis leur création ou à une date spécifique. Cette option n'est pas disponible si l'option *Supprimer les marqueurs de suppression d'objet expiré* est sélectionnée.
+.. *Supprimer définitivement les versions non actuelles* : Indiquez le nombre de jours après lesquels la version devient non actuelle, puis peut être supprimée, et le nombre de versions à conserver.
+.. *Supprimer les marqueurs de suppression d'objets expirés* : sélectionnez cette action pour supprimer des objets avec des marqueurs de suppression expirés, c'est-à-dire supprimer des marqueurs sans objet courant associé.
++
+
+NOTE: Cette option devient indisponible lorsque vous sélectionnez l'option *expire la version actuelle des objets* qui supprime automatiquement tous les objets après la période de rétention. Cette option devient également indisponible lorsque des balises d'objet sont utilisées pour le filtrage.
+
+.. *Supprimer les téléchargements partiaux incomplets* : définit le nombre de jours après lesquels les téléchargements partiaux incomplets doivent être supprimés. Si les téléchargements partitionnés en cours échouent dans la période de conservation spécifiée, vous pouvez supprimer les téléchargements partitionnés incomplets. Cette option devient indisponible lorsque des balises d'objet sont utilisées pour le filtrage.
+.. Cliquez sur *Enregistrer*.
+
+
+
+
+
+
+=== Importer une règle de cycle de vie
+
+. Cliquez sur *stockage > compartiments*.
+. Sélectionnez le compartiment pour lequel vous souhaitez importer la règle d'expiration.
+. Cliquez sur le bouton image:icon_kabob.gif["icône kebab"] Et sélectionnez *gérer les règles de cycle de vie*.
+. Cliquez sur *Ajouter > Importer une règle*.
+. Sélectionnez le compartiment à partir duquel vous souhaitez importer la règle. Les règles de gestion du cycle de vie définies pour le compartiment sélectionné s'affichent.
+. Sélectionnez la règle à importer. Vous avez la possibilité de sélectionner une règle à la fois, la sélection par défaut étant la première règle.
+. Cliquez sur *Importer*.
+
+
+
+
+=== Modifier, supprimer ou désactiver une règle
+
+Vous pouvez uniquement modifier les actions de gestion du cycle de vie associées à la règle. Si la règle a été filtrée avec des balises d'objet, les options *Supprimer les marqueurs de suppression d'objet expirés* et *Supprimer les téléchargements partitionnés incomplets* ne sont pas disponibles.
+
+Lorsque vous supprimez une règle, celle-ci ne s'applique plus aux objets précédemment associés.
+
+. Cliquez sur *stockage > compartiments*.
+. Sélectionnez le compartiment pour lequel vous souhaitez modifier, supprimer ou désactiver la règle de gestion du cycle de vie.
+. Cliquez sur le bouton image:icon_kabob.gif["icône kebab"] Et sélectionnez *gérer les règles de cycle de vie*.
+. Sélectionnez la règle requise. Vous pouvez modifier et désactiver une règle à la fois. Vous pouvez supprimer plusieurs règles à la fois.
+. Sélectionnez *Modifier*, *Supprimer* ou *Désactiver* et terminez la procédure.
+

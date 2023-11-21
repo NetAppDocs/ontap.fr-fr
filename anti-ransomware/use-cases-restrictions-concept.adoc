@@ -2,7 +2,7 @@
 sidebar: sidebar 
 permalink: anti-ransomware/use-cases-restrictions-concept.html 
 keywords: anti-ransomware workloads, anti-ransomware requirements, anti-ransomware performance, volumes, anti-ransomware encryption, anti-ransomware system configurations, arp 
-summary: 'Dans la version actuelle de, la protection par ransomware est la plus adaptée aux environnements NAS. La prise en charge d"autres environnements sera disponible dans les prochaines versions.' 
+summary: 'ARP est pris en charge pour les charges de travail NAS. Il convient parfaitement aux bases de données qui reposent sur un stockage NFS, aux répertoires locaux Windows ou Linux et aux workloads de vidéos et d"images.' 
 ---
 = Cas d'utilisation et considérations relatives à la protection autonome contre les ransomwares
 :toc: macro
@@ -14,12 +14,12 @@ summary: 'Dans la version actuelle de, la protection par ransomware est la plus 
 :nofooter: 
 :icons: font
 :linkattrs: 
-:imagesdir: ./media/
+:imagesdir: ../media/
 :toc-position: content
 
 
 [role="lead"]
-La protection anti-ransomware autonome est disponible pour les charges de travail NAS à partir de ONTAP 9.10.1. Avant de déployer ARP, vous devez connaître les utilisations recommandées et les configurations prises en charge, ainsi que les implications en termes de performances.
+La protection anti-ransomware autonome (ARP) est disponible pour les charges de travail NAS à partir de ONTAP 9.10.1. Avant de déployer ARP, vous devez connaître les utilisations recommandées et les configurations prises en charge, ainsi que les implications en termes de performances.
 
 
 
@@ -65,22 +65,22 @@ ARP est disponible pour les volumes NFS et SMB dans les systèmes ONTAP sur site
 La prise en charge d'autres configurations et types de volumes est disponible dans les versions ONTAP suivantes :
 
 |===
-|  | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
+|  | ONTAP 9.14.1 | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
 
 
-| Volumes protégés avec SnapMirror asynchrone | X | X |  |  
+| Volumes protégés avec SnapMirror asynchrone | ✓ | ✓ | ✓ |  |  
 
 
-| SVM protégé avec SnapMirror asynchrone | X | X |  |  
+| SVM protégé avec SnapMirror asynchrone | ✓ | ✓ | ✓ |  |  
 
 
-| Les SVM activés pour la migration des données | X | X |  |  
+| Les SVM activés pour la migration des données | ✓ | ✓ | ✓ |  |  
 
 
-| Volumes FlexGroup | X |  |  |  
+| Volumes FlexGroup | ✓ | ✓ |  |  |  
 
 
-| Vérification multi-administrateurs | X |  |  |  
+| Vérification multi-administrateurs | ✓ | ✓ |  |  |  
 |===
 .Interopérabilité SnapMirror et ARP
 À partir de ONTAP 9.12.1, ARP est pris en charge sur les volumes de destination SnapMirror asynchrones. ARP est **non** pris en charge avec SnapMirror Synchronous.
@@ -137,7 +137,7 @@ ARP ne prend pas en charge les configurations de volume suivantes :
 * Volumes SAN uniquement
 * Volumes SnapLock
 * SnapMirror synchrone
-* SnapMirror asynchrone (dans ONTAP 9.10.1 à 9.12.1) SnapMirror asynchrone est pris en charge à partir de ONTAP 9.12.1. Pour plus d'informations, voir <<snapmirror>>.)
+* SnapMirror asynchrone (non pris en charge uniquement dans ONTAP 9.10.1 et 9.11.1) SnapMirror asynchrone est pris en charge à partir de ONTAP 9.12.1. Pour plus d'informations, voir <<snapmirror>>.)
 * Volumes restreints
 * Volumes root des VM de stockage
 * Volumes des machines virtuelles de stockage arrêtées
@@ -165,8 +165,15 @@ L'analyse ARP étant exécutée selon une séquence prioritaire, à mesure que l
 
 
 
-== Vérification multiadministrateur avec volumes protégés par la protection anti-ransomware autonome (ARP)
+== Vérification multiadministrateur avec volumes protégés par ARP
 
 À partir de ONTAP 9.13.1, vous pouvez activer la vérification multiadministrateur (MAV) pour une sécurité supplémentaire avec ARP. MAV s'assure qu'au moins deux administrateurs authentifiés sont requis pour désactiver ARP, mettre en pause ARP ou marquer une attaque suspecte comme faux positif sur un volume protégé. Découvrez comment link:../multi-admin-verify/enable-disable-task.html["Activez MAV pour les volumes protégés par ARP"^].
 
 Vous devez définir des administrateurs pour un groupe MAV et créer des règles MAV pour le `security anti-ransomware volume disable`, `security anti-ransomware volume pause`, et `security anti-ransomware volume attack clear-suspect` Commandes ARP à protéger. Chaque administrateur du groupe MAV doit approuver chaque nouvelle demande de règle et link:../multi-admin-verify/enable-disable-task.html["Ajoutez à nouveau la règle MAV"^] Dans les paramètres MAV.
+
+Depuis ONTAP 9.14.1, ARP propose des alertes pour la création d'un instantané ARP et pour l'observation d'une nouvelle extension de fichier. Les alertes pour ces événements sont désactivées par défaut. Les alertes peuvent être définies au niveau du volume ou des SVM. Vous pouvez créer des règles MAV au niveau du SVM à l'aide de `security anti-ransomware vserver event-log modify` ou au niveau du volume avec `security anti-ransomware volume event-log modify`.
+
+.Étapes suivantes
+* link:enable-task.html["Activation de la protection autonome contre les ransomwares"]
+* link:../multi-admin-verify/enable-disable-task.html["Activez MAV pour les volumes protégés par ARP"]
+

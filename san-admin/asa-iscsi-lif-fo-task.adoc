@@ -1,185 +1,65 @@
 ---
 permalink: san-admin/asa-iscsi-lif-fo-task.html 
 sidebar: sidebar 
-keywords: failover, iscsi, all flash san array, cli, system manager, auto-revert, revert network interface 
-summary: 'À partir de ONTAP 9.11.1 sur des plateformes de baies SAN 100 % Flash (ASA), la fonctionnalité de basculement de LIF iSCSI prend en charge la migration automatique et manuelle des LIF iSCSI dans un basculement partenaire SFO (lorsqu"une LIF iSCSI passe de son nœud/port domestique à son nœud/port partenaire haute disponibilité, et inversement) ainsi que dans un basculement local (lorsqu"une LIF iSCSI passe de son port défectueux à un port sain sur son nœud de rattachement actuel, puis inversement). Cette fonctionnalité assure une reprise plus rapide des E/S pour les charges de travail SAN exécutées sur ISCSI.' 
+keywords: failover, iscsi, all san array, cli, system manager, auto-revert, revert network interface 
+summary: Après la mise à niveau vers ONTAP 9.11.1 ou une version ultérieure, vous devez activer manuellement le basculement automatique des LIF sur toutes les LIF iSCSI créées dans ONTAP 9.10.1 ou une version antérieure. 
 ---
-= Basculement de LIF iSCSI pour les plateformes ASA
+= Activer ou désactiver le basculement automatique de LIF iSCSI
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-À partir de ONTAP 9.11.1 sur des plateformes de baies SAN 100 % Flash (ASA), la fonctionnalité de basculement de LIF iSCSI prend en charge la migration automatique et manuelle des LIF iSCSI dans un basculement partenaire SFO (lorsqu'une LIF iSCSI passe de son nœud/port domestique à son nœud/port partenaire haute disponibilité, et inversement) ainsi que dans un basculement local (lorsqu'une LIF iSCSI passe de son port défectueux à un port sain sur son nœud de rattachement actuel, puis inversement). Cette fonctionnalité assure une reprise plus rapide des E/S pour les charges de travail SAN exécutées sur ISCSI.
+Après la mise à niveau vers ONTAP 9.11.1 ou une version ultérieure, vous devez activer manuellement le basculement automatique des LIF sur toutes les LIF iSCSI créées dans ONTAP 9.10.1 ou une version antérieure.
+
+À partir de la version ONTAP 9.11.1, vous pouvez activer le basculement automatique des LIF iSCSI sur les plateformes SAN 100 % Flash. En cas de basculement du stockage, la LIF iSCSI est automatiquement migrée de son nœud ou port de rattachement vers son nœud ou port partenaire haute disponibilité, puis de nouveau une fois le basculement terminé.  Ou, si le port de la LIF iSCSI devient défectueux, la LIF est automatiquement migrée vers un port sain de son nœud de rattachement actuel, puis de nouveau vers son port d'origine une fois le port refonctionnel.  Permet aux charges de travail SAN exécutées sur iSCSI de reprendre plus rapidement le service d'E/S après un basculement.
+
+Dans ONTAP 9.11.1 et versions ultérieures, par défaut, les LIF iSCSI nouvellement créées sont activées pour le basculement automatique des LIF, si l'une des conditions suivantes est vraie :
+
+* Il n'y a pas de LIF iSCSI sur le SVM
+* Toutes les LIFs iSCSI sur le SVM sont activées pour le basculement automatique des LIF
 
 
 
-== À propos de l'activation du basculement LIF iSCSI
 
-[role="Lead"]
-Vous devez vous familiariser avec certains aspects de l'activation automatique du basculement de LIF iSCSI et lorsque vous devez l'activer manuellement, notamment la manière dont les nouvelles LIF iSCSI et les LIF iSCSI existantes sont affectées.
+== Activer le basculement automatique de LIF iSCSI
 
-* La migration automatique d'une LIF iSCSI est un basculement LIF et une restauration automatique, qui sont déclenchées dans certains événements (basculement planifié ou non planifié, liaison ethernet physique défaillante ou un nœud redéposant le quorum RDB) de la base de données répliquée.
+Par défaut, les LIF iSCSI créées dans ONTAP 9.10.1 et les versions antérieures ne sont pas activées pour le basculement automatique des LIF.  Si sur le SVM des LIF iSCSI ne sont pas activées pour le basculement automatique des LIF, vos nouvelles LIF ne seront pas non plus activées pour le basculement automatique des LIF.  Si le basculement automatique de LIF n'est pas activé et qu'un événement de basculement se produit, vos LIFs iSCSI ne migrent pas.
+
+.Étape
+. Activer le basculement automatique pour une LIF iSCSI :
 +
-** Après la mise à niveau de votre paire HA ASA vers ONTAP 9.11.1, cette fonctionnalité est automatiquement activée sur les LIF iSCSI nouvellement créées si aucune LIF iSCSI n'existe dans le VM de stockage spécifié ou si toutes les LIF iSCSI existantes du VM de stockage spécifié sont déjà activées avec le basculement LIF iSCSI.
-** Pour les LIF iSCSI créées avant la mise à niveau vers ONTAP 9.11.1, vous devez l'activer à l'aide ONTAP de la fonctionnalité de basculement de LIF iSCSI. (L'activation de la fonction de basculement et de la fonctionnalité de restauration automatique implique de modifier la règle de basculement sur `sfo-partner-only` et la désignation de la valeur de restauration automatique à `true`.)
+[source, cli]
+----
+network interface modify -vserver SVM_name -lif iscsi_lif –failover-policy sfo-partner-only -auto-revert true
+----
 +
-<<Gérez les LIF iSCSI à l'aide de l'interface de ligne de commande de ONTAP>>
+Pour mettre à jour toutes les LIFs iSCSI sur le SVM, utiliser `-lif*` au lieu de `lif`.
 
+
+
+
+
+== Désactivez le basculement automatique des LIF iSCSI
+
+Si vous avez précédemment activé le basculement automatique de LIF iSCSI sur des LIF iSCSI créées dans ONTAP 9.10.1 ou une version antérieure, vous avez la possibilité de le désactiver.
+
+.Étape
+. Désactiver le basculement automatique pour une LIF iSCSI :
 +
-Si vous n'activez pas le basculement LIF iSCSI sur les LIF iSCSI existantes, en cas d'événement de basculement, les LIF iSCSI ne basculent pas.
-
+[source, cli]
+----
+network interface modify -vserver SVM_name -lif iscsi_lif –failover-policy disabled -auto-revert false
+----
 +
-De plus, si après une mise à niveau vers ONTAP 9.11.1 ou une version ultérieure, vous disposez de LIF iSCSI existantes dans une VM de stockage qui n'ont pas été activées avec la fonctionnalité de basculement LIF iSCSI et que vous créez de nouvelles LIF iSCSI sur la même VM de stockage, les nouvelles LIF iSCSI assument la même règle de basculement (`disabled`) Des LIFs iSCSI existantes dans la VM de stockage.
+Pour mettre à jour toutes les LIFs iSCSI sur le SVM, utiliser `-lif*` au lieu de `lif`.
 
 
 
-* La migration manuelle d'une LIF iSCSI est une migration et une restauration de LIF, lancée par l'administrateur du cluster via l'interface de ligne de commande de ONTAP ou System Manager.
-+
-<<Migrez et restaurez une LIF iSCSI>>
+.Informations associées
+* link:../networking/create_a_lif.html["Créer une LIF"]
+* Manuellement link:../networking/migrate_a_lif.html["Migrer une LIF"]
+* Manuellement link:../networking/revert_a_lif_to_its_home_port.html["Restaure une LIF sur son port d'attache"]
+* link:.../networking/configure_failover_settings_on_a_lif.html["Configurer les paramètres de basculement sur une LIF"]
 
-+
-Vous migrez et restaurez manuellement une LIF iSCSI dans les cas suivants :
-
-+
-** Lorsqu'un entretien ou un remplacement planifié est nécessaire.
-** Lorsque vous disposez d'une LIF iSCSI préexistante, cela signifie que la LIF iSCSI a été créée avant de mettre votre paire haute disponibilité à niveau vers ONTAP 9.11.1 ou version ultérieure, et que vous n'avez pas activé la fonctionnalité de basculement LIF iSCSI sur la LIF.
-
-
-* Le basculement et la migration de LIF iSCSI se produisent au sein du broadcast domain of the home port de la LIF. Vérifiez la configuration de votre domaine de diffusion à l'aide du `network port broadcast-domain show` commande.
-+
-
-IMPORTANT: Assurez-vous que les domaines de diffusion associés aux LIFs iSCSI contiennent des ports réseau représentant les deux nœuds d'une paire HA, de sorte que les LIFs iSCSI puissent être migrées et basculées entre les deux nœuds selon les besoins.
-
-
-
-
-
-== Fonctionnement du basculement LIF iSCSI
-
-[role="Lead"]
-Pour les LIF dont le basculement LIF iSCSI est activé (automatiquement ou manuellement), les conditions suivantes s'appliquent.
-
-* Pour les LIF utilisant le `data-iscsi` règle de service, la règle de basculement est limitée à `sfo-partner-only`, `local-only`, et `disabled`.
-* Les LIF iSCSI ne peuvent basculer sur le partenaire de haute disponibilité que lorsque leur stratégie de basculement est définie sur `sfo-partner-only`.
-* La restauration automatique des LIF se produit lorsque la restauration automatique est définie sur `true` Et lorsque le port de base de la LIF est sain et peut héberger la LIF.
-* En cas de basculement d'un nœud planifié ou non planifié, la LIF iSCSI sur le nœud qui fait l'objet du basculement bascule vers le partenaire de haute disponibilité. Le port sur lequel la LIF tombe en panne est déterminé par vif Manager.
-* Une fois le basculement terminé, la LIF iSCSI fonctionne normalement.
-* Lorsqu'un rétablissement est initié, la LIF iSCSI revient sur son nœud de rattachement et sur son port, si l'auto-revert est défini sur `true`.
-* Lorsqu'une liaison ethernet tombe en panne sur un port hébergeant une ou plusieurs LIF iSCSI, vif Manager migre les LIF du port down vers un port différent du même broadcast domain. Le nouveau port peut se trouver sur le même nœud ou sur son partenaire HA. Une fois le lien restauré et si la restauration automatique est définie sur `true`, Vif Manager restaure les LIFs iSCSI sur leur nœud de rattachement et leur port de rattachement.
-* Lorsqu'un nœud sort du quorum RDB, vif Manager migre les LIF iSCSI du nœud quorum vers son partenaire haute disponibilité, Une fois que le nœud revient au quorum et que la restauration automatique est définie sur `true`, Vif Manager restaure les LIFs iSCSI sur leur nœud de rattachement et leur port de rattachement.
-
-
-
-
-== Migrez et restaurez une LIF iSCSI
-
-[role="Lead"]
-Vous pouvez utiliser System Manager ou l'interface de ligne de commande de ONTAP pour migrer manuellement une LIF iSCSI vers un autre port du même nœud ou vers un autre port du partenaire HA, puis rétablir la LIF vers son nœud de rattachement et son port d'accueil.
-
-
-
-=== Migrez et restaurez une LIF iSCSI à l'aide de System Manager
-
-[role="Lead"]
-Vous pouvez utiliser System Manager pour migrer manuellement une ou plusieurs LIF iSCSI (interfaces réseau) vers un autre port du même nœud ou vers un port du partenaire de haute disponibilité.
-
-.Avant de commencer
-Vous devez disposer d'une paire HA de la plateforme ASA et exécuter ONTAP 9.11.1 ou version ultérieure.
-
-
-
-==== Migrer un LIF
-
-.Étapes
-. Dans System Manager, cliquez sur *réseau > Présentation > interfaces réseau*
-. Sélectionnez le LIF à migrer, puis cliquez sur image:icon_kabob.gif["Icône Kabob"], Puis cliquez sur *Migrate*.
-. Dans la boîte de dialogue *Migrate interface*, sélectionnez le nœud de destination et le port du partenaire HA.
-+
-
-NOTE: Vous avez la possibilité de migrer définitivement l'iSCSI LIF en cochant la case. Sachez que la LIF iSCSI doit être hors ligne avant d'effectuer une migration permanente. De plus, une fois la migration permanente d'une LIF iSCSI, celle-ci ne peut pas être annulée. Il n'y a pas d'option de restauration.
-
-. Cliquez sur *migrer*.
-
-
-
-
-==== Ne rétablit pas une LIF
-
-.Étapes
-. Dans System Manager, cliquez sur *réseau > Présentation > interfaces réseau*.
-. Sélectionner la LIF à rétablir, cliquer sur image:icon_kabob.gif["Icône Kabob"] Puis cliquez sur *Revert Network interface*.
-. Dans la boîte de dialogue *Revert Network interface*, cliquez sur *Revert*.
-
-
-
-
-=== Migrez et restaurez une LIF iSCSI à l'aide de l'interface de ligne de commande de ONTAP
-
-[role="Lead"]
-Vous pouvez utiliser l'interface de ligne de commandes de ONTAP pour migrer manuellement une ou plusieurs LIF iSCSI vers un autre port du même nœud ou vers un port du partenaire de haute disponibilité.
-
-.Avant de commencer
-Vous devez disposer d'une paire HA de la plateforme ASA et exécuter ONTAP 9.11.1 ou version ultérieure.
-
-|===
-
-
-| Les fonctions que vous recherchez... | Utilisez cette commande... 
-
-
-| Migrer une LIF iSCSI vers un autre nœud/port | Voir link:../networking/migrate_a_lif.html["Migrer un LIF"] pour les commandes disponibles. 
-
-
-| Rerestaurez une LIF iSCSI sur son port ou nœud de rattachement | Voir link:../networking/revert_a_lif_to_its_home_port.html["Ne rétablit pas un LIF à son port de départ"] pour les commandes disponibles. 
-|===
-
-
-== Gérez les LIF iSCSI à l'aide de l'interface de ligne de commande de ONTAP
-
-Vous pouvez utiliser l'interface de ligne de commandes de ONTAP pour gérer les LIF iSCSI, y compris la création de nouvelles LIF iSCSI et l'activation de la fonction de basculement LIF iSCSI pour les LIF préexistantes.
-
-.Avant de commencer
-Vous devez disposer d'une paire HA de la plateforme ASA et exécuter ONTAP 9.11.1 ou version ultérieure.
-
-.Description de la tâche
-Voir la https://docs.netapp.com/us-en/ontap-cli-9141/index.html["Référence des commandes ONTAP"^] pour obtenir la liste complète de `network interface` commandes.
-
-|===
-
-
-| Les fonctions que vous recherchez... | Utilisez cette commande... 
-
-
-| Créer une LIF iSCSI | `network interface create -vserver _SVM_name_ -lif _iscsi_lif_ -service-policy default-data-blocks -data-protocol iscsi -home-node _node_name_ -home-port _port_name_ -address _IP_address_ -netmask _netmask_value_`
-
-Si nécessaire, voir link:../networking/create_a_lif.html["Créer une LIF"] pour en savoir plus. 
-
-
-| Vérifier que le LIF a été créé avec succès | `network interface show -vserver _SVM_name_ -fields failover-policy,failover-group,auto-revert,is-home` 
-
-
-| Vérifiez si vous pouvez remplacer la restauration automatique par défaut sur les LIF iSCSI | `network interface modify -vserver _SVM_name_ -lif _iscsi_lif_ -auto-revert false` 
-
-
-| Effectuer un basculement de stockage sur une LIF iSCSI | `storage failover takeover -ofnode _node_name_ -option normal`
-
-Vous recevez un avertissement : `A takeover will be initiated. Once the partner node reboots, a giveback will be automatically initiated. Do you want to continue? {y/n}:`
-
-A `y` Response affiche un message de basculement de son partenaire de haute disponibilité. 
-
-
-| Activez la fonction de basculement LIF iSCSI pour les LIF pré-existantes | Pour les LIF iSCSI créées avant de mettre à niveau votre cluster vers ONTAP 9.11.1 ou version ultérieure, vous pouvez activer la fonction de basculement LIF iSCSI (en modifiant la règle de basculement sur) `sfo-partner-only` et en modifiant la fonctionnalité de restauration automatique sur `true`) :
-
-`network interface modify -vserver _SVM_name_ -lif _iscsi_lif_ –failover-policy sfo-partner-only -auto-revert true`
-
-Cette commande peut être exécutée sur toutes les LIFs iSCSI d’une VM de stockage en spécifiant “-lif*” et en conservant tous les autres paramètres de la même manière. 
-
-
-| Désactiver la fonction de basculement LIF iSCSI pour les LIF préexistantes | Pour les LIF iSCSI créées avant de mettre à niveau votre cluster vers ONTAP 9.11.1 ou version ultérieure, vous pouvez désactiver la fonction de basculement LIF iSCSI et la fonctionnalité de restauration automatique :
-
-`network interface modify -vserver _SVM_name_ -lif _iscsi_lif_ –failover-policy disabled -auto-revert false`
-
-Cette commande peut être exécutée sur toutes les LIFs iSCSI d’une VM de stockage en spécifiant “-lif*” et en conservant tous les autres paramètres de la même manière. 
-|===

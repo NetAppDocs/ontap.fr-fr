@@ -1,8 +1,8 @@
 ---
 permalink: upgrade/task_updating_a_four_or_eight_node_mcc.html 
 sidebar: sidebar 
-keywords: 4-node MetroCluster configurations,8-node MetroCluster configurations 
-summary: 'La procédure manuelle de mise à jour ou de rétrogradation d"une configuration MetroCluster à quatre ou huit nœuds implique de préparer la mise à jour, de mettre à jour les paires de reprise après incident simultanément dans chacun des deux groupes de reprise après incident et d"effectuer des tâches post-mise à jour.' 
+keywords: 4-node MetroCluster configurations,8-node MetroCluster configurations, upgrade, upgrading, manual, manually 
+summary: 'La mise à niveau manuelle d"une configuration MetroCluster à quatre ou huit nœuds implique de préparer et de mettre à jour les paires DR dans chacun des groupes de reprise après incident et d"effectuer des tâches post-mise à niveau' 
 ---
 = Mise à niveau manuelle sans interruption d'une configuration MetroCluster à quatre ou huit nœuds via l'interface de ligne de commande ONTAP
 :allow-uri-read: 
@@ -11,7 +11,7 @@ summary: 'La procédure manuelle de mise à jour ou de rétrogradation d"une con
 
 
 [role="lead"]
-La procédure manuelle de mise à jour ou de rétrogradation d'une configuration MetroCluster à quatre ou huit nœuds implique de préparer la mise à jour, de mettre à jour les paires de reprise après incident simultanément dans chacun des deux groupes de reprise après incident et d'effectuer des tâches post-mise à jour.
+La mise à niveau manuelle d'une configuration MetroCluster à quatre ou huit nœuds implique de préparer la mise à jour, de mettre à jour les paires DR dans chacun des deux groupes DR simultanément et d'effectuer des tâches post-mise à niveau.
 
 * Cette tâche s'applique aux configurations suivantes :
 +
@@ -34,49 +34,47 @@ image::../media/workflow_mcc_lockstep_upgrade.gif[Schéma du flux de décision d
 
 
 
-== Différences lors de la mise à jour des logiciels sur une configuration MetroCluster à huit ou quatre nœuds
+== Différences lors de la mise à jour du logiciel ONTAP sur une configuration MetroCluster à huit ou quatre nœuds
 
-Le processus de mise à jour du logiciel MetroCluster diffère selon qu'il existe huit ou quatre nœuds dans la configuration MetroCluster.
+La procédure de mise à niveau du logiciel MetroCluster diffère selon qu'il y a huit ou quatre nœuds dans la configuration MetroCluster.
 
 Une configuration MetroCluster se compose d'un ou deux groupes de reprise sur incident. Chaque groupe de reprise après incident est constitué de deux paires haute disponibilité, une paire haute disponibilité sur chaque cluster MetroCluster. Un MetroCluster à 8 nœuds inclut deux groupes de reprise après incident :
 
 image::../media/mcc_dr_groups_8_node.gif[Diagramme de configuration MetroCluster à huit nœuds.]
 
-La procédure de mise à jour du logiciel MetroCluster implique la mise à niveau ou la rétrogradation d'un groupe de reprise après incident à la fois.
+Vous mettez à niveau un groupe de reprise après incident à la fois.
 
-Pour les configurations MetroCluster à quatre nœuds :
-
-. Mettre à jour le groupe DR un :
+.Pour les configurations MetroCluster à quatre nœuds :
+. Mettre à niveau le groupe de reprise sur incident un :
 +
-.. Mettre à jour node_A_1 et node_B_1.
-.. Mettre à jour node_A_2 et node_B_2.
+.. Mettre à niveau les nœuds_A_1 et node_B_1.
+.. Mettre à niveau node_A_2 et node_B_2.
 
 
 
 
-Pour les configurations MetroCluster à 8 nœuds, effectuez deux fois la procédure de mise à jour du groupe de reprise sur incident :
-
-. Mettre à jour le groupe DR un :
+.Pour les configurations à 8 nœuds MetroCluster, vous effectuez deux fois la procédure de mise à niveau du groupe de reprise après incident :
+. Mettre à niveau le groupe de reprise sur incident un :
 +
-.. Mettre à jour node_A_1 et node_B_1.
-.. Mettre à jour node_A_2 et node_B_2.
+.. Mettre à niveau les nœuds_A_1 et node_B_1.
+.. Mettre à niveau node_A_2 et node_B_2.
 
 
-. Mettre à jour le groupe DR deux :
+. Mettre à niveau le DR Groupe deux :
 +
-.. Mettre à jour node_A_3 et node_B_3.
-.. Mettre à jour node_A_4 et node_B_4.
+.. Mettre à niveau les nœuds_A_3 et node_B_3.
+.. Mettre à niveau les nœuds_A_4 et node_B_4.
 
 
 
 
 
 
-== Préparation de la mise à jour d'un groupe de reprise après incident MetroCluster
+== Préparation de la mise à niveau d'un groupe DR MetroCluster
 
-Avant de mettre à jour le logiciel sur les nœuds, vous devez identifier les relations de DR entre les nœuds, envoyer un message AutoSupport que vous initiez une mise à jour et vérifier la version de ONTAP exécutée sur chaque nœud.
+Avant de mettre à niveau le logiciel ONTAP sur les nœuds, vous devez identifier les relations de DR entre les nœuds, envoyer un message AutoSupport indiquant que vous initiez une mise à niveau et confirmer la version de ONTAP exécutée sur chaque nœud.
 
-Vous devez avoir xref:task_download_and_install_ontap_software_image.html[téléchargez et installez les images logicielles].
+Vous devez avoir link:download-software-image.html["téléchargé"] et link:install-software-manual-upgrade.html["installé"] les images du logiciel.
 
 Cette tâche doit être répétée sur chaque groupe de reprise sur incident. Si la configuration MetroCluster comprend huit nœuds, il y a deux groupes de reprise sur incident. Cette tâche doit donc être répétée sur chaque groupe de reprise sur incident.
 
@@ -84,7 +82,12 @@ Les exemples fournis dans cette tâche utilisent les noms illustrés dans l'illu
 
 image::../media/mcc_dr_groups_8_node.gif[Diagramme de configuration MetroCluster à huit nœuds.]
 
-. Identifier les paires de reprise sur incident dans la configuration : `metrocluster node show -fields dr-partner`
+. Identifier les paires de reprise sur incident dans la configuration :
++
+[source, cli]
+----
+metrocluster node show -fields dr-partner
+----
 +
 [listing]
 ----
@@ -100,13 +103,21 @@ image::../media/mcc_dr_groups_8_node.gif[Diagramme de configuration MetroCluster
 
  cluster_A::>
 ----
-. Définissez le niveau de privilège de admin sur avancé, en entrant *y* lorsque vous êtes invité à continuer : `set -privilege advanced`
+. Définissez le niveau de privilège de admin sur avancé, en entrant *y* lorsque vous êtes invité à continuer :
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 L'invite avancée (`*>`) s'affiche.
 
-. Vérifiez la version de ONTAP exécutée sur chaque nœud :
+. Confirmer la version de ONTAP sur cluster_A :
 +
-.. Vérifier la version du cluster_A : `system image show`
+[source, cli]
+----
+system image show
+----
 +
 [listing]
 ----
@@ -124,7 +135,12 @@ L'invite avancée (`*>`) s'affiche.
 
  cluster_A::>
 ----
-.. Vérifier la version du cluster_B : `system image show`
+. Vérifier la version du cluster_B :
++
+[source, cli]
+----
+system image show
+----
 +
 [listing]
 ----
@@ -142,22 +158,33 @@ L'invite avancée (`*>`) s'affiche.
 
  cluster_B::>
 ----
-
-
-. Déclencher une notification AutoSupport : `autosupport invoke -node * -type all -message "Starting_NDU"`
+. Déclencher une notification AutoSupport :
 +
-Cette notification AutoSupport inclut un enregistrement de l'état du système avant la mise à jour. Il enregistre des informations de dépannage utiles en cas de problème avec le processus de mise à jour.
+[source, cli]
+----
+autosupport invoke -node * -type all -message "Starting_NDU"
+----
++
+Cette notification AutoSupport inclut un enregistrement de l'état du système avant la mise à niveau. Il enregistre des informations de dépannage utiles en cas de problème avec le processus de mise à niveau.
 
 +
 Si votre cluster n'est pas configuré pour envoyer des messages AutoSupport, une copie de la notification est enregistrée localement.
 
-. Pour chaque nœud du premier jeu, définissez l'image logicielle ONTAP cible sur l'image par défaut : `system image modify {-node nodename -iscurrent false} -isdefault true`
+. Pour chaque nœud du premier jeu, définissez l'image logicielle ONTAP cible sur l'image par défaut :
++
+[source, cli]
+----
+system image modify {-node nodename -iscurrent false} -isdefault true
+----
 +
 Cette commande utilise une requête étendue pour modifier l'image du logiciel cible, qui est installée comme image secondaire, comme image par défaut pour le nœud.
 
-. Vérifiez que l'image du logiciel ONTAP cible est définie comme image par défaut :
+. Vérifiez que l'image du logiciel ONTAP cible est définie comme image par défaut sur cluster_A :
 +
-.. Vérifier les images du cluster_A : `system image show`
+[source, cli]
+----
+system image show
+----
 +
 Dans l'exemple suivant, image2 est la nouvelle version de ONTAP et est définie en tant qu'image par défaut sur chacun des nœuds du premier ensemble :
 
@@ -177,7 +204,13 @@ Dans l'exemple suivant, image2 est la nouvelle version de ONTAP et est définie 
 
  2 entries were displayed.
 ----
-.. Vérifier les images du cluster_B : `system image show`
++
+.. Vérifiez que l'image du logiciel ONTAP cible est définie comme image par défaut sur cluster_B :
++
+[source, cli]
+----
+system image show
+----
 +
 L'exemple suivant montre que la version cible est définie en tant qu'image par défaut sur chacun des nœuds du premier jeu :
 
@@ -199,12 +232,18 @@ L'exemple suivant montre que la version cible est définie en tant qu'image par 
 ----
 
 
-. Déterminer si les nœuds à mettre à niveau servent actuellement des clients deux fois pour chaque nœud : `system node run -node target-node -command uptime`
+. Déterminer si les nœuds à mettre à niveau servent actuellement des clients deux fois pour chaque nœud :
++
+[source, cli]
+----
+system node run -node target-node -command uptime
+----
 +
 La commande UpTime affiche le nombre total d'opérations que le nœud a effectuées pour les clients NFS, CIFS, FC et iSCSI depuis le dernier démarrage du nœud. Pour chaque protocole, vous devez exécuter la commande deux fois afin de déterminer si le nombre d'opérations augmente. S'ils augmentent, le nœud diffuse actuellement des clients pour ce protocole. Si ce n'est pas le cas, le nœud ne diffuse actuellement pas les clients pour ce protocole.
 
 +
-*REMARQUE* : vous devez prendre note de chaque protocole qui a augmenté les opérations du client de sorte qu'après la mise à niveau du nœud, vous pouvez vérifier que le trafic client a repris.
+
+NOTE: Vous devez noter chaque protocole dont les opérations client augmentent, de sorte qu'après la mise à niveau du nœud, vous pouvez vérifier que le trafic client a repris.
 
 +
 Cet exemple montre un nœud avec des opérations NFS, CIFS, FC et iSCSI. Toutefois, le nœud dessert actuellement uniquement les clients NFS et iSCSI.
@@ -228,16 +267,26 @@ Vous devez effectuer un basculement et un retour des nœuds afin de faire de la 
 
 Tous les nœuds doivent exécuter l'ancienne version de ONTAP.
 
-Dans cette tâche, Node_A_1 et node_B_1 sont mis à jour.
+Dans cette tâche, les nœuds_A_1 et node_B_1 sont mis à niveau.
 
-Si vous avez mis à jour le logiciel ONTAP sur le premier groupe DR et que vous mettez à jour le second groupe DR dans une configuration MetroCluster à huit nœuds, dans cette tâche, vous allez mettre à jour les nœuds_A_3 et Node_B_3.
+Si vous avez mis à niveau le logiciel ONTAP sur le premier groupe DR et que vous mettez à niveau le deuxième groupe DR dans une configuration MetroCluster à huit nœuds, dans cette tâche, vous mettiez à jour node_A_3 et node_B_3.
 
 . Si le logiciel MetroCluster Tiebreaker est activé, désactivez-le.
-. Pour chaque nœud de la paire HA, désactiver le rétablissement automatique : `storage failover modify -node target-node -auto-giveback false`
+. Pour chaque nœud de la paire HA, désactiver le rétablissement automatique :
++
+[source, cli]
+----
+storage failover modify -node target-node -auto-giveback false
+----
 +
 Cette commande doit être répétée pour chaque nœud de la paire HA.
 
-. Vérifier que le retour automatique est désactivé : `storage failover show -fields auto-giveback`
+. Vérifier que le retour automatique est désactivé :
++
+[source, cli]
+----
+storage failover show -fields auto-giveback
+----
 +
 Cet exemple montre que le rétablissement automatique a été désactivé sur les deux nœuds :
 
@@ -251,13 +300,18 @@ Cet exemple montre que le rétablissement automatique a été désactivé sur le
  node_x_2 false
  2 entries were displayed.
 ----
-. Assurez-vous que les E/S ne dépassent pas 50 % pour chaque contrôleur. Assurez-vous que le taux d'utilisation du CPU n'est pas supérieur à environ 50 % par contrôleur.
+. Assurez-vous que les E/S ne dépassent pas ~50 % pour chaque contrôleur et que l'utilisation du CPU ne dépasse pas ~50 % par contrôleur.
 . Initier un basculement du nœud cible sur cluster_A :
 +
 Ne spécifiez pas le paramètre -option immédiate, car un basculement normal est nécessaire pour les nœuds pris en charge afin de démarrer sur la nouvelle image logicielle.
 
 +
-.. Reprendre le partenaire de reprise après incident sur cluster_A (node_A_1) :``storage failover takeover -ofnode node_A_1``
+.. Reprendre le partenaire de reprise après incident sur cluster_A (node_A_1) :
++
+[source, cli]
+----
+storage failover takeover -ofnode node_A_1
+----
 +
 Le nœud démarre à l'état « waiting for giveback ».
 
@@ -265,7 +319,12 @@ Le nœud démarre à l'état « waiting for giveback ».
 
 NOTE: Si AutoSupport est activé, un message AutoSupport est envoyé pour indiquer que les nœuds sont hors du quorum du cluster. Vous pouvez ignorer cette notification et poursuivre la mise à niveau.
 
-.. Vérifiez que le basculement est réussi : `storage failover show`
+.. Vérifiez que le basculement est réussi :
++
+[source, cli]
+----
+storage failover show
+----
 +
 L'exemple suivant montre que le basculement a réussi. L'état « waiting for giveback » est défini sur node_A_1 et node_A_2 est à l'état « In Takeover ».
 
@@ -287,7 +346,12 @@ L'exemple suivant montre que le basculement a réussi. L'état « waiting for gi
 Ne spécifiez pas le paramètre -option immédiate, car un basculement normal est nécessaire pour les nœuds pris en charge afin de démarrer sur la nouvelle image logicielle.
 
 +
-.. Reprendre le noeud_B_1 : `storage failover takeover -ofnode node_B_1`
+.. Reprendre le noeud_B_1 :
++
+[source, cli]
+----
+storage failover takeover -ofnode node_B_1
+----
 +
 Le nœud démarre à l'état « waiting for giveback ».
 
@@ -295,7 +359,12 @@ Le nœud démarre à l'état « waiting for giveback ».
 
 NOTE: Si AutoSupport est activé, un message AutoSupport est envoyé pour indiquer que les nœuds sont hors du quorum du cluster. Vous pouvez ignorer cette notification et poursuivre la mise à niveau.
 
-.. Vérifiez que le basculement est réussi : `storage failover show`
+.. Vérifiez que le basculement est réussi :
++
+[source, cli]
+----
+storage failover show
+----
 +
 L'exemple suivant montre que le basculement a réussi. Le nœud_B_1 est dans l'état « waiting for giveback » et le nœud_B_2 est à l'état « In Takeover ».
 
@@ -326,14 +395,29 @@ Le temps de restauration est spécifique au client et peut prendre plus de huit 
 Après la mise à niveau des configurations IP de MetroCluster vers ONTAP 9.5 ou une version ultérieure, les agrégats sont dégradés pendant une courte période avant de resynchroniser et de revenir à un état miroir.
 
 +
-.. Renvoyer les agrégats au partenaire de reprise après incident sur cluster_A : `storage failover giveback –ofnode node_A_1`
-.. Renvoyer les agrégats au partenaire de reprise après incident sur cluster_B : `storage failover giveback –ofnode node_B_1`
+.. Renvoyer les agrégats au partenaire de reprise après incident sur cluster_A :
++
+[source, cli]
+----
+storage failover giveback –ofnode node_A_1
+----
+.. Renvoyer les agrégats au partenaire de reprise après incident sur cluster_B :
++
+[source, cli]
+----
+storage failover giveback –ofnode node_B_1
+----
 +
 L'opération de rétablissement renvoie tout d'abord l'agrégat racine sur le nœud, puis, une fois le démarrage du nœud terminé, renvoie les agrégats non-racine.
 
 
 
-. Vérifiez que tous les agrégats ont été renvoyés en exécutant la commande suivante sur les deux clusters : `storage failover show-giveback`
+. Vérifiez que tous les agrégats ont été renvoyés en exécutant la commande suivante sur les deux clusters :
++
+[source, cli]
+----
+storage failover show-giveback
+----
 +
 Si le champ État de rétablissement indique qu'il n'y a pas d'agrégats à renvoyer, tous les agrégats ont été renvoyés. Si le retour est vetoté, la commande affiche la progression du rétablissement et le sous-système qui a mis son veto au rétablissement.
 
@@ -356,11 +440,21 @@ Le temps de restauration est spécifique au client et peut prendre plus de huit 
 
 
 
-. Définissez le niveau de privilège de admin sur avancé, en entrant *y* lorsque vous êtes invité à continuer : `set -privilege advanced`
+. Définissez le niveau de privilège de admin sur avancé, en entrant *y* lorsque vous êtes invité à continuer :
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 L'invite avancée (`*>`) s'affiche.
 
-. Vérifier la version du cluster_A : `system image show`
+. Vérifier la version du cluster_A :
++
+[source, cli]
+----
+system image show
+----
 +
 L'exemple suivant montre que System image2 doit être la version par défaut et la version en cours sur node_A_1 :
 
@@ -381,7 +475,12 @@ L'exemple suivant montre que System image2 doit être la version par défaut et 
 
  cluster_A::>
 ----
-. Vérifier la version du cluster_B : `system image show`
+. Vérifier la version du cluster_B :
++
+[source, cli]
+----
+system image show
+----
 +
 L'exemple suivant montre que System image2 (ONTAP 9.0.0) est la version par défaut et la version actuelle du noeud_A_1 :
 
@@ -412,11 +511,16 @@ Vous devez effectuer un basculement et un retour du nœud afin de faire de la no
 
 Vous devez avoir mis à niveau la première paire DR (node_A_1 et node_B_1).
 
-Dans cette tâche, Node_A_2 et node_B_2 sont mis à jour.
+Dans cette tâche, les nœuds_A_2 et node_B_2 sont mis à niveau.
 
-Si vous avez mis à jour le logiciel ONTAP sur le premier groupe DR et que vous mettez à jour le second groupe DR dans une configuration MetroCluster à huit nœuds, dans cette tâche, vous mettez à jour le noeud_A_4 et le noeud_B_4.
+Si vous avez mis à niveau le logiciel ONTAP sur le premier groupe DR et que vous mettez à jour le deuxième groupe DR dans une configuration MetroCluster à huit nœuds, dans cette tâche, vous mettez à jour node_A_4 et node_B_4.
 
-. Migrer tous les LIFs de données loin du nœud : `network interface migrate-all -node nodenameA`
+. Migrer tous les LIFs de données loin du nœud :
++
+[source, cli]
+----
+network interface migrate-all -node nodenameA
+----
 . Initier un basculement du nœud cible sur cluster_A :
 +
 Ne spécifiez pas le paramètre -option immédiate, car un basculement normal est nécessaire pour les nœuds pris en charge afin de démarrer sur la nouvelle image logicielle.
@@ -424,8 +528,10 @@ Ne spécifiez pas le paramètre -option immédiate, car un basculement normal es
 +
 .. Reprendre le partenaire de reprise après incident sur cluster_A :
 +
-`storage failover takeover -ofnode node_A_2 -option allow-version-mismatch`
-
+[source, cli]
+----
+storage failover takeover -ofnode node_A_2 -option allow-version-mismatch
+----
 +
 
 NOTE: Le `allow-version-mismatch` Aucune option n'est requise pour les mises à niveau de ONTAP 9.0 vers ONTAP 9.1 ou pour les mises à niveau de correctifs.
@@ -436,7 +542,12 @@ Le nœud démarre à l'état « waiting for giveback ».
 +
 Si AutoSupport est activé, un message AutoSupport est envoyé pour indiquer que les nœuds sont hors du quorum du cluster. Vous pouvez ignorer cette notification et poursuivre la mise à niveau.
 
-.. Vérifiez que le basculement est réussi : `storage failover show`
+.. Vérifiez que le basculement est réussi :
++
+[source, cli]
+----
+storage failover show
+----
 +
 L'exemple suivant montre que le basculement a réussi. L'état « waiting for giveback » est défini sur node_A_2 et node_A_1 est à l'état « In Takeover ».
 
@@ -468,27 +579,36 @@ Ne spécifiez pas le paramètre -option immédiate, car un basculement normal es
  a| 
 ONTAP 9.2 ou ONTAP 9.1
  a| 
-`storage failover takeover -ofnode node_B_2`
-
+[source, cli]
+----
+storage failover takeover -ofnode node_B_2
+----
 
 
  a| 
 ONTAP 9.0 ou Data ONTAP 8.3.x
  a| 
-`storage failover takeover -ofnode node_B_2 -option allow-version-mismatch`
-REMARQUE : le `allow-version-mismatch` Aucune option n'est requise pour les mises à niveau de ONTAP 9.0 vers ONTAP 9.1 ou pour les mises à niveau de correctifs.
+[source, cli]
+----
+storage failover takeover -ofnode node_B_2 -option allow-version-mismatch
+----
+
+NOTE: Le `allow-version-mismatch` Aucune option n'est requise pour les mises à niveau de ONTAP 9.0 vers ONTAP 9.1 ou pour les mises à niveau de correctifs.
 
 |===
-
-
-
-
++
 Le nœud démarre à l'état « waiting for giveback ».
 
 +
-REMARQUE : si AutoSupport est activé, un message AutoSupport est envoyé, indiquant que les nœuds ne disposent pas du quorum du cluster. Vous pouvez ignorer cette notification en toute sécurité et poursuivre la mise à niveau.
 
-. Vérifiez que le basculement est réussi : `storage failover show`
+NOTE: Si AutoSupport est activé, un message AutoSupport est envoyé, indiquant que les nœuds ne disposent pas du quorum du cluster. Vous pouvez ignorer cette notification en toute sécurité et poursuivre la mise à niveau.
+
+.. Vérifiez que le basculement est réussi :
++
+[source, cli]
+----
+storage failover show
+----
 +
 L'exemple suivant montre que le basculement a réussi. L'état « waiting for giveback » est défini sur node_B_2 et le nœud_B_1 est à l'état « In Takeover ».
 
@@ -503,54 +623,82 @@ node_B_1       node_B_2       false    In takeover
 node_B_2       node_B_1       -        Waiting for giveback (HA mailboxes)
 2 entries were displayed.
 ----
+
+
+. Attendez au moins huit minutes pour vérifier les conditions suivantes :
 +
-.. Attendez au moins huit minutes pour vérifier les conditions suivantes :
-+
-*** Les chemins d'accès multiples du client (si déployés) sont stabilisés.
-*** Les clients sont récupérés à partir de la pause des E/S qui a lieu lors du basculement.
+** Les chemins d'accès multiples du client (si déployés) sont stabilisés.
+** Les clients sont récupérés à partir de la pause des E/S qui a lieu lors du basculement.
 +
 Le temps de restauration est spécifique au client et peut prendre plus de huit minutes selon les caractéristiques des applications client.
 
 
 
-.. Renvoyez les agrégats aux nœuds cibles :
+. Renvoyez les agrégats aux nœuds cibles :
 +
 Après la mise à niveau des configurations IP de MetroCluster vers ONTAP 9.5, les agrégats seront sur une courte période avant de resynchroniser et de rétablir l'état miroir.
 
-
-
-. Renvoyer les agrégats au partenaire de reprise après incident sur cluster_A : `storage failover giveback –ofnode node_A_2`
-. Renvoyer les agrégats au partenaire de reprise après incident sur cluster_B : `storage failover giveback –ofnode node_B_2`
++
+.. Renvoyer les agrégats au partenaire de reprise après incident sur cluster_A :
++
+[source, cli]
+----
+storage failover giveback –ofnode node_A_2
+----
+.. Renvoyer les agrégats au partenaire de reprise après incident sur cluster_B :
++
+[source, cli]
+----
+storage failover giveback –ofnode node_B_2
+----
 +
 L'opération de rétablissement renvoie tout d'abord l'agrégat racine sur le nœud, puis, une fois le démarrage du nœud terminé, renvoie les agrégats non-racine.
 
+
+
+. Vérifiez que tous les agrégats ont été renvoyés en exécutant la commande suivante sur les deux clusters :
 +
-.. Vérifiez que tous les agrégats ont été renvoyés en exécutant la commande suivante sur les deux clusters : `storage failover show-giveback`
+[source, cli]
+----
+storage failover show-giveback
+----
 +
 Si le champ État de rétablissement indique qu'il n'y a pas d'agrégats à renvoyer, tous les agrégats ont été renvoyés. Si le retour est vetoté, la commande affiche la progression du rétablissement et le sous-système qui a mis son veto au rétablissement.
 
-.. Si un agrégat n'a pas été renvoyé, procédez comme suit :
-
-
-. Examinez la solution de contournement du veto pour déterminer si vous voulez répondre à la condition "verto" ou remplacer le veto.
-. Si nécessaire, répondez à la condition "verto" décrite dans le message d'erreur, en veillant à ce que toutes les opérations identifiées soient arrêtées de manière normale.
-. Saisissez de nouveau la commande Storage failover giveback.
+. Si un agrégat n'a pas été renvoyé, procédez comme suit :
++
+.. Examinez la solution de contournement du veto pour déterminer si vous voulez répondre à la condition "verto" ou remplacer le veto.
+.. Si nécessaire, répondez à la condition "verto" décrite dans le message d'erreur, en veillant à ce que toutes les opérations identifiées soient arrêtées de manière normale.
+.. Saisissez de nouveau la commande Storage failover giveback.
 +
 Si vous décidez de remplacer la condition "verto", définissez le paramètre -override-vetos sur true.
-. Attendez au moins huit minutes pour vérifier les conditions suivantes :
- ** Le multipathing du client (s'il est déployé) est stabilisé.
- ** Les clients sont récupérés à partir de la pause dans les E/S qui se produit pendant le rétablissement.
 
+
+
+. Attendez au moins huit minutes pour vérifier les conditions suivantes :
 +
+** Les chemins d'accès multiples du client (si déployés) sont stabilisés.
+** Les clients sont récupérés à partir de la pause des E/S qui a lieu au cours du rétablissement
 +
 Le temps de restauration est spécifique au client et peut prendre plus de huit minutes selon les caractéristiques des applications client.
 
+
+
+. Définissez le niveau de privilège de admin sur avancé, en entrant *y* lorsque vous êtes invité à continuer :
 +
-.. Définissez le niveau de privilège de admin sur avancé, en entrant *y* lorsque vous êtes invité à continuer : `set -privilege advanced`
+[source, cli]
+----
+set -privilege advanced
+----
 +
 L'invite avancée (`*>`) s'affiche.
 
-.. Vérifier la version du cluster_A : `system image show`
+. Vérifier la version du cluster_A :
++
+[source, cli]
+----
+system image show
+----
 +
 L'exemple suivant montre que l'image système 2 (image ONTAP cible) est la version par défaut et la version actuelle du noeud_A_2 :
 
@@ -571,7 +719,12 @@ node_A_2
 
 cluster_A::>
 ----
-.. Vérifier la version du cluster_B : `system image show`
+. Vérifier la version du cluster_B :
++
+[source, cli]
+----
+system image show
+----
 +
 L'exemple suivant montre que l'image système 2 (image ONTAP cible) est la version par défaut et la version actuelle du noeud_B_2 :
 
@@ -592,11 +745,21 @@ node_B_2
 
 cluster_A::>
 ----
-.. Pour chaque nœud de la paire HA, activez le rétablissement automatique : `storage failover modify -node target-node -auto-giveback true`
+. Pour chaque nœud de la paire HA, activez le rétablissement automatique :
++
+[source, cli]
+----
+storage failover modify -node target-node -auto-giveback true
+----
 +
 Cette commande doit être répétée pour chaque nœud de la paire HA.
 
-.. Vérifier que le rétablissement automatique est activé : `storage failover show -fields auto-giveback`
+. Vérifier que le rétablissement automatique est activé :
++
+[source, cli]
+----
+storage failover show -fields auto-giveback
+----
 +
 Cet exemple montre que le rétablissement automatique a été activé sur les deux nœuds :
 
@@ -610,6 +773,4 @@ node_x_1 true
 node_x_2 true
 2 entries were displayed.
 ----
-
-
 

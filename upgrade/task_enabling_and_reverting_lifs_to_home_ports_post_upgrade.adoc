@@ -2,87 +2,45 @@
 permalink: upgrade/task_enabling_and_reverting_lifs_to_home_ports_post_upgrade.html 
 sidebar: sidebar 
 keywords: ontap, upgrade, after, post, enable, enabling, revert, reverting, lifs, home, ports 
-summary: 'Au cours d"un redémarrage, certaines LIFs ont peut-être été migrées vers leurs ports de basculement qui leur sont attribués. Avant et après la mise à niveau d"un cluster, vous devez activer et restaurer toutes les LIFs qui ne se trouvent pas sur leur port de base.' 
+summary: 'Au cours d"un redémarrage de mise à niveau, certaines LIF peuvent être migrées vers les ports de basculement attribués. Après la mise à niveau, activez et restaurez des LIF qui ne se trouvent pas sur leurs ports de repos.' 
 ---
-= Vérifier que toutes LES LIFS sont sur les ports de base après la mise à niveau
+= Vérifiez que toutes les LIF se trouvent sur des ports de base après la mise à niveau de ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Au cours d'un redémarrage, certaines LIFs ont peut-être été migrées vers leurs ports de basculement qui leur sont attribués. Une fois que vous avez mis à niveau un cluster, vous devez activer et restaurer toutes les LIF qui ne se trouvent pas sur leur port de base.
+Au cours du redémarrage qui se produit dans le cadre du processus de mise à niveau de ONTAP, certaines LIF peuvent être migrées de leurs ports de base vers les ports de basculement qui leur sont attribués. Après une mise à niveau, vous devez activer et restaurer les LIF qui ne se trouvent pas sur leurs ports de base.
 
-La commande network interface revert restaure une LIF qui n'est pas actuellement sur son port home port vers son port home port, à condition que le port home port soit opérationnel. Le port de base d'une LIF est spécifié lors de sa création ; vous pouvez déterminer le port d'origine d'une LIF à l'aide de la commande network interface show.
+.Étapes
+. Afficher le statut de toutes les LIFs :
++
+[source, cli]
+----
+network interface show -fields home-port,curr-port
+----
++
+Si *Status Admin* est "down" ou *is home* est "false" pour n'importe quelle LIF, passez à l'étape suivante.
 
-. Afficher le statut de toutes les LIFs : `network interface show -fields home-port,curr-port`
+. Activation des LIFs de données :
 +
-Cet exemple affiche l'état de toutes les LIFs d'un Storage Virtual machine (SVM).
-
+[source, cli]
+----
+network interface modify {-role data} -status-admin up
+----
+. Rerestaurez les LIF sur leurs home ports :
 +
-[listing]
+[source, cli]
 ----
-cluster1::> network interface show -fields home-port,curr-port
-vserver                          lif       home-port curr-port
--------------------------------- --------- --------- ---------
-C1_sti96-vsim-ucs539g_1622463615 clus_mgmt e0d       e0d
-C1_sti96-vsim-ucs539g_1622463615 sti96-vsim-ucs539g_cluster_mgmt_inet6 e0d e0d
-C1_sti96-vsim-ucs539g_1622463615 sti96-vsim-ucs539g_mgmt1 e0c e0c
-C1_sti96-vsim-ucs539g_1622463615 sti96-vsim-ucs539g_mgmt1_inet6 e0c e0c
-C1_sti96-vsim-ucs539g_1622463615 sti96-vsim-ucs539h_cluster_mgmt_inet6 e0d e0d
-C1_sti96-vsim-ucs539g_1622463615 sti96-vsim-ucs539h_mgmt1 e0c e0c
-C1_sti96-vsim-ucs539g_1622463615 sti96-vsim-ucs539h_mgmt1_inet6 e0c e0c
-Cluster                          sti96-vsim-ucs539g_clus1 e0a e0a
-Cluster                          sti96-vsim-ucs539g_clus2 e0b e0b
-Cluster                          sti96-vsim-ucs539h_clus1 e0a e0a
-Cluster                          sti96-vsim-ucs539h_clus2 e0b e0b
-vs0                              sti96-vsim-ucs539g_data1 e0d e0d
-vs0                              sti96-vsim-ucs539g_data1_inet6 e0d e0d
-vs0                              sti96-vsim-ucs539g_data2 e0e e0e
-vs0                              sti96-vsim-ucs539g_data2_inet6 e0e e0e
-vs0                              sti96-vsim-ucs539g_data3 e0f e0f
-vs0                              sti96-vsim-ucs539g_data3_inet6 e0f e0f
-vs0                              sti96-vsim-ucs539g_data4 e0d e0d
-vs0                              sti96-vsim-ucs539g_data4_inet6 e0d e0d
-vs0                              sti96-vsim-ucs539g_data5 e0e e0e
-vs0                              sti96-vsim-ucs539g_data5_inet6 e0e e0e
-vs0                              sti96-vsim-ucs539g_data6 e0f e0f
-vs0                              sti96-vsim-ucs539g_data6_inet6 e0f e0f
-vs0                              sti96-vsim-ucs539h_data1 e0d e0d
-vs0                              sti96-vsim-ucs539h_data1_inet6 e0d e0d
-vs0                              sti96-vsim-ucs539h_data2 e0e e0e
-vs0                              sti96-vsim-ucs539h_data2_inet6 e0e e0e
-vs0                              sti96-vsim-ucs539h_data3 e0f e0f
-vs0                              sti96-vsim-ucs539h_data3_inet6 e0f e0f
-vs0                              sti96-vsim-ucs539h_data4 e0d e0d
-vs0                              sti96-vsim-ucs539h_data4_inet6 e0d e0d
-vs0                              sti96-vsim-ucs539h_data5 e0e e0e
-vs0                              sti96-vsim-ucs539h_data5_inet6 e0e e0e
-vs0                              sti96-vsim-ucs539h_data6 e0f e0f
-vs0                              sti96-vsim-ucs539h_data6_inet6 e0f e0f
-35 entries were displayed.
+network interface revert *
 ----
+. Vérifier que toutes les LIFs se trouvent sur leurs ports de type home :
 +
-Si une LIF est associée à un statut « down » ou avec un statut is home défini sur « false », passez à l'étape suivante.
-
-. Activation des LIFs de données : `network interface modify {-role data} -status-admin up`
-+
-[listing]
+[source, cli]
 ----
-cluster1::> network interface modify {-role data} -status-admin up
-8 entries were modified.
+network interface show
 ----
-. Rerestaurez les LIF sur leurs home ports : `network interface revert *`
-+
-Cette commande restaure toutes les LIF vers leur port de base.
-
-+
-[listing]
-----
-cluster1::> network interface revert *
-8 entries were acted on.
-----
-. Vérifier que toutes les LIFs se trouvent sur leurs ports de type home : `network interface show`
 +
 Cet exemple montre que toutes les LIFs pour SVM vs0 sont sur leurs ports de base.
 

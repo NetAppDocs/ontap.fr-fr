@@ -2,7 +2,7 @@
 permalink: upgrade/task_updating_an_ontap_cluster_disruptively.html 
 sidebar: sidebar 
 keywords: ontap, upgrade, disruptively 
-summary: 'Si vous pouvez mettre votre cluster hors ligne pour effectuer la mise à niveau vers une nouvelle version de ONTAP, vous pouvez utiliser la méthode de mise à niveau perturbation. Cette méthode se procédure en plusieurs étapes : désactivation du basculement du stockage pour chaque paire haute disponibilité, redémarrage de chaque nœud du cluster, puis réactivation du basculement du stockage.' 
+summary: Si vous pouvez mettre votre cluster hors ligne pour effectuer la mise à niveau vers une nouvelle version de ONTAP, vous pouvez utiliser la méthode de mise à niveau perturbation. 
 ---
 = Mise à niveau manuelle des ONTAP perturbantes via l'interface de ligne de commande
 :allow-uri-read: 
@@ -22,15 +22,31 @@ Si les clients SAN ne sont pas arrêtés ou suspendus avant une mise à niveau p
 
 Lors d'une mise à niveau sans interruption, un basculement du stockage est désactivé pour chaque paire haute disponibilité et chaque nœud est mis à jour. Lorsque le basculement de stockage est désactivé, chaque nœud se comporte comme un cluster à un seul nœud ; c'est-à-dire que les services système associés au nœud sont interrompus tant que le système doit redémarrer.
 
-. Définissez le niveau de privilège de admin sur avancé, en entrant *y* lorsque vous êtes invité à continuer : `set -privilege advanced`
+.Étapes
+. Définissez le niveau de privilège de admin sur avancé, en entrant *y* lorsque vous êtes invité à continuer :
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 L'invite avancée (`*>`) s'affiche.
 
-. Définissez la nouvelle image du logiciel ONTAP comme image par défaut : `system image modify {-node * -iscurrent false} -isdefault true`
+. Définissez la nouvelle image du logiciel ONTAP comme image par défaut :
++
+[source, cli]
+----
+system image modify {-node * -iscurrent false} -isdefault true
+----
 +
 Cette commande utilise une requête étendue pour modifier l'image logicielle ONTAP cible (qui est installée comme image secondaire) en tant qu'image par défaut pour chaque nœud.
 
-. Vérifiez que la nouvelle image du logiciel ONTAP est définie comme image par défaut : `system image show`
+. Vérifiez que la nouvelle image du logiciel ONTAP est définie comme image par défaut :
++
+[source, cli]
+----
+system image show
+----
 +
 Dans l'exemple suivant, l'image 2 est la nouvelle version de ONTAP et est définie en tant qu'image par défaut sur les deux nœuds :
 
@@ -81,7 +97,12 @@ Plus de deux nœuds
 Désactiver le basculement du stockage pour chaque paire haute disponibilité du cluster : `storage failover modify -node * -enabled false`
 
 |===
-. Reboot d'un noeud sur le cluster: `system node reboot -node nodename -ignore-quorum-warnings`
+. Reboot d'un noeud sur le cluster:
++
+[source, cli]
+----
+system node reboot -node nodename -ignore-quorum-warnings
+----
 +
 
 IMPORTANT: Ne redémarrez pas plus d'un nœud à la fois.
@@ -89,11 +110,21 @@ IMPORTANT: Ne redémarrez pas plus d'un nœud à la fois.
 +
 Le nœud démarre la nouvelle image ONTAP. L'invite de connexion ONTAP apparaît, indiquant que le processus de redémarrage est terminé.
 
-. Après le redémarrage du nœud ou de l'ensemble de nœuds avec la nouvelle image ONTAP, définissez le niveau de privilège sur Advanced : `set -privilege advanced`
+. Après le redémarrage du nœud ou de l'ensemble de nœuds avec la nouvelle image ONTAP, définissez le niveau de privilège sur Advanced :
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 Entrez *y* lorsque vous êtes invité à continuer
 
-. Vérifiez que le nouveau logiciel est en cours d'exécution : `system node image show`
+. Vérifiez que le nouveau logiciel est en cours d'exécution :
++
+[source, cli]
+----
+system node image show
+----
 +
 Dans l'exemple suivant, image1 est la nouvelle version de ONTAP et est définie comme la version actuelle sur le noeud 0 :
 
@@ -114,18 +145,43 @@ node1
 ----
 . Vérifiez que la mise à niveau est effectuée correctement :
 +
-.. Définissez le niveau de privilège sur avancé : `set -privilege advanced`
-.. Vérifiez que la mise à niveau est terminée pour chaque nœud : `system node upgrade-revert show -node nodename`
+.. Définissez le niveau de privilège sur avancé :
++
+[source, cli]
+----
+set -privilege advanced
+----
+.. Vérifiez que la mise à niveau est terminée pour chaque nœud :
++
+[source, cli]
+----
+system node upgrade-revert show -node nodename
+----
 +
 L'état doit être indiqué comme étant terminé.
 
 +
 Si le statut n'est pas terminé, link:http://mysupport.netapp.com/["Contactez le support NetApp"] immédiatement.
 
-.. Retour au niveau de privilège admin : `set -privilege admin`
+.. Retour au niveau de privilège admin :
++
+[source, cli]
+----
+set -privilege admin
+----
 
 
-. Répétez les étapes 2 à 7 pour chaque nœud supplémentaire.
-. Si le cluster comprend deux nœuds ou plus, activez le basculement du stockage pour chaque paire haute disponibilité du cluster : `storage failover modify -node * -enabled true`
-. Si le cluster ne comprend que deux nœuds, activez la haute disponibilité du cluster : `cluster ha modify -configured true`
+. Répétez les étapes 2 à 8 pour chaque nœud supplémentaire.
+. Si le cluster comprend deux nœuds ou plus, activez le basculement du stockage pour chaque paire haute disponibilité du cluster :
++
+[source, cli]
+----
+storage failover modify -node * -enabled true
+----
+. Si le cluster ne comprend que deux nœuds, activez la haute disponibilité du cluster :
++
+[source, cli]
+----
+cluster ha modify -configured true
+----
 

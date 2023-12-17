@@ -2,35 +2,46 @@
 permalink: upgrade/task_updating_a_two_node_metrocluster_configuration_in_ontap_9_2_and_earlier.html 
 sidebar: sidebar 
 keywords: ontap, upgrade, two-node, metrocluster, mcc, 9.2, earlier 
-summary: Si vous avez une configuration MetroCluster à 2 nœuds exécutant la version 9.2 ou une version antérieure, utilisez cette procédure pour la mise à niveau de ONTAP. 
+summary: 'La mise à niveau d"une configuration MetroCluster à deux nœuds varie en fonction de votre version de ONTAP. Utilisez cette procédure pour les mises à niveau à partir de ONTAP 9.2 ou d"une version antérieure.' 
 ---
-= Mise à niveau manuelle sans interruption d'une configuration MetroCluster à deux nœuds sous ONTAP 9.2 ou version antérieure
+= Mise à niveau non disruptive d'une configuration MetroCluster à deux nœuds sous ONTAP 9.2 ou version antérieure
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Vous pouvez mettre à niveau ONTAP sans interruption pour une configuration MetroCluster à deux nœuds. Cette méthode comprend plusieurs étapes : lancement d'un basculement négocié, mise à jour du cluster sur le site « en panne », lancement du rétablissement, puis répétition du processus sur le cluster sur l'autre site.
+La mise à niveau d'une configuration MetroCluster à deux nœuds varie en fonction de votre version de ONTAP. Si vous exécutez ONTAP 9.2 ou une version antérieure, utilisez cette procédure pour effectuer une mise à niveau manuelle sans interruption, notamment lancer un basculement négocié, mettre à jour le cluster sur le site en panne, initier le rétablissement, puis répéter le processus sur le cluster de l'autre site.
 
-[NOTE]
-====
-Cette procédure s'applique aux configurations MetroCluster à deux nœuds qui exécutent ONTAP 9.2 ou une version antérieure uniquement.
+Si vous disposez d'une configuration MetroCluster à deux nœuds exécutant ONTAP 9.3 ou une version ultérieure, effectuez une xref:task_upgrade_andu_sm.html[Mise à niveau automatisée avec System Manager].
 
-Si vous disposez d'une configuration MetroCluster à deux nœuds exécutant ONTAP 9.3 ou une version ultérieure, effectuez une xref:task_upgrade_andu_sm.html[Mise à niveau automatisée sans interruption avec System Manager].
-
-====
-. Définissez le niveau de privilège sur avancé, en entrant *y* lorsque vous êtes invité à continuer : `set -privilege advanced`
+.Étapes
+. Définissez le niveau de privilège sur avancé, en entrant *y* lorsque vous êtes invité à continuer :
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 L'invite avancée (`*>`) s'affiche.
 
-. Sur le cluster à mettre à niveau, installez la nouvelle image logicielle ONTAP comme image par défaut : `system node image update -package package_location -setdefault true -replace-package true`
+. Sur le cluster à mettre à niveau, installez la nouvelle image logicielle ONTAP comme image par défaut :
++
+[source, cli]
+----
+system node image update -package package_location -setdefault true -replace-package true
+----
 +
 [listing]
 ----
 cluster_B::*> system node image update -package http://www.example.com/NewImage.tgz -setdefault true -replace-package true
 ----
-. Vérifiez que l'image du logiciel cible est définie comme image par défaut : `system node image show`
+. Vérifiez que l'image du logiciel cible est définie comme image par défaut :
++
+[source, cli]
+----
+system node image show
+----
 +
 L'exemple suivant montre cela `NewImage` est défini comme image par défaut :
 
@@ -46,9 +57,24 @@ node_B_1
          NewImage  true    false   Y.Y.Y                MM/DD/YYYY TIME
 2 entries were displayed.
 ----
-. Si l'image du logiciel cible n'est pas définie comme image par défaut, modifiez-la : `system image modify {-node * -iscurrent false} -isdefault true`
-. Vérifier que tous les SVM de cluster sont dans un état de santé : `metrocluster vserver show`
-. Sur le cluster qui n'est pas mis à jour, initiez un basculement négocié : `metrocluster switchover`
+. Si l'image du logiciel cible n'est pas définie comme image par défaut, modifiez-la :
++
+[source, cli]
+----
+system image modify {-node * -iscurrent false} -isdefault true
+----
+. Vérifier que tous les SVM de cluster sont dans un état de santé :
++
+[source, cli]
+----
+metrocluster vserver show
+----
+. Sur le cluster qui n'est pas mis à jour, initiez un basculement négocié :
++
+[source, cli]
+----
+metrocluster switchover
+----
 +
 L'opération peut prendre plusieurs minutes. Vous pouvez utiliser la commande MetroCluster Operation show pour vérifier que le basculement est terminé.
 
@@ -67,8 +93,18 @@ Warning: negotiated switchover is about to start. It will stop all the data
          cluster "cluster_B".
 Do you want to continue? {y|n}: y
 ----
-. Vérifier que tous les SVM de cluster sont dans un état de santé : `metrocluster vserver show`
-. Resynchroniser les agrégats de données sur le cluster « Seurviving » : `metrocluster heal -phase aggregates`
+. Vérifier que tous les SVM de cluster sont dans un état de santé :
++
+[source, cli]
+----
+metrocluster vserver show
+----
+. Resynchroniser les agrégats de données sur le cluster « Seurviving » :
++
+[source, cli]
+----
+metrocluster heal -phase aggregates
+----
 +
 Après la mise à niveau des configurations IP de MetroCluster vers ONTAP 9.5 ou une version ultérieure, les agrégats sont dégradés pendant une courte période avant de resynchroniser et de revenir à un état miroir.
 
@@ -78,7 +114,12 @@ Après la mise à niveau des configurations IP de MetroCluster vers ONTAP 9.5 ou
 cluster_A::> metrocluster heal -phase aggregates
 [Job 130] Job succeeded: Heal Aggregates is successful.
 ----
-. Vérifiez que l'opération de correction a bien été effectuée : `metrocluster operation show`
+. Vérifiez que l'opération de correction a bien été effectuée :
++
+[source, cli]
+----
+metrocluster operation show
+----
 +
 [listing]
 ----
@@ -89,14 +130,24 @@ Start Time: MM/DD/YYYY TIME
 End Time: MM/DD/YYYY TIME
 Errors: -
 ----
-. Resynchroniser les agrégats racine sur le cluster « Seurviving » : `metrocluster heal -phase root-aggregates`
+. Resynchroniser les agrégats racine sur le cluster « Seurviving » :
++
+[source, cli]
+----
+metrocluster heal -phase root-aggregates
+----
 +
 [listing]
 ----
 cluster_A::> metrocluster heal -phase root-aggregates
 [Job 131] Job succeeded: Heal Root Aggregates is successful.
 ----
-. Vérifiez que l'opération de correction a bien été effectuée : `metrocluster operation show`
+. Vérifiez que l'opération de correction a bien été effectuée :
++
+[source, cli]
+----
+metrocluster operation show
+----
 +
 [listing]
 ----
@@ -107,10 +158,30 @@ Start Time: MM/DD/YYYY TIME
 End Time: MM/DD/YYYY TIME
 Errors: -
 ----
-. Sur le cluster arrêté, démarrez le nœud à partir de l'invite DU CHARGEUR : `boot_ontap`
-. Attendez la fin du processus de démarrage, puis vérifiez que tous les SVM du cluster sont bien en état de santé : `metrocluster vserver show`
-. Effectuez un rétablissement à partir du cluster « Seurviving » : `metrocluster switchback`
-. Vérifiez que le rétablissement a été effectué correctement : `metrocluster operation show`
+. Sur le cluster arrêté, démarrez le nœud à partir de l'invite DU CHARGEUR :
++
+[source, cli]
+----
+boot_ontap
+----
+. Attendez la fin du processus de démarrage, puis vérifiez que tous les SVM du cluster sont bien en état de santé :
++
+[source, cli]
+----
+metrocluster vserver show
+----
+. Effectuez un rétablissement à partir du cluster « Seurviving » :
++
+[source, cli]
+----
+metrocluster switchback
+----
+. Vérifiez que le rétablissement a été effectué correctement :
++
+[source, cli]
+----
+metrocluster operation show
+----
 +
 [listing]
 ----
@@ -121,11 +192,21 @@ Start Time: MM/DD/YYYY TIME
 End Time: MM/DD/YYYY TIME
 Errors: -
 ----
-. Vérifier que tous les SVM de cluster sont dans un état de santé : `metrocluster vserver show`
+. Vérifier que tous les SVM de cluster sont dans un état de santé :
++
+[source, cli]
+----
+metrocluster vserver show
+----
 . Répétez toutes les étapes précédentes sur l'autre cluster.
 . Vérifier que la configuration MetroCluster est saine :
 +
-.. Vérifiez la configuration : `metrocluster check run`
+.. Vérifiez la configuration :
++
+[source, cli]
+----
+metrocluster check run
+----
 +
 [listing]
 ----
@@ -147,9 +228,44 @@ operation, run "metrocluster switchover -simulate" or "metrocluster
 switchback -simulate", respectively.
 ----
 .. Pour afficher des résultats plus détaillés, utilisez la commande MetroCluster check run :
-.. Définissez le niveau de privilège sur avancé : `set -privilege advanced`
-.. Simuler l'opération de basculement : `metrocluster switchover -simulate`
-.. Examinez les résultats de la simulation de basculement : `metrocluster operation show`
++
+[source, cli]
+----
+metrocluster check aggregate show
+----
++
+[source, cli]
+----
+metrocluster check config-replication show
+----
++
+[source, cli]
+----
+metrocluster check lif show
+----
++
+[source, cli]
+----
+metrocluster check node show
+----
+.. Définissez le niveau de privilège sur avancé :
++
+[source, cli]
+----
+set -privilege advanced
+----
+.. Simuler l'opération de basculement :
++
+[source, cli]
+----
+metrocluster switchover -simulate
+----
+.. Examinez les résultats de la simulation de basculement :
++
+[source, cli]
+----
+metrocluster operation show
+----
 +
 [listing]
 ----
@@ -160,13 +276,19 @@ cluster_A::*> metrocluster operation show
      End time: MM/DD/YYYY TIME
        Errors: -
 ----
-.. Retour au niveau de privilège admin : `set -privilege admin`
+.. Retour au niveau de privilège admin :
++
+[source, cli]
+----
+set -privilege admin
+----
 .. Répétez ces sous-étapes sur l'autre cluster.
 
 
 
 
-Vous devez effectuer toutes les tâches post-mise à niveau.
+.Une fois que vous avez terminé
+Effectuez toutes les opérations link:task_what_to_do_after_upgrade.html["tâches post-mise à niveau"].
 
 .Informations associées
 link:https://docs.netapp.com/us-en/ontap-metrocluster/disaster-recovery/concept_dr_workflow.html["Reprise après incident MetroCluster"]

@@ -2,31 +2,19 @@
 sidebar: sidebar 
 permalink: upgrade/task_upgrade_nondisruptive_manual_cli.html 
 keywords: upgrade, nondisruptive, , non-disruptive update, nondisruptive upgrade, shift workload between clusters, hardware platform, configuration, software image, update, update ONTAP, update software, ndu 
-summary: 'Pour mettre à niveau un cluster composé d"au moins deux nœuds via la méthode manuelle sans interruption, vous devez lancer une opération de basculement sur chaque nœud d"une paire haute disponibilité, mettre à jour le nœud en panne, lancer un rétablissement, puis répéter le processus pour chaque paire haute disponibilité du cluster.' 
+summary: 'La mise à niveau automatisée à l"aide de System Manager est la méthode de mise à niveau préférée.  Si System Manager ne prend pas en charge votre configuration, vous pouvez effectuer une mise à niveau manuelle sans interruption à l"aide de l"interface de ligne de commandes.' 
 ---
-= Mise à niveau manuelle sans interruption du ONTAP via l'interface de ligne de commandes (systèmes non MetroCluster)
+= Mise à niveau manuelle des ONTAP sans interruption via l'interface de ligne de commandes (configurations standard)
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Pour mettre à niveau un cluster de deux nœuds ou plus à l'aide de la méthode manuelle sans interruption, vous devez lancer une opération de basculement sur chaque nœud d'une paire haute disponibilité, mettre à jour le nœud « en échec », lancer un rétablissement, puis répéter le processus pour chaque paire haute disponibilité du cluster.
+La mise à niveau automatisée à l'aide de System Manager est la méthode de mise à niveau préférée.  Si System Manager ne prend pas en charge votre configuration, vous pouvez effectuer une mise à niveau manuelle sans interruption à l'aide de l'interface de ligne de commandes ONTAP.  Pour mettre à niveau un cluster de deux nœuds ou plus à l'aide de la méthode manuelle sans interruption, vous devez lancer une opération de basculement sur chaque nœud d'une paire haute disponibilité, mettre à jour le nœud « en échec », lancer un rétablissement, puis répéter le processus pour chaque paire haute disponibilité du cluster.
 
-Vous devez avoir satisfait aux exigences de préparation de la mise à niveau.
-
-. Mettre à jour le premier nœud d'une paire HA
-+
-Vous mettez à niveau le premier nœud d'une paire haute disponibilité en initiant un basculement par le partenaire du nœud. Le partenaire service des données du nœud pendant la mise à niveau du premier nœud.
-
-. Mettre à jour le second nœud dans une paire HA
-+
-Après la mise à niveau ou la rétrogradation du premier nœud d'une paire haute disponibilité, vous mettez à niveau son partenaire en lançant un basculement sur incident. Le premier nœud transmet les données du partenaire pendant la mise à niveau du nœud partenaire.
-
-. Répétez cette procédure pour chaque paire haute disponibilité supplémentaire.
-
-
-Vous devez effectuer les tâches post-mise à niveau.
+.Avant de commencer
+Vous devez avoir satisfait la mise à niveau link:prepare.html["préparation"] conditions requises.
 
 
 
@@ -36,25 +24,51 @@ Vous pouvez mettre à jour le premier nœud d'une paire haute disponibilité en 
 
 Si vous effectuez une mise à niveau majeure, le premier nœud à mettre à niveau doit être le même nœud sur lequel vous avez configuré les LIFs de données pour la connectivité externe et installé la première image ONTAP.
 
-Après la mise à niveau du premier nœud, il est conseillé de mettre à niveau le nœud partenaire aussi rapidement que possible. Ne laissez pas les deux nœuds rester en état de version non-concordance plus longtemps que nécessaire.
+Après la mise à niveau du premier nœud, il est conseillé de mettre à niveau le nœud partenaire aussi rapidement que possible. Ne laissez pas les deux nœuds dans un link:concept_mixed_version_requirements.html["version mixte"] indiquer plus longtemps que nécessaire.
 
-. Mettre à jour le premier nœud du cluster en invoquant un message AutoSupport : `autosupport invoke -node * -type all -message "Starting_NDU"`
+.Étapes
+. Mettre à jour le premier nœud du cluster en invoquant un message AutoSupport :
++
+[source, cli]
+----
+autosupport invoke -node * -type all -message "Starting_NDU"
+----
 +
 Cette notification AutoSupport inclut un enregistrement de l'état du système juste avant la mise à jour. Il enregistre des informations de dépannage utiles en cas de problème avec le processus de mise à jour.
 
 +
 Si le cluster n'est pas configuré pour envoyer des messages AutoSupport, une copie de la notification est enregistrée localement.
 
-. Définissez le niveau de privilège sur avancé, en entrant *y* lorsque vous êtes invité à continuer : `set -privilege advanced`
+. Définissez le niveau de privilège sur avancé, en entrant *y* lorsque vous êtes invité à continuer :
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 L'invite avancée (`*>`) s'affiche.
 
-. Définissez la nouvelle image du logiciel ONTAP comme image par défaut : `system image modify {-node nodenameA -iscurrent false} -isdefault true`
+. Définissez la nouvelle image du logiciel ONTAP comme image par défaut :
++
+[source, cli]
+----
+system image modify {-node nodenameA -iscurrent false} -isdefault true
+----
 +
 La commande system image modify utilise une requête étendue pour remplacer la nouvelle image logicielle ONTAP (qui est installée comme image alternative) par l'image par défaut du nœud.
 
-. Surveiller la progression de la mise à jour : `system node upgrade-revert show`
-. Vérifiez que la nouvelle image du logiciel ONTAP est définie comme image par défaut : `system image show`
+. Surveiller la progression de la mise à jour :
++
+[source, cli]
+----
+system node upgrade-revert show
+----
+. Vérifiez que la nouvelle image du logiciel ONTAP est définie comme image par défaut :
++
+[source, cli]
+----
+system image show
+----
 +
 Dans l'exemple suivant, image2 est la nouvelle version de ONTAP et est définie en tant qu'image par défaut sur le noeud 0 :
 
@@ -73,11 +87,21 @@ node1
          image2  false   false   Y.Y.Y     MM/DD/YYYY TIME
 4 entries were displayed.
 ----
-. Désactiver le rétablissement automatique sur le nœud partenaire s'il est activé : `storage failover modify -node nodenameB -auto-giveback false`
+. Désactiver le rétablissement automatique sur le nœud partenaire s'il est activé :
++
+[source, cli]
+----
+storage failover modify -node nodenameB -auto-giveback false
+----
 +
 Si le cluster est un cluster à deux nœuds, un message s'affiche vous informant que la désactivation du rétablissement automatique empêche la mise en ligne des services du cluster de gestion en cas de défaillance alternée. Entrez `y` pour continuer.
 
-. Vérifier que le rétablissement automatique est désactivé pour le partenaire du nœud : `storage failover show -node nodenameB -fields auto-giveback`
+. Vérifier que le rétablissement automatique est désactivé pour le partenaire du nœud :
++
+[source, cli]
+----
+storage failover show -node nodenameB -fields auto-giveback
+----
 +
 [listing]
 ----
@@ -87,12 +111,18 @@ node     auto-giveback
 node1    false
 1 entry was displayed.
 ----
-. Exécutez la commande suivante deux fois pour déterminer si le nœud à mettre à jour diffuse actuellement des clients `system node run -node nodenameA -command uptime`
+. Exécutez la commande suivante deux fois pour déterminer si le nœud à mettre à jour diffuse actuellement des clients
++
+[source, cli]
+----
+system node run -node nodenameA -command uptime
+----
 +
 La commande UpTime affiche le nombre total d'opérations effectuées par le nœud pour les clients NFS, SMB, FC et iSCSI depuis le dernier démarrage du nœud. Pour chaque protocole, vous devez exécuter la commande deux fois afin de déterminer si le nombre d'opérations augmente. S'ils augmentent, le nœud diffuse actuellement des clients pour ce protocole. Si ce n'est pas le cas, le nœud ne diffuse actuellement pas les clients pour ce protocole.
 
 +
-*REMARQUE* : vous devez prendre note de chaque protocole qui a augmenté les opérations du client afin qu'après la mise à jour du nœud, vous puissiez vérifier que le trafic client a repris.
+
+NOTE: Vous devez noter chaque protocole dont les opérations client augmentent, de sorte qu'après la mise à jour du nœud, vous pouvez vérifier que le trafic client a repris.
 
 +
 L'exemple suivant montre un nœud avec des opérations NFS, SMB, FC et iSCSI. Toutefois, le nœud dessert actuellement uniquement les clients NFS et iSCSI.
@@ -106,8 +136,18 @@ cluster1::> system node run -node node0 -command uptime
 cluster1::> system node run -node node0 -command uptime
   2:58pm up  7 days, 19:17 800001573 NFS ops, 1017333 CIFS ops, 0 HTTP ops, 40395 FCP ops, 32815 iSCSI ops
 ----
-. Migrer tous les LIFs de données loin du nœud : `network interface migrate-all -node nodenameA`
-. Vérifiez toutes les LIFs que vous avez migrées : `network interface show`
+. Migrer tous les LIFs de données loin du nœud :
++
+[source, cli]
+----
+network interface migrate-all -node nodenameA
+----
+. Vérifiez toutes les LIFs que vous avez migrées :
++
+[source, cli]
+----
+network interface show
+----
 +
 Pour plus d'informations sur les paramètres que vous pouvez utiliser pour vérifier l'état des LIF, reportez-vous à la page man de l'interface réseau.
 
@@ -126,7 +166,12 @@ vs0     data003 node0     e0b       node1     e0b       up          up
 vs0     data004 node0     e0a       node1     e0a       up          up
 4 entries were displayed.
 ----
-. Lancement d'un basculement : `storage failover takeover -ofnode nodenameA`
+. Lancement d'un basculement :
++
+[source, cli]
+----
+storage failover takeover -ofnode nodenameA
+----
 +
 Ne spécifiez pas le paramètre -option immédiate, car un basculement normal est nécessaire pour le nœud en cours de basculement pour démarrer sur la nouvelle image logicielle. Si vous n'avez pas migré manuellement les LIF en dehors du nœud, elles migrent automatiquement vers le partenaire de haute disponibilité du nœud afin d'assurer l'absence d'interruption du service.
 
@@ -134,9 +179,15 @@ Ne spécifiez pas le paramètre -option immédiate, car un basculement normal es
 Le premier nœud démarre jusqu'à l'état d'attente de rétablissement.
 
 +
-*REMARQUE* : si AutoSupport est activé, un message AutoSupport est envoyé pour indiquer que le nœud est en dehors du quorum du cluster. Vous pouvez ignorer cette notification et poursuivre la mise à jour.
 
-. Vérifiez que le basculement est réussi : `storage failover show`
+NOTE: Si AutoSupport est activé, un message AutoSupport est envoyé, indiquant que le nœud n'a pas le quorum du cluster. Vous pouvez ignorer cette notification et poursuivre la mise à jour.
+
+. Vérifiez que le basculement est réussi :
++
+[source, cli]
+----
+storage failover show
+----
 +
 Des messages d'erreur indiquant des problèmes de non-concordance de version et de format de boîte aux lettres peuvent s'afficher. Ce comportement est attendu, il s'agit d'un état temporaire lors d'une mise à niveau sans interruption majeure et ne présente aucun danger.
 
@@ -163,20 +214,28 @@ Le temps de restauration est spécifique au client et peut prendre plus de huit 
 
 
 
-. Renvoyer les agrégats vers le premier nœud : `storage failover giveback –ofnode nodenameA`
+. Renvoyer les agrégats vers le premier nœud :
+
+
+[listing]
+----
+storage failover giveback –ofnode nodenameA
+----
 +
 Le rétablissement renvoie tout d'abord l'agrégat racine sur le nœud partenaire, puis, une fois le démarrage terminé, renvoie les agrégats non-root et toutes les LIF définies pour rétablir automatiquement ces agrégats. Le nœud qui vient d'être démarré commence à transmettre les données aux clients de chaque agrégat dès que l'agrégat est renvoyé.
 
-. Vérifier que tous les agrégats ont été renvoyés : `storage failover show-giveback`
+. Vérifier que tous les agrégats ont été renvoyés :
++
+[source, cli]
+----
+storage failover show-giveback
+----
 +
 Si le champ État de rétablissement indique qu'il n'y a pas d'agrégats à renvoyer, tous les agrégats ont été renvoyés. Si le retour est vetoté, la commande affiche la progression du rétablissement et le sous-système qui a mis son veto au rétablissement.
 
 . Si un agrégat n'a pas été renvoyé, effectuez les opérations suivantes :
 +
 .. Examinez la solution de contournement du veto pour déterminer si vous voulez répondre à la condition "verto" ou remplacer le veto.
-+
-link:../high-availability/index.html["Configuration haute disponibilité"]
-
 .. Si nécessaire, répondez à la condition "verto" décrite dans le message d'erreur, en veillant à ce que toutes les opérations identifiées soient arrêtées de manière normale.
 .. Exécutez à nouveau la commande Storage failover giveback.
 +
@@ -195,18 +254,38 @@ Le temps de restauration est spécifique au client et peut prendre plus de huit 
 
 . Vérifiez que la mise à jour a bien été effectuée pour le nœud :
 +
-.. Accéder au niveau de privilège avancé :``set -privilege advanced``
-.. Vérifiez que la mise à jour de l'état est terminée pour le nœud : `system node upgrade-revert show -node nodenameA`
+.. Accéder au niveau de privilège avancé :
++
+[source, cli]
+----
+set -privilege advanced
+----
+.. Vérifiez que la mise à jour de l'état est terminée pour le nœud :
++
+[source, cli]
+----
+system node upgrade-revert show -node nodenameA
+----
 +
 L'état doit être indiqué comme étant terminé.
 
 +
 Si le statut n'est pas terminé, contactez le support technique.
 
-.. Retour au niveau de privilège admin : `set -privilege admin`
+.. Retour au niveau de privilège admin :
++
+[source, cli]
+----
+set -privilege admin
+----
 
 
-. Vérifier que les ports du nœud sont bien : `network port show -node nodenameA`
+. Vérifier que les ports du nœud sont bien :
++
+[source, cli]
+----
+network port show -node nodenameA
+----
 +
 Vous devez exécuter cette commande sur un nœud mis à niveau vers la version supérieure de ONTAP 9.
 
@@ -228,7 +307,12 @@ node0
        e1b       Cluster      Cluster          up       9000  auto/10000
 5 entries were displayed.
 ----
-. Rerestaurez les LIF sur le nœud : `network interface revert *`
+. Rerestaurez les LIF sur le nœud :
++
+[source, cli]
+----
+network interface revert *
+----
 +
 Cette commande renvoie les LIFs qui ont été migrées à l'écart du nœud.
 
@@ -238,7 +322,12 @@ Cette commande renvoie les LIFs qui ont été migrées à l'écart du nœud.
 cluster1::> network interface revert *
 8 entries were acted on.
 ----
-. Vérifiez que les LIF de données du nœud sont bien rétablies sur le nœud et qu'elles utilisent : `network interface show`
+. Vérifiez que les LIF de données du nœud sont bien rétablies sur le nœud et qu'elles utilisent :
++
+[source, cli]
+----
+network interface show
+----
 +
 L'exemple suivant montre que toutes les LIF de données hébergées par le nœud ont été rétablies au niveau du nœud et que leur état opérationnel est actif :
 
@@ -256,7 +345,12 @@ vs0
             data004      up/up    192.0.2.123/24     node0         e0a     true
 4 entries were displayed.
 ----
-. Si vous avez auparavant déterminé que ce nœud diffuse les clients, vérifiez que le nœud fournit un service à chaque protocole qu'il était auparavant en service : `system node run -node nodenameA -command uptime`
+. Si vous avez auparavant déterminé que ce nœud diffuse les clients, vérifiez que le nœud fournit un service à chaque protocole qu'il était auparavant en service :
++
+[source, cli]
+----
+system node run -node nodenameA -command uptime
+----
 +
 L'opération compte à zéro pendant la mise à jour.
 
@@ -269,7 +363,12 @@ L'exemple suivant montre que le nœud mis à jour a repris le service de ses cli
 cluster1::> system node run -node node0 -command uptime
   3:15pm up  0 days, 0:16 129 NFS ops, 0 CIFS ops, 0 HTTP ops, 0 FCP ops, 2 iSCSI ops
 ----
-. Réactiver le rétablissement automatique sur le nœud partenaire s'il a été précédemment désactivé : `storage failover modify -node nodenameB -auto-giveback true`
+. Réactiver le rétablissement automatique sur le nœud partenaire s'il a été précédemment désactivé :
++
+[source, cli]
+----
+storage failover modify -node nodenameB -auto-giveback true
+----
 
 
 Vous devez continuer à mettre à jour le partenaire HA du nœud aussi rapidement que possible. Si vous devez interrompre le processus de mise à jour pour une raison quelconque, les deux nœuds de la paire HA doivent exécuter la même version de ONTAP.
@@ -280,16 +379,36 @@ Vous devez continuer à mettre à jour le partenaire HA du nœud aussi rapidemen
 
 Après la mise à jour du premier nœud d'une paire haute disponibilité, vous mettez à jour son partenaire en lançant un basculement sur incident. Le premier nœud transmet les données du partenaire pendant la mise à niveau du nœud partenaire.
 
-. Définissez le niveau de privilège sur avancé, en entrant *y* lorsque vous êtes invité à continuer : `set -privilege advanced`
+. Définissez le niveau de privilège sur avancé, en entrant *y* lorsque vous êtes invité à continuer :
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 L'invite avancée (`*>`) s'affiche.
 
-. Définissez la nouvelle image du logiciel ONTAP comme image par défaut : `system image modify {-node nodenameB -iscurrent false} -isdefault true`
+. Définissez la nouvelle image du logiciel ONTAP comme image par défaut :
++
+[source, cli]
+----
+system image modify {-node nodenameB -iscurrent false} -isdefault true
+----
 +
 La commande system image modify utilise une requête étendue pour modifier la nouvelle image logicielle ONTAP (qui est installée comme image alternative) comme image par défaut du nœud.
 
-. Surveiller la progression de la mise à jour : `system node upgrade-revert show`
-. Vérifiez que la nouvelle image du logiciel ONTAP est définie comme image par défaut : `system image show`
+. Surveiller la progression de la mise à jour :
++
+[source, cli]
+----
+system node upgrade-revert show
+----
+. Vérifiez que la nouvelle image du logiciel ONTAP est définie comme image par défaut :
++
+[source, cli]
+----
+system image show
+----
 +
 Dans l'exemple suivant : `image2` Est la nouvelle version d'ONTAP, définie en tant qu'image par défaut sur le nœud :
 
@@ -308,11 +427,21 @@ node1
          image2  true    false   Y.Y.Y     MM/DD/YYYY TIME
 4 entries were displayed.
 ----
-. Désactiver le rétablissement automatique sur le nœud partenaire s'il est activé : `storage failover modify -node nodenameA -auto-giveback false`
+. Désactiver le rétablissement automatique sur le nœud partenaire s'il est activé :
++
+[source, cli]
+----
+storage failover modify -node nodenameA -auto-giveback false
+----
 +
 Si le cluster est un cluster à deux nœuds, un message s'affiche vous informant que la désactivation du rétablissement automatique empêche la mise en ligne des services du cluster de gestion en cas de défaillance alternée. Entrez `y` pour continuer.
 
-. Vérifier que le rétablissement automatique est désactivé pour le nœud partenaire : `storage failover show -node nodenameA -fields auto-giveback`
+. Vérifier que le rétablissement automatique est désactivé pour le nœud partenaire :
++
+[source, cli]
+----
+storage failover show -node nodenameA -fields auto-giveback
+----
 +
 [listing]
 ----
@@ -322,7 +451,12 @@ node     auto-giveback
 node0    false
 1 entry was displayed.
 ----
-. Exécutez la commande suivante deux fois pour déterminer si le nœud à mettre à jour diffuse actuellement des clients : `system node run -node nodenameB -command uptime`
+. Exécutez la commande suivante deux fois pour déterminer si le nœud à mettre à jour diffuse actuellement des clients :
++
+[source, cli]
+----
+system node run -node nodenameB -command uptime
+----
 +
 La commande UpTime affiche le nombre total d'opérations effectuées par le nœud pour les clients NFS, SMB, FC et iSCSI depuis le dernier démarrage du nœud. Pour chaque protocole, vous devez exécuter la commande deux fois afin de déterminer si le nombre d'opérations augmente. S'ils augmentent, le nœud diffuse actuellement des clients pour ce protocole. Si ce n'est pas le cas, le nœud ne diffuse actuellement pas les clients pour ce protocole.
 
@@ -341,8 +475,18 @@ cluster1::> system node run -node node1 -command uptime
 cluster1::> system node run -node node1 -command uptime
   2:58pm up  7 days, 19:17 800001573 NFS ops, 1017333 CIFS ops, 0 HTTP ops, 40395 FCP ops, 32815 iSCSI ops
 ----
-. Migrer tous les LIFs de données loin du nœud : `network interface migrate-all -node nodenameB`
-. Vérifiez l'état des LIFs que vous avez migrées : `network interface show`
+. Migrer tous les LIFs de données loin du nœud :
++
+[source, cli]
+----
+network interface migrate-all -node nodenameB
+----
+. Vérifiez l'état des LIFs que vous avez migrées :
++
+[source, cli]
+----
+network interface show
+----
 +
 Pour plus d'informations sur les paramètres que vous pouvez utiliser pour vérifier l'état des LIF, reportez-vous à la page man de l'interface réseau.
 
@@ -361,7 +505,12 @@ vs0     data003 node1     e0b       node0     e0b       up          up
 vs0     data004 node1     e0a       node0     e0a       up          up
 4 entries were displayed.
 ----
-. Lancement d'un basculement : `storage failover takeover -ofnode nodenameB -option allow-version-mismatch`
+. Lancement d'un basculement :
++
+[source, cli]
+----
+storage failover takeover -ofnode nodenameB -option allow-version-mismatch
+----
 +
 Ne spécifiez pas le paramètre -option immédiate, car un basculement normal est nécessaire pour le nœud en cours de basculement pour démarrer sur la nouvelle image logicielle. Si vous n'avez pas migré manuellement les LIF en dehors du nœud, elles migrent automatiquement vers le partenaire de haute disponibilité du nœud, afin qu'il n'y ait aucune interruption de service.
 
@@ -372,9 +521,15 @@ Un avertissement s'affiche.  Vous devez entrer `y` pour continuer.
 Le nœud pris au relais est démarré jusqu'à l'état en attente de rétablissement.
 
 +
-*REMARQUE* : si AutoSupport est activé, un message AutoSupport est envoyé pour indiquer que le nœud est en dehors du quorum du cluster. Vous pouvez ignorer cette notification et poursuivre la mise à jour.
 
-. Vérifier que le basculement a abouti : `storage failover show`
+NOTE: Si AutoSupport est activé, un message AutoSupport est envoyé, indiquant que le nœud n'a pas le quorum du cluster. Vous pouvez ignorer cette notification et poursuivre la mise à jour.
+
+. Vérifier que le basculement a abouti :
++
+[source, cli]
+----
+storage failover show
+----
 +
 L'exemple suivant montre que le basculement a réussi. Le nœud node1 est en attente de rétablissement de l'état, et son partenaire est à l'état en basculement.
 
@@ -391,6 +546,7 @@ node1          node0          false    Waiting for giveback (HA mailboxes)
 ----
 . Attendre au moins huit minutes pour que les conditions suivantes prennent effet :
 +
++
 ** Les chemins d'accès multiples du client (si déployés) sont stabilisés.
 ** Les clients sont récupérés à partir de la pause des E/S qui a lieu lors du basculement.
 +
@@ -398,20 +554,27 @@ Le temps de restauration est spécifique au client et peut prendre plus de huit 
 
 
 
-. Renvoyez les agrégats au nœud partenaire : `storage failover giveback -ofnode nodenameB`
+. Renvoyez les agrégats au nœud partenaire :
++
+[source, cli]
+----
+storage failover giveback -ofnode nodenameB
+----
 +
 L'opération de rétablissement renvoie tout d'abord l'agrégat racine sur le nœud partenaire, puis, une fois le démarrage terminé, renvoie les agrégats non-root et les LIF définies pour rétablir automatiquement ces agrégats. Le nœud qui vient d'être démarré commence à transmettre les données aux clients de chaque agrégat dès que l'agrégat est renvoyé.
 
-. Vérifier que tous les agrégats sont renvoyés : `storage failover show-giveback`
+. Vérifier que tous les agrégats sont renvoyés :
++
+[source, cli]
+----
+storage failover show-giveback
+----
 +
 Si le champ État de rétablissement indique qu'il n'y a pas d'agrégats à renvoyer, tous les agrégats sont renvoyés. Si le retour est vetoté, la commande affiche la progression du rétablissement et le sous-système qui a opposé son veto à l'opération de rétablissement.
 
 . Si un agrégat n'est pas renvoyé, effectuez les opérations suivantes :
 +
 .. Examinez la solution de contournement du veto pour déterminer si vous voulez répondre à la condition "verto" ou remplacer le veto.
-+
-link:https://docs.netapp.com/us-en/ontap/high-availability/index.html["Configuration haute disponibilité"]
-
 .. Si nécessaire, répondez à la condition "verto" décrite dans le message d'erreur, en veillant à ce que toutes les opérations identifiées soient arrêtées de manière normale.
 .. Exécutez à nouveau la commande Storage failover giveback.
 +
@@ -430,18 +593,38 @@ Le temps de restauration est spécifique au client et peut prendre plus de huit 
 
 . Vérifiez que la mise à jour a bien été effectuée pour le nœud :
 +
-.. Accéder au niveau de privilège avancé :``set -privilege advanced``
-.. Vérifiez que la mise à jour de l'état est terminée pour le nœud : `system node upgrade-revert show -node nodenameB`
+.. Accéder au niveau de privilège avancé :
++
+[source, cli]
+----
+set -privilege advanced
+----
+.. Vérifiez que la mise à jour de l'état est terminée pour le nœud :
++
+[source, cli]
+----
+system node upgrade-revert show -node nodenameB
+----
 +
 L'état doit être indiqué comme étant terminé.
 
 +
 Si l'état n'est pas terminé, exécutez la commande de mise à niveau du nœud système-revert depuis le nœud. Si la commande ne termine pas la mise à jour, contactez le support technique.
 
-.. Retour au niveau de privilège admin : `set -privilege admin`
+.. Retour au niveau de privilège admin :
++
+[source, cli]
+----
+set -privilege admin
+----
 
 
-. Vérifier que les ports du nœud sont bien : `network port show -node nodenameB`
+. Vérifier que les ports du nœud sont bien :
++
+[source, cli]
+----
+network port show -node nodenameB
+----
 +
 Vous devez exécuter cette commande sur un nœud mis à niveau vers ONTAP 9.4.
 
@@ -463,7 +646,12 @@ node1
        e1b       Cluster      Cluster          up       9000  auto/10000
 5 entries were displayed.
 ----
-. Rerestaurez les LIF sur le nœud : `network interface revert *`
+. Rerestaurez les LIF sur le nœud :
++
+[source, cli]
+----
+network interface revert *
+----
 +
 Cette commande renvoie les LIFs qui ont été migrées à l'écart du nœud.
 
@@ -473,7 +661,12 @@ Cette commande renvoie les LIFs qui ont été migrées à l'écart du nœud.
 cluster1::> network interface revert *
 8 entries were acted on.
 ----
-. Vérifiez que les LIF de données du nœud sont bien rétablies sur le nœud et qu'elles utilisent : `network interface show`
+. Vérifiez que les LIF de données du nœud sont bien rétablies sur le nœud et qu'elles utilisent :
++
+[source, cli]
+----
+network interface show
+----
 +
 L'exemple suivant montre que toutes les LIFs de données hébergées par le nœud sont rétablies au niveau du nœud et que leur état opérationnel est actif :
 
@@ -491,7 +684,12 @@ vs0
             data004      up/up    192.0.2.123/24     node1         e0a     true
 4 entries were displayed.
 ----
-. Si vous avez auparavant déterminé que ce nœud diffuse les clients, vérifiez que le nœud fournit un service à chaque protocole qu'il était auparavant en service : `system node run -node nodenameB -command uptime`
+. Si vous avez auparavant déterminé que ce nœud diffuse les clients, vérifiez que le nœud fournit un service à chaque protocole qu'il était auparavant en service :
++
+[source, cli]
+----
+system node run -node nodenameB -command uptime
+----
 +
 L'opération compte à zéro pendant la mise à jour.
 
@@ -506,8 +704,10 @@ cluster1::> system node run -node node1 -command uptime
 ----
 . Si ce nœud était le dernier nœud du cluster à mettre à jour, déclenchez une notification AutoSupport :
 +
-`autosupport invoke -node * -type all -message "Finishing_NDU"`
-
+[source, cli]
+----
+autosupport invoke -node * -type all -message "Finishing_NDU"
+----
 +
 Cette notification AutoSupport inclut un enregistrement de l'état du système juste avant la mise à jour. Il enregistre des informations de dépannage utiles en cas de problème avec le processus de mise à jour.
 
@@ -516,11 +716,15 @@ Si le cluster n'est pas configuré pour envoyer des messages AutoSupport, une co
 
 . Vérifiez que le nouveau logiciel ONTAP s'exécute sur les deux nœuds de la paire HA :
 +
-`set -privilege advanced`
-
+[source, cli]
+----
+set -privilege advanced
+----
 +
-`system node image show`
-
+[source, cli]
+----
+system node image show
+----
 +
 Dans l'exemple suivant, image2 est la version mise à jour de ONTAP et il s'agit de la version par défaut sur les deux nœuds :
 
@@ -539,12 +743,21 @@ node1
          image2  true    true    Y.Y.Y     MM/DD/YYYY TIME
 4 entries were displayed.
 ----
-. Réactiver le rétablissement automatique sur le nœud partenaire s'il a été précédemment désactivé : `storage failover modify -node nodenameA -auto-giveback true`
-. Vérifiez que le cluster est au quorum et que les services sont exécutés à l'aide des commandes cluster show et cluster Ring show (Advanced Privilege Level).
+. Réactiver le rétablissement automatique sur le nœud partenaire s'il a été précédemment désactivé :
++
+[source, cli]
+----
+storage failover modify -node nodenameA -auto-giveback true
+----
+. Vérifiez que le cluster est au quorum et que les services sont en cours d'exécution à l'aide du `cluster show` et `cluster ring show` commandes (niveau de privilège avancé).
 +
 Vous devez effectuer cette étape avant de mettre à niveau les paires haute disponibilité supplémentaires.
 
-. Retour au niveau de privilège admin : `set -privilege admin`
+. Retour au niveau de privilège admin :
++
+[source, cli]
+----
+set -privilege admin
+----
+. Mettez à niveau les paires haute disponibilité supplémentaires.
 
-
-Mettez à niveau les paires haute disponibilité supplémentaires.

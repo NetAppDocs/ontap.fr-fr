@@ -2,7 +2,7 @@
 sidebar: sidebar 
 permalink: upgrade/task_upgrade_disruptive_automated_cli.html 
 keywords: netapp, ontap, upgrade, nondisruptive, nondisruptively, non-disruptive update, nondisruptive upgrade, upgrade a cluster, shift workload between clusters, hardware platform, configuration, software image, update, update ONTAP, update software, ndu 
-summary: Vous pouvez mettre à jour la version de ONTAP sur votre cluster sans interruption. 
+summary: 'Depuis la version ONTAP 9.2, vous pouvez utiliser l"interface de ligne de commandes ONTAP pour effectuer une mise à jour automatisée d"un cluster à un seul nœud. Les clusters à un seul nœud ne disposent pas de redondance, ce qui entraîne des interruptions des mises à niveau.' 
 ---
 = Mise à niveau automatisée du ONTAP perturbateur (cluster à un seul nœud uniquement)
 :hardbreaks:
@@ -18,10 +18,22 @@ summary: Vous pouvez mettre à jour la version de ONTAP sur votre cluster sans i
 [role="lead"]
 Depuis la version ONTAP 9.2, vous pouvez utiliser l'interface de ligne de commandes ONTAP pour effectuer une mise à jour automatisée d'un cluster à un seul nœud. Les clusters à un seul nœud ne manquent pas de redondance. Les mises à jour restent donc toujours perturbelles. Les mises à niveau entraînant des interruptions ne peuvent pas être réalisées avec System Manager.
 
-* Vous devez avoir satisfait aux exigences de préparation de la mise à niveau.
+* Vous devez avoir satisfait la mise à niveau link:prepare.html["préparation"] conditions requises.
+
+
+.Étapes
+. Supprimez le pack logiciel ONTAP précédent :
 +
-.. Supprimez le pack logiciel ONTAP précédent : `cluster image package delete -version previous_package_version`
-.. Téléchargez le pack logiciel ONTAP cible : `cluster image package get -url location`
+[source, cli]
+----
+cluster image package delete -version previous_package_version
+----
+. Téléchargez le pack logiciel ONTAP cible :
++
+[source, cli]
+----
+cluster image package get -url location
+----
 +
 [listing]
 ----
@@ -30,7 +42,12 @@ cluster1::> cluster image package get -url http://www.example.com/software/9.7/i
 Package download completed.
 Package processing completed.
 ----
-.. Vérifiez que le pack logiciel est disponible dans le référentiel du package de cluster : `cluster image package show-repository`
+. Vérifiez que le pack logiciel est disponible dans le référentiel du package de cluster :
++
+[source, cli]
+----
+cluster image package show-repository
+----
 +
 [listing]
 ----
@@ -39,7 +56,12 @@ Package Version  Package Build Time
 ---------------- ------------------
 9.7              M/DD/YYYY 10:32:15
 ----
-.. Vérifiez que le cluster est prêt à être mis à niveau : `cluster image validate -version package_version_number`
+. Vérifiez que le cluster est prêt à être mis à niveau :
++
+[source, cli]
+----
+cluster image validate -version package_version_number
+----
 +
 [listing]
 ----
@@ -47,25 +69,48 @@ cluster1::> cluster image validate -version 9.7
 
 WARNING: There are additional manual upgrade validation checks that must be performed after these automated validation checks have completed...
 ----
-.. Surveiller la progression de la validation : `cluster image show-update-progress`
-.. Effectuez toutes les actions requises identifiées par la validation.
-.. Générer une estimation de mise à niveau logicielle si vous le souhaitez : `cluster image update -version package_version_number -estimate-only`
+. Surveiller la progression de la validation :
++
+[source, cli]
+----
+cluster image show-update-progress
+----
+. Effectuez toutes les actions requises identifiées par la validation.
+. Générer une estimation de mise à niveau logicielle si vous le souhaitez :
++
+[source, cli]
+----
+cluster image update -version package_version_number -estimate-only
+----
 +
 L'estimation de la mise à niveau logicielle affiche des détails sur chaque composant à mettre à jour, ainsi que la durée estimée de la mise à niveau.
 
-.. Effectuez la mise à niveau logicielle : `cluster image update -version package_version_number`
+. Effectuez la mise à niveau logicielle :
++
+[source, cli]
+----
+cluster image update -version package_version_number
+----
 +
 
 NOTE: En cas de problème, la mise à jour s'interrompt et vous êtes invité à prendre les mesures correctives nécessaires. Vous pouvez utiliser la commande cluster image show-update-Progress pour afficher les détails de tous les problèmes et la progression de la mise à jour. Après avoir résolu le problème, vous pouvez reprendre la mise à jour à l'aide de la commande cluster image resume-update.
 
-.. Afficher la progression de la mise à jour du cluster : `cluster image show-update-progress`
+. Afficher la progression de la mise à jour du cluster :
++
+[source, cli]
+----
+cluster image show-update-progress
+----
 +
 Le nœud est redémarré dans le cadre de la mise à jour et ne peut pas être accédé durant le redémarrage.
 
-.. Déclencher une notification : `autosupport invoke -node * -type all -message "Finishing_Upgrade"`
+. Déclencher une notification :
++
+[source, cli]
+----
+autosupport invoke -node * -type all -message "Finishing_Upgrade"
+----
 +
 Si votre cluster n'est pas configuré pour envoyer des messages, une copie de la notification est enregistrée localement.
-
-
 
 

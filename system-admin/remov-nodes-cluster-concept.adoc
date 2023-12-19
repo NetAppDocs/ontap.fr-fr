@@ -65,31 +65,60 @@ NOTE: Toutes les données système et utilisateur de tous les disques connectés
 .Étapes
 . Définissez le niveau de privilège sur avancé :
 +
-`*set -privilege advanced*`
-
+[source, cli]
+----
+set -privilege advanced
+----
 . Vérifier si un nœud sur le cluster contient epsilon :
 +
-`*cluster show -epsilon true*`
-
-+
-.. Si un nœud contient epsilon, modifiez son éligibilité à false.
-+
-`*cluster modify -node <node_name> -eligibility false*`
-
-
-
-. Si le nœud que vous souhaitez supprimer est le nœud maître actuel, activez-le pour qu'un autre nœud du cluster soit élu comme nœud maître en changeant l'éligibilité du cluster du nœud maître à `false`:
-+
-`*cluster modify –eligibility false*`
-
-+
-Le noeud maître est le noeud qui contient des processus tels que «mgmt», «vldb», «vifmgr», «bcomd» et «crs». Le `cluster ring show` la commande avancée affiche le nœud maître actuel.
-
-+
-[listing]
+[source, cli]
 ----
-cluster::*> cluster modify -node node1 -eligibility false
+cluster show -epsilon true
 ----
+. Si un nœud sur le cluster contient epsilon et que ce nœud va être rejoint, déplacer epsilon vers un nœud qui ne va pas être dissocié :
++
+.. Déplacer epsilon depuis le nœud qui va être désrejoint
++
+[source, cli]
+----
+cluster modify -node <name_of_node_to_be_unjoined> -epsilon false
+----
+.. Déplacer epsilon vers un nœud qui ne va pas être dissocié :
++
+[source, cli]
+----
+cluster modify -node <node_name> -epsilon true
+----
+
+
+. Identifiez le nœud maître actuel :
++
+[source, cli]
+----
+cluster ring show
+----
++
+Le noeud maître est le noeud qui contient des processus tels que «mgmt», «vldb», «vifmgr», «bcomd» et «crs».
+
+. Si le nœud que vous souhaitez supprimer est le nœud maître actuel, activez un autre nœud du cluster pour qu'il soit choisi comme nœud maître :
++
+.. Rendre le nœud maître actuel inéligible pour participer au cluster :
++
+[source, cli]
+----
+cluster modify – node <node_name> -eligibility false
+----
++
+Lorsque le nœud maître devient inéligible, l'un des nœuds restants est choisi par le quorum du cluster comme nouveau maître.
+
+.. Rendez le nœud maître précédent éligible pour participer à nouveau au cluster :
++
+[source, cli]
+----
+cluster modify – node <node_name> -eligibility true
+----
+
+
 . Connectez-vous à la LIF de Remote node management ou à la LIF cluster-management sur un autre nœud que celui en cours de suppression.
 . Supprimer le nœud du cluster :
 +
@@ -100,15 +129,19 @@ cluster::*> cluster modify -node node1 -eligibility false
  a| 
 ONTAP 9.3
  a| 
-`*cluster unjoin*`
-
+[source, cli]
+----
+cluster unjoin
+----
 
 
  a| 
 ONTAP 9.4 et versions ultérieures
  a| 
-`*cluster remove-node*`
-
+[source, cli]
+----
+cluster remove-node*
+----
 |===
 +
 Si vous avez une version mixte de cluster et que vous supprimez le dernier nœud inférieur, utilisez le `-skip-last-low-version-node-check` paramètre avec ces commandes.
@@ -134,13 +167,15 @@ Le nœud est redémarré automatiquement après sa suppression réussie du clust
 . Si vous requalifiez le nœud, effacez la configuration du nœud et initialisez tous les disques :
 +
 .. Pendant le processus de démarrage, appuyez sur Ctrl-C pour afficher le menu de démarrage lorsque vous y êtes invité.
-.. Sélectionner l'option de menu d'amorçage *(4) nettoyer la configuration et initialiser tous les disques*.
+.. Sélectionner l'option de menu d'amorçage (4) nettoyer la configuration et initialiser tous les disques.
 
 
 . Retour au niveau de privilège admin :
 +
-`*set -privilege admin*`
-
+[source, cli]
+----
+set -privilege admin
+----
 . Répétez la procédure précédente pour supprimer le partenaire de basculement du cluster.
 
 

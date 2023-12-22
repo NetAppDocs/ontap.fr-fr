@@ -1,0 +1,307 @@
+---
+permalink: antivirus/configure-ontap-antivirus-connector-task.html 
+sidebar: sidebar 
+keywords: 'configure, antivirus connector, task, SVM"s, connections' 
+summary: 'Vous devez configurer l"antivirus Connector de manière à spécifier un ou plusieurs serveurs virtuels de stockage (SVM) à connecter en entrant dans la LIF de gestion ONTAP, en interrotant les informations et les informations d"identification du compte d"administrateur ONTAP, ou simplement dans la LIF de données.' 
+---
+= Configurer ONTAP antivirus Connector
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Configurer ONTAP antivirus Connector pour spécifier un ou plusieurs SVM (Storage Virtual machines) auxquels vous souhaitez vous connecter en entrant dans la LIF de gestion ONTAP, en interrotant qu'information et les informations d'identification du compte d'administrateur ONTAP, ou simplement dans la LIF de données. Vous pouvez également modifier les détails d'une connexion SVM ou supprimer une connexion SVM. Par défaut, ONTAP antivirus Connector utilise les API REST pour récupérer la liste des LIFs de données si le LIF de management ONTAP est configuré.
+
+
+
+== Modifier le détail d'une connexion SVM
+
+Vous pouvez mettre à jour les détails d'une connexion SVM (Storage Virtual machine), qui a été ajoutée à l'antivirus Connector, en modifiant la LIF de gestion ONTAP et les informations d'interrogation. Une fois ajoutées, les LIF de données ne peuvent pas être mises à jour. Pour mettre à jour les LIF de données, vous devez d'abord les supprimer, puis les ajouter de nouveau avec la nouvelle LIF ou adresse IP.
+
+.Avant de commencer
+Vérifiez que vous avez créé un compte d'utilisateur pour l'application HTTP et que vous avez attribué un rôle ayant (au moins en lecture seule) accès au système `/api/network/ip/interfaces` API REST.
+Pour plus d'informations sur la création d'un utilisateur, reportez-vous à la section link:https://docs.netapp.com/us-en/ontap-cli-9131//security-login-role-create.html#description["création d'un rôle de connexion de sécurité"^] et le link:https://docs.netapp.com/us-en/ontap-cli-9131//security-login-create.html["création d'une connexion de sécurité"^] commandes.
+Vous pouvez également utiliser l'utilisateur du domaine en tant que compte en ajoutant un SVM de tunnel d'authentification pour une SVM d'administration.
+Pour plus d'informations, reportez-vous à la section link:https://docs.netapp.com/us-en/ontap-cli-9131//security-login-domain-tunnel-create.html["connexion de sécurité domaine-tunnel créer"] Page de manuel ONTAP.
+
+.Étapes
+. Cliquez avec le bouton droit de la souris sur l'icône *configurer ONTAP LIFs*, qui a été enregistrée sur votre bureau lorsque vous avez terminé l'installation du connecteur antivirus, puis sélectionnez *Exécuter en tant qu'administrateur*. La boîte de dialogue Configure ONTAP LIFs s'ouvre.
+. Sélectionner l'adresse IP du SVM, puis cliquer sur *Update*.
+. Mettez à jour les informations, si nécessaire.
+. Cliquez sur *Enregistrer* pour mettre à jour les détails de la connexion dans le registre.
+. Cliquez sur *Exporter* si vous souhaitez exporter la liste des connexions vers une importation de registre ou un fichier d'exportation de registre.
+Ceci est utile si plusieurs serveurs Vscan utilisent le même ensemble de LIFs de gestion ou de données.
+
+
+
+
+== Retirer une connexion SVM du connecteur antivirus
+
+Si vous n'avez plus besoin d'une connexion SVM, vous pouvez la supprimer.
+
+.Étapes
+. Cliquez avec le bouton droit de la souris sur l'icône *configurer ONTAP LIFs*, qui a été enregistrée sur votre bureau lorsque vous avez terminé l'installation du connecteur antivirus, puis sélectionnez *Exécuter en tant qu'administrateur*. La boîte de dialogue Configure ONTAP LIFs s'ouvre.
+. Sélectionner une ou plusieurs adresses IP de SVM, puis cliquer sur *Supprimer*.
+. Cliquez sur *Enregistrer* pour mettre à jour les détails de la connexion dans le registre.
+. Cliquez sur *Exporter* si vous souhaitez exporter la liste des connexions vers un fichier d'importation de registre ou d'exportation de registre.
+Ceci est utile si plusieurs serveurs Vscan utilisent le même ensemble de LIFs de gestion ou de données.
+
+
+
+
+== Résoudre les problèmes
+
+.Avant de commencer
+Lorsque vous créez des valeurs de registre dans cette procédure, utilisez le volet droit.
+
+Vous pouvez activer ou désactiver les journaux antivirus Connector à des fins de diagnostic. Par défaut, ces journaux sont désactivés. Pour améliorer les performances, vous devez conserver les journaux du connecteur antivirus désactivés et les activer uniquement pour les événements critiques.
+
+.Étapes
+. Sélectionnez *Démarrer*, tapez "regedit" dans la zone de recherche, puis sélectionnez `regedit.exe` Dans la liste programmes.
+. Dans *Éditeur du Registre*, localisez la sous-clé suivante pour ONTAP antivirus Connector :
+`HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Data ONTAP\Clustered Data ONTAP Antivirus Connector\v1.0`
+. Créez des valeurs de registre en fournissant le type, le nom et les valeurs indiqués dans le tableau suivant :
++
+|===
+
+
+| Type | Nom | Valeurs 
+
+
+ a| 
+Chaîne
+ a| 
+Chemin de traçabilité
+ a| 
+c:\avshim.log
+
+|===
++
+Cette valeur de registre peut être n'importe quel autre chemin valide.
+
+. Créez une autre valeur de registre en fournissant le type, le nom, les valeurs et les informations de journalisation indiquées dans le tableau suivant :
++
+|===
+
+
+| Type | Nom | Journalisation critique | Journalisation intermédiaire | Journalisation détaillée 
+
+
+ a| 
+DWORD
+ a| 
+TRACELEVEL
+ a| 
+1
+ a| 
+2 ou 3
+ a| 
+4
+
+|===
++
+Cela active les journaux antivirus Connector qui sont enregistrés à la valeur de chemin fournie dans TracePath à l'étape 3.
+
+. Désactivez les journaux du connecteur antivirus en supprimant les valeurs de registre que vous avez créées aux étapes 3 et 4.
+. Créez une autre valeur de registre de type "MULTI_SZ" avec le nom "LogRotation" (sans guillemets). Dans « LogRotation »,
+Indiquez « logFileSize:1 » comme entrée pour la taille de rotation (où 1 représente 1 Mo) et dans la ligne suivante, indiquez « logFileCount:5 » comme
+entrée pour la limite de rotation (5 est la limite).
++
+[NOTE]
+====
+Ces valeurs sont facultatives. Si elles ne sont pas fournies, les valeurs par défaut des fichiers 20 Mo et 10 sont utilisées respectivement pour la taille de rotation et la limite de rotation. Les valeurs entières fournies ne fournissent pas de valeurs décimales ou de fraction. Si vous indiquez des valeurs supérieures aux valeurs par défaut, les valeurs par défaut sont utilisées à la place.
+
+====
+. Pour désactiver la rotation du journal configurée par l'utilisateur, supprimez les valeurs de registre que vous avez créées à l'étape 6.
+
+
+
+
+== Bannière personnalisable
+
+Une bannière personnalisée vous permet de placer une déclaration juridiquement contraignante et une clause de non-responsabilité d'accès au système dans la fenêtre _Configure ONTAP LIF API_.
+
+.Étape
+. Modifiez la bannière par défaut en mettant à jour le contenu de l' `banner.txt` dans le répertoire d'installation, puis en enregistrant les modifications.
+Vous devez rouvrir la fenêtre configurer l'API LIF ONTAP pour voir les modifications reflétées dans la bannière.
+
+
+
+
+== Activer le mode Eo (Extended Ordinance)
+
+Vous pouvez activer et désactiver le mode Extended Ordinance (EO) pour un fonctionnement sécurisé.
+
+.Étapes
+. Sélectionnez *Démarrer*, tapez "regedit" dans la zone de recherche, puis sélectionnez `regedit.exe` Dans la liste programmes.
+. Dans *Éditeur du Registre*, localisez la sous-clé suivante pour ONTAP antivirus Connector :
+`HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Data ONTAP\Clustered Data ONTAP Antivirus Connector\v1.0`
+. Dans le volet de droite, créez une nouvelle valeur de registre de type "DWORD" avec le nom "EO_mode" (sans guillemets) et la valeur "1" (sans guillemets) pour activer le mode EO ou la valeur "0" (sans guillemets) pour désactiver le mode EO.
+
+
+
+NOTE: Par défaut, si l' `EO_Mode` L'entrée de registre est absente, le mode EO est désactivé. Lorsque vous activez le mode EO, vous devez configurer à la fois le serveur syslog externe et l'authentification mutuelle des certificats.
+
+
+
+== Configurez le serveur syslog externe
+
+.Avant de commencer
+Notez que lorsque vous créez des valeurs de registre dans cette procédure, utilisez le volet de droite.
+
+.Étapes
+. Sélectionnez *Démarrer*, tapez "regedit" dans la zone de recherche, puis sélectionnez `regedit.exe` Dans la liste programmes.
+. Dans *Éditeur du Registre*, créez la sous-clé suivante pour ONTAP antivirus Connector pour la configuration syslog :
+`HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Data ONTAP\Clustered Data ONTAP Antivirus Connector\v1.0\syslog`
+. Créez une valeur de registre en fournissant le type, le nom et la valeur, comme indiqué dans le tableau suivant :
++
+|===
+
+
+| Type | Nom | Valeur 
+
+
+ a| 
+DWORD
+ a| 
+syslog_enabled
+ a| 
+1 ou 0
+
+|===
++
+Veuillez noter qu'une valeur « 1 » active le syslog et qu'une valeur « 0 » le désactive.
+
+. Créez une autre valeur de registre en fournissant les informations comme indiqué dans le tableau suivant :
++
+|===
+
+
+| Type | Nom 
+
+
+ a| 
+REG_SZ
+ a| 
+Hôte_syslog
+
+|===
++
+Indiquez l'adresse IP ou le nom de domaine de l'hôte syslog pour le champ valeur.
+
+. Créez une autre valeur de registre en fournissant les informations comme indiqué dans le tableau suivant :
++
+|===
+
+
+| Type | Nom 
+
+
+ a| 
+REG_SZ
+ a| 
+Syslog_port
+
+|===
++
+Indiquez le numéro de port sur lequel le serveur syslog s'exécute dans le champ valeur.
+
+. Créez une autre valeur de registre en fournissant les informations comme indiqué dans le tableau suivant :
++
+|===
+
+
+| Type | Nom 
+
+
+ a| 
+REG_SZ
+ a| 
+Protocole_syslog
+
+|===
++
+Saisissez le protocole utilisé sur le serveur syslog, soit « tcp », soit « udp », dans le champ valeur.
+
+. Créez une autre valeur de registre en fournissant les informations comme indiqué dans le tableau suivant :
++
+|===
+
+
+| Type | Nom | JOURNAL_CRIT | LOG_NOTICE | INFO_JOURNAL | LOG_DEBUG 
+
+
+ a| 
+DWORD
+ a| 
+Syslog_level
+ a| 
+2
+ a| 
+5
+ a| 
+6
+ a| 
+7
+
+|===
+. Créez une autre valeur de registre en fournissant les informations comme indiqué dans le tableau suivant :
++
+|===
+
+
+| Type | Nom | Valeur 
+
+
+ a| 
+DWORD
+ a| 
+syslog_tls
+ a| 
+1 ou 0
+
+|===
+
+
+Notez qu'une valeur « 1 » active syslog avec TLS (transport Layer Security) et une valeur « 0 » désactive syslog avec TLS.
+
+
+
+=== Assurez-vous qu'un serveur syslog externe configuré fonctionne correctement
+
+* Si la clé est absente ou a une valeur nulle :
++
+** Le protocole par défaut est « tcp ».
+** Le port par défaut est "514" pour "tcp/udp" et par défaut "6514" pour TLS.
+** Par défaut, le niveau syslog est 5 (LOG_NOTICE).
+
+
+* Vous pouvez confirmer que syslog est activé en vérifiant que le système `syslog_enabled` la valeur est « 1 ». Lorsque le `syslog_enabled` La valeur est "1", vous devriez pouvoir vous connecter au serveur distant configuré, que le mode EO soit activé ou non.
+* Si le mode EO est réglé sur « 1 » et que vous modifiez le `syslog_enabled` valeur comprise entre « 1 » et « 0 », ce qui suit s'applique :
++
+** Vous ne pouvez pas démarrer le service si syslog n'est pas activé en mode EO.
+** Si le système fonctionne dans un état stable, un avertissement s'affiche indiquant que syslog ne peut pas être désactivé en mode EO et que syslog est fermement défini sur « 1 », que vous pouvez voir dans le registre. Si cela se produit, vous devez d'abord désactiver le mode EO, puis désactiver syslog.
+
+
+* Si le serveur syslog ne peut pas fonctionner correctement lorsque le mode EO et syslog sont activés, le service s'arrête. Ceci peut se produire pour l'une des raisons suivantes :
++
+** Un hôte syslog_non valide ou non configuré.
+** Un protocole non valide, hormis UDP ou TCP, est configuré.
+** Un numéro de port n'est pas valide.
+
+
+* Dans le cas d'une configuration TCP ou TLS sur TCP, si le serveur n'écoute pas le port IP, la connexion échoue et le service s'arrête.
+
+
+
+
+== Configurer l'authentification de certificat mutuel X.509
+
+L'authentification mutuelle basée sur certificat X.509 est possible pour la communication SSL (Secure Sockets Layer) entre l'antivirus Connector et ONTAP dans le chemin de gestion. Si le mode EO est activé et que le certificat n'est pas trouvé, le connecteur AV se termine. Effectuez la procédure suivante sur l'antivirus Connector :
+
+.Étapes
+. Le connecteur antivirus recherche le certificat client du connecteur antivirus et le certificat de l'autorité de certification du serveur NetApp dans le chemin d'accès au répertoire à partir duquel le connecteur antivirus exécute le répertoire d'installation. Copiez les certificats dans ce chemin de répertoire fixe.
+. Intégrez le certificat client et sa clé privée au format PKCS12 et nommez-le « AV_client.P12 ».
+. Assurez-vous que le certificat de l'autorité de certification (ainsi que toute autorité de signature intermédiaire jusqu'à l'autorité de certification racine) utilisé pour signer le certificat du serveur NetApp est au format PEM (Privacy Enhanced Mail) et nommé ONTAP_CA.pem. Placez-le dans le répertoire d'installation de l'antivirus Connector. Sur le système NetApp ONTAP, installez le certificat de l'autorité de certification (ainsi que toute autorité de signature intermédiaire jusqu'à l'autorité de certification racine) utilisé pour signer le certificat client pour le connecteur antivirus à « ONTAP » en tant que certificat de type « client-ca ».
+

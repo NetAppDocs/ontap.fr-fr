@@ -13,20 +13,18 @@ summary: 'Vous pouvez activer le verrouillage global des fichiers sur les volume
 [role="lead"]
 Depuis ONTAP 9.10.1, le verrouillage global des fichiers peut être appliqué pour empêcher les lectures de tous les fichiers mis en cache liés.
 
-.Description de la tâche
-Par défaut, les volumes FlexCache favorisent la disponibilité par rapport à la cohérence. Sans verrouillage global des fichiers, toute modification d'une origine sera distribuée aux volumes FlexCache, mais elle ne pourra pas être mise à jour simultanément. Le verrouillage global des fichiers favorise la cohérence entre les volumes par rapport à la disponibilité. Lorsque le verrouillage global des fichiers est activé, les modifications de l'origine sont suspendues jusqu'à ce que tous les volumes FlexCache soient en ligne.
+Lorsque le verrouillage global des fichiers est activé, les modifications du volume d'origine sont suspendues jusqu'à ce que tous les volumes FlexCache soient en ligne. Le verrouillage global des fichiers doit être activé uniquement lorsque vous avez le contrôle de la fiabilité des connexions entre le cache et l'origine du fait de la suspension et des délais de modification possibles lorsque les volumes FlexCache sont hors ligne.
+
+.Avant de commencer
+* Le verrouillage global des fichiers requiert que les clusters contenant l'origine et tous les caches associés exécutent ONTAP 9.9.1 ou une version ultérieure. Le verrouillage global des fichiers peut être activé sur les volumes FlexCache nouveaux ou existants. La commande peut être exécutée sur un seul volume et s'applique à tous les volumes FlexCache associés.
+* Vous devez être au niveau de privilège avancé pour activer le verrouillage global des fichiers.
+* Si vous restaurez une version de ONTAP antérieure à la version 9.9.1, le verrouillage global des fichiers doit d'abord être désactivé sur les caches d'origine et associés. Pour désactiver, à partir du volume d'origine, exécutez : `volume flexcache prepare-to-downgrade -disable-feature-set 9.10.0`
+* Le processus permettant d'activer le verrouillage global des fichiers dépend de la présence ou non de caches dans l'origine :
++
+** <<enable-gfl-new>>
+** <<enable-gfl-existing>>
 
 
-NOTE: Le verrouillage global des fichiers doit être activé uniquement lorsque vous avez le contrôle de la fiabilité des connexions entre le cache et l'origine du fait de la suspension et des délais de modification possibles lorsque les volumes FlexCache sont hors ligne.
-
-Le verrouillage global des fichiers requiert que les clusters contenant l'origine et tous les caches associés exécutent ONTAP 9.9.1 ou une version ultérieure. Le verrouillage global des fichiers peut être activé sur les volumes FlexCache nouveaux ou existants. La commande peut être exécutée sur un volume et s'applique à tous les volumes associés.
-
-Vous devez être au niveau de privilège avancé pour activer le verrouillage global des fichiers.
-
-Le processus d'activation du verrouillage global des fichiers dépend du fait que l'origine possède des caches existants.
-
-* <<enable-gfl-new>>
-* <<enable-gfl-existing>>
 
 
 
@@ -39,7 +37,8 @@ Le processus d'activation du verrouillage global des fichiers dépend du fait qu
 `volume flexcache create volume _volume_name_ -is-global-file-locking-enabled true`
 
 +
-La valeur par défaut de `-is-global-file-locking` est « faux ». Lorsque c'est le cas `volume flexcache create` les commandes sont exécutées sur un volume, elles doivent être passées avec `-is-global-file-locking enabled` défini sur « vrai ».
+
+NOTE: La valeur par défaut de `-is-global-file-locking` est « faux ». Lorsque c'est le cas `volume flexcache create` les commandes sont exécutées sur un volume, elles doivent être passées avec `-is-global-file-locking enabled` défini sur « vrai ».
 
 
 
@@ -54,14 +53,10 @@ La valeur par défaut de `-is-global-file-locking` est « faux ». Lorsque c'est
 `volume flexcache connection-status show`
 
 +
-L'état de tous les volumes répertoriés doit s'afficher sous “`connected.`” Pour plus d'informations, voir link:view-connection-status-origin-task.html["Afficher l'état d'une relation FlexCache"] ou link:synchronize-properties-origin-volume-task.html["Synchronisation des propriétés d'un volume FlexCache depuis une origine"].
+L'état de tous les volumes répertoriés doit s'afficher sous `connected.` Pour plus d'informations, voir link:view-connection-status-origin-task.html["Afficher l'état d'une relation FlexCache"] ou link:synchronize-properties-origin-volume-task.html["Synchronisation des propriétés d'un volume FlexCache depuis une origine"].
 
 . Activer le verrouillage global des fichiers sur les caches :
 +
 `volume flexcache origin config show/modify -volume _volume_name_ -is-global-file-locking-enabled true`
 
 
-
-Si vous effectuez un rétablissement vers une version de ONTAP antérieure à la version 9.9.1, le verrouillage global des fichiers doit d'abord être désactivé sur les caches d'origine et associés. Vous pouvez le gérer en exécutant :
-
-`volume flexcache prepare-to-downgrade -disable-feature-set 9.10.0`

@@ -13,9 +13,26 @@ summary: 'Depuis ONTAP 9.3, vous pouvez configurer l"authentification SAML pour 
 [role="lead"]
 Depuis ONTAP 9.3, vous pouvez configurer l'authentification SAML pour les services Web. Lorsque l'authentification SAML est configurée et activée, les utilisateurs sont authentifiés par un fournisseur d'identité externe (IDP) au lieu des fournisseurs de services d'annuaire tels qu'Active Directory et LDAP.
 
-.Ce dont vous avez besoin
-* Vous devez avoir configuré l'IDP pour l'authentification SAML.
-* Vous devez avoir l'URI IDP.
+
+
+== Activez l'authentification SAML
+
+Pour activer l'authentification SAML avec System Manager ou l'interface de ligne de commandes, effectuez les opérations suivantes. Si votre cluster exécute ONTAP 9.7 ou une version antérieure, les étapes à suivre dans System Manager sont différentes. Consultez l'aide en ligne de System Manager disponible sur votre système.
+
+
+NOTE: Après avoir activé l'authentification SAML, seuls les utilisateurs distants peuvent accéder à l'interface graphique de System Manager. Les utilisateurs locaux ne peuvent pas accéder à l'interface graphique de System Manager après l'authentification SAML.
+
+image:workflow_security_mfa_setup.gif["Schéma de workflow de la tâche pour configurer l'authentification multifacteur avec SAML"]
+
+.Avant de commencer
+* Le IDP que vous envisagez d'utiliser pour l'authentification à distance doit être configuré.
++
+[NOTE]
+====
+Consultez la documentation fournie par le PDI que vous avez configuré.
+
+====
+* Vous devez avoir l'URI du IDP.
 
 
 .Description de la tâche
@@ -42,7 +59,34 @@ Les PDI suivants ont été validés avec System Manager :
 * Hurlent
 
 
+Effectuez les opérations suivantes en fonction de votre environnement :
+
 .Étapes
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Cliquez sur *Cluster > Paramètres*.
+. En regard de *authentification SAML*, cliquez sur image:icon_gear.gif["icône de vitesse"].
+. Vérifiez que la case *Activer l'authentification SAML* est cochée.
+. Entrez l'URL de l'URI IDP (y compris "https://"[]).
+. Modifiez l'adresse du système hôte, si nécessaire.
+. Assurez-vous que le bon certificat est utilisé :
++
+** Si votre système a été mappé avec un seul certificat de type « serveur », ce certificat est considéré comme le certificat par défaut et il n'est pas affiché.
+** Si votre système a été mappé avec plusieurs certificats comme type « serveur », l'un des certificats s'affiche.  Pour sélectionner un autre certificat, cliquez sur *Modifier*.
+
+
+. Cliquez sur *Enregistrer*. Une fenêtre de confirmation affiche les informations sur les métadonnées, qui ont été automatiquement copiées dans le presse-papiers.
+. Accédez au système IDP que vous avez spécifié et copiez les métadonnées de votre presse-papiers pour mettre à jour les métadonnées système.
+. Revenez à la fenêtre de confirmation (dans System Manager) et cochez la case *J'ai configuré le IDP avec l'URI hôte ou les métadonnées*.
+. Cliquez sur *Déconnexion* pour activer l'authentification SAML.  Le système IDP affiche un écran d'authentification.
+. Dans le système IDP, saisissez vos identifiants SAML. Une fois vos identifiants vérifiés, vous accédez à la page d'accueil de System Manager.
+
+
+--
+.CLI
+--
 . Créez une configuration SAML pour que ONTAP puisse accéder aux métadonnées IDP :
 +
 `*security saml-sp create -idp-uri _idp_uri_ -sp-host _ontap_host_name_*`
@@ -122,16 +166,29 @@ admin1         http        password      backup           no     none
 
 
 
+--
+====
 
 
 == Désactivez l'authentification SAML
 
 Vous pouvez désactiver l'authentification SAML lorsque vous souhaitez arrêter l'authentification des utilisateurs Web à l'aide d'un fournisseur d'identité externe (IDP). Lorsque l'authentification SAML est désactivée, les fournisseurs de services d'annuaire configurés tels qu'Active Directory et LDAP sont utilisés pour l'authentification.
 
-.Ce dont vous avez besoin
-Vous devez être connecté depuis la console.
+Effectuez les opérations suivantes en fonction de votre environnement :
 
 .Étapes
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Cliquez sur *Cluster > Paramètres*.
+. Sous *authentification SAML*, cliquez sur le bouton bascule *activé*.
+. _Facultatif_ : vous pouvez également cliquer sur  image:icon_gear.gif["icône de vitesse"] En regard de *SAML Authentication*, puis décochez la case *Activer l'authentification SAML*.
+
+
+--
+.CLI
+--
 . Désactiver l'authentification SAML :
 +
 `*security saml-sp modify -is-enabled false*`
@@ -142,6 +199,8 @@ Vous devez être connecté depuis la console.
 
 
 
+--
+====
 
 
 == Résolution des problèmes liés à la configuration SAML

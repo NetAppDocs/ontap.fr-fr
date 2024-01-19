@@ -17,17 +17,29 @@ Les objets S3 sont conservés dans _seaux_--ils ne sont pas imbriqués en tant q
 Une VM de stockage contenant un serveur S3 doit déjà exister.
 
 .Description de la tâche
-Pour l'interface de ligne de commandes, lorsque vous créez un compartiment, deux options de provisionnement sont disponibles :
-
-* Laissez ONTAP Select les agrégats sous-jacents et les composants FlexGroup (par défaut)
+* Depuis la version ONTAP 9.14.1, le redimensionnement automatique a été activé sur les volumes FlexGroup S3 lorsque des compartiments sont créés. Cela élimine l'allocation excessive de capacité lors de la création du compartiment sur les volumes FlexGroup existants et nouveaux. Les volumes FlexGroup sont redimensionnés au minimum requis selon les instructions suivantes. La taille minimale requise correspond à la taille totale de tous les compartiments S3 d'un volume FlexGroup.
 +
-** ONTAP crée et configure un volume FlexGroup pour le premier compartiment en sélectionnant automatiquement les agrégats. Il sélectionne automatiquement le niveau de service le plus élevé disponible pour votre plateforme, ou vous pouvez spécifier le niveau de service de stockage. Tout compartiment supplémentaire que vous ajoutez ultérieurement dans la VM de stockage aura le même volume FlexGroup sous-jacent.
-** Vous pouvez également indiquer si le compartiment sera utilisé pour le Tiering, dans ce cas, ONTAP tente de sélectionner un support économique avec des performances optimales pour les données hiérarchisées.
+** À partir de ONTAP 9.14.1, si un volume FlexGroup S3 est créé dans le cadre d'une nouvelle création de compartiment, le volume FlexGroup est créé avec la taille minimale requise.
+** Si un volume FlexGroup S3 a été créé avant ONTAP 9.14.1, le premier compartiment créé ou supprimé après ONTAP 9.14.1 redimensionne le volume FlexGroup à la taille minimale requise.
+** Si un volume FlexGroup S3 a été créé avant ONTAP 9.14.1 et disposait déjà de la taille minimale requise, la création ou la suppression d'un compartiment après ONTAP 9.14.1 conserve la taille du volume FlexGroup S3.
 
 
-* Vous sélectionnez les agrégats sous-jacents et les composants FlexGroup (des options de commande de privilège avancé sont requises)
+* Les niveaux de service de stockage sont des groupes de règles prédéfinies de qualité de service (QoS) adaptative, avec des niveaux par défaut _Value_, _performance_ et _Extreme_. Au lieu d'un des niveaux de service de stockage par défaut, vous pouvez également définir un groupe de règles de QoS personnalisé et le appliquer à un compartiment. Pour plus d'informations sur les définitions de service de stockage, reportez-vous à la section link:storage-service-definitions-reference.html["Définitions des services de stockage"]. Pour plus d'informations sur la gestion des performances, reportez-vous à la section link:../performance-admin/index.html["Gestion des performances"].
+Depuis ONTAP 9.8, lorsque vous provisionnez le stockage, la QoS est activée par défaut. Vous pouvez désactiver QoS ou choisir une règle de QoS personnalisée lors du processus de provisionnement ou ultérieurement.
+
+
+* Si vous configurez la hiérarchisation de la capacité locale, vous créez des compartiments et des utilisateurs dans une VM de stockage des données, et non dans la VM de stockage du système où se trouve le serveur S3.
+* Pour l'accès client à distance, vous devez configurer des compartiments dans une VM de stockage compatible S3. Si vous créez un compartiment dans une machine virtuelle de stockage non compatible S3, il sera uniquement disponible pour le Tiering local.
+* À partir de ONTAP 9.14.1, vous pouvez link:create-bucket-mcc-task.html["Créez un compartiment sur un agrégat en miroir ou sans miroir dans une configuration MetroCluster"].
+* Pour l'interface de ligne de commandes, lorsque vous créez un compartiment, deux options de provisionnement sont disponibles :
 +
-** Vous pouvez sélectionner manuellement les agrégats sur lesquels le compartiment et le volume FlexGroup contenant doivent être créés, puis spécifier le nombre de composants sur chaque agrégat. Lors de l'ajout de compartiments supplémentaires :
+** Laissez ONTAP Select les agrégats sous-jacents et les composants FlexGroup (par défaut)
++
+*** ONTAP crée et configure un volume FlexGroup pour le premier compartiment en sélectionnant automatiquement les agrégats. Il sélectionne automatiquement le niveau de service le plus élevé disponible pour votre plateforme, ou vous pouvez spécifier le niveau de service de stockage. Tout compartiment supplémentaire que vous ajoutez ultérieurement dans la VM de stockage aura le même volume FlexGroup sous-jacent.
+*** Vous pouvez également indiquer si le compartiment sera utilisé pour le Tiering, dans ce cas, ONTAP tente de sélectionner un support économique avec des performances optimales pour les données hiérarchisées.
+
+
+** Vous sélectionnez les agrégats sous-jacents et les composants FlexGroup (nécessite des options de commande avec privilèges avancés) : vous pouvez sélectionner manuellement les agrégats sur lesquels le compartiment et le volume FlexGroup contenant doivent être créés, puis spécifier le nombre de composants sur chaque agrégat. Lors de l'ajout de compartiments supplémentaires :
 +
 *** Si vous spécifiez les agrégats et les composants pour un nouveau compartiment, un nouveau FlexGroup est créé pour ce nouveau compartiment.
 *** Si vous ne spécifiez pas d'agrégats ni de composants pour un nouveau compartiment, le nouveau compartiment est ajouté à un FlexGroup existant.
@@ -35,29 +47,17 @@ Voir xref:../flexgroup/index.html[Gestion des volumes FlexGroup] pour en savoir 
 +
 Lorsque vous spécifiez des agrégats et des composants lors de la création d'un compartiment, aucun groupe de règles de QoS, n'est appliqué par défaut ou personnalisé. Vous pouvez le faire plus tard avec le `vserver object-store-server bucket modify` commande.
 
++
+Voir link:https://docs.netapp.com/us-en/ontap-cli-9141/vserver-object-store-server-show.html["vserver object-store-server bucket modify"] pour en savoir plus.
 
-
-
-
-
-
-À partir de ONTAP 9.14.1, vous pouvez link:create-bucket-mcc-task.html["Créez un compartiment sur un agrégat en miroir ou sans miroir dans une configuration MetroCluster"].
-
++
 *Remarque :* si vous utilisez des compartiments à partir de Cloud Volumes ONTAP, vous devez utiliser la procédure CLI. Il est fortement recommandé de sélectionner manuellement les agrégats sous-jacents pour s'assurer qu'ils n'utilisent qu'un seul nœud. L'utilisation d'agrégats des deux nœuds peut avoir un impact sur les performances, car les nœuds se trouvent dans des zones de disponibilité séparées géographiquement et sont donc sujets aux problèmes de latence.
 
-Les niveaux de service de stockage sont des groupes de règles prédéfinies de qualité de service (QoS) adaptative, avec des niveaux par défaut _Value_, _performance_ et _Extreme_. Au lieu d'un des niveaux de service de stockage par défaut, vous pouvez également définir un groupe de règles de QoS personnalisé et le appliquer à un compartiment.
 
-Depuis ONTAP 9.8, lorsque vous provisionnez le stockage, la QoS est activée par défaut. Vous pouvez désactiver QoS ou choisir une règle de QoS personnalisée lors du processus de provisionnement ou ultérieurement.
 
-Pour plus d'informations sur les définitions de service de stockage, reportez-vous à la section link:storage-service-definitions-reference.html["Définitions des services de stockage"]
 
-Si vous configurez la hiérarchisation de la capacité locale, vous créez des compartiments et des utilisateurs dans une VM de stockage des données, et non dans la VM de stockage du système où se trouve le serveur S3.
 
-Pour l'accès client à distance, vous devez configurer des compartiments dans une VM de stockage compatible S3. Si vous créez un compartiment dans une machine virtuelle de stockage non compatible S3, il sera uniquement disponible pour le Tiering local.
 
-Pour plus d'informations sur la gestion des performances, reportez-vous à la section link:../performance-admin/index.html["Gestion des performances"]
-
-Voir la `vserver object-store-server bucket` pages de manuel pour des options de configuration et d'affichage supplémentaires.
 
 
 
@@ -116,7 +116,7 @@ La valeur par défaut du `-aggr-list-multiplier` le paramètre est 4.
 
 
 .Exemple
-L'exemple suivant crée un compartiment pour la VM de stockage vs1 de 1 To avec la spécification de l'agrégat :
+L'exemple suivant illustre la création d'un compartiment pour la machine virtuelle de stockage `vs1` de taille `1TB` et spécifier l'agrégat :
 
 [listing]
 ----
@@ -181,7 +181,7 @@ Pour plus d'informations, reportez-vous à la section link:../s3-snapmirror/crea
 
 === Vérifier l'accès au godet
 
-Sur les applications client S3 (ONTAP S3 ou une application externe 3^rd^), vous pouvez vérifier votre accès au nouveau compartiment en saisissant les informations suivantes :
+Sur les applications client S3 (ONTAP S3 ou une application tierce externe), vous pouvez vérifier votre accès au nouveau compartiment en saisissant les informations suivantes :
 
 * Certificat CA de serveur S3.
 * La clé d'accès et la clé secrète de l'utilisateur.

@@ -26,21 +26,29 @@ ONTAP prend en charge les algorithmes de clé de session suivants pour les conne
 |===
 
 
-| Algorithme de clé de session | Disponible dans... 
+| Algorithme de clé de session | Disponible à partir de... 
 
 
-| HMAC-SHA256, basé sur la norme AES (Advanced Encryption Standard) | ONTAP 9.10.1 et versions ultérieures 
+| HMAC-SHA256, basé sur la norme AES (Advanced Encryption Standard)
+
+Si votre cluster exécute ONTAP 9.9.1 ou une version antérieure et que votre contrôleur de domaine applique AES pour des services Netlogon sécurisés, la connexion échoue. Dans ce cas, vous devez reconfigurer votre contrôleur de domaine pour accepter les connexions par clé forte avec ONTAP. | ONTAP 9.10.1 
 
 
 | DES et HMAC-MD5 (lorsque la clé est réglée) | Toutes les versions d'ONTAP 9 
 |===
-Si vous souhaitez utiliser des clés de session AES lors de l'établissement de canaux sécurisés Netlogon dans ONTAP 9.10.1 ou version ultérieure, vous devez les activer à l'aide de la commande suivante :
+Si vous souhaitez utiliser les clés de session AES lors de l'établissement d'un canal sécurisé Netlogon, vous devez vérifier que AES est activé sur votre SVM.
 
-`cifs security modify -vserver vs1 -aes-enabled-for-netlogon-channel true`
+* Depuis ONTAP 9.14.1, AES est activé par défaut lorsque vous créez un SVM, et vous n'avez pas besoin de modifier les paramètres de sécurité de votre SVM pour utiliser des clés de session AES lors de l'établissement de canaux sécurisés Netlogon.
+* Dans ONTAP 9.10.1 à 9.13.1, AES est désactivé par défaut lors de la création d'un SVM. Vous devez activer AES à l'aide de la commande suivante :
++
+[listing]
+----
+cifs security modify -vserver vs1 -aes-enabled-for-netlogon-channel true
+----
 
-La valeur par défaut est « false ».
 
-Dans ONTAP versions antérieures à 9.10.1, si le contrôleur de domaine applique AES pour des services Netlogon sécurisés, la connexion échoue. Le contrôleur de domaine doit être configuré pour accepter des connexions de clé fortes avec ONTAP dans ces versions.
+
+NOTE: Lorsque vous effectuez une mise à niveau vers ONTAP 9.14.1 ou une version ultérieure, le paramètre AES des SVM existants créés avec les anciennes versions de ONTAP ne changera pas automatiquement. Vous devez toujours mettre à jour la valeur de ce paramètre pour activer les AES sur ces SVM.
 
 
 

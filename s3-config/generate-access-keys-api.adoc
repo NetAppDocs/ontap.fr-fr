@@ -14,6 +14,8 @@ summary: 'Les clés permettant d"accéder aux clients S3 peuvent être régéné
 [role="lead"]
 À partir de ONTAP 9.14.1, en tant qu'administrateur ONTAP, vous pouvez créer des rôles personnalisés et les attribuer à des groupes locaux ou de domaine ou à des groupes LDAP (Lightweight Directory Access Protocol), de sorte que les utilisateurs appartenant à ces groupes puissent générer leur propre accès et leurs propres clés secrètes pour l'accès client S3.
 
+Vous devez effectuer quelques étapes de configuration sur votre machine virtuelle de stockage, afin que le rôle personnalisé puisse être créé et attribué à l'utilisateur qui appelle l'API pour la génération de la clé d'accès.
+
 .Avant de commencer
 Vérifiez les points suivants :
 
@@ -21,7 +23,9 @@ Vérifiez les points suivants :
 . Un compartiment a été créé dans cette VM de stockage. Voir link:../s3-config/create-bucket-task.html["Créer un compartiment"].
 . DNS est configuré sur la machine virtuelle de stockage. Voir link:../networking/configure_dns_services_manual.html["Configurez les services DNS"].
 . Un certificat d'autorité de certification racine (CA) auto-signé du serveur LDAP est installé sur la machine virtuelle de stockage. Voir link:../nfs-config/install-self-signed-root-ca-certificate-svm-task.html["Installer le certificat d'autorité de certification racine auto-signé sur le SVM"].
-. Un client LDAP est configuré avec TLS activé sur la VM de stockage. Voir link:../nfs-config/create-ldap-client-config-task.html["Créez une configuration client LDAP"] et link:../nfs-config/enable-ldap-svms-task.html["Associer la configuration client LDAP aux SVM"].
+. Un client LDAP est configuré avec TLS activé sur la VM de stockage. Voir link:../nfs-config/create-ldap-client-config-task.html["Créez une configuration client LDAP"] et .
+. Associer la configuration client au Vserver. Voir link:../nfs-config/enable-ldap-svms-task.html["Associer la configuration client LDAP aux SVM"] et https://docs.netapp.com/us-en/ontap-cli-9141//vserver-services-name-service-ldap-create.html["création du ldap nom-service des services vserver"].
+. Si vous utilisez une VM de stockage de données, créez une interface réseau de gestion (LIF) et sur la VM, ainsi qu'une politique de service pour la LIF. Voir la https://docs.netapp.com/us-en/ontap-cli-9141/network-interface-create.html["création d'interface réseau"] et https://docs.netapp.com/us-en/ontap-cli-9141//network-interface-service-policy-create.html["création de la stratégie de service de l'interface réseau"] commandes.
 
 
 
@@ -89,11 +93,13 @@ Cet appel d'API REST utilise la méthode et le point de terminaison suivants. Po
 .Exemple de boucle
 [source, curl]
 ----
-curl --request POST \
+curl
+--request POST \
 --location "https://$FQDN_IP /api/protocols/s3/services/{svm.uuid}/users " \
 --include \
 --header "Accept: */*" \
 --header "Authorization: Basic $BASIC_AUTH"
+--data '{"name":"_name_"}'
 ----
 .Exemple de sortie JSON
 [listing]

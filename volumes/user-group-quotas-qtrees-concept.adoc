@@ -14,19 +14,34 @@ summary: 'Les quotas d"arborescence limitent la taille globale du qtree. Pour é
 Les quotas d'arborescence limitent la taille globale du qtree. Pour éviter que des utilisateurs ou groupes individuels ne consomment l'intégralité du qtree, vous spécifiez un quota d'utilisateur ou de groupe pour ce qtree.
 
 .Exemple de quota d'utilisateur dans un qtree
-Supposons que vous ayez le fichier de quotas suivant :
+Supposons que vous ayez les règles de quota suivantes :
 
 [listing]
 ----
+cluster1::> volume quota policy rule show -vserver vs0 -volume vol1
 
-#Quota target type            disk files thold sdisk sfile
-#-----------  ----            ---- ----- ----- ----- -----
-*             user@/vol/vol1  50M   -     45M
-jsmith        user@/vol/vol1  80M   -     75M
+Vserver: vs0               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   ""        ""      off          50MB        -       -        -       45MB
+user   jsmith    ""      off          80MB        -       -        -       75MB
 ----
-Il vient à votre attention qu'un certain utilisateur, kjones, prend trop d'espace dans un qtree critique, qt1, qui réside dans vol2. Vous pouvez limiter l'espace de cet utilisateur en ajoutant la ligne suivante au fichier de quotas :
+Vous remarquez qu'un certain utilisateur, kjones, occupe trop d'espace dans un qtree critique, proj1, qui réside dans vol1. Vous pouvez restreindre l'espace de cet utilisateur en ajoutant la règle de quota suivante :
 
 [listing]
 ----
-kjones        user@/vol/vol2/qt1  20M  -   15M
+cluster1::> volume quota policy rule create -vserver vs0 -volume vol1 -policy-name default -type user -target "kjones" -qtree "proj1" -disk-limit 20m -threshold 15m
+
+cluster1::> volume quota policy rule show -vserver vs0 -volume vol1
+
+Vserver: vs0               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   ""        ""      off          50MB        -       -        -       45MB
+user   jsmith    ""      off          80MB        -       -        -       75MB
+user   kjones    proj1   off          20MB        -       -        -       15MB
 ----

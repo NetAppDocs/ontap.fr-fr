@@ -20,31 +20,67 @@ Lorsque vous ajoutez un quota utilisateur explicite pour un utilisateur posséda
 Les quotas explicites n'affectent que les quotas par défaut au même niveau (volume ou qtree). Par exemple, un quota utilisateur explicite pour un qtree n'affecte pas le quota utilisateur par défaut pour le volume qui contient ce qtree. Cependant, le quota utilisateur explicite pour les remplacements de qtree (remplace les limites définies par) le quota utilisateur par défaut pour ce qtree.
 
 .Exemples de quotas explicites
-Le fichier de quotas suivant contient un quota utilisateur par défaut qui limite tous les utilisateurs de vol1 à 50 Mo d'espace. Cependant, un utilisateur, jsmith, est autorisé à 80 Mo d'espace, en raison du quota explicite (indiqué en gras):
+Les règles de quota suivantes définissent un quota utilisateur par défaut qui limite tous les utilisateurs de vol1 à 50 Mo d'espace. Cependant, un utilisateur, jsmith, est autorisé à 80 Mo d'espace, en raison du quota explicite (indiqué en gras) :
 
 [listing]
 ----
-#Quota target type            disk  files  thold  sdisk  sfile
-#-----------  ----            ----  -----  -----  -----  -----
-*             user@/vol/vol1  50M
-**jsmith      user@/vol/vol1  80M**
+cluster1::> volume quota policy rule create -vserver vs0 -volume vol1 -policy-name default -type user -target "" -qtree "" -disk-limit 50m
+
+cluster1::> volume quota policy rule create -vserver vs0 -volume vol1 -policy-name default -type user -target "jsmith" -qtree "" -disk-limit 80m
+
+cluster1::> volume quota policy rule show -vserver vs0 -volume vol1
+
+Vserver: vs0               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   ""        ""      off          50MB        -       -        -          -
+user   jsmith    ""      off          80MB        -       -        -          -
 ----
-L'entrée de quotas suivante limite l'utilisateur spécifié, représenté par quatre ID, à 500 Mo d'espace disque et à 10,240 fichiers dans le volume vol1 :
+La règle de quota suivante limite l'utilisateur spécifié, représenté par quatre ID, à 550 Mo d'espace disque et 10,000 fichiers dans le volume vol1 :
 
 [listing]
 ----
-jsmith,corp\jsmith,engineering\”john smith”,
-S-1-5-32-544   user@/vol/vol1         500M      10K
+cluster1::> volume quota policy rule create -vserver vs0 -volume vol1 -policy-name default -type user -target " jsmith,corp\jsmith,engineering\john smith,S-1-5-32-544" -qtree "" -disk-limit 550m -file-limit 10000
+
+cluster1::> volume quota policy rule show -vserver vs0 -volume vol1
+
+Vserver: vs0               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   "jsmith,corp\jsmith,engineering\john smith,S-1-5-32-544"
+                 ""      off         550MB        -   10000        -          -
 ----
-L'entrée de quotas suivante limite le groupe eng1 à 150 Mo d'espace disque et un nombre illimité de fichiers dans le qtree /vol/vol2/proj1 :
+La règle de quota suivante limite le groupe eng1 à 150 Mo d'espace disque et un nombre illimité de fichiers dans le qtree proj1 :
 
 [listing]
 ----
-eng1        group@/vol/vol2/proj1  150M
+cluster1::> volume quota policy rule create -vserver vs0 -volume vol2 -policy-name default -type group -target "eng1" -qtree "proj1" -disk-limit 150m
+
+cluster1::> volume quota policy rule show -vserver vs0 -volume vol2
+
+Vserver: vs0               Policy: default           Volume: vol2
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+group  eng1      proj1   off         150MB        -       -        -          -
 ----
-L'entrée de quotas suivante limite le qtree proj1 dans le volume vol2 à 750 Mo d'espace disque et 76,800 fichiers :
+La règle de quota suivante limite le qtree proj1 du volume vol2 à 750 Mo d'espace disque et 75,000 fichiers :
 
 [listing]
 ----
-/vol/vol2/proj1   tree                750M      75K
+cluster1::> volume quota policy rule create -vserver vs0 -volume vol2 -policy-name default -type tree -target "proj1" -disk-limit 750m -file-limit 75000
+
+cluster1::> volume quota policy rule show -vserver vs0 -volume vol2
+
+Vserver: vs0               Policy: default           Volume: vol2
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+tree   proj1     ""      -           750MB        -   75000        -          -
 ----

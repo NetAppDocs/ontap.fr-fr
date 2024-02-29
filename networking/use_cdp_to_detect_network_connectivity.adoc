@@ -1,0 +1,380 @@
+---
+sidebar: sidebar 
+permalink: networking/use_cdp_to_detect_network_connectivity.html 
+keywords: display, view, show, network, connectivity, neighbor, discovery, protocol, cdp, use cdp to detect network connectivity, considerations for using cdp, enable or disable cdp, view cdp neighbor information, example of showing and clearing statistics, cisco 
+summary: 'Dans un data Center, vous pouvez utiliser des protocoles de découverte voisins pour afficher la connectivité réseau entre une paire de systèmes physiques ou virtuels et leurs interfaces réseau. ONTAP prend en charge deux protocoles de détection de voisins, Cisco Discovery Protocol (CDP) et le protocole LLDP (Link Layer Discovery Protocol).' 
+---
+= Utilisez CDP pour détecter la connectivité réseau
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+L'utilisation de CDP pour détecter la connectivité réseau consiste à examiner les considérations relatives au déploiement, à l'activer sur les ports de données, à afficher les périphériques voisins et à ajuster les valeurs de configuration CDP selon les besoins. Le protocole CDP est activé par défaut sur les ports du cluster.
+
+Le protocole CDP doit également être activé sur tous les commutateurs et routeurs avant que les informations relatives aux périphériques voisins puissent être affichées.
+
+[cols="30,70"]
+|===
+
+
+| Version de ONTAP | Description 
+
+
+ a| 
+9.10.1 et versions antérieures
+ a| 
+Le protocole CDP est également utilisé par le contrôle de l'état du switch du cluster pour détecter automatiquement les commutateurs du cluster et du réseau de gestion.
+
+
+
+ a| 
+9.11.1 et versions ultérieures
+ a| 
+Le protocole CDP est également utilisé par le contrôle de l'état du switch du cluster pour détecter automatiquement les commutateurs du cluster, du stockage et du réseau de gestion.
+
+|===
+.Informations associées
+link:../system-admin/index.html["Administration du système"^]
+
+
+
+== Considérations relatives à l'utilisation de CDP
+
+Par défaut, les périphériques compatibles CDP envoient des publicités CDPv2. Les appareils compatibles CDP envoient des publicités CDPv1 uniquement lorsqu'ils reçoivent des publicités CDPv1. ONTAP ne prend en charge que CDPv1. Par conséquent, lorsqu'un nœud ONTAP envoie des publicités CDPv1, les périphériques voisins compatibles CDP envoient des publicités CDPv1.
+
+Avant d'activer le CDP sur un nœud, tenez compte des informations suivantes :
+
+* Tous les ports CDP sont pris en charge.
+* Les publicités CDP sont envoyées et reçues par les ports qui sont à l'état up.
+* Le CDP doit être activé sur les appareils d'émission et de réception pour l'envoi et la réception de publicités CDP.
+* Les annonces CDP sont envoyées à intervalles réguliers et vous pouvez configurer l'intervalle de temps.
+* Lorsque les adresses IP sont modifiées pour une LIF, le nœud envoie les informations mises à jour dans la prochaine publicité CDP.
+* ONTAP 9.10.1 et versions antérieures :
++
+** Le protocole CDP est toujours activé sur les ports du cluster.
+** Le protocole CDP est désactivé par défaut sur tous les ports qui ne sont pas du cluster.
+
+
+* ONTAP 9.11.1 et versions ultérieures :
++
+** Le protocole CDP est toujours activé sur les ports du cluster et de stockage.
+** Par défaut, le protocole CDP est désactivé sur tous les ports non-cluster et non-stockage.
+
+
+
+
+
+NOTE: Parfois, lorsque les LIFs sont modifiées sur le nœud, les informations du CDP ne sont pas mises à jour côté du périphérique de réception (par exemple, un switch). Si vous rencontrez un tel problème, vous devez configurer l'interface réseau du nœud sur l'état down, puis sur l'état up.
+
+* Seules les adresses IPv4 sont annoncées dans les publicités CDP.
+* Pour les ports réseau physique avec des VLAN, toutes les LIF configurées sur ce port sont annoncées.
+* Pour les ports physiques faisant partie d'un groupe d'interfaces, toutes les adresses IP configurées sur ce groupe d'interfaces sont annoncées sur chaque port physique.
+* Pour un groupe d'interface qui héberge les VLAN, toutes les LIF configurées sur le groupe d'interface et les VLAN sont annoncés sur chacun des ports réseau.
+* En raison de la restriction des paquets CDP à 1500 octets maximum, sur les ports
+Configuré avec un grand nombre de LIF, seul un sous-ensemble de ces adresses IP peut être signalé sur le commutateur adjacent.
+
+
+
+
+== Activer ou désactiver CDP
+
+Pour détecter et envoyer des publicités aux périphériques voisins conformes à la norme CDP, le protocole CDP doit être activé sur chaque nœud du cluster.
+
+Par défaut dans ONTAP 9.10.1 et versions antérieures, CDP est activée sur tous les ports de cluster d'un nœud et désactivée sur tous les ports qui ne sont pas du cluster d'un nœud.
+
+Par défaut dans ONTAP 9.11.1 et versions ultérieures, CDP est activée sur l'ensemble du cluster et des ports de stockage d'un nœud et désactivée sur tous les ports non-cluster et non-stockage d'un nœud.
+
+.Description de la tâche
+Le `cdpd.enable` Option contrôle si CDP est activée ou désactivée sur les ports d'un nœud :
+
+* Pour les versions ONTAP 9.10.1 et antérieures, on active le CDP sur les ports hors cluster.
+* Pour les versions ONTAP 9.11.1 et ultérieures, on active le CDP sur les ports non-cluster et non-stockage.
+* Pour les versions ONTAP 9.10.1 et antérieures, off désactive le protocole CDP sur les ports hors cluster ; vous ne pouvez pas désactiver le protocole CDP sur les ports de cluster.
+* Pour ONTAP 9.11.1 et versions ultérieures, off désactive le protocole CDP sur les ports non-cluster et non-stockage ; vous ne pouvez pas désactiver le protocole CDP sur les ports du cluster.
+
+
+Lorsque le protocole CDP est désactivé sur un port connecté à un périphérique compatible CDP, le trafic réseau peut ne pas être optimisé.
+
+.Étapes
+. Afficher le paramètre CDP actuel d'un nœud ou de tous les nœuds d'un cluster :
++
+[cols="30,70"]
+|===
+
+
+| Pour afficher le paramètre CDP de... | Entrer... 
+
+
+ a| 
+Un nœud
+ a| 
+`run - node <node_name> options cdpd.enable`
+
+
+
+ a| 
+Tous les nœuds d'un cluster
+ a| 
+`options cdpd.enable`
+
+|===
+. Activer ou désactiver CDP sur tous les ports d'un nœud, ou sur tous les ports de tous les nœuds d'un cluster :
++
+[cols="30,70"]
+|===
+
+
+| Pour activer ou désactiver CDP sur... | Entrer... 
+
+
+ a| 
+Un nœud
+ a| 
+`run -node node_name options cdpd.enable {on or off}`
+
+
+
+ a| 
+Tous les nœuds d'un cluster
+ a| 
+`options cdpd.enable {on or off}`
+
+|===
+
+
+
+
+== Afficher les informations sur les voisins CDP
+
+Vous pouvez afficher des informations sur les périphériques voisins qui sont connectés à chaque port des nœuds de votre cluster, à condition que le port soit connecté à un périphérique compatible CDP. Vous pouvez utiliser le `network device-discovery show -protocol cdp` commande pour afficher les informations relatives au voisin.
+
+.Description de la tâche
+Dans les versions ONTAP 9.10.1 et antérieures, étant donné que le protocole CDP est toujours activé pour les ports de cluster, les informations des voisins CDP sont toujours affichées pour ces ports. Le protocole CDP doit être activé sur des ports autres que le cluster pour que les informations relatives aux voisins s'affichent sur ces ports.
+
+Dans la version ONTAP 9.11.1 et ultérieure, étant donné que le protocole CDP est toujours activé pour les ports de cluster et de stockage, les informations des voisins CDP sont toujours affichées pour ces ports. Le protocole CDP doit être activé sur les ports non-cluster et non-stockage afin que les informations relatives aux voisins s'affichent pour ces ports.
+
+.Étape
+Affiche des informations sur tous les appareils compatibles CDP connectés aux ports d'un nœud du cluster :
+
+....
+network device-discovery show -node node -protocol cdp
+....
+La commande suivante indique les voisins connectés aux ports du nœud sti2650-212 :
+
+....
+network device-discovery show -node sti2650-212 -protocol cdp
+Node/       Local  Discovered
+Protocol    Port   Device (LLDP: ChassisID)  Interface         Platform
+----------- ------ ------------------------- ----------------  ----------------
+sti2650-212/cdp
+            e0M    RTP-LF810-510K37.gdl.eng.netapp.com(SAL1942R8JS)
+                                             Ethernet1/14      N9K-C93120TX
+            e0a    CS:RTP-CS01-510K35        0/8               CN1610
+            e0b    CS:RTP-CS01-510K36        0/8               CN1610
+            e0c    RTP-LF350-510K34.gdl.eng.netapp.com(FDO21521S76)
+                                             Ethernet1/21      N9K-C93180YC-FX
+            e0d    RTP-LF349-510K33.gdl.eng.netapp.com(FDO21521S4T)
+                                             Ethernet1/22      N9K-C93180YC-FX
+            e0e    RTP-LF349-510K33.gdl.eng.netapp.com(FDO21521S4T)
+                                             Ethernet1/23      N9K-C93180YC-FX
+            e0f    RTP-LF349-510K33.gdl.eng.netapp.com(FDO21521S4T)
+                                             Ethernet1/24      N9K-C93180YC-FX
+....
+La sortie répertorie les périphériques Cisco connectés à chaque port du nœud spécifié.
+
+
+
+== Configurez la durée de mise en attente des messages CDP
+
+La durée de conservation correspond à la période pendant laquelle les publicités CDP sont stockées en cache sur les périphériques compatibles CDP voisins. Le temps de mise en attente est annoncé dans chaque paquet CDPv1 et mis à jour chaque fois qu'un paquet CDPv1 est reçu par un noeud.
+
+* La valeur du `cdpd.holdtime` L'option doit être définie sur la même valeur sur les deux nœuds d'une paire HA.
+* La valeur par défaut du temps de maintien est de 180 secondes, mais vous pouvez entrer des valeurs comprises entre 10 secondes et 255 secondes.
+* Si une adresse IP est supprimée avant l'expiration du délai de mise en attente, les informations CDP sont mises en cache jusqu'à ce que le délai de mise en attente expire.
+
+
+.Étapes
+. Afficher l'heure de maintien CDP actuelle d'un nœud ou de tous les nœuds d'un cluster :
++
+[cols="30,70"]
+|===
+
+
+| Pour afficher le temps de maintien de... | Entrer... 
+
+
+ a| 
+Un nœud
+ a| 
+`run -node node_name options cdpd.holdtime`
+
+
+
+ a| 
+Tous les nœuds d'un cluster
+ a| 
+`options cdpd.holdtime`
+
+|===
+. Configurer le délai de mise en attente du CDP sur tous les ports d'un nœud ou sur tous les ports de tous les nœuds d'un cluster :
++
+[cols="30,70"]
+|===
+
+
+| Pour activer le temps de maintien... | Entrer... 
+
+
+ a| 
+Un nœud
+ a| 
+`run -node node_name options cdpd.holdtime holdtime`
+
+
+
+ a| 
+Tous les nœuds d'un cluster
+ a| 
+`options cdpd.holdtime holdtime`
+
+|===
+
+
+
+
+== Définissez l'intervalle d'envoi de publicités CDP
+
+Les publicités CDP sont envoyées régulièrement aux voisins CDP. Vous pouvez augmenter ou réduire l'intervalle d'envoi de publicités CDP en fonction du trafic réseau et des modifications de la topologie réseau.
+
+* La valeur du `cdpd.interval` L'option doit être définie sur la même valeur sur les deux nœuds d'une paire HA.
+* L'intervalle par défaut est de 60 secondes, mais vous pouvez entrer une valeur de 5 à 900 secondes.
+
+
+.Étapes
+. Afficher l'intervalle de temps publicitaire du CDP actuel pour un nœud ou pour tous les nœuds d'un cluster :
++
+[cols="30,70"]
+|===
+
+
+| Pour afficher l'intervalle de... | Entrer... 
+
+
+ a| 
+Un nœud
+ a| 
+`run -node node_name options cdpd.interval`
+
+
+
+ a| 
+Tous les nœuds d'un cluster
+ a| 
+`options cdpd.interval`
+
+|===
+. Configurer l'intervalle d'envoi de publicités CDP pour tous les ports d'un nœud ou pour tous les ports de tous les nœuds d'un cluster :
++
+[cols="30,70"]
+|===
+
+
+| Pour définir l'intervalle de... | Entrer... 
+
+
+ a| 
+Un nœud
+ a| 
+`run -node node_name options cdpd.interval interval`
+
+
+
+ a| 
+Tous les nœuds d'un cluster
+ a| 
+`options cdpd.interval interval`
+
+|===
+
+
+
+
+== Afficher ou effacer les statistiques CDP
+
+Vous pouvez afficher les statistiques CDP des ports du cluster et non du cluster sur chaque nœud afin de détecter d'éventuels problèmes de connectivité réseau. Les statistiques CDP sont cumulatives à partir de leur dernière suppression.
+
+.Description de la tâche
+Dans les versions ONTAP 9.10.1 et antérieures, étant donné que le protocole CDP est toujours activé pour les ports, les statistiques CDP sont toujours affichées pour le trafic sur ces ports. Le protocole CDP doit être activé sur les ports pour que les statistiques apparaissent sur ces ports.
+
+Dans les versions ONTAP 9.11.1 et ultérieures, puisque le CDP est toujours activé pour les ports du cluster et de stockage, les statistiques CDP sont toujours affichées pour le trafic sur ces ports. Le protocole CDP doit être activé sur des ports non-cluster ou non-Storage pour que les statistiques de ces ports s'affichent.
+
+.Étape
+Afficher ou effacer les statistiques CDP actuelles de tous les ports d'un nœud :
+
+[cols="30,70"]
+|===
+
+
+| Les fonctions que vous recherchez... | Entrer... 
+
+
+ a| 
+Afficher les statistiques CDP
+ a| 
+`run -node node_name cdpd show-stats`
+
+
+
+ a| 
+Effacer les statistiques CDP
+ a| 
+`run -node node_name cdpd zero-stats`
+
+|===
+
+
+=== Exemple d'affichage et d'effacement des statistiques
+
+La commande suivante affiche les statistiques CDP avant leur effacement. La sortie affiche le nombre total de paquets envoyés et reçus depuis la dernière suppression des statistiques.
+
+....
+run -node node1 cdpd show-stats
+
+RECEIVE
+ Packets:         9116  | Csum Errors:       0  | Unsupported Vers:  4561
+ Invalid length:     0  | Malformed:         0  | Mem alloc fails:      0
+ Missing TLVs:       0  | Cache overflow:    0  | Other errors:         0
+
+TRANSMIT
+ Packets:         4557  | Xmit fails:        0  | No hostname:          0
+ Packet truncated:   0  | Mem alloc fails:   0  | Other errors:         0
+
+OTHER
+ Init failures:      0
+....
+La commande suivante efface les statistiques CDP :
+
+....
+run -node node1 cdpd zero-stats
+....
+....
+run -node node1 cdpd show-stats
+
+RECEIVE
+ Packets:            0  | Csum Errors:       0  | Unsupported Vers:     0
+ Invalid length:     0  | Malformed:         0  | Mem alloc fails:      0
+ Missing TLVs:       0  | Cache overflow:    0  | Other errors:         0
+
+TRANSMIT
+ Packets:            0  | Xmit fails:        0  | No hostname:          0
+ Packet truncated:   0  | Mem alloc fails:   0  | Other errors:         0
+
+OTHER
+ Init failures:      0
+....
+Une fois les statistiques effacées, elles commencent à s'accumuler après l'envoi ou la réception de la prochaine annonce CDP.

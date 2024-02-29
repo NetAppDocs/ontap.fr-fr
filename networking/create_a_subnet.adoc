@@ -1,8 +1,8 @@
 ---
 sidebar: sidebar 
 permalink: networking/create_a_subnet.html 
-keywords: move, moving, broadcast, domain, ipspace, create a subnet, network subnet create, network subnet show -ipspace 
-summary: Créez un sous-réseau 
+keywords: move, moving, broadcast, domain, ipspace, create a subnet, network subnet create, network subnet show -ipspace, force-update-lif-associations, network subnet rename 
+summary: 'Créez un sous-réseau pour allouer ou réserver des blocs spécifiques d"adresses IP pour la configuration du réseau ONTAP' 
 ---
 = Créez un sous-réseau
 :hardbreaks:
@@ -20,6 +20,14 @@ Cela vous permet de créer plus facilement les LIF en spécifiant un nom de sous
 
 .Avant de commencer
 Vous devez être un administrateur de cluster pour effectuer cette tâche.
+
+Le broadcast domain et IPspace où vous prévoyez d'ajouter le sous-réseau doivent déjà exister.
+
+.Description de la tâche
+* Tous les noms de sous-réseau doivent être uniques au sein d'un IPspace.
+* Lorsque vous ajoutez des plages d'adresses IP à un sous-réseau, vous devez vous assurer qu'il n'y a pas d'adresses IP redondantes dans le réseau de sorte que différents sous-réseaux ou hôtes ne tentent pas d'utiliser la même adresse IP.
+* Si vous spécifiez une passerelle lors de la définition d'un sous-réseau, une route par défaut vers cette passerelle est ajoutée automatiquement au SVM lorsqu'une LIF est créée à l'aide de ce sous-réseau. Si vous n'utilisez pas de sous-réseaux ou si vous n'indiquez pas de passerelle lors de la définition d'un sous-réseau, vous devez utiliser le `route create` Commande pour ajouter manuellement une route au SVM.
+
 
 .Procédure
 La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
@@ -53,22 +61,44 @@ Depuis ONTAP 9.12.0, vous pouvez utiliser System Manager pour créer un sous-ré
 --
 Pour créer un sous-réseau, utilisez l'interface de ligne de commandes.
 
-.Étapes
-. Créez un sous-réseau.
+....
+network subnet create -subnet-name subnet_name -broadcast-domain <broadcast_domain_name> [- ipspace <ipspace_name>] -subnet <subnet_address> [-gateway <gateway_address>] [-ip-ranges <ip_address_list>] [-force-update-lif-associations <true>]
+....
+* `subnet_name` est le nom du sous-réseau de couche 3 que vous souhaitez créer.
 +
-`network subnet create -broadcast-domain _ipspace1_ -ipspace _ipspace1_ -subnet-name _ipspace1_ -subnet _10.0.0.0/24_ -gateway _10.0.0.1_ -ip-ranges _"10.0.0.128-10.0.0.130,10.0.0.132"_`
+Le nom peut être une chaîne de texte comme "Mgmt" ou une valeur IP de sous-réseau spécifique comme 192.0.2.0/24.
 
+* `broadcast_domain_name` est le nom du domaine de diffusion sur lequel le sous-réseau sera stocké.
+* `ipspace_name` Est le nom de l'IPspace auquel le broadcast domain appartient.
 +
-Le nom du sous-réseau peut être une valeur IP de sous-réseau telle que `192.0.2.0/24` ou une chaîne telle que `ipspace1` comme celle utilisée dans cet exemple.
+L'IPspace par défaut est utilisé sauf si vous spécifiez une valeur pour cette option.
 
-. Vérifiez que la configuration du sous-réseau est correcte.
+* `subnet_address` Est l'adresse IP et le masque du sous-réseau ; par exemple, 192.0.2.0/24.
+* `gateway_address` est la passerelle pour la route par défaut du sous-réseau ; par exemple, 192.0.2.1.
+* `ip_address_list` Est la liste, ou plage, des adresses IP qui seront allouées au sous-réseau.
 +
-La sortie de cet exemple présente des informations sur le sous-réseau nommé ipspace1 dans l'IPspace ipspace1. Le sous-réseau appartient au nom de domaine de diffusion ipspace1. Vous pouvez attribuer les adresses IP de ce sous-réseau aux LIF de données pour les SVM créés dans l'IPspace ipspace1.
+Les adresses IP peuvent être des adresses individuelles, une plage d'adresses IP ou une combinaison dans une liste séparée par des virgules.
 
+* La valeur `true` peut être réglé pour le `-force-update-lif-associations` option.
 +
-`network subnet show -ipspace _ipspace1_`
+Cette commande échoue si un processeur de service ou une interface réseau utilisent actuellement les adresses IP de la plage spécifiée. Si cette valeur est définie sur true, elle associe toutes les interfaces adressées manuellement avec le sous-réseau actuel et permet à la commande de réussir.
 
 
+
+La commande suivante crée le sous-réseau sub1 dans broadcast domain Default-1 dans l'IPspace par défaut. Il ajoute une adresse IP et un masque de sous-réseau IPv4, la passerelle et une plage d'adresses IP :
+
+....
+network subnet create -subnet-name sub1 -broadcast-domain Default-1 -subnet 192.0.2.0/24 - gateway 192.0.2.1 -ip-ranges 192.0.2.1-192.0.2.100, 192.0.2.122
+....
+La commande suivante crée le sous-réseau sub2 dans broadcast domain Default dans le « IPspace par défaut ». Il ajoute une plage d'adresses IPv6 :
+
+....
+network subnet create -subnet-name sub2 -broadcast-domain Default -subnet 3FFE::/64 - gateway 3FFE::1 -ip-ranges "3FFE::10-3FFE::20"
+....
+.Une fois que vous avez terminé
+Vous pouvez attribuer des SVM et des interfaces à un IPspace en utilisant les adresses dans le sous-réseau.
+
+Si vous devez modifier le nom d'un sous-réseau existant, utilisez le `network subnet rename` commande.
 
 --
 ====

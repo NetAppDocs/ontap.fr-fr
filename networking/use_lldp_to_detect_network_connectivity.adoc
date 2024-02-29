@@ -1,0 +1,301 @@
+---
+sidebar: sidebar 
+permalink: networking/use_lldp_to_detect_network_connectivity.html 
+keywords: display, view, show, network, connectivity, neighbor, discovery, protocol, ndp, link, layer, lldp, use lldp to detect network connectivity, enable or disable lldp, view lldp neighbor information, adjust the interval for transmitting lldp advertisements 
+summary: 'L"utilisation du protocole LLDP pour détecter la connectivité réseau consiste à examiner les considérations de déploiement, à l"activer sur tous les ports, à visualiser les périphériques voisins et à ajuster les valeurs de configuration LLDP si nécessaire.' 
+---
+= Utilisez LLDP pour détecter la connectivité réseau
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+L'utilisation du protocole LLDP pour détecter la connectivité réseau consiste à examiner les considérations de déploiement, à l'activer sur tous les ports, à visualiser les périphériques voisins et à ajuster les valeurs de configuration LLDP si nécessaire.
+
+Le protocole LLDP doit également être activé sur tous les commutateurs et routeurs avant que des informations sur les périphériques voisins puissent être affichées.
+
+ONTAP indique actuellement les structures de valeur de type-longueur (TLV) suivantes :
+
+* ID de châssis
+* ID de port
+* Durée de vie (TTL)
+* Nom du système
++
+Le nom système TLV n'est pas envoyé sur les périphériques CNA.
+
+
+
+Certains adaptateurs réseau convergés (CNA), tels que l'adaptateur X1143 et les ports intégrés UTA2, contiennent la prise en charge de l'allègement de la charge pour le protocole LLDP :
+
+* Le déchargement LLDP est utilisé pour le pontage du Data Center (DCB).
+* Les informations affichées peuvent différer entre le cluster et le commutateur.
++
+Les données d'ID de châssis et de port affichées par le commutateur peuvent être différentes pour les ports CNA et non CNA.
+
+
+
+Par exemple :
+
+* Pour les ports non CNA :
++
+** L'ID de châssis est une adresse MAC fixe de l'un des ports du nœud
+** ID de port correspond au nom du port respectif sur le nœud
+
+
+* Pour les ports CNA :
++
+** L'ID de châssis et l'ID de port sont les adresses MAC des ports respectifs du nœud.
+
+
+
+
+Cependant, les données affichées par le cluster sont cohérentes pour ces types de port.
+
+
+NOTE: La spécification LLDP définit l'accès aux informations collectées via une MIB SNMP. Cependant, ONTAP ne supporte pas actuellement la MIB LLDP.
+
+
+
+== Activer ou désactiver le protocole LLDP
+
+Pour détecter et envoyer des publicités aux périphériques voisins conformes au protocole LLDP, LLDP doit être activé sur chaque nœud du cluster. Depuis ONTAP 9.7, LLDP est activé par défaut sur tous les ports d'un nœud.
+
+.Description de la tâche
+Pour ONTAP 9.10.1 et versions antérieures, le `lldp.enable` Option contrôle si LLDP est activé ou désactivé sur les ports d'un nœud :
+
+* `on` Active LLDP sur tous les ports.
+* `off` Désactive LLDP sur tous les ports.
+
+
+Pour ONTAP 9.11.1 et versions ultérieures, le `lldp.enable` Option contrôle si LLDP est activé ou désactivé sur les ports non-cluster et non-stockage d'un nœud :
+
+* `on` Active LLDP sur tous les ports non-cluster et non-stockage.
+* `off` Désactive LLDP sur tous les ports non-cluster et non-stockage.
+
+
+.Étapes
+. Afficher le paramètre LLDP actuel pour un nœud ou pour tous les nœuds d'un cluster :
++
+** Un seul nœud : `run -node node_name options lldp.enable`
+** Tous les nœuds : options `lldp.enable`
+
+
+. Activer ou désactiver le protocole LLDP sur tous les ports d'un nœud ou sur tous les ports de tous les nœuds d'un cluster :
++
+[cols="30,70"]
+|===
+
+
+| Pour activer ou désactiver LLDP activé... | Entrer... 
+
+
+ a| 
+Un nœud
+ a| 
+`run -node node_name options lldp.enable {on|off}`
+
+
+
+ a| 
+Tous les nœuds d'un cluster
+ a| 
+`options lldp.enable {on|off}`
+
+|===
++
+** Un seul nœud :
++
+....
+run -node node_name options lldp.enable {on|off}
+....
+** Tous les nœuds :
++
+....
+options lldp.enable {on|off}
+....
+
+
+
+
+
+
+== Afficher les informations de voisinage LLDP
+
+Vous pouvez afficher des informations sur les périphériques voisins qui sont connectés à chaque port des nœuds de votre cluster, à condition que le port soit connecté à un périphérique compatible LLDP. Vous utilisez la commande network device-Discovery show pour afficher les informations relatives aux voisins.
+
+.Étape
+. Affiche des informations sur tous les périphériques conformes au protocole LLDP connectés aux ports d'un nœud du cluster :
++
+....
+network device-discovery show -node node -protocol lldp
+....
++
+La commande suivante affiche les voisins connectés aux ports du nœud cluster-1_01. La sortie répertorie les périphériques compatibles LLDP qui sont connectés à chaque port du nœud spécifié. Si le `-protocol` Option omise, la sortie répertorie également les périphériques compatibles CDP.
+
++
+....
+network device-discovery show -node cluster-1_01 -protocol lldp
+Node/       Local  Discovered
+Protocol    Port   Device                    Interface         Platform
+----------- ------ ------------------------- ----------------  ----------------
+cluster-1_01/lldp
+            e2a    0013.c31e.5c60            GigabitEthernet1/36
+            e2b    0013.c31e.5c60            GigabitEthernet1/35
+            e2c    0013.c31e.5c60            GigabitEthernet1/34
+            e2d    0013.c31e.5c60            GigabitEthernet1/33
+....
+
+
+
+
+== Réglez l'intervalle de transmission des annonces LLDP
+
+Les annonces du LLDP sont envoyées à intervalles réguliers aux voisins du LLDP. Vous pouvez augmenter ou diminuer l'intervalle d'envoi des annonces LLDP en fonction du trafic réseau et des modifications de la topologie du réseau.
+
+.Description de la tâche
+L'intervalle par défaut recommandé par IEEE est de 30 secondes, mais vous pouvez entrer une valeur de 5 secondes à 300 secondes.
+
+.Étapes
+. Afficher l'intervalle de temps de publicité LLDP actuel pour un nœud ou pour tous les nœuds d'un cluster :
++
+** Un seul nœud :
++
+....
+run -node <node_name> options lldp.xmit.interval
+....
+** Tous les nœuds :
++
+....
+options lldp.xmit.interval
+....
+
+
+. Réglez l'intervalle d'envoi des annonces LLDP pour tous les ports d'un nœud ou pour tous les ports de tous les nœuds d'un cluster :
++
+** Un seul nœud :
++
+....
+run -node <node_name> options lldp.xmit.interval <interval>
+....
+** Tous les nœuds :
++
+....
+options lldp.xmit.interval <interval>
+....
+
+
+
+
+
+
+== Réglez la valeur de temps de mise en ligne pour les annonces LLDP
+
+Le temps de mise en service (TTL) est la période pendant laquelle les publicités LLDP sont stockées dans le cache dans les périphériques conformes LLDP voisins. TTL est annoncé dans chaque paquet LLDP et mis à jour chaque fois qu'un paquet LLDP est reçu par un nœud. TTL peut être modifié dans les trames LLDP sortantes.
+
+.Description de la tâche
+* TTL est une valeur calculée, produit de l'intervalle de transmission (`lldp.xmit.interval`) et le multiplicateur hold (`lldp.xmit.hold`) plus un.
+* La valeur par défaut du multiplicateur de maintien est 4, mais vous pouvez entrer des valeurs comprises entre 1 et 100.
+* Le TTL par défaut est donc de 121 secondes, comme recommandé par l'IEEE, mais en ajustant l'intervalle de transmission et les valeurs multiplicatrices de maintien, vous pouvez spécifier une valeur pour les trames sortantes de 6 à 30001 secondes.
+* Si une adresse IP est supprimée avant l'expiration du TTL, les informations LLDP sont mises en cache jusqu'à expiration du TTL.
+
+
+.Étapes
+. Afficher la valeur du multiplicateur de maintien actuel pour un nœud ou pour tous les nœuds d'un cluster :
++
+** Un seul nœud :
++
+....
+run -node <node_name> options lldp.xmit.hold
+....
+** Tous les nœuds :
++
+....
+options lldp.xmit.hold
+....
+
+
+. Ajustez la valeur du multiplicateur de maintien sur tous les ports d'un nœud ou sur tous les ports de tous les nœuds d'un cluster :
++
+** Un seul nœud :
++
+....
+run -node <node_name> options lldp.xmit.hold <hold_value>
+....
+** Tous les nœuds :
++
+....
+options lldp.xmit.hold <hold_value>
+....
+
+
+
+
+
+
+== Afficher ou effacer les statistiques LLDP
+
+Vous pouvez afficher les statistiques LLDP pour les ports cluster et non-cluster sur chaque nœud afin de détecter d'éventuels problèmes de connectivité réseau. Les statistiques LLDP sont cumulatives à partir de la dernière fois qu'elles ont été effacées.
+
+.Description de la tâche
+Pour les versions ONTAP 9.10.1 et antérieures, étant donné que LLDP est toujours activé pour les ports de cluster, les statistiques LLDP sont toujours affichées pour le trafic sur ces ports. Le protocole LLDP doit être activé sur des ports non-cluster pour que les statistiques s'affichent pour ces ports.
+
+Pour ONTAP 9.11.1 et versions ultérieures, étant donné que LLDP est toujours activé pour le cluster et les ports de stockage, les statistiques LLDP sont toujours affichées pour le trafic sur ces ports. Le protocole LLDP doit être activé sur les ports non-cluster et non-stockage pour que les statistiques s'affichent sur ces ports.
+
+.Étape
+Afficher ou effacer les statistiques actuelles du LLDP pour tous les ports d'un nœud :
+
+[cols="40,60"]
+|===
+
+
+| Les fonctions que vous recherchez... | Entrer... 
+
+
+ a| 
+Afficher les statistiques LLDP
+ a| 
+`run -node node_name lldp stats`
+
+
+
+ a| 
+Effacer les statistiques LLDP
+ a| 
+`run -node node_name lldp stats -z`
+
+|===
+
+
+=== Affiche et efface un exemple de statistiques
+
+La commande suivante affiche les statistiques LLDP avant leur effacement. La sortie affiche le nombre total de paquets envoyés et reçus depuis la dernière suppression des statistiques.
+
+....
+cluster-1::> run -node vsim1 lldp stats
+
+RECEIVE
+ Total frames:     190k  | Accepted frames:   190k | Total drops:         0
+TRANSMIT
+ Total frames:     5195  | Total failures:      0
+OTHER
+ Stored entries:      64
+....
+La commande suivante efface les statistiques LLDP.
+
+....
+cluster-1::> The following command clears the LLDP statistics:
+run -node vsim1 lldp stats -z
+run -node node1 lldp stats
+
+RECEIVE
+ Total frames:        0  | Accepted frames:     0  | Total drops:         0
+TRANSMIT
+ Total frames:        0  | Total failures:      0
+OTHER
+ Stored entries:      64
+....
+Une fois les statistiques effacées, elles commencent à s'accumuler après l'envoi ou la réception de la prochaine annonce du PLLDP.

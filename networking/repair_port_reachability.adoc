@@ -16,6 +16,57 @@ summary: Si un port est recâblé ou que la configuration du commutateur change,
 [role="lead"]
 Les domaines de diffusion sont créés automatiquement. Cependant, si un port est recâblage ou si la configuration du commutateur change, un port peut avoir besoin d'être réparé dans un domaine de diffusion différent (nouveau ou existant).
 
+ONTAP peut détecter et recommander automatiquement des solutions aux problèmes de câblage réseau en fonction de la capacité de couche 2 d'un composant de domaine de diffusion (ports ethernet).
+
+Un câblage incorrect pendant peut provoquer une affectation de port de domaine de diffusion inattendue. Depuis ONTAP 9.10.1, le cluster vérifie automatiquement la présence de problèmes de câblage réseau en vérifiant la capacité de port après la configuration du cluster ou lorsqu'un nouveau nœud rejoint un cluster existant.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Si un problème de capacité de port est détecté, System Manager recommande une opération de réparation pour résoudre le problème.
+
+Une fois le cluster configuré, des problèmes de câblage réseau sont signalés sur le tableau de bord.
+
+Après l'ajout d'un nouveau nœud à un cluster, des problèmes de câblage réseau apparaissent sur la page nœuds.
+
+Vous pouvez également afficher l'état du câblage réseau sur le schéma de réseau. Les problèmes de capacité de port sont indiqués sur le schéma du réseau par une icône d'erreur rouge.
+
+== Configuration post-cluster
+
+Une fois le cluster configuré, si le système détecte un problème de câblage réseau, un message s'affiche sur le tableau de bord.
+
+image:auto-detect-01.png["Message de configuration du post-cluster"]
+
+.Étapes
+. Corriger le câblage comme indiqué dans le message.
+. Cliquez sur le lien pour lancer la boîte de dialogue mettre à jour les domaines de diffusion.
+La boîte de dialogue mettre à jour les domaines de diffusion s'ouvre.
+image:auto-detect-02.png["Mettre à jour la boîte de dialogue domaines de diffusion"]
+. Examinez les informations sur le port, y compris le nœud, les problèmes, le domaine de diffusion actuel et le domaine de diffusion attendu.
+. Sélectionnez les ports à réparer et cliquez sur *Fix*.
+Le système déplace les ports du domaine de diffusion actuel vers le domaine de diffusion attendu.
+
+
+== joindre un nœud de post
+
+Après l'ajout d'un nouveau nœud à un cluster, si le système détecte un problème de câblage réseau, un message s'affiche sur la page nœuds.
+
+image:auto-detect-03.png["Message de jointure de nœud post"]
+
+.Étapes
+. Corriger le câblage comme indiqué dans le message.
+. Cliquez sur le lien pour lancer la boîte de dialogue mettre à jour les domaines de diffusion.
+La boîte de dialogue mettre à jour les domaines de diffusion s'ouvre.
+image:auto-detect-02.png["Mettre à jour la boîte de dialogue domaines de diffusion"]
+. Examinez les informations sur le port, y compris le nœud, les problèmes, le domaine de diffusion actuel et le domaine de diffusion attendu.
+. Sélectionnez les ports à réparer et cliquez sur *Fix*.
+Le système déplace les ports du domaine de diffusion actuel vers le domaine de diffusion attendu.
+
+
+--
+.CLI
+--
 .Avant de commencer
 Vous devez être un administrateur de cluster pour effectuer cette tâche.
 
@@ -121,9 +172,7 @@ Si l'état de la capacité d'accessibilité est « inconnu », attendez quelques
 |===
 Après avoir réparé un port, vérifiez s'il y a des LIFs et des VLAN déplacés. Si le port faisait partie d'un groupe d'interfaces, vous devez également connaître ce qui s'est passé pour ce groupe.
 
-
-
-== LIF
+== LIFs
 
 Lorsqu'un port est réparé et déplacé dans un autre domaine de diffusion, tous les LIFs configurés sur le port réparé se voient automatiquement attribuer un nouveau port de base. Si possible, ce port home est sélectionné dans le même domaine de diffusion sur le même nœud. Vous pouvez également sélectionner un port home port à partir d'un autre nœud ou, s'il n'existe aucun port home approprié, celui-ci sera effacé.
 
@@ -147,8 +196,6 @@ Si des LIF sont déplacées, il faut soit :
 
 
 
-
-
 == VLAN
 
 Si le port réparé comporte des VLAN, ces derniers sont automatiquement supprimés mais sont également enregistrés comme ayant été « déplacés ». Vous pouvez afficher les VLAN déplacés suivants :
@@ -167,12 +214,12 @@ En cas de déplacement de réseaux locaux virtuels, vous devez :
 
 
 
-
-
-== Groupes d'interface
+== groupes d'interfaces
 
 Si le port réparé faisait partie d'un groupe d'interfaces, il est retiré de ce groupe d'interfaces. S'il s'agissait du seul port membre attribué au groupe d'interface, le groupe d'interface lui-même est supprimé.
 
+--
+====
 .Sections connexes
 link:https://docs.netapp.com/us-en/ontap/networking/verify_your_network_configuration.html["Vérifiez votre configuration réseau après la mise à niveau"]
 

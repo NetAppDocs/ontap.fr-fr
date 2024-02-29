@@ -23,22 +23,25 @@ Dans cet exemple, il existe un qtree, q1, qui est contenue par le volume vol1. L
 * Limite explicite de quota utilisateur sur vol1 de 200 Mo pour l'utilisateur jsmith
 
 
-Le fichier des quotas de ces quotas ressemble à l'extrait suivant :
+Les règles de quota pour ces quotas sont similaires à l'exemple suivant :
 
 [listing]
 ----
+cluster1::*> volume quota policy rule show -vserver vs1 -volume vol1
 
-#Quota target type            disk files  thold sdisk  sfile
-#-----------  ----            ---  -----  ----  -----  -----
-*             tree@/vol/vol1  400M
-*             user@/vol/vol1  100M
-jsmith        user@/vol/vol1  200M
+Vserver: vs1               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+tree   ""        ""      -           400MB        -       -        -          -
+user   ""        ""      off         100MB        -       -        -          -
+user   jsmith    ""      off         200MB        -       -        -          -
 ----
-Le rapport sur les quotas pour ces quotas ressemble à l'extrait suivant :
+Le rapport des quotas pour ces quotas ressemble à l'exemple suivant :
 
 [listing]
 ----
-
 cluster1::> volume quota report
 Vserver: vs1
                                     ----Disk----  ----Files-----   Quota
@@ -46,13 +49,12 @@ Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
 -------  --------  ------  -------  -----  -----  ------  ------   ---------
 vol1     -          tree   *           0B  400MB       0       -   *
 vol1     -          user   *           0B  100MB       0       -   *
-vol1     -          user   corp/jsmith
-                                     150B  200MB       7       -   corp/jsmith
+vol1     -          user   jsmith    150B  200MB       7       -   jsmith
 vol1     q1         tree   1           0B  400MB       6       -   q1
 vol1     q1         user   *           0B  100MB       0       -
-vol1     q1         user   corp/jsmith 0B  100MB       5       -
-vol1     -          user   root        0B   0MB        1       -
-vol1     q1         user   root        0B   0MB        8       -
+vol1     q1         user   jsmith      0B  100MB       5       -
+vol1     -          user   root        0B    0MB       1       -
+vol1     q1         user   root        0B    0MB       8       -
 ----
 Les trois premières lignes du rapport des quotas affichent les trois quotas spécifiés par l'administrateur. Comme deux de ces quotas sont des quotas par défaut, ONTAP crée automatiquement des quotas dérivés.
 
@@ -60,7 +62,7 @@ La quatrième ligne affiche le quota Tree qui est dérivé du quota Tree par dé
 
 La cinquième ligne affiche le quota utilisateur par défaut créé pour le qtree en raison de l'existence du quota utilisateur par défaut sur le volume et le quota qtree.
 
-La sixième ligne affiche le quota utilisateur dérivé créé pour jsmith sur le qtree car il existe un quota utilisateur par défaut pour le qtree (ligne 5) et l'utilisateur jsmith possède des fichiers sur ce qtree. Notez que la limite appliquée au jsmith de l'utilisateur dans le qtree q1 n'est pas déterminée par la limite explicite de quota utilisateur (200 Mo). En effet, la limite explicite de quota utilisateur est sur le volume, ce qui n'affecte donc pas de limites pour le qtree. En revanche, la limite de quota utilisateur dérivée pour le qtree est déterminée par le quota utilisateur par défaut pour le qtree (100 Mo).
+La sixième ligne affiche le quota utilisateur dérivé créé pour jsmith sur le qtree car il existe un quota utilisateur par défaut pour le qtree (ligne 5) et l'utilisateur jsmith possède des fichiers sur ce qtree. Notez que la limite appliquée à l'utilisateur jsmith dans le qtree q1 n'est pas déterminée par la limite du quota utilisateur explicite (200 Mo). En effet, la limite explicite de quota utilisateur est sur le volume, ce qui n'affecte donc pas de limites pour le qtree. Au lieu de cela, le quota utilisateur maximal pour le qtree est déterminé par le quota utilisateur par défaut pour le qtree (100 Mo).
 
 Les deux dernières lignes affichent plus de quotas d'utilisateur dérivés des quotas d'utilisateur par défaut sur le volume et sur le qtree. Un quota utilisateur dérivé a été créé pour l'utilisateur root sur le volume et le qtree, car l'utilisateur root possédait des fichiers sur le volume et le qtree. Comme l'utilisateur root bénéficie d'un traitement spécial en termes de quotas, ses quotas dérivés sont uniquement le suivi des quotas.
 
@@ -72,22 +74,26 @@ Il y a toujours un volume, vol1, et un qtree, q1. L'administrateur a créé les 
 * Limite de quota d'arborescence par défaut sur vol1 de 400 Mo
 * Limite de quota utilisateur par défaut sur vol1 de 100 Mo
 * Limite explicite de quota utilisateur sur vol1 pour l'utilisateur jsmith de 200 Mo
-* Une limite de quota utilisateur par défaut sur qtree q1 de 50 Mo
-* Une limite de quota utilisateur explicite sur qtree q1 pour l'utilisateur jsmith de 75 Mo
+* Quota utilisateur par défaut sur le qtree q1 de 50 Mo
+* Limite de quota utilisateur explicite sur qtree q1 pour l'utilisateur jsmith de 75 Mo
 
 
-Le fichier de quotas de ces quotas se présente comme suit :
+Les règles de quota pour ces quotas se ressemblent à celles-ci :
 
 [listing]
 ----
+cluster1::> volume quota policy rule show -vserver vs1 -volume vol1
 
-#Quota target type             disk files  thold sdisk  sfile
-#-----------  ----             ---  -----  ----  -----  -----
-*             tree@/vol/vol1   400M
-*             user@/vol/vol1   100M
-jsmith        user@/vol/vol1   200M
-*             user@/vol/vol1/q1 50M
-jsmith        user@/vol/vol1/q1 75M
+Vserver: vs1               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+tree   ""        ""      -           400MB        -       -        -          -
+user   ""        ""      off         100MB        -       -        -          -
+user   ""        q1      off          50MB        -       -        -          -
+user   jsmith    ""      off         200MB        -       -        -          -
+user   jsmith    q1      off          75MB        -       -        -          -
 ----
 Le rapport sur les quotas de ces quotas se présente comme suit :
 
@@ -101,13 +107,12 @@ Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
 -------  --------  ------  -------  -----  -----  ------  ------   ---------
 vol1     -          tree   *           0B  400MB       0       -   *
 vol1     -          user   *           0B  100MB       0       -   *
-vol1     -          user   corp/jsmith
-                                    2000B  200MB       7       -   corp/jsmith
+vol1     -          user   jsmith   2000B  200MB       7       -   jsmith
 vol1     q1         user   *           0B   50MB       0       -   *
-vol1     q1         user   corp/jsmith 0B  75MB        5       -   corp/jsmith
-vol1     q1         tree   1           0B 400MB        6       -   q1
-vol1     -          user   root        0B   0MB        2       -
-vol1     q1         user   root        0B   0MB        1       -
+vol1     q1         user   jsmith      0B   75MB       5       -   jsmith
+vol1     q1         tree   1           0B  400MB       6       -   q1
+vol1     -          user   root        0B    0MB       2       -
+vol1     q1         user   root        0B    0MB       1       -
 ----
 Les cinq premières lignes du rapport de quota affichent les cinq quotas créés par l'administrateur. Comme certains de ces quotas sont des quotas par défaut, ONTAP crée automatiquement des quotas dérivés.
 

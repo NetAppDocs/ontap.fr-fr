@@ -11,10 +11,28 @@ summary: 'Si vous définissez l"option d"allocation d"espace sur activé, ONTAP 
 
 
 [role="lead"]
-Si vous définissez le `space-allocation` option à `enabled`, ONTAP informe l'hôte lorsque l'espace du volume est insuffisant et que la LUN du volume ne peut pas accepter les écritures. Cette option permet également à ONTAP de récupérer automatiquement de l'espace lorsque votre hôte supprime des données.
+Si votre hôte prend en charge le provisionnement fin SCSI, vous pouvez activer l'allocation d'espace pour les LUN SCSI à provisionnement fin dans ONTAP.  Lorsque l'allocation d'espace est activée, ONTAP avertit l'hôte lorsque le volume est à court d'espace et que la LUN du volume ne peut pas accepter les écritures. De plus, ONTAP récupère automatiquement de l'espace lorsque l'hôte supprime des données.
+
+Sur les hôtes qui ne prennent pas en charge le provisionnement fin SCSI, lorsque l'espace du volume contenant la LUN est insuffisant et incapable de s'étendre automatiquement, ONTAP met la LUN hors ligne. Sur les hôtes qui prennent en charge le provisionnement fin SCSI, ONTAP ne met pas la LUN hors ligne lorsqu'elle est à court d'espace. La LUN reste en mode lecture seule et l'hôte est informé que la LUN ne peut plus accepter les écritures.
+
+De même, lorsque des données sont supprimées sur un hôte qui prend en charge le provisionnement fin SCSI, la gestion de l'espace côté hôte identifie les blocs de données supprimées sur le système de fichiers hôte et en émet automatiquement un ou plusieurs `SCSI UNMAP` commandes permettant de libérer les blocs correspondants sur le système de stockage.
+
+.Avant de commencer
+Pour activer l'allocation d'espace, le provisionnement fin SCSI doit être pris en charge par votre hôte. Le provisionnement fin SCSI utilise le provisionnement de blocs logiques tel que défini dans la norme SCSI SBC-3. Seuls les hôtes prenant en charge cette norme peuvent utiliser le provisionnement fin SCSI dans ONTAP.
+
+Les hôtes suivants prennent actuellement en charge le provisionnement fin SCSI lorsque vous activez l'allocation d'espace :
+
+* Citrix XenServer 6.5 et versions ultérieures
+* ESXi 5.0 et versions ultérieures
+* Noyau Oracle Linux 6.2 UEK ou version ultérieure
+* RHEL 6.2 et versions ultérieures
+* SLES11 et versions ultérieures
+* Solaris 11.1 et versions ultérieures
+* Répertoires de base
+
 
 .Description de la tâche
-Le `space-allocation` l'option est définie sur `disabled` Par défaut, et vous devez mettre la LUN hors ligne pour permettre l'allocation d'espace. Après avoir activé l'allocation d'espace, vous devez effectuer une détection sur l'hôte pour que l'hôte reconnaisse que l'allocation d'espace a été activée.
+Par défaut, l'allocation d'espace est désactivée pour toutes les LUN. Vous devez mettre la LUN hors ligne pour activer l'allocation d'espace. Vous devez ensuite effectuer une découverte sur l'hôte avant que l'hôte ne reconnaisse que l'allocation d'espace a été activée.
 
 .Étapes
 . Mettez la LUN hors ligne.

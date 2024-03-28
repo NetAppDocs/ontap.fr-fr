@@ -1,7 +1,7 @@
 ---
 permalink: upgrade/concept_upgrade_methods.html 
 sidebar: sidebar 
-keywords: upgrade, methods, andu, ndu, automated, automatic, system manager, cli, nondisruptive, disruptive 
+keywords: upgrade, methods, andu, ndu, automated, automatic, system manager, cli, nondisruptive, disruptive, rolling upgrade, rolling update, batch upgrades, batch upgrade, rolling, batch 
 summary: 'La méthode utilisée pour la mise à niveau dépend de votre configuration.  Le cas échéant, la mise à niveau automatisée sans interruption (ANDU) utilisant System Manager est la méthode recommandée.' 
 ---
 = Méthodes de mise à niveau du logiciel ONTAP
@@ -15,13 +15,35 @@ Vous pouvez effectuer une mise à niveau automatisée de votre logiciel ONTAP à
 
 Une mise à niveau peut être exécutée à l'aide du processus de mise à niveau par déploiement ou par lots. Ces deux solutions ne perturbent pas l'activité.
 
+Pour les mises à niveau automatisées, ONTAP installe automatiquement l'image ONTAP cible sur chaque nœud, valide les composants du cluster pour s'assurer qu'il peut être mis à niveau sans interruption, puis exécute une mise à niveau par lot ou par déploiement en arrière-plan en fonction du nombre de nœuds. Dans le cas des mises à niveau manuelles, l'administrateur vérifie que chaque nœud du cluster est prêt pour la mise à niveau, puis effectue la procédure d'exécution d'une mise à niveau par déploiement.
+
 .Mises à niveau du déploiement ONTAP
-Lors du processus de mise à niveau par déploiement, un nœud est mis hors ligne et mis à niveau alors que son partenaire prend le relais. Une fois la mise à niveau du nœud terminée, le nœud partenaire contrôle à nouveau le nœud propriétaire d'origine et le processus est répété sur le nœud partenaire. Chaque paire haute disponibilité supplémentaire est mise à niveau séquencement jusqu'à ce que toutes les paires haute disponibilité exécutent la version cible. Le processus de mise à niveau par déploiement est le processus par défaut pour les clusters de moins de 8 nœuds.
+Le processus de mise à niveau par déploiement est le processus par défaut pour les clusters de moins de 8 nœuds.  Lors du processus de mise à niveau par déploiement, un nœud est mis hors ligne et mis à niveau alors que son partenaire prend le relais. Une fois la mise à niveau du nœud terminée, le nœud partenaire contrôle à nouveau le nœud propriétaire d'origine et le processus est répété sur le nœud partenaire. Chaque paire haute disponibilité supplémentaire est mise à niveau séquencement jusqu'à ce que toutes les paires haute disponibilité exécutent la version cible.
 
 .Mises à niveau par lots ONTAP
-Lors du processus de mise à niveau par lots, le cluster est divisé en plusieurs lots, chacun contenant plusieurs paires haute disponibilité. Dans le premier lot, un nœud de chaque paire haute disponibilité est mis à niveau, suivi par les partenaires haute disponibilité. Le processus est ensuite répété séquentiellement pour les lots restants. Le processus de mise à niveau par lot est le processus par défaut pour les clusters de 8 nœuds ou plus.
+Le processus de mise à niveau par lot est le processus par défaut pour les clusters de 8 nœuds ou plus.  Dans le processus de mise à niveau par lots, le cluster est divisé en deux lots.  Chaque lot contient plusieurs paires HA. Dans le premier lot, le premier nœud de chaque paire haute disponibilité est mis à niveau simultanément avec le premier nœud de toutes les autres paires haute disponibilité du lot.
 
-Pour les mises à niveau automatisées, ONTAP installe automatiquement l'image ONTAP cible sur chaque nœud, valide les composants du cluster pour s'assurer qu'il peut être mis à niveau sans interruption, puis exécute une mise à niveau par lot ou par déploiement en arrière-plan en fonction du nombre de nœuds. Dans le cas des mises à niveau manuelles, l'administrateur vérifie que chaque nœud du cluster est prêt pour la mise à niveau, puis effectue la procédure d'exécution d'une mise à niveau par déploiement.
+L'exemple ci-dessous illustre la présence de deux paires haute disponibilité par lot.  Lorsque la mise à niveau par lots commence, les nœuds A et C sont mis à niveau simultanément.
+
+image::../media/batch_upgrade_set_1_ieops-1607.png[Mise à niveau par lot étape 1]
+
+Une fois la mise à niveau des premiers nœuds de chaque paire haute disponibilité terminée, les nœuds partenaires du lot 1 sont mis à niveau simultanément.
+
+Dans l'exemple suivant, une fois les nœuds A et C mis à niveau, les nœuds B et D sont mis à niveau simultanément.
+
+image::../media/batch_upgrade_set_2_ieops-1619.png[Mise à niveau par lot étape 2]
+
+Le processus est ensuite répété pour les nœuds du batch 2. Le premier nœud de chaque paire HA est mis à niveau simultanément avec le premier nœud de toutes les autres paires HA du batch.
+
+Dans l'exemple suivant, les nœuds E et G sont mis à niveau simultanément.
+
+image::../media/batch_upgrade_set_3_ieops-1612.png[Mise à niveau par lot étape 3]
+
+Une fois la mise à niveau des premiers nœuds de chaque paire haute disponibilité terminée, les nœuds partenaires du lot 2 sont mis à niveau simultanément.
+
+Dans l'exemple suivant, les nœuds F et H sont mis à niveau simultanément pour terminer le processus de mise à niveau par lots.
+
+image::../media/batch_upgrade_set_4_ieops-1620.png[Mise à niveau par lot étape 4]
 
 
 

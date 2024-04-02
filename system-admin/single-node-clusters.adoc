@@ -1,0 +1,172 @@
+---
+permalink: system-admin/single-node-clusters.html 
+sidebar: sidebar 
+keywords: ways, configure, iscsi, san, hosts, single, nodes 
+summary: 'Un cluster à un seul nœud est une implémentation spéciale d"un cluster exécuté sur un nœud autonome.  Les clusters à un seul nœud ne sont pas recommandés, car ils n"offrent pas de redondance.  En cas de panne du nœud, l"accès aux données est perdu.' 
+---
+= Gérez des clusters à un seul nœud
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Un cluster à un seul nœud est une implémentation spéciale d'un cluster exécuté sur un nœud autonome.  Les clusters à un seul nœud ne sont pas recommandés, car ils n'offrent pas de redondance.  En cas de panne du nœud, l'accès aux données est perdu.
+
+[NOTE]
+====
+Pour la tolérance aux pannes et la continuité de l'activité, il est fortement recommandé de configurer votre cluster avec link:../concepts/high-availability-pairs-concept.html["Haute disponibilité (paires haute disponibilité)"].
+
+====
+Si vous choisissez de configurer ou de mettre à niveau un cluster à un seul nœud, vous devez connaître les points suivants :
+
+* Le chiffrement du volume racine n'est pas pris en charge sur les clusters à un seul nœud.
+* Si vous supprimez des nœuds devant disposer d'un cluster à un seul nœud, vous devez modifier les ports de cluster pour transmettre le trafic de données en modifiant les ports de cluster en tant que ports de données, puis en créant des LIFs de données sur les ports de données.
+* Pour les clusters à un seul nœud, vous pouvez spécifier la destination de sauvegarde de la configuration lors de l'installation du logiciel. Une fois l'installation effectuée, ces paramètres peuvent être modifiés à l'aide des commandes ONTAP.
+* Si plusieurs hôtes se connectent au nœud, chaque hôte peut être configuré avec un système d'exploitation différent, tel que Windows ou Linux. Si plusieurs chemins s'offrent à l'hôte vers le contrôleur, ALUA doit être activé sur l'hôte.
+
+
+
+
+== Méthodes de configuration des hôtes SAN iSCSI avec des nœuds uniques
+
+Vous pouvez configurer des hôtes SAN iSCSI pour qu'ils se connectent directement à un seul nœud ou via un ou plusieurs commutateurs IP. Le nœud peut avoir plusieurs connexions iSCSI au commutateur.
+
+.Configurations à un seul nœud en attachement direct
+Dans les configurations à un seul nœud à connexion directe, un ou plusieurs hôtes sont directement connectés au nœud.
+
+image::../media/scrn_en_drw_fc-302020-direct-sing-on.png[diagramme des contrôleurs directement connectés avec un ou plusieurs hôtes directement connectés au nœud]
+
+.Configurations à un seul réseau sans nœud
+Dans les configurations à un seul réseau et à un seul nœud, un commutateur connecte un seul nœud à un ou plusieurs hôtes. Comme il y a un seul commutateur, cette configuration n'est pas entièrement redondante.
+
+image::../media/r-oc-set-iscsi-singlenetwork-singlenode.gif[Configuration à un seul nœud en réseau à connexion directe]
+
+.Configurations à nœud unique multi-réseau
+Dans les configurations à un nœud multi-réseau, deux commutateurs ou plus connectent un nœud à un ou plusieurs hôtes. Étant donné qu'il y a plusieurs commutateurs, cette configuration est totalement redondante.
+
+image::../media/scrn-en-drw-iscsi-multinw-singlen.gif[Configuration multiréseau à un seul nœud]
+
+
+
+== Méthodes de configuration des hôtes SAN FC et FC-NVMe avec des nœuds uniques
+
+Vous pouvez configurer des hôtes SAN FC et FC-NVMe avec des nœuds uniques via une ou plusieurs structures. La virtualisation NPIV (N-Port ID Virtualization) est requise et doit être activée sur tous les commutateurs FC de la structure. Vous ne pouvez pas relier directement des hôtes SAN FC ou FC-NMVE aux nœuds uniques sans utiliser de commutateur FC.
+
+.Configurations à 1 nœud et structure unique
+Dans les configurations à un seul nœud de la structure unique, un commutateur connecte un seul nœud à un ou plusieurs hôtes. Comme il y a un seul commutateur, cette configuration n'est pas entièrement redondante.
+
+Dans les configurations à un seul nœud de la structure unique, vous n'avez pas besoin de logiciels de chemins d'accès multiples si vous disposez uniquement d'un chemin d'accès unique de l'hôte vers le nœud.
+
+.Configurations multifabriques à un nœud
+Dans les configurations multifabriques à un nœud, il existe deux commutateurs ou plus qui connectent un nœud à un ou plusieurs hôtes. Dans une optique de simplicité, la figure suivante présente une configuration multistructure à un seul nœud avec seulement deux fabriques. Elle présente également au moins deux fabrics dans une configuration multi-fabric. Dans cette figure, le contrôleur de stockage est monté dans le châssis supérieur et le châssis inférieur peut être vide ou comporter un module IOMX, comme dans cet exemple.
+
+Les ports cibles FC (0a, 0C, 0b, 0d) dans les illustrations sont des exemples. Les numéros de port réels varient selon le modèle de votre nœud de stockage et si vous utilisez des adaptateurs d'extension.
+
+image::../media/scrn_en_drw_fc-62xx-multi-singlecontroller.png[diagramme d'une configuration multistructure à un seul nœud]
+
+.Informations associées
+http://www.netapp.com/us/media/tr-4684.pdf["Rapport technique NetApp 4684 : implémentation et configuration de SAN modernes avec NVMe-of"^]
+
+
+
+== Mise à niveau de ONTAP pour un cluster à un seul nœud
+
+Depuis la version ONTAP 9.2, vous pouvez utiliser l'interface de ligne de commandes ONTAP pour effectuer une mise à jour automatisée d'un cluster à un seul nœud. Les clusters à un seul nœud ne manquent pas de redondance. Les mises à jour restent donc toujours perturbelles. Les mises à niveau entraînant des interruptions ne peuvent pas être réalisées avec System Manager.
+
+.Avant de commencer
+Vous devez terminer la mise à niveau link:../upgrade/prepare.html["préparation"] étapes.
+
+.Étapes
+. Supprimez le pack logiciel ONTAP précédent :
++
+[source, cli]
+----
+cluster image package delete -version previous_package_version
+----
+. Téléchargez le pack logiciel ONTAP cible :
++
+[source, cli]
+----
+cluster image package get -url location
+----
++
+[listing]
+----
+cluster1::> cluster image package get -url http://www.example.com/software/9.7/image.tgz
+
+Package download completed.
+Package processing completed.
+----
+. Vérifiez que le pack logiciel est disponible dans le référentiel du package de cluster :
++
+[source, cli]
+----
+cluster image package show-repository
+----
++
+[listing]
+----
+cluster1::> cluster image package show-repository
+Package Version  Package Build Time
+---------------- ------------------
+9.7              M/DD/YYYY 10:32:15
+----
+. Vérifiez que le cluster est prêt à être mis à niveau :
++
+[source, cli]
+----
+cluster image validate -version package_version_number
+----
++
+[listing]
+----
+cluster1::> cluster image validate -version 9.7
+
+WARNING: There are additional manual upgrade validation checks that must be performed after these automated validation checks have completed...
+----
+. Surveiller la progression de la validation :
++
+[source, cli]
+----
+cluster image show-update-progress
+----
+. Effectuez toutes les actions requises identifiées par la validation.
+. Générer une estimation de mise à niveau logicielle si vous le souhaitez :
++
+[source, cli]
+----
+cluster image update -version package_version_number -estimate-only
+----
++
+L'estimation de la mise à niveau logicielle affiche des détails sur chaque composant à mettre à jour, ainsi que la durée estimée de la mise à niveau.
+
+. Effectuez la mise à niveau logicielle :
++
+[source, cli]
+----
+cluster image update -version package_version_number
+----
++
+
+NOTE: En cas de problème, la mise à jour s'interrompt et vous êtes invité à prendre les mesures correctives nécessaires. Vous pouvez utiliser la commande cluster image show-update-Progress pour afficher les détails de tous les problèmes et la progression de la mise à jour. Après avoir résolu le problème, vous pouvez reprendre la mise à jour à l'aide de la commande cluster image resume-update.
+
+. Afficher la progression de la mise à jour du cluster :
++
+[source, cli]
+----
+cluster image show-update-progress
+----
++
+Le nœud est redémarré dans le cadre de la mise à jour et ne peut pas être accédé durant le redémarrage.
+
+. Déclencher une notification :
++
+[source, cli]
+----
+autosupport invoke -node * -type all -message "Finishing_Upgrade"
+----
++
+Si votre cluster n'est pas configuré pour envoyer des messages, une copie de la notification est enregistrée localement.
+
+

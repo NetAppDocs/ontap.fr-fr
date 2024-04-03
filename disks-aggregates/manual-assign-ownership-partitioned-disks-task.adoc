@@ -2,30 +2,36 @@
 permalink: disks-aggregates/manual-assign-ownership-partitioned-disks-task.html 
 sidebar: sidebar 
 keywords: manual, assign, disk, ownership, partition, disks 
-summary: 'Vous pouvez définir la propriété du disque de conteneur ou des partitions manuellement ou à l"aide de l"affectation automatique, comme pour les disques non partitionnés.' 
+summary: 'Vous pouvez attribuer manuellement la propriété du disque conteneur ou des partitions sur les systèmes ADP (Advanced Drive Partitioning). Si vous initialisez une paire haute disponibilité ne comportant que des tiroirs DS460C, vous devez attribuer manuellement la propriété des disques de conteneur qui incluront les partitions racine.' 
 ---
-= Affectation manuelle de la propriété des disques partitionnés
+= Affectation manuelle de la propriété de disques partitionnés
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-À l'aide de l'interface de ligne de commande, vous pouvez définir la propriété du disque de conteneur ou des partitions manuellement ou en utilisant l'affectation automatique, comme pour les disques non partitionnés.
+Vous pouvez attribuer manuellement la propriété du disque conteneur ou des partitions sur les systèmes ADP (Advanced Drive Partitioning). Si vous initialisez une paire haute disponibilité ne comportant que des tiroirs DS460C, vous devez attribuer manuellement la propriété des disques de conteneur qui incluront les partitions racine.
 
-[NOTE]
-====
-Si un disque de conteneur tombe en panne dans un tiroir à moitié rempli et est remplacé, ONTAP n'affecte pas automatiquement la propriété. Dans ce cas, toute assignation de nouveaux disques devra être réalisée manuellement. Pour effectuer une affectation automatique sur des tiroirs à moitié remplis, placez les disques de la même manière sur la moitié inférieure et les disques 6 sur des baies tout à droite. C'est-à-dire 6 disques des baies 0-5 et 6 disques des baies 18-23. Une fois le disque conteneur affecté dans un système configuré par ADP, le logiciel ONTAP gère toutes les assignations de partitionnement et de partition requises, sans intervention de l'utilisateur.
+.Description de la tâche
+* Le type de système de stockage que vous avez déterminé la méthode ADP prise en charge, les données-racines (RD) ou les données-racines (RD2).
++
+Les systèmes de stockage FAS utilisent les systèmes de stockage RD et AFF RD2.
 
-====
-Vous pouvez effectuer les tâches suivantes dans l'interface de ligne de commande :
+* Si vous attribuez manuellement la propriété d'une paire haute disponibilité qui n'est pas initialisée et ne dispose pas uniquement de tiroirs DS460C, utilisez l'option 1 pour attribuer manuellement des disques avec partitionnement RD (root-Data) ou l'option 2 pour attribuer manuellement des disques avec partitionnement RD2 (root-Data-Data-Data).
+* Si vous initialisez une paire haute disponibilité ne comportant que des tiroirs DS460C, utilisez l'option 3 pour attribuer manuellement la propriété des disques de conteneur qui ont la partition racine.
 
-.Affectez manuellement des disques avec le partitionnement données-racines
+
+.Option 1 : affectation manuelle des disques avec partitionnement RD (root-Data)
 [%collapsible]
 ====
 Pour le partitionnement données-racines, trois entités détenues sont détenues collectivement (le disque de conteneur et les deux partitions) par la paire haute disponibilité.
 
-Le disque de conteneur et les deux partitions ne doivent pas toutes être détenues par le même nœud de la paire haute disponibilité, tant qu'elles appartiennent à un des nœuds de la paire haute disponibilité. Toutefois, lorsque vous utilisez une partition dans un niveau local (agrégat), elle doit être détenue par le même nœud qui possède le niveau local.
+.Description de la tâche
+* Le disque de conteneur et les deux partitions ne doivent pas toutes être détenues par le même nœud de la paire haute disponibilité, tant qu'elles appartiennent à un des nœuds de la paire haute disponibilité. Toutefois, lorsque vous utilisez une partition dans un niveau local (agrégat), elle doit être détenue par le même nœud qui possède le niveau local.
+* Si un disque conteneur tombe en panne dans un tiroir à moitié rempli et est remplacé, vous devrez peut-être attribuer manuellement la propriété du disque, car ONTAP n'affecte pas toujours automatiquement la propriété dans ce cas.
+* Une fois le disque conteneur attribué, le logiciel ONTAP gère automatiquement toute partition et toute attribution de partition requises.
+
 
 .Étapes
 . Utilisez l'interface de ligne de commande pour afficher la propriété actuelle du disque partitionné :
@@ -37,6 +43,9 @@ Le disque de conteneur et les deux partitions ne doivent pas toutes être déten
 `set -privilege advanced`
 
 . Entrez la commande appropriée, en fonction de l'entité de propriété pour laquelle vous souhaitez affecter la propriété :
++
+Si l'une des entités de propriété est déjà détenue, vous devez inclure l'option « force ».
+
 +
 [cols="25,75"]
 |===
@@ -65,24 +74,23 @@ Partition racine
 `storage disk assign -disk _disk_name_ -owner _owner_name_ -root true`
 
 |===
-+
-Si l'une des entités de propriété est déjà détenue, vous devez inclure l'option « force ».
-
 
 
 ====
-.Affectez manuellement des disques avec le partitionnement données-racines
+.Option 2 : affectation manuelle des disques avec partitionnement données-racines (RD2)
 [%collapsible]
 ====
-Pour le partitionnement données-racines, quatre entités détenues par le système (le disque de conteneur et les trois partitions) sont détenues collectivement par la paire haute disponibilité.
-
-Le partitionnement données-racines crée une petite partition en tant que partition racine et deux partitions de taille supérieure égale pour les données.
+Pour le partitionnement données-racines, quatre entités détenues par le système (le disque de conteneur et les trois partitions) sont détenues collectivement par la paire haute disponibilité. Le partitionnement données-racines crée une petite partition en tant que partition racine et deux partitions de taille supérieure égale pour les données.
 
 .Description de la tâche
-Les paramètres doivent être utilisés avec le `disk assign` commande permettant d'attribuer la partition appropriée d'un disque partitionné données-racines. Vous ne pouvez pas utiliser ces paramètres avec des disques faisant partie d'un pool de stockage. La valeur par défaut est « FALSE ».
+* Les paramètres doivent être utilisés avec le `disk assign` commande permettant d'attribuer la partition appropriée d'un disque partitionné données-racines. Vous ne pouvez pas utiliser ces paramètres avec des disques faisant partie d'un pool de stockage. La valeur par défaut est « FALSE ».
++
+** Le `-data1 true` paramètre attribue la partition "data1" d'un disque partitionné root-data1-data2.
+** Le `-data2 true` paramètre attribue la partition "data2" d'un disque partitionné root-data1-data2.
 
-* Le `-data1 true` paramètre attribue la partition "data1" d'un disque partitionné root-data1-data2.
-* Le `-data2 true` paramètre attribue la partition "data2" d'un disque partitionné root-data1-data2.
+
+* Si un disque conteneur tombe en panne dans un tiroir à moitié rempli et est remplacé, vous devrez peut-être attribuer manuellement la propriété du disque, car ONTAP n'affecte pas toujours automatiquement la propriété dans ce cas.
+* Une fois le disque conteneur attribué, le logiciel ONTAP gère automatiquement toute partition et toute attribution de partition requises.
 
 
 .Étapes
@@ -95,6 +103,9 @@ Les paramètres doivent être utilisés avec le `disk assign` commande permettan
 `set -privilege advanced`
 
 . Entrez la commande appropriée, en fonction de l'entité de propriété pour laquelle vous souhaitez affecter la propriété :
++
+Si l'une des entités de propriété est déjà détenue, vous devez inclure l'option « force ».
+
 +
 [cols="25,75"]
 |===
@@ -132,6 +143,54 @@ Partition racine
 |===
 
 
-Si l'une des entités de propriété est déjà détenue, vous devez inclure l'option « force ».
+====
+.Option 3 : attribuez manuellement des lecteurs de conteneur DS460C disposant de la partition racine
+[%collapsible]
+====
+Si vous initialisez une paire haute disponibilité ne comportant que des tiroirs DS460C, vous devez attribuer manuellement la propriété des disques de conteneur qui disposent de la partition racine en suivant la règle demi-tiroir.
+
+.Description de la tâche
+* Lorsque vous initialisez une paire haute disponibilité ne comportant que des tiroirs DS460C, le menu de démarrage ADP (disponible avec ONTAP 9.2 et versions ultérieures), les options 9a et 9b ne prennent pas en charge l'affectation automatique de propriété de disque. Vous devez affecter manuellement les lecteurs de conteneur qui ont la partition racine en suivant la stratégie demi-tiroir.
++
+Après l'initialisation de la paire haute disponibilité (démarrage), l'affectation automatique de la propriété des disques est automatiquement activée et utilise la règle demi-tiroir pour attribuer la propriété aux disques restants (autres que les disques de conteneur sur lesquels se trouve la partition racine) et à tous les disques ajoutés ultérieurement, tels que le remplacement des disques défectueux, répondre au message de « faibles pièces de rechange » ou ajouter de la capacité.
+
+* Pour en savoir plus sur la politique de demi-tiroir, consultez le sujet link:disk-autoassignment-policy-concept.html["À propos de l'assignation automatique de Disk Ownership"].
+
+
+.Étapes
+. Si vos étagères DS460C ne sont pas entièrement remplies, procédez comme suit ; sinon, passez à l'étape suivante.
++
+.. Installez tout d'abord les lecteurs dans la rangée avant (baies de lecteurs 0, 3, 6 et 9) de chaque tiroir.
++
+L'installation des entraînements dans la rangée avant de chaque tiroir permet un débit d'air correct et empêche la surchauffe.
+
+.. Pour les disques restants, répartissez-les uniformément entre les tiroirs.
++
+Remplissez les rangées de tiroirs d'avant en arrière. Si vous ne disposez pas de suffisamment de disques pour remplir les rangées, installez-les par paires de sorte que les disques occupent les côtés gauche et droit d'un tiroir de manière uniforme.
+
++
+L'illustration suivante montre la numérotation et les emplacements des baies de lecteur dans un tiroir DS460C.
+
++
+image::../media/dwg_trafford_drawer_with_hdds_callouts.gif[tiroir dwg trafford avec profils de disques durs]
+
+
+
+. Connectez-vous au cluster shell en utilisant la LIF node-management ou la LIF cluster-management.
+. Pour chaque tiroir, attribuez manuellement les lecteurs de conteneur qui ont la partition racine en respectant la stratégie demi-tiroir en suivant les sous-étapes suivantes :
++
+La règle demi-tiroir vous permet d’affecter la moitié gauche des lecteurs d’un tiroir (baies 0 à 5) au nœud A et la moitié droite des lecteurs d’un tiroir (baies 6 à 11) au nœud B.
+
++
+.. Afficher tous les disques non possédés :
+`storage disk show -container-type unassigned`
+.. Attribuez les lecteurs de conteneur qui ont la partition racine :
+`storage disk assign -disk disk_name -owner owner_name`
++
+Vous pouvez utiliser le caractère générique pour attribuer plusieurs lecteurs à la fois.
+
+
+
+
 
 ====

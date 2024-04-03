@@ -2,12 +2,28 @@
 :allow-uri-read: 
 
 
-Si votre cluster n'est pas configuré pour utiliser l'affectation automatique de propriété de disque, vous devez attribuer la propriété manuellement.
+.Description de la tâche
+* Si vous attribuez manuellement la propriété d'une paire haute disponibilité qui n'est pas initialisée et ne dispose pas uniquement de tiroirs DS460C, utilisez l'option 1.
+* Si vous initialisez une paire haute disponibilité ne comportant que des tiroirs DS460C, utilisez l'option 2 pour attribuer manuellement la propriété des disques racines.
 
-Vous ne pouvez pas réaffecter la propriété d'un disque en cours d'utilisation dans un niveau local.
+
+.Option 1 : la plupart des paires haute disponibilité
+[%collapsible]
+====
+Si vous disposez d'une paire haute disponibilité qui n'est pas initialisée et ne dispose pas uniquement de tiroirs DS460C, utilisez cette procédure pour attribuer manuellement la propriété.
+
+.Description de la tâche
+* Les disques pour lesquels vous attribuez la propriété doivent se trouver dans un tiroir physiquement connecté au nœud auquel vous êtes propriétaire.
+* Si vous utilisez des disques d'un niveau local (agrégat) :
++
+** Les disques doivent être au sein d'un nœud avant de pouvoir être utilisés dans un niveau local (agrégat).
+** Vous ne pouvez pas réaffecter la propriété d'un disque utilisé dans un niveau local (agrégat).
+
+
+
 
 .Étapes
-. À l'aide de l'interface de ligne de commande, afficher tous les disques non possédés :
+. Utiliser l'interface de ligne de commande pour afficher tous les disques non détenus :
 +
 `storage disk show -container-type unassigned`
 
@@ -19,3 +35,58 @@ Vous ne pouvez pas réaffecter la propriété d'un disque en cours d'utilisation
 Vous pouvez utiliser le caractère générique pour attribuer plusieurs disques à la fois. Si vous réassignez un disque de réserve qui appartient déjà à un nœud différent, vous devez utiliser l'option "`-force`".
 
 
+
+====
+.Option 2 : une paire haute disponibilité avec seulement des tiroirs DS460C
+[%collapsible]
+====
+Pour une paire haute disponibilité que vous initialisez et qui ne possède que des tiroirs DS460C, utilisez cette procédure pour attribuer manuellement la propriété des disques racine.
+
+.Description de la tâche
+* Lorsque vous initialisez une paire haute disponibilité ne comportant que des tiroirs DS460C, vous devez attribuer manuellement les disques racines afin de respecter la règle relative au demi-tiroir.
++
+Après l'initialisation (démarrage) des paires haute disponibilité, l'assignation automatique de la propriété des disques est automatiquement activée et utilise la règle du demi-tiroir pour attribuer la propriété aux disques restants (autres que les disques racines) et à tous les disques ajoutés à l'avenir, comme le remplacement des disques défaillants, répondant au message de « faible capacité », ou en ajoutant de la capacité.
+
++
+Pour en savoir plus sur la politique de demi-tiroir, consultez le sujet link:disk-autoassignment-policy-concept.html["À propos de l'assignation automatique de Disk Ownership"].
+
+* La technologie RAID nécessite un minimum de 10 disques par paire haute disponibilité (5 pour chaque nœud) pour tout disque NL-SAS de plus de 8 To dans un tiroir DS460C.
+
+
+.Étapes
+. Si vos étagères DS460C ne sont pas entièrement remplies, procédez comme suit ; sinon, passez à l'étape suivante.
++
+.. Installez tout d'abord les lecteurs dans la rangée avant (baies de lecteurs 0, 3, 6 et 9) de chaque tiroir.
++
+L'installation des entraînements dans la rangée avant de chaque tiroir permet un débit d'air correct et empêche la surchauffe.
+
+.. Pour les disques restants, répartissez-les uniformément entre les tiroirs.
++
+Remplissez les rangées de tiroirs d'avant en arrière. Si vous ne disposez pas de suffisamment de disques pour remplir les rangées, installez-les par paires de sorte que les disques occupent les côtés gauche et droit d'un tiroir de manière uniforme.
+
++
+L'illustration suivante montre la numérotation et les emplacements des baies de lecteur dans un tiroir DS460C.
+
++
+image::../media/dwg_trafford_drawer_with_hdds_callouts.gif[tiroir dwg trafford avec profils de disques durs]
+
+
+
+. Connectez-vous au cluster shell en utilisant la LIF node-management ou la LIF cluster-management.
+. Attribuez manuellement les lecteurs racine de chaque tiroir pour qu'ils soient conformes à la stratégie demi-tiroir à l'aide des sous-étapes suivantes :
++
+La règle demi-tiroir vous permet d’affecter la moitié gauche des lecteurs d’un tiroir (baies 0 à 5) au nœud A et la moitié droite des lecteurs d’un tiroir (baies 6 à 11) au nœud B.
+
++
+.. Afficher tous les disques non possédés :
+`storage disk show -container-type unassigned``
+.. Assigner les disques root:
+`storage disk assign -disk disk_name -owner owner_name`
++
+Vous pouvez utiliser le caractère générique pour attribuer plusieurs disques à la fois.
+
+
+
+
+
+====

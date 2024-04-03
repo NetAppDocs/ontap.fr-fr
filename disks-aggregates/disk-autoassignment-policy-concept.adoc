@@ -2,7 +2,7 @@
 permalink: disks-aggregates/disk-autoassignment-policy-concept.html 
 sidebar: sidebar 
 keywords: disk, auto-assign, spare, policy, automatic, assignment, disk ownership 
-summary: 'L"assignation automatique des disques qui n"appartiennent pas est activée par défaut. Les assignations de propriété automatique de disque surviennent 10 minutes après l"initialisation du système et toutes les cinq minutes pendant le fonctionnement normal du système.' 
+summary: 'L"assignation automatique des disques qui n"appartiennent pas est activée par défaut. Les attributions automatiques de propriété de disque se produisent 10 minutes après l"initialisation de la paire haute disponibilité et toutes les cinq minutes pendant le fonctionnement normal du système.' 
 ---
 = À propos de l'assignation automatique de Disk Ownership
 :allow-uri-read: 
@@ -11,16 +11,16 @@ summary: 'L"assignation automatique des disques qui n"appartiennent pas est acti
 
 
 [role="lead"]
-L'assignation automatique des disques qui n'appartiennent pas est activée par défaut. Les assignations de propriété automatique de disque surviennent 10 minutes après l'initialisation du système et toutes les cinq minutes pendant le fonctionnement normal du système.
+L'assignation automatique des disques qui n'appartiennent pas est activée par défaut. Les attributions automatiques de propriété de disque se produisent 10 minutes après l'initialisation de la paire haute disponibilité et toutes les cinq minutes pendant le fonctionnement normal du système.
 
-Lorsque vous ajoutez de nouveaux disques à un système, par exemple lors du remplacement de disques défectueux, de la réponse à un message de disques de secours faible ou de l'ajout de capacité, la règle d'affectation automatique par défaut attribue la propriété du disque à un nœud comme disque de secours. Vous pouvez désactiver l'affectation automatique ou sélectionner une autre règle d'affectation automatique à l'aide du `storage disk option modify` commande.
+Lorsque vous ajoutez un nouveau disque à une paire haute disponibilité, par exemple lors du remplacement d'un disque en panne, de la réponse à un message de « disques de secours faibles » ou de l'ajout de capacité, la règle d'affectation automatique par défaut attribue la propriété du disque à un nœud en tant que disque de secours.
 
-La règle d'auto-assignation par défaut se base sur des caractéristiques spécifiques à la plate-forme, mais elle utilise l'une des méthodes suivantes pour assigner la propriété disque :
+La règle d'allocation automatique par défaut est basée sur des caractéristiques spécifiques à la plateforme ou sur le tiroir DS460C si votre paire haute disponibilité ne dispose que de ces tiroirs et utilise l'une des méthodes (règles) suivantes pour attribuer la propriété des disques :
 
 |===
 
 
-| Méthode d'affectation | Effet sur les affectations de nœuds | Plateformes 
+| Méthode d'affectation | Effet sur les affectations de nœuds | Configurations de plate-forme par défaut à la méthode d'affectation 
 
 
  a| 
@@ -28,7 +28,7 @@ baie
  a| 
 Les baies à numéro pair sont attribuées au nœud A et aux baies à numéro impair au nœud B.
  a| 
-Systèmes d'entrée de gamme configurés dans une configuration haute disponibilité avec un seul tiroir partagé.
+Systèmes d'entrée de gamme dans une configuration de paires haute disponibilité avec un seul tiroir partagé.
 
 
 
@@ -37,16 +37,18 @@ tiroir
  a| 
 Tous les disques du tiroir sont affectés au nœud A.
  a| 
-Systèmes d'entrée de gamme configurés en configuration haute disponibilité avec une seule pile de deux tiroirs ou plus et configurations MetroCluster avec une pile par nœud, deux ou plusieurs tiroirs.
+Systèmes d'entrée de gamme dans une configuration de paires haute disponibilité avec une pile de deux tiroirs ou plus et configurations MetroCluster avec une pile par nœud, deux tiroirs ou plus.
 
 
 
  a| 
 séparer la tablette
+
+Cette politique relève de la valeur «par défaut» pour le `-autoassign-policy` paramètre du `storage disk option` pour les configurations de plateformes et de tiroirs applicables.
  a| 
-Les disques du côté gauche du shelf sont affectés au nœud A et du côté droit au nœud B. Les tiroirs partiels des nouveaux systèmes sont expédiés depuis l'usine avec des disques remplis du bord du tiroir vers le centre.
+Les disques du côté gauche du shelf sont affectés au nœud A et du côté droit au nœud B. Les tiroirs partiels sur les paires haute disponibilité sont expédiés de l'usine avec des disques remplis depuis le bord du tiroir vers le centre.
  a| 
-Systèmes AFF C190 et certaines configurations MetroCluster.
+La plupart des plateformes AFF et certaines configurations MetroCluster.
 
 
 
@@ -57,20 +59,61 @@ Tous les disques de la pile sont affectés au nœud A.
  a| 
 Systèmes d'entrée de gamme autonomes et toutes les autres configurations.
 
+
+
+ a| 
+demi-tiroir
+
+Cette politique relève de la valeur «par défaut» pour le `-autoassign-policy` paramètre du `storage disk option` pour les configurations de plateformes et de tiroirs applicables.
+ a| 
+Tous les disques de la moitié gauche d'un tiroir DS460C (baies de lecteurs 0 à 5) sont affectés au nœud A ; tous les disques de la moitié droite d'un tiroir (baies de lecteurs 6 à 11) sont affectés au nœud B.
+
+Lors de l'initialisation d'une paire haute disponibilité avec seulement des tiroirs DS460C, l'assignation automatique de la propriété des disques n'est pas prise en charge. Vous devez attribuer manuellement la propriété des disques contenant des lecteurs racine/conteneur qui possèdent la partition racine en respectant la stratégie demi-tiroir.
+ a| 
+Paires HAUTE DISPONIBILITÉ avec tiroirs DS460C uniquement, après l'initialisation des paires haute disponibilité (démarrage).
+
+Après le démarrage d'une paire haute disponibilité, l'assignation automatique de la propriété des disques est automatiquement activée et utilise la règle à demi-tiroir pour attribuer la propriété aux disques restants (autres que les disques racine/disques de conteneur sur lesquels la partition racine est installée) et à tous les disques ajoutés ultérieurement.
+
+Si votre paire haute disponibilité possède des tiroirs DS460C en plus d'autres modèles de tiroirs, la règle relative au demi-tiroir n'est pas utilisée. La stratégie par défaut utilisée est dictée par les caractéristiques propres à la plateforme.
+
 |===
-Si la méthode d'affectation par défaut n'est pas souhaitable dans votre environnement, vous pouvez spécifier la méthode d'affectation de la baie, de la étagère ou de la pile à l'aide de l' `-autoassign-policy` paramètre au `storage disk option modify` commande. Notez les règles suivantes :
+Paramètres et modifications d'affectation automatique :
 
-* Si vous essayez d'utiliser le `bay autoassign-policy` dans le cas d'une plate-forme non d'entrée de gamme, elle échouera.
-* Il n'existe pas de règle non par défaut correspondante pour spécifier la méthode split-shelf.
+* Vous pouvez afficher les paramètres d'affectation automatique actuels (activé/désactivé) avec le `storage disk option show` commande.
+* Vous pouvez désactiver l'affectation automatique à l'aide du `storage disk option modify` commande.
+* Si la stratégie d'affectation automatique par défaut n'est pas souhaitable dans votre environnement, vous pouvez spécifier (modifier) la méthode d'affectation des baies, des étagères ou des piles à l'aide du `-autoassign-policy` paramètre dans le `storage disk option modify` commande.
++
+Découvrez comment link:configure-auto-assignment-disk-ownership-task.html["Modifiez les paramètres de l'assignation automatique de Disk Ownership"].
+
++
+[NOTE]
+====
+Les règles d'affectation automatique par défaut des demi-tiroirs et des tiroirs divisés sont uniques car elles ne peuvent pas être définies par des utilisateurs comme les règles de compartiment, de tiroir et de pile le peuvent.
+
+====
 
 
-Vous pouvez également gérer manuellement l'affectation des disques à l'aide du `storage disk assign` commande.
+Dans les systèmes ADP (Advanced Drive Partitionnement), l'affectation automatique des disques sur les tiroirs à moitié pleins doit être installée dans les baies de tiroir appropriées en fonction du type de tiroir que vous possédez :
 
-* Si vous désactivez l'assignation automatique, les nouveaux disques ne sont pas disponibles en tant que pièces de rechange tant qu'ils ne sont pas affectés à un nœud avec le `storage disk assign` commande.
+* Si votre étagère n'est pas un tiroir DS460C, installez les disques de manière égale sur le côté gauche et le côté droit, en vous déplaçant vers le milieu. Par exemple, six disques dans les baies 0-5 et six disques dans les baies 18-23 d'un tiroir DS224C.
+* Si votre tiroir est un tiroir DS460C, installez les lecteurs dans la rangée avant (baies de lecteur 0, 3, 6 et 9) de chaque tiroir. Pour les disques restants, répartissez-les uniformément dans chaque tiroir en remplissant les rangées de tiroirs d'avant en arrière. Si vous ne disposez pas de suffisamment de disques pour remplir les rangées, installez-les par paires de sorte que les disques occupent les côtés gauche et droit d'un tiroir de manière uniforme.
++
+L'installation des entraînements dans la rangée avant de chaque tiroir permet un débit d'air correct et empêche la surchauffe.
+
+
+
+[NOTE]
+====
+Si les disques ne sont pas installés dans les baies de tiroir appropriées sur des tiroirs à moitié remplis, lorsqu'un disque de conteneur tombe en panne et est remplacé, ONTAP n'affecte pas automatiquement la propriété. Dans ce cas, l'affectation du nouveau lecteur de conteneur doit être effectuée manuellement. Une fois que vous avez attribué la propriété du disque de conteneur, ONTAP gère automatiquement toute attribution de partitionnement et de partitionnement de disque requise.
+
+====
+Dans certains cas où l'affectation automatique ne fonctionne pas, vous devez attribuer manuellement la propriété du disque à l'aide du `storage disk assign` commande :
+
+* Si vous désactivez l'affectation automatique, les nouveaux disques ne sont pas disponibles en tant que disques de secours tant qu'ils ne sont pas attribués manuellement à un nœud.
 * Si vous souhaitez attribuer automatiquement des disques et que vous disposez de plusieurs piles ou tiroirs qui doivent avoir un droit de propriété différent, un disque doit avoir été manuellement affecté à chaque pile ou tiroir afin que l'affectation automatique de la propriété fonctionne sur chaque pile ou tiroir.
 * Si l'affectation automatique est activée et que vous affectez manuellement un lecteur à un nœud non spécifié dans la stratégie active, l'affectation automatique cesse de fonctionner et un message EMS s'affiche.
 
 
-En savoir plus sur link:manual-assign-ownership-partitioned-disks-task.html["attribution manuelle de la propriété du disque"].
+Découvrez comment link:manual-assign-disks-ownership-manage-task.html["Attribuez manuellement la propriété de disque des disques non partitionnés"].
 
-Vous pouvez afficher les paramètres d'affectation automatique actuels à l'aide du `storage disk option show` commande.
+Découvrez comment link:manual-assign-ownership-partitioned-disks-task.html["Attribuez manuellement la propriété des disques partitionnés"].

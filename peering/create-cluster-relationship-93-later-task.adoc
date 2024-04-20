@@ -2,7 +2,7 @@
 permalink: peering/create-cluster-relationship-93-later-task.html 
 sidebar: sidebar 
 keywords: create, cluster, peer, relationship 
-summary: 'Vous pouvez utiliser la commande cluster peer create pour créer une relation homologue entre un cluster local et un cluster distant. Une fois la relation homologue créée, vous pouvez exécuter cluster peer create sur le cluster distant afin de l"authentifier auprès du cluster local.' 
+summary: 'Vous pouvez utiliser la commande cluster peer create ou System Manager pour créer une relation entre pairs entre clusters locaux et distants. Une fois la relation homologue créée, vous pouvez répéter la tâche sur le cluster distant pour l"authentifier auprès du cluster local.' 
 ---
 = Créer une relation entre clusters
 :allow-uri-read: 
@@ -19,10 +19,34 @@ Vous pouvez utiliser le `cluster peer create` commande permettant de créer une 
 
 
 .Étapes
+Effectuez cette tâche à l'aide de ONTAP System Manager ou de l'interface de ligne de commandes de ONTAP.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Dans le cluster local, cliquez sur *Cluster > Paramètres*.
+. Dans la section *intercluster Settings*, cliquez sur *Add Network interfaces* et ajoutez les interfaces réseau intercluster du cluster.
++
+Répétez cette étape sur le cluster distant.
+
+. Dans le cluster distant, cliquez sur *Cluster > Paramètres*.
+. Cliquez sur image:icon_kabob.gif["icône des options de menu"] Dans la section *homologues du cluster* et sélectionnez *générer une phrase de passe*.
+. Sélectionnez la version du cluster ONTAP distant.
+. Copiez la phrase de passe générée.
+. Dans le cluster local, sous *clusters homologues*, cliquez sur image:icon_kabob.gif["icône des options de menu"] Et sélectionnez *Peer Cluster*.
+. Dans la fenêtre *Peer Cluster*, collez la phrase de passe et cliquez sur *Initiate cluster peering*.
+
+
+--
+.CLI
+--
 . Sur le cluster destination, créez une relation entre pairs et le cluster source :
 +
-`cluster peer create -generate-passphrase -offer-expiration _MM/DD/YYYY HH:MM:SS_|1...7days|1...168hours -peer-addrs _peer_LIF_IPs_ -initial-allowed-vserver-peers _svm_name_,..|* -ipspace _ipspace_`
-
+[source, cli]
+----
+cluster peer create -generate-passphrase -offer-expiration <MM/DD/YYYY HH:MM:SS>|1...7days|1...168hours -peer-addrs <peer_LIF_IPs > -initial-allowed-vserver-peers <svm_name>|* -ipspace <ipspace>
+----
 +
 Si vous spécifiez les deux `-generate-passphrase` et `-peer-addrs`, Uniquement le cluster dont les LIFs intercluster sont spécifiés dans `-peer-addrs` peut utiliser le mot de passe généré.
 
@@ -82,8 +106,10 @@ Warning: make a note of the passphrase - it cannot be displayed again.
 ----
 . Sur le cluster source, authentifier le cluster source sur le cluster destination :
 +
-`cluster peer create -peer-addrs _peer_LIF_IPs_ -ipspace ipspace`
-
+[source, cli]
+----
+cluster peer create -peer-addrs <peer_LIF_IPs> -ipspace <ipspace>
+----
 +
 Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
 
@@ -108,8 +134,10 @@ Entrez la phrase de passe de la relation homologue lorsque vous y êtes invité.
 
 . Vérifiez que la relation entre clusters a été créée :
 +
-`cluster peer show -instance`
-
+[source, cli]
+----
+cluster peer show -instance
+----
 +
 [listing]
 ----
@@ -129,8 +157,10 @@ cluster01::> cluster peer show -instance
 ----
 . Vérifier la connectivité et l'état des nœuds de la relation peer-to-peer :
 +
-`cluster peer health show`
-
+[source, cli]
+----
+cluster peer health show
+----
 +
 [listing]
 ----
@@ -155,6 +185,8 @@ cluster01-02
 ----
 
 
+--
+====
 
 
 == D'autres façons de le faire dans ONTAP

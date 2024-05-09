@@ -41,28 +41,49 @@ Les paramètres suivants peuvent être modifiés :
 | Réglage ARW | Description 
 
 
-| *arw.snap.max.count* | Spécifie le nombre maximal de copies snapshot ARP pouvant exister dans un volume à tout moment. Les anciennes copies sont supprimées pour garantir que le nombre total de copies snapshot ARP se situe dans cette limite spécifiée. 
+| `arw.snap.max.count`  a| 
+Spécifie le nombre maximal de copies snapshot ARP pouvant exister dans un volume à tout moment. Les anciennes copies sont supprimées pour garantir que le nombre total de copies snapshot ARP se situe dans cette limite spécifiée.
+Le `-option-value` le paramètre accepte des entiers compris entre 3 et 8, inclus. La valeur par défaut est 6.
 
 
-| *arw.snap.create.interval.hours* | Spécifie l'intervalle _en heures_ entre les copies snapshot ARP. Une nouvelle copie Snapshot est créée lorsqu'une attaque est suspectée et que la copie créée précédemment est antérieure à l'intervalle spécifié. 
+
+| `arw.snap.create.interval.hours`  a| 
+Spécifie l'intervalle _en heures_ entre les copies snapshot ARP. Une nouvelle copie ARP Snapshot est créée lorsqu'une attaque basée sur l'entropie des données est suspectée et que la dernière copie ARP Snapshot créée est antérieure à l'intervalle spécifié.
+Le `-option-value` le paramètre accepte des entiers compris entre 1 et 48, inclus. La valeur par défaut est 4.
 
 
-| *arw.snap.normal.retain.interval.hours* | Spécifie la durée _en heures_ pendant laquelle une copie snapshot ARP est conservée. Lorsqu'une copie snapshot ARP devient cet ancien, toute autre copie Snapshot ARP créée avant la dernière copie pour atteindre cet âge est supprimée. Aucune copie snapshot ARP ne peut être antérieure à cette durée. 
+
+| `arw.snap.normal.retain.interval.hours`  a| 
+Spécifie la durée _en heures_ pendant laquelle une copie snapshot ARP est conservée. Lorsqu'une copie snapshot ARP atteint le seuil de rétention, toute autre copie snapshot ARP créée avant d'être supprimée. Il ne peut exister plus d'une copie snapshot ARP antérieure au seuil de rétention.
+Le `-option-value` le paramètre accepte des entiers compris entre 4 et 96, inclus. La valeur par défaut est 48.
 
 
-| *arw.snap.max.retain.interval.days*  a| 
-Spécifie la durée maximale _en jours_ pendant laquelle une copie snapshot ARP peut être conservée. Toute copie snapshot ARP antérieure à cette durée sera supprimée si aucune attaque n'a été signalée sur le volume.
 
-+
+| `arw.snap.max.retain.interval.days`  a| 
+Spécifie la durée maximale _en jours_ pendant laquelle une copie snapshot ARP peut être conservée. Toute copie snapshot ARP antérieure à cette durée est supprimée lorsqu'aucune attaque n'est signalée sur le volume.
 
 
 NOTE: L'intervalle de rétention maximal pour les copies snapshot ARP est ignoré si une menace modérée est détectée. La copie snapshot ARP créée en réponse à la menace est conservée jusqu'à ce que vous ayez répondu à la menace. Le marquage d'une menace comme faux positif entraîne la suppression des copies Snapshot ARP sur le volume.
+Le `-option-value` le paramètre accepte des entiers compris entre 1 et 365, inclus. La valeur par défaut est 5.
 
 
 
-| *arw.snap.create.interval.hours.post.max.count* | Spécifie l'intervalle _en heures_ entre les copies snapshot ARP lorsque le volume contient déjà le nombre maximal de copies snapshot ARP. Lorsque le nombre maximum est atteint, une copie snapshot ARP est supprimée pour faire place à une nouvelle copie. La nouvelle vitesse de création de copie Snapshot ARP peut être réduite pour conserver l'ancienne copie à l'aide de cette option. Si le volume contient déjà un nombre maximal de copies snapshot ARP, cet intervalle spécifié dans cette option est utilisé pour la création de la copie Snapshot ARP suivante, au lieu de arw.snap.create.interval.hours. 
+| `arw.snap.create.interval.hours.post.max.count`  a| 
+Spécifie l'intervalle _en heures_ entre les copies snapshot ARP lorsque le volume contient déjà le nombre maximal de copies snapshot ARP. Lorsque le nombre maximum est atteint, une copie snapshot ARP est supprimée pour faire place à une nouvelle copie. La nouvelle vitesse de création de copie Snapshot ARP peut être réduite pour conserver l'ancienne copie à l'aide de cette option. Si le volume contient déjà le nombre maximal de copies snapshot ARP, l'intervalle spécifié dans cette option est utilisé pour la création de la copie Snapshot ARP suivante, au lieu de `arw.snap.create.interval.hours`.
+Le `-option-value` le paramètre accepte des entiers compris entre 4 et 48, inclus. La valeur par défaut est 8.
 
 
-| *arw.surge.snap.interval.days* | Spécifie l'intervalle _en jours_ entre les copies snapshot de surtension ARP. ONTAP crée une copie snapshot ARP en cas de surcharge du trafic d'E/S et lorsque la dernière copie Snapshot ARP créée est antérieure à l'intervalle spécifié. Cette option spécifie également la période de rétention _in Day_ pour un instantané de surtension ARP. 
+
+| `arw.surge.snap.interval.days`  a| 
+Spécifie l'intervalle _en jours_ entre les copies snapshot ARP créées en réponse aux pics d'E/S. ONTAP crée une copie snapshot ARP en cas de surcharge du trafic d'E/S et lorsque la dernière copie Snapshot ARP créée est antérieure à l'intervalle spécifié. Cette option spécifie également la période de rétention _in Day_ pour les copies snapshot de surtension ARP.
+Le `-option-value` le paramètre accepte des entiers compris entre 1 et 365, inclus. La valeur par défaut est 5.
+
+
+
+| `arw.snap.new.extns.interval.hours`  a| 
+Cette option spécifie l'intervalle _en heures_ entre les copies snapshot ARP créées lorsqu'une nouvelle extension de fichier est détectée. Une nouvelle copie snapshot ARP est créée lorsque
+Une nouvelle extension de fichier est observée ; l'instantané précédent créé lors de l'observation d'une nouvelle extension de fichier est plus ancien que cet intervalle spécifié. Sur une charge de travail qui crée fréquemment de nouvelles extensions de fichiers, cet intervalle permet de contrôler la fréquence des copies Snapshot ARP. Cette option existe indépendamment de `arw.snap.create.interval.hours`, Qui spécifie l'intervalle pour les copies Snapshot ARP basées sur l'entropie des données.
+Le `-option-value` le paramètre accepte des entiers compris entre 24 et 8760. La valeur par défaut est 48.
+
 |===
 

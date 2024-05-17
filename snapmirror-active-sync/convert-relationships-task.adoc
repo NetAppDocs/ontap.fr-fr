@@ -1,0 +1,198 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/convert-relationships-task.html 
+keywords: SM-BC, SMBC, convert, SnapMirror synchronous, zero RPO, zero recovery time objective, zero RTO, existing, snapmirror active sync 
+summary: 'Passez d"une protection symétrique à une protection asymétrique dans votre configuration de synchronisation active SnapMirror.' 
+---
+= Convertir le type de relation de synchronisation active SnapMirror
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de ONTAP 9.15.1, vous pouvez convertir des types de protection SnapMirror actif en mode synchrone en mode actif-actif symétrique et inversement.
+
+
+
+== Convertir en relation active/active symétrique
+
+Vous pouvez convertir une relation de synchronisation active SnapMirror avec une protection aysnchrone pour utiliser une fonction active/active symétrique.
+
+.Avant de commencer
+* Les deux clusters doivent exécuter ONTAP 9.15.1 ou une version ultérieure.
+* Les configurations actif-actif symétriques nécessitent le `AutomatedFailoverDuplex` règles de protection. Sinon, vous pouvez xref:../data-protection/create-custom-replication-policy-concept.html[Créez une règle SnapMirror personnalisée] a condition que le `-type` est `automated-failover-duplex`.
+
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Étapes pour une configuration uniforme
+. Supprimez le groupe initiateur de destination :
++
+.. Sur le cluster de destination, accédez à **hosts** > **SAN Initiator Groups**.
+.. Sélectionnez le groupe initiateur avec la relation SnapMirror, puis **Delete**.
+.. Dans la boîte de dialogue, sélectionnez la case **Annuler le mappage des LUN associées**, puis **Supprimer**.
+
+
+. Editez la relation synchrone active SnapMirror.
++
+.. Accédez à **protection** > **relations**.
+.. Sélectionnez le menu kabob en regard de la relation que vous voulez modifier, puis **Modifier**.
+.. Modifiez la **protection Policy** sur AutomatedFailoverDuplex.
+.. Sélection `AutoMatedFailoverDuplex` invite une boîte de dialogue à modifier les paramètres de proximité de l'hôte. Pour les initiateurs, sélectionnez l'option appropriée pour **initiateur proximal à** puis **Enregistrer**.
+.. Sélectionnez **Enregistrer**.
+
+
+. Dans le menu **protection**, confirmez que l'opération a réussi lorsque la relation s'affiche comme `InSync`.
+
+
+.Étapes d'une configuration non uniforme
+. Supprimez le groupe initiateur de destination :
++
+.. Sur le site secondaire, accédez à **hosts** > **SAN Initiator Groups**.
+.. Sélectionnez le groupe initiateur avec la relation SnapMirror, puis **Delete**.
+.. Dans la boîte de dialogue, sélectionnez la case **Annuler le mappage des LUN associées**, puis **Supprimer**.
+
+
+. Créer un groupe initiateur :
++
+.. Dans le menu **SAN Initiator Groups** du site de destination, sélectionnez **Add**.
+.. Indiquez un **Nom**, sélectionnez le **système d'exploitation hôte**, puis choisissez **membres du groupe initiateur**.
+.. Sélectionnez **Enregistrer**.
+
+
+. Mappez le nouveau groupe initiateur sur les LUN de destination.
++
+.. Accédez à **stockage** > **LUN**.
+.. Sélectionnez toutes les LUN à mapper sur le groupe initiateur.
+.. Sélectionnez **plus** puis **Mapper sur les groupes initiateurs**.
+
+
+. Editez la relation synchrone active SnapMirror.
++
+.. Accédez à **protection** > **relations**.
+.. Sélectionnez le menu kabob en regard de la relation que vous voulez modifier, puis **Modifier**.
+.. Modifiez la **protection Policy** sur AutomatedFailoverDuplex.
+.. La sélection de AutoMatedFailoverDuplex permet de modifier les paramètres de proximité de l'hôte. Pour les initiateurs, sélectionnez l'option appropriée pour **initiateur proximal à** puis **Enregistrer**.
+.. Sélectionnez **Enregistrer**.
+
+
+. Dans le menu **protection**, confirmez que l'opération a réussi lorsque la relation s'affiche comme `InSync`.
+
+
+--
+.CLI
+--
+.Étapes pour une configuration uniforme
+. Modifier la règle SnapMirror depuis `AutomatedFailover` à `AutomatedFailoverDuplex`:
++
+`snapmirror modify -destination-path _destination_path_ -policy AutomatedFailoverDuplex`
+
+. La modification de la règle déclenche une resynchronisation. Attendez la fin de la resynchronisation et confirmez que la relation est `Insync`:
++
+`snapmirror show -destination-path _destination_path_`
+
+. Si les hôtes existants sont locaux du cluster principal, ajoutez l'hôte au second cluster et établissez la connectivité avec l'accès respectif à chaque cluster.
+. Sur le site secondaire, supprimez les mappages de LUN sur les groupes initiateurs associés aux hôtes distants.
++
+
+NOTE: Assurez-vous que le groupe initiateur ne contient pas de mappages pour les LUN non répliquées.
+
++
+`SiteB::> lun mapping delete -vserver _svm_name_ -igroup _igroup_ -path <>`
+
+. Sur le site principal, modifiez la configuration de l'initiateur pour les hôtes existants afin de définir le chemin proximal des initiateurs sur le cluster local.
++
+`SiteA::> igroup initiator add-proximal-vserver -vserver _svm_name_ -initiator _host_ -proximal-vserver _server_`
+
+. Ajoutez un groupe initiateur et un initiateur pour les nouveaux hôtes et définissez la proximité de l'hôte pour l'affinité avec l'hôte sur son site local. Réplication igroup exécutable pour répliquer la configuration et inverser la localisation de l'hôte sur le cluster distant.
++
+``
+SiteA::> igroup modify -vserver vsA -igroup ig1 -replication-peer vsB
+SiteA::> igroup initiator add-proximal-vserver -vserver vsA -initiator host2 -proximal-vserver vsB
+``
+
+. Découvrez les chemins sur les hôtes et vérifiez que les hôtes disposent d'un chemin Active/Optimized vers la LUN de stockage à partir du cluster préféré
+. Déployez l'application et distribuez les workloads des machines virtuelles entre les clusters.
+
+
+.Étapes d'une configuration non uniforme
+. Modifier la règle SnapMirror depuis `AutomatedFailover` à `AutomatedFailoverDuplex`:
++
+`snapmirror modify -destination-path _destination_path_ -policy AutomatedFailoverDuplex`
+
+. La modification de la règle déclenche une resynchronisation. Attendez la fin de la resynchronisation et confirmez que la relation est `Insync`:
++
+`snapmirror show -destination-path _destination_path_`
+
+. Si les hôtes existants sont locaux au cluster principal, ajoutez l'hôte au second cluster et établissez la connectivité avec l'accès respectif à chaque cluster.
+. Sur le site secondaire, supprimez les mappages de LUN sur les groupes initiateurs associés aux hôtes distants.
++
+
+NOTE: Assurez-vous que le groupe initiateur ne contient pas de mappages pour les LUN non répliquées.
+
++
+`SiteB::> lun mapping delete -vserver _svm_name_ -igroup _igroup_ -path <>`
+
+. Sur le site principal, modifiez la configuration de l'initiateur pour les hôtes existants afin de définir le chemin proximal des initiateurs sur le cluster local.
++
+`SiteA::> igroup initiator add-proximal-vserver -vserver _Svm_name_ -initiator _host_ -proximal-vserver _server_`
+
+. Sur le site secondaire, ajoutez un nouveau groupe initiateur et un initiateur pour les nouveaux hôtes et définissez la proximité de l'hôte pour l'affinité avec l'hôte sur son site local. Mappez les LUN sur le groupe initiateur.
++
+``
+SiteB::> igroup create -vserver _svm_name_ -igroup _igroup_name_
+SiteB::> igroup add -vserver _svm_name_ -igroup  _igroup_name_ -initiator _host_name_
+SiteB::> lun mapping create -igroup  _igroup_name_ -path _path_name_
+``
+
+. Découvrez les chemins sur les hôtes et vérifiez que les hôtes disposent d'un chemin Active/Optimized vers la LUN de stockage à partir du cluster préféré
+. Déployez l'application et distribuez les workloads des machines virtuelles entre les clusters.
+
+
+--
+====
+
+
+== Conversion d'une relation symétrique actif/actif à une relation asymétrique
+
+Si vous avez configuré la protection actif-actif symétrique, vous pouvez la convertir en protection asymétrique à l'aide de l'interface de ligne de commande ONTAP.
+
+.Étapes
+. Déplacez toutes les charges de travail des machines virtuelles vers l'hôte local du cluster source.
+. Supprimez la configuration du groupe initiateur pour les hôtes qui ne gèrent pas les instances de VM et modifiez la configuration du groupe initiateur pour mettre fin à la réplication du groupe initiateur.
++
+`code`
+
+. Sur le site secondaire, annulez le mappage des LUN.
++
+`SiteB::> lun mapping delete -vserver _svm_name_ -igroup _igroup_name_ -path <>`
+
+. Sur le site secondaire, supprimez la relation actif-actif symétrique.
++
+`SiteB::> snapmirror delete -destination-path _destination_path_`
+
+. Sur le site primaire, relâchez la relation actif-actif symétrique.
+`SiteA::> snapmirror release -destination-path _destination_path_ -relationship-info-only true`
+. Depuis le site secondaire, créez une relation avec le même ensemble de volumes avec `AutomatedFailover` policy : resynchronisez la relation.
++
+``
+SiteB::> snapmirror create -source-path _source_path_ -destination-path _destination_path_ -cg-item-mappings _source:@destination_ -policy AutomatedFailover
+SiteB::> snapmirror resync -destination-path vs1:/cg/cg1_dst
+``
+
++
+
+NOTE: Le groupe de cohérence sur le site secondaire doit être mis en place link:../consistency-groups/delete-task.html["à supprimer"] avant de recréer la relation. Les volumes de destination link:https://kb.netapp.com/onprem/ontap/dp/SnapMirror/How_to_change_a_volume_type_from_RW_to_DP["Doit être converti en type DP"^].
+
+. Vérifiez que l'état miroir de la relation est `Snapmirrored` Le statut de la relation est `Insync`.
++
+`snapmirror show -destination-path _destination_path_`
+
+. Redécouvrez les chemins depuis l'hôte.
+

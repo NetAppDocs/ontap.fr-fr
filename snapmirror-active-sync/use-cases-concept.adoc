@@ -1,0 +1,38 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/use-cases-concept.html 
+keywords: SM-BC, SMBC, overview, benefits, use cases, architecture, snapmirror active sync 
+summary: 'Utilisez la synchronisation active SnapMirror pour protéger les applications avec les LUN. Les applications peuvent ainsi basculer en toute transparence et assurer la continuité de l"activité en cas d"incident.' 
+---
+= Cas d'utilisation de la synchronisation active SnapMirror
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les exigences d'un environnement professionnel connecté à l'échelle mondiale exigent une restauration rapide des données des applications stratégiques sans aucune perte de données en cas de perturbation, par exemple une cyberattaque, une panne de courant ou une catastrophe naturelle. Ces exigences s'intensifient sur des domaines tels que les finances et le respect des obligations réglementaires telles que le Règlement général de l'Union européenne sur la protection des données (RGPD).
+
+Les utilisations de SnapMirror Active Sync sont les suivantes :
+
+.Déploiement des applications pour un objectif de délai de restauration (RTO) nul
+Dans un déploiement SnapMirror actif, vous disposez d'un cluster principal et d'un cluster secondaire. Une LUN dans le cluster principal  `1LP`) a un miroir (`L1s`) Sur le serveur secondaire ; les deux LUN partagent le même ID de série et sont signalées comme des LUN de lecture-écriture à l'hôte. En revanche, les opérations de lecture et d'écriture sont uniquement gérées sur le LUN principal, `1LP`. Toutes les écritures sont effectuées sur le miroir `L1S` sont servis par proxy.
+
+.Déploiement des applications sans RTO ni TAF
+TAF est basé sur le basculement de chemin MPIO hôte basé sur le logiciel pour permettre un accès au stockage sans interruption. Les deux copies de LUN (par exemple, primaire (L1P) et copie miroir (L1S) ont la même identité (numéro de série) et sont signalées comme accessibles en lecture-écriture à l'hôte. Toutefois, les lectures et écritures sont uniquement gérées par le volume primaire. Les E/S émises vers la copie miroir sont proxyés à la copie principale. Le chemin d'accès privilégié de l'hôte vers L1 est VS1:N1 basé sur l'état d'accès ALUA (Asymmetric Logical Unit Access) Active Optimized (A/O). ONTAP Mediator est nécessaire dans le cadre du déploiement, principalement pour effectuer un basculement (planifié ou non) en cas de panne du stockage primaire.
+
+La synchronisation active SnapMirror utilise le protocole ALUA, qui permet à un logiciel de chemins d'accès multiples d'hôte d'application d'établir les chemins avec les priorités et la disponibilité d'accès pour la communication entre l'hôte d'application et la baie de stockage. Le protocole ALUA marque les chemins optimisés actifs vers les contrôleurs propriétaires de la LUN et d'autres comme chemins actifs non optimisés, utilisés uniquement en cas de défaillance du chemin principal.
+
+.Applications en cluster
+Les applications en cluster, notamment VMware Metro Storage Cluster, Oracle RAC et Windows Failover Clustering avec SQL, nécessitent un accès simultané afin que les VM puissent basculer vers un autre site sans impact sur les performances. La fonction actif-actif symétrique de SnapMirror sert les E/S localement avec la réplication bidirectionnelle afin de répondre aux exigences des applications en cluster.
+
+.Scénario d'incident
+Répliquez plusieurs volumes de manière synchrone pour une application entre des sites situés dans des sites dispersés géographiquement. En cas d'interruption du stockage primaire, vous pouvez basculer automatiquement vers la copie secondaire, assurant ainsi la continuité de l'activité pour les applications de niveau 1. Lorsque le site hébergeant le cluster principal rencontre un incident, le logiciel de chemins d'accès multiples hôte marque tous les chemins à travers le cluster comme descendant et utilise les chemins depuis le cluster secondaire. Il en résulte un basculement sans interruption activé par le médiateur ONTAP vers la copie miroir.
+
+.Basculement Windows
+La synchronisation active SnapMirror assure la flexibilité grâce à une granularité au niveau des applications et à un basculement automatique faciles à utiliser. La synchronisation active SnapMirror exploite la réplication synchrone SnapMirror sur réseau IP pour répliquer des données à des vitesses élevées sur un réseau LAN ou WAN. Vous bénéficiez ainsi d'une haute disponibilité des données et d'une réplication rapide des données pour vos applications stratégiques, comme Oracle ou Microsoft SQL Server, dans des environnements physiques et virtuels.
+
+La synchronisation active SnapMirror assure le fonctionnement continu des services stratégiques, même en cas de défaillance complète du site, avec une mise au point automatique sur la copie secondaire. Aucune intervention manuelle ou aucun script supplémentaire n'est nécessaire pour déclencher ce basculement.

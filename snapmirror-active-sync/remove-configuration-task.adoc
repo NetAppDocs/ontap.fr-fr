@@ -1,0 +1,136 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/remove-configuration-task.html 
+keywords: SM-BC, SMBC, removing, protection relationship, snapmirror active sync 
+summary: Vous pouvez supprimer la protection synchrone de SnapMirror avec objectif RTO nul et supprimer la configuration de la relation de synchronisation active SnapMirror. 
+---
+= Supprime une configuration de synchronisation active SnapMirror
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous n'avez plus besoin de protection synchrone SnapMirror avec objectif RTO nul, vous pouvez supprimer votre relation de synchronisation active SnapMirror.
+
+
+
+== Supprimer une configuration asymétrique
+
+* Avant de supprimer la relation de synchronisation active SnapMirror, toutes les LUN du cluster de destination doivent être démappées.
+* Une fois que les LUN sont démappées et que l'hôte est réanalysé, la cible SCSI informe les hôtes que l'inventaire des LUN a changé. Les LUN existantes sur les volumes secondaires RTO de zéro sont modifiées pour refléter une nouvelle identité après la suppression de la relation RTO de zéro. Les hôtes découvrent les LUN du volume secondaire en tant que nouveaux LUN sans relation avec les LUN du volume source.
+* Les volumes secondaires restent des volumes DP une fois la relation supprimée. Vous pouvez lancer le `snapmirror break` pour les convertir en lecture/écriture.
+* La suppression de la relation n'est pas autorisée à l'état d'échec lorsque la relation n'est pas inversée.
+
+
+.Étapes
+. Depuis le cluster secondaire, supprimez la relation SnapMirror Active Sync Consistency group entre le terminal source et le terminal de destination :
++
+`destination::>snapmirror delete -destination-path vs1_dst:/cg/cg_dst`
+
+. Depuis le cluster principal, relationer la relation de groupe de cohérence et les copies Snapshot créées pour la relation :
++
+`source::>snapmirror release -destination-path vs1_dst:/cg/cg_dst`
+
+. Effectuez une nouvelle analyse de l'hôte pour mettre à jour l'inventaire des LUN.
+. Depuis la version ONTAP 9.10.1, la suppression de la relation SnapMirror ne supprime pas le groupe de cohérence. Pour supprimer le groupe de cohérence, vous devez utiliser System Manager ou l'API REST de ONTAP. Voir xref:../consistency-groups/delete-task.adoc[Supprimez un groupe de cohérence] pour en savoir plus.
+
+
+
+
+== Supprime une configuration actif-actif symétrique
+
+Vous pouvez supprimer une configuration symétrique au moyen de System Manager ou de l'interface de ligne de commandes ONTAP. Dans les deux interfaces, il existe différentes étapes pour xref:index.html#key-concepts[configurations uniformes et non uniformes].
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Étapes pour une configuration uniforme
+. Sur le site principal, supprimez les hôtes distants du groupe initiateur et mettez fin à la réplication.
++
+.. Accédez à **hosts** > *SAN Initiator Groups*.
+.. Sélectionnez le groupe initiateur à modifier, puis **Modifier**.
+.. Supprimez l'initiateur distant et mettez fin à la réplication du groupe initiateur. Sélectionnez **Enregistrer**.
+
+
+. Sur le site secondaire, supprimez la relation répliquée en démappant les LUN.
++
+.. Accédez à **hosts** > **SAN Initiator Groups**.
+.. Sélectionnez le groupe initiateur avec la relation SnapMirror, puis **Delete**.
+.. Dans la boîte de dialogue, sélectionnez la case **Annuler le mappage des LUN associées**, puis **Supprimer**.
+.. Accédez à **protection** > **relations**.
+.. Sélectionnez la relation de synchronisation active SnapMirror, puis **Release** pour supprimer les relations.
+
+
+
+
+.Étapes d'une configuration non uniforme
+. Sur le site principal, supprimez les hôtes distants du groupe initiateur et mettez fin à la réplication.
++
+.. Accédez à **hosts** > *SAN Initiator Groups*.
+.. Sélectionnez le groupe initiateur à modifier, puis **Modifier**.
+.. Supprimez l'initiateur distant et mettez fin à la réplication du groupe initiateur. Sélectionnez **Enregistrer**.
+
+
+. Sur le site secondaire, supprimez la relation de synchronisation active SnapMirror.
++
+.. Accédez à **protection** > **relations**.
+.. Sélectionnez la relation de synchronisation active SnapMirror, puis **Release** pour supprimer les relations.
+
+
+
+
+--
+.CLI
+--
+.Étapes pour une configuration uniforme
+. Déplacez toutes les charges de travail de machine virtuelle vers le cluster hôte local à source de la synchronisation active SnapMirror.
+. Sur le cluster source, supprimez les initiateurs du groupe initiateur et modifiez la configuration du groupe initiateur pour mettre fin à la réplication.
++
+`SiteA::> igroup remove -vserver _svm_name_ -igroup _igroup_name_ -initiator _host2_
+SiteA::> igroup modify -vserver _svm_name_ -igroup _igroup_name_ -replication-peer "-"`
+
+. Sur le site secondaire, supprimez le mappage de LUN et supprimez la configuration du groupe initiateur :
++
+`SiteB::> lun mapping delete -vserver _svm_name_ -igroup _igroup_name_ -path <>
+SiteB::> igroup delete -vserver _svm_name_ -igroup _igroup_name_`
+
+. Sur le site secondaire, supprimez la relation de synchronisation active SnapMirror.
++
+`SiteB::> snapmirror delete -destination-path _destination_path_`
+
+. Sur le site primaire, relationship actif SnapMirror depuis le site primaire.
++
+`SiteA::> snapmirror release -destination-path _destination_path_`
+
+. Redécouvrez les chemins pour vérifier que seul le chemin local est disponible pour l'hôte.
+
+
+.Étapes d'une configuration non uniforme
+. Déplacez toutes les charges de travail de machine virtuelle vers le cluster hôte local à source de la synchronisation active SnapMirror.
+. Sur le cluster source, supprimez les initiateurs du groupe initiateur.
++
+`SiteA::> igroup remove -vserver _svm_name_ -igroup _igroup_name_ -initiator _host2_`
+
+. Sur le site secondaire, supprimez le mappage de LUN et supprimez la configuration du groupe initiateur :
++
+`SiteB::> lun mapping delete -vserver _svm_name_ -igroup _igroup_name_ -path <>
+SiteB::> igroup delete -vserver _svm_name_ -igroup _igroup_name_`
+
+. Sur le site secondaire, supprimez la relation de synchronisation active SnapMirror.
++
+`SiteB::> snapmirror delete -destination-path _destination_path_`
+
+. Sur le site primaire, relationship actif SnapMirror depuis le site primaire.
++
+`SiteA::> snapmirror release -destination-path _destination_path_`
+
+. Redécouvrez les chemins pour vérifier que seul le chemin local est disponible pour l'hôte.
+
+
+--
+====

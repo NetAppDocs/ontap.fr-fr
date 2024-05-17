@@ -11,30 +11,12 @@ summary: 'À partir de ONTAP 9.14.1, FPolicy permet de configurer un magasin per
 
 
 [role="lead"]
-À partir de ONTAP 9.14.1, FPolicy permet de configurer un magasin persistant pour capturer les événements d'accès aux fichiers pour des règles asynchrones non obligatoires dans la SVM. Les magasins persistants peuvent aider à découpler le traitement des E/S client du traitement des notifications FPolicy afin de réduire la latence du client. Les configurations obligatoires synchrones (obligatoires ou non) et asynchrones ne sont pas prises en charge.
+Les magasins persistants peuvent aider à découpler le traitement des E/S client du traitement des notifications FPolicy afin de réduire la latence du client. Depuis la version ONTAP 9.14.1, vous pouvez configurer un magasin persistant FPolicy pour capturer les événements d'accès aux fichiers pour des règles asynchrones non obligatoires dans la SVM. Les configurations obligatoires synchrones (obligatoires ou non) et asynchrones ne sont pas prises en charge.
 
 Cette fonctionnalité est uniquement disponible en mode externe FPolicy. L'application partenaire que vous utilisez doit prendre en charge cette fonctionnalité. Vous devez collaborer avec votre partenaire pour vous assurer que cette configuration FPolicy est prise en charge.
 
+À partir de ONTAP 9.15.1, la configuration du stockage persistant FPolicy est simplifiée. Le `persistent-store create` Automatise la création de volume pour la SVM et configure le volume avec les bonnes pratiques de stockage persistant.
 
+Pour plus d'informations sur les meilleures pratiques en matière de stockage persistant, reportez-vous à la section link:requirements-best-practices-fpolicy-concept.html["D'exigences, de considérations et de meilleures pratiques pour la configuration de FPolicy"].
 
-== Et des meilleures pratiques
-
-Les administrateurs du cluster doivent configurer un volume pour le magasin persistant sur chaque SVM sur lequel FPolicy est activé. Lorsqu'il est configuré, un magasin persistant capture tous les événements FPolicy correspondants, qui sont ensuite traités dans le pipeline FPolicy et envoyés au serveur externe.
-
-Le stockage persistant reste tel qu'il était au moment de la réception du dernier événement en cas de redémarrage inattendu ou lorsque FPolicy est désactivé et réactivé. Après une opération de basculement, les nouveaux événements sont stockés et traités par le nœud partenaire. Après une opération de rétablissement, le magasin persistant reprend le traitement de tout événement non traité qui pourrait rester en provenance de lorsque le basculement du nœud s'est produit. Les événements en direct seraient prioritaires sur les événements non traités.
-
-Si le volume du magasin persistant passe d'un nœud à un autre dans la même SVM, les notifications qui ne sont pas encore traitées seront également déplacées vers le nouveau nœud. Vous devez exécuter à nouveau le `fpolicy persistent-store create` sur l'un des nœuds après le déplacement du volume, afin de garantir que la notification en attente est transmise au serveur externe.
-
-Le volume de stockage persistant est configuré par SVM. Pour chaque SVM activé FPolicy, vous devez créer un volume de stockage persistant.
-
-Créez le volume de stockage persistant sur le nœud avec les LIF qui prévoient que le trafic maximal sera surveillé par Fpolicy.
-
-Si les notifications accumulées dans le magasin persistant dépassent la taille du volume provisionné, FPolicy commence à supprimer la notification entrante avec les messages EMS appropriés.
-
-Le nom du volume de stockage persistant et le chemin de jonction spécifiés au moment de la création du volume doivent correspondre.
-
-Définissez la règle de snapshot sur `none` pour ce volume au lieu de `default`. Cela permet de s'assurer qu'il n'y a pas de restauration accidentelle de l'instantané, ce qui entraîne la perte des événements actuels et d'empêcher le traitement des événements en double.
-
-Rendre le volume de stockage persistant inaccessible pour l'accès au protocole utilisateur externe (CIFS/NFS) afin d'éviter toute corruption accidentelle ou suppression des enregistrements d'événements persistants. Pour ce faire, une fois FPolicy activé, démontez le volume dans ONTAP pour supprimer le chemin de jonction, ce qui le rend inaccessible pour l'accès au protocole utilisateur.
-
-Pour plus d'informations, voir link:https://docs.netapp.com/us-en/ontap/nas-audit/create-persistent-stores.html["Créez des magasins persistants"].
+Pour plus d'informations sur l'ajout de magasins persistants, reportez-vous à la section link:create-persistent-stores.html["Créez des magasins persistants"].

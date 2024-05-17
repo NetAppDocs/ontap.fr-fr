@@ -2,7 +2,7 @@
 permalink: consistency-groups/protect-task.html 
 sidebar: sidebar 
 keywords: application protection, two-phase commit, 2 phase, smbc, async snapmirror, local, remote, snapshot, asynchronous, svm disaster recovery, snapmirror 
-summary: 'Utilisez des groupes de cohérence pour protéger les données à l"aide de snapshots locaux, de SnapMirror asynchrone, de SM-BC et de la reprise d"activité SVM.' 
+summary: 'Utilisez des groupes de cohérence pour protéger les données à l"aide de snapshots locaux, de SnapMirror asynchrone, de la synchronisation active SnapMirror et de la reprise d"activité SVM.' 
 ---
 = Protégez les groupes de cohérence
 :hardbreaks:
@@ -17,7 +17,7 @@ Les groupes de cohérence offrent une protection locale et à distance simple à
 La création d'un groupe de cohérence n'active pas automatiquement la protection. Les règles de protection peuvent être définies au moment de la création ou après la création du groupe de cohérence. Vous pouvez protéger les groupes de cohérence à l'aide des éléments suivants :
 
 * Copies Snapshot locales
-* Continuité de l'activité SnapMirror (SM-BC)
+* Synchronisation active SnapMirror (appelée SnapMirror Business Continuity dans les versions de ONTAP d'avant 9.15.1)
 * xref:index.html#mcc[MetroCluster (début 9.11.1)]
 * SnapMirror asynchrone (début 9.13.1)
 * Reprise d'activité asynchrone d'un SVM (début 9.14.1)
@@ -36,7 +36,7 @@ La restauration peut être effectuée pour un groupe de cohérence entier, un se
 La définition d'une règle de protection locale des snapshots permet de créer une stratégie couvrant tous les volumes d'un groupe de cohérence.
 
 .Description de la tâche
-La planification minimale des copies Snapshot prise en charge pour les groupes de cohérence est de 30 minutes. Elle est basée sur link:https://www.netapp.com/media/12385-tr4571.pdf["Test des FlexGroups"^], Qui partagent la même infrastructure Snapshot que les groupes de cohérence.
+La planification minimale prise en charge des copies Snapshot pour les groupes de cohérence est de 30 minutes. Cela est basé sur link:https://www.netapp.com/media/12385-tr4571.pdf["Test des FlexGroups"^], Qui partagent la même infrastructure Snapshot que les groupes de cohérence.
 
 [role="tabbed-block"]
 ====
@@ -56,6 +56,11 @@ La planification minimale des copies Snapshot prise en charge pour les groupes d
 .CLI
 --
 Depuis la version ONTAP 9.14.1, vous pouvez modifier la règle de protection d'un groupe de cohérence à l'aide de l'interface de ligne de commandes.
+
+.Avant de commencer
+* Vous devez avoir le niveau de privilège admin pour effectuer cette tâche.
+* Dans ONTAP 9.14.1, vous devez être administrateur de cluster ou SVM pour effectuer cette tâche. Depuis ONTAP 9.15.1, tout utilisateur au niveau de privilège admin peut effectuer cette tâche.
+
 
 .Étape
 . Exécutez la commande suivante pour définir ou modifier la règle de protection :
@@ -91,6 +96,11 @@ Si vous devez créer une copie Snapshot de votre groupe de cohérence en dehors 
 .CLI
 --
 Depuis la version ONTAP 9.14.1, vous pouvez créer une copie Snapshot à la demande d'un groupe de cohérence à l'aide de l'interface de ligne de commandes.
+
+.Avant de commencer
+* Vous devez avoir le niveau de privilège admin pour effectuer cette tâche.
+* Dans ONTAP 9.14.1, vous devez être administrateur de cluster ou SVM pour effectuer cette tâche. Depuis ONTAP 9.15.1, tout utilisateur au niveau de privilège admin peut effectuer cette tâche.
+
 
 .Étape
 . Créer la copie Snapshot :
@@ -135,6 +145,11 @@ NOTE: Si vous appelez la création de Snapshot avec l'API, vous devez valider la
 .CLI
 --
 Depuis la version ONTAP 9.14.1, vous pouvez créer une copie Snapshot en deux phases à l'aide de l'interface de ligne de commandes.
+
+.Avant de commencer
+* Vous devez avoir le niveau de privilège admin pour effectuer cette tâche.
+* Dans ONTAP 9.14.1, vous devez être administrateur de cluster ou SVM pour effectuer cette tâche. Depuis ONTAP 9.15.1, tout utilisateur au niveau de privilège admin peut effectuer cette tâche.
+
 
 .Étapes
 . Lancer l'instantané :
@@ -182,30 +197,30 @@ For more information about the ONTAP REST API, see link:https://docs.netapp.com/
 
 == Définissez la protection à distance pour un groupe de cohérence
 
-Les groupes de cohérence offrent une protection à distance via SM-BC et, depuis ONTAP 9.13.1, SnapMirror asynchrone.
+Les groupes de cohérence offrent une protection à distance via la synchronisation active SnapMirror et, depuis ONTAP 9.13.1, SnapMirror asynchrone.
 
 
 
-=== Configurez la protection avec SM-BC
+=== Configurez la protection avec la synchronisation active SnapMirror
 
-Vous pouvez utiliser SM-BC pour vous assurer que les copies Snapshot des groupes de cohérence créés dans votre groupe de cohérence sont copiées vers la destination. Pour en savoir plus sur SM-BC ou sur la configuration de SM-BC à l'aide de l'interface de ligne de commande, reportez-vous à la section xref:../task_san_configure_protection_for_business_continuity.html[Configuration de la protection pour la continuité de l'activité].
+Vous pouvez utiliser la synchronisation active SnapMirror pour vous assurer que les copies Snapshot des groupes de cohérence créés dans votre groupe de cohérence sont copiées vers la destination. Pour en savoir plus sur la synchronisation active SnapMirror ou sur la configuration de la synchronisation active SnapMirror à l'aide de l'interface de ligne de commande, reportez-vous à la section xref:../task_san_configure_protection_for_business_continuity.html[Configuration de la protection pour la continuité de l'activité].
 
 .Avant de commencer
-* Les relations SM-BC ne peuvent pas être établies sur les volumes montés pour l'accès NAS.
+* Les relations de synchronisation active SnapMirror ne peuvent pas être établies sur les volumes montés pour l'accès NAS.
 * Les étiquettes de règles doivent correspondre dans le cluster source et dans le cluster destination.
-* SM-BC ne réplique pas les copies Snapshot par défaut, sauf si une règle avec étiquette SnapMirror est ajoutée au prédéfini `AutomatedFailOver` La règle et les copies Snapshot sont créées avec cette étiquette.
+* La synchronisation active SnapMirror ne réplique pas les copies Snapshot par défaut, sauf si une règle portant une étiquette SnapMirror est ajoutée au paramètre prédéfini `AutomatedFailOver` La règle et les copies Snapshot sont créées avec cette étiquette.
 +
-Pour en savoir plus sur ce processus, voir link:../task_san_configure_protection_for_business_continuity.html["Protégez avec SM-BC"].
+Pour en savoir plus sur ce processus, voir link:../task_san_configure_protection_for_business_continuity.html["Protégez votre infrastructure avec la synchronisation active SnapMirror"].
 
-* xref:../data-protection/supported-deployment-config-concept.html[Déploiements en cascade] Ne sont pas pris en charge par SM-BC.
-* À partir de ONTAP 9.13.1, vous pouvez réaliser des opérations sans interruption xref:modify-task.html#add-volumes-to-a-consistency-group[ajouter des volumes à un groupe de cohérence] Avec une relation SM-BC active. Toute autre modification apportée à un groupe de cohérence entraîne une interruption de la relation SM-BC, la modification du groupe de cohérence, puis la restauration et la resynchronisation de la relation.
+* xref:../data-protection/supported-deployment-config-concept.html[Déploiements en cascade] Ne sont pas pris en charge avec la synchronisation active SnapMirror.
+* À partir de ONTAP 9.13.1, vous pouvez réaliser des opérations sans interruption xref:modify-task.html#add-volumes-to-a-consistency-group[ajouter des volumes à un groupe de cohérence] Avec une relation de synchronisation active SnapMirror. Toute autre modification apportée à un groupe de cohérence exige que vous rompez la relation de synchronisation active SnapMirror, modifiez le groupe de cohérence, puis rétablissez et resynchronisiez la relation.
 
 
 
-TIP: Pour configurer SM-BC avec l'interface de ligne de commande, reportez-vous à la section xref:../task_san_configure_protection_for_business_continuity.html[Protégez avec SM-BC].
+TIP: Pour configurer la synchronisation active SnapMirror avec l'interface de ligne de commandes, reportez-vous à la section xref:../task_san_configure_protection_for_business_continuity.html[Protégez votre infrastructure avec la synchronisation active SnapMirror].
 
 .Étapes pour System Manager
-. Assurez-vous d'avoir rencontré le link:../smbc/smbc_plan_prerequisites.html["Conditions préalables à l'utilisation de SM-BC"].
+. Assurez-vous d'avoir rencontré le link:../snapmirror-active-sync/prerequisites-reference.html["Conditions préalables à l'utilisation de SnapMirror actif Sync"].
 . Sélectionnez *stockage > groupes de cohérence*.
 . Sélectionnez le groupe de cohérence que vous avez créé dans le menu Groupe de cohérence.
 . En haut à droite de la page de présentation, sélectionnez *plus* puis *protéger*.
@@ -216,9 +231,9 @@ TIP: Pour configurer SM-BC avec l'interface de ligne de commande, reportez-vous 
 
 
 
-=== Configurer la protection SnapMirror asynchrone
+=== Configurer la protection asynchrone SnapMirror
 
-Depuis la version ONTAP 9.13.1, vous pouvez configurer la protection SnapMirror asynchrone pour un groupe de cohérence unique. Depuis la version ONTAP 9.14.1, vous pouvez utiliser la réplication asynchrone SnapMirror pour répliquer des copies Snapshot granulaires par volume vers le cluster de destination à l'aide de la relation de groupe de cohérence.
+Depuis la version ONTAP 9.13.1, vous pouvez configurer la protection asynchrone SnapMirror pour un groupe de cohérence unique. Depuis la version ONTAP 9.14.1, vous pouvez utiliser la réplication asynchrone SnapMirror pour répliquer des copies Snapshot granulaires par volume vers le cluster de destination à l'aide de la relation de groupe de cohérence.
 
 .Description de la tâche
 Pour répliquer des copies Snapshot granulaires par volume, vous devez exécuter ONTAP 9.14.1 ou une version ultérieure. Pour les règles MirrorAndVault et Vault, l'étiquette SnapMirror de la règle Snapshot granulaire des volumes doit correspondre à la règle de règle SnapMirror du groupe de cohérence. Les snapshots granulaires par volume respectent la règle SnapMirror du groupe de cohérence, qui est calculée indépendamment des snapshots du groupe de cohérence. Par exemple, si une règle permet de conserver deux copies Snapshot sur la destination, vous pouvez avoir deux copies Snapshot granulaires au niveau du volume et deux copies Snapshot de groupe de cohérence.
@@ -226,10 +241,11 @@ Pour répliquer des copies Snapshot granulaires par volume, vous devez exécuter
 Lors de la resynchronisation de la relation SnapMirror avec des copies Snapshot granulaires par volume, vous pouvez conserver les copies Snapshot granulaires par volume avec le `-preserve` drapeau. Les copies Snapshot granulaires par volume, plus récentes que les copies Snapshot du groupe de cohérence, sont conservées. Si aucune copie Snapshot de groupe de cohérence n'est créée, aucune copie Snapshot granulaire par volume ne peut être transférée lors de l'opération de resynchronisation.
 
 .Avant de commencer
-* La protection asynchrone SnapMirror n'est disponible que pour les groupes de cohérence uniques. Elle n'est pas prise en charge pour les groupes de cohérence hiérarchiques. Pour convertir un groupe de cohérence hiérarchique en un seul groupe de cohérence, reportez-vous à la section xref:modify-geometry-task.html[modifier l'architecture d'un groupe de cohérence].
+* La protection asynchrone SnapMirror n'est disponible que pour un seul groupe de cohérence. Elle n'est pas prise en charge pour les groupes de cohérence hiérarchiques. Pour convertir un groupe de cohérence hiérarchique en un seul groupe de cohérence, reportez-vous à la section xref:modify-geometry-task.html[modifier l'architecture d'un groupe de cohérence].
 * Les étiquettes de règles doivent correspondre dans le cluster source et dans le cluster destination.
-* Vous pouvez interrompre l'activité xref:modify-task.html#add-volumes-to-a-consistency-group[ajouter des volumes à un groupe de cohérence] Avec une relation SnapMirror asynchrone active. Toute autre modification apportée à un groupe de cohérence exige que vous rompez la relation SnapMirror, modifiez le groupe de cohérence, puis rétablissez et resynchronisez la relation.
-* Si vous avez configuré une relation de protection SnapMirror asynchrone pour plusieurs volumes individuels, vous pouvez convertir ces volumes en groupe de cohérence tout en conservant les copies Snapshot existantes. Pour convertir les volumes avec succès :
+* Vous pouvez interrompre l'activité xref:modify-task.html#add-volumes-to-a-consistency-group[ajouter des volumes à un groupe de cohérence] Avec une relation asynchrone SnapMirror active. Toute autre modification apportée à un groupe de cohérence exige que vous rompez la relation SnapMirror, modifiez le groupe de cohérence, puis rétablissez et resynchronisez la relation.
+* Les groupes de cohérence activés pour la protection avec la réplication asynchrone SnapMirror ont des limites différentes. Pour plus d'informations, voir xref:limits.html[Limites des groupes de cohérence].
+* Si vous avez configuré une relation de protection asynchrone SnapMirror pour plusieurs volumes individuels, vous pouvez convertir ces volumes en groupe de cohérence tout en conservant les copies Snapshot existantes. Pour convertir les volumes avec succès :
 +
 ** Il doit y avoir une copie Snapshot commune des volumes.
 ** Vous devez interrompre la relation SnapMirror existante, xref:configure-task.html[ajoutez les volumes à un seul groupe de cohérence], puis resynchronisez la relation à l'aide du flux de travail suivant.
@@ -247,7 +263,7 @@ Lorsque vous sélectionnez une stratégie asynchrone, vous avez la possibilité 
 
 +
 
-NOTE: La planification minimale prise en charge (objectif de point de récupération, ou RPO) pour les groupes de cohérence avec SnapMirror asynchrone est de 30 minutes.
+NOTE: La planification minimale prise en charge (objectif de point de récupération, ou RPO) pour les groupes de cohérence avec la réplication asynchrone SnapMirror est de 30 minutes.
 
 . Sélectionnez *Enregistrer*.
 . Le groupe de cohérence doit être initialisé et synchronisé. Vérifiez que la synchronisation s'est bien terminée en retournant au menu *groupe de cohérence*. L'état *SnapMirror (Remote)* s'affiche `Protected` à côté de image:../media/icon_shield.png["alt=icône de bouclier vert"].
@@ -265,7 +281,7 @@ Si vous ajoutez un groupe de cohérence à un SVM figurant dans une relation de 
 
 .Limites
 * La reprise d'activité des SVM ne prend pas en charge les groupes de cohérence hiérarchiques.
-* La reprise après incident des SVM ne prend pas en charge les groupes de cohérence protégés par SnapMirror asynchrone. Vous devez rompre la relation SnapMirror avant de configurer la reprise d'activité d'un SVM.
+* La reprise d'activité pour SVM ne prend pas en charge les groupes de cohérence protégés par la réplication asynchrone SnapMirror. Vous devez rompre la relation SnapMirror avant de configurer la reprise d'activité d'un SVM.
 * Les deux clusters doivent exécuter ONTAP 9.14.1 ou une version ultérieure.
 * Les relations « Fan-Out » ne sont pas prises en charge pour les configurations de reprise d'activité des SVM contenant des groupes de cohérence.
 * Pour les autres limites, voir xref:limits.html[limites des groupes de cohérence].
@@ -283,7 +299,7 @@ System Manager visualise les mappages de LUN dans le menu *protection > relation
 * link:../task_dp_create_custom_data_protection_policies.html["Création de règles personnalisées de protection des données"]
 * link:../task_dp_recover_snapshot.html["Effectuez des restaurations à partir de copies Snapshot"]
 * link:../task_dp_restore_from_vault.html["Restaurez un volume à partir d'une copie Snapshot antérieure"]
-* link:../smbc/index.html["Présentation de SM-BC"]
+* link:../snapmirror-active-sync/index.html["Présentation de la synchronisation active SnapMirror"]
 * link:https://docs.netapp.com/us-en/ontap-automation/["Documentation sur l'automatisation ONTAP"^]
-* xref:../data-protection/snapmirror-disaster-recovery-concept.html[Principes de base de la reprise sur incident asynchrone SnapMirror]
+* xref:../data-protection/snapmirror-disaster-recovery-concept.html[Notions de base sur la reprise après incident asynchrone SnapMirror]
 

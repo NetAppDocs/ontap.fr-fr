@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar 
 permalink: task_nas_enable_linux_nfs.html 
-keywords: ontap, netapp, provision nas storage, linux, enable, nfs, modify storage VM, configure DNS, configure name server, configure Kerberos 
+keywords: ontap, netapp, provision nas storage, linux, enable, nfs, modify storage VM, configure DNS, configure name server, configure Kerberos, configure TLS, TLS, NMFS over TLS 
 summary: 'Modifiez les VM de stockage afin d"activer les serveurs NFS pour le service des données aux clients Linux.' 
 ---
 = Activez le stockage NAS pour les serveurs Linux à l'aide de NFS
@@ -18,21 +18,24 @@ summary: 'Modifiez les VM de stockage afin d"activer les serveurs NFS pour le se
 [role="lead"]
 Créez ou modifiez des VM de stockage afin de permettre aux serveurs NFS de transmettre des données aux clients Linux.
 
-Cette procédure permet d'activer une VM de stockage nouvelle ou existante pour le protocole NFS. Nous partons du principe que des informations de configuration sont disponibles pour tous les services de réseau, d'authentification ou de sécurité requis dans votre environnement.
+Utilisez cette procédure pour activer une machine virtuelle de stockage nouvelle ou existante pour le protocole NFS.
 
-image:workflow_nas_enable_linux_nfs.gif["Schéma des flux de production pour l'activation de NAS pour serveurs Linux à l'aide de NFS"]
+image:workflow_nas_enable_linux_nfs.png["Schéma des flux de production pour l'activation de NAS pour serveurs Linux à l'aide de NFS"]
+
+.Avant de commencer
+Vérifiez que vous avez bien noté les détails de configuration des services de réseau, d'authentification ou de sécurité requis dans votre environnement.
 
 .Étapes
 . Activez NFS sur une VM de stockage.
 +
-.. Pour les nouvelles machines virtuelles de stockage : cliquez sur *stockage > machines virtuelles de stockage*, cliquez sur *Ajouter*, saisissez un nom de machine virtuelle de stockage et, dans l'onglet *SMB/CIFS, NFS, S3*, sélectionnez *Activer NFS*.
+** Pour les nouvelles machines virtuelles de stockage : cliquez sur *stockage > machines virtuelles de stockage*, cliquez sur *Ajouter*, entrez un nom de machine virtuelle de stockage et, dans l'onglet *SMB/CIFS, NFS, S3*, sélectionnez *Activer NFS*.
 +
-*** Confirmez la langue par défaut.
-*** Ajouter des interfaces réseau.
-*** Mise à jour des informations de compte administrateur de VM de stockage (facultatif)
+... Confirmez la langue par défaut.
+... Ajouter des interfaces réseau.
+... Mise à jour des informations de compte administrateur de VM de stockage (facultatif)
 
 
-.. Pour les machines virtuelles de stockage existantes : cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez une machine virtuelle de stockage, cliquez sur *Paramètres*, puis cliquez sur image:icon_gear.gif["icône paramètres"] Sous *NFS*.
+** Pour les machines virtuelles de stockage existantes : cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez une machine virtuelle de stockage, cliquez sur *Paramètres*, puis cliquez sur image:icon_gear.gif["icône paramètres"] Sous *NFS*.
 
 
 . Ouvrir la export policy du volume root de la VM de stockage :
@@ -51,13 +54,43 @@ image:workflow_nas_enable_linux_nfs.gif["Schéma des flux de production pour l'a
 . Configurez les services de noms si nécessaire.
 +
 .. Cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez la machine virtuelle de stockage, cliquez sur *Paramètres*, puis cliquez sur pour image:icon_gear.gif["icône paramètres"] LDAP ou NIS.
-.. Inclure toute modification dans le fichier de changement de services de noms : cliquez sur image:icon_pencil.gif["icône modifier"] Dans la mosaïque commutateur de services de noms.
+.. Cliquez sur image:icon_pencil.gif["icône modifier"] Dans la mosaïque changement de nom des services pour inclure les modifications.
 
 
-. Configurez Kerberos si nécessaire :
+. Configurez le chiffrement si nécessaire :
+
+
+[role="tabbed-block"]
+====
+.Configurer TLS pour les clients NFS
+--
+
+NOTE: NFS over TLS est disponible dans ONTAP 9.15.1 en tant que préversion publique. À titre de préversion, NFS over TLS n'est pas pris en charge pour les workloads de production dans ONTAP 9.15.1.
+
+.Étapes
+. Reportez-vous à la link:nfs-admin/tls-nfs-strong-security-concept.html["de formation"^] Pour NFS sur TLS avant de commencer.
+. Cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez la machine virtuelle de stockage, puis cliquez sur *Paramètres*.
+. Dans la mosaïque *NFS*, cliquez sur *NFS over TLS settings*.
+. Dans la zone *NFS over TLS settings*, sélectionnez une interface réseau NFS pour laquelle vous souhaitez activer TLS.
+. Cliquez sur le bouton image:icon_kabob.gif["Icône Options"] pour cette interface.
+. Cliquez sur *Activer*.
+. Dans la boîte de dialogue *Network interface TLS configuration*, incluez un certificat à utiliser avec TLS en sélectionnant l'une des options suivantes :
 +
-.. Cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez la machine virtuelle de stockage, puis cliquez sur *Paramètres*.
-.. Cliquez sur image:icon_arrow.gif["icône de flèche"] Dans la mosaïque Kerberos, puis cliquez sur *Ajouter*.
+** *Certificat installé* : choisissez un certificat installé précédemment dans la liste déroulante.
+** *Nouveau certificat* : choisissez un nom commun pour le certificat.
+** *Certificat externe signé par une autorité de certification* : suivez les instructions pour coller le contenu de votre certificat et de votre clé privée dans les boîtes.
 
 
+. Cliquez sur *Enregistrer*.
 
+
+--
+.Configurer Kerberos
+--
+.Étapes
+. Cliquez sur *stockage > machines virtuelles de stockage*, sélectionnez la machine virtuelle de stockage, puis cliquez sur *Paramètres*.
+. Cliquez sur image:icon_arrow.gif["icône de flèche"] Dans la mosaïque Kerberos, puis cliquez sur *Ajouter*.
+
+
+--
+====

@@ -2,7 +2,7 @@
 permalink: volumes/determine-space-usage-volume-aggregate-concept.html 
 sidebar: sidebar 
 keywords: determine, space usage, volume, aggregate 
-summary: 'L"activation d"une fonctionnalité dans ONTAP peut consommer de l"espace que vous ne connaissez pas ou plus d"espace que prévu. ONTAP vous aide à déterminer la consommation de l"espace en fournissant trois perspectives pour afficher l"espace : le volume, l"empreinte du volume au sein de l"agrégat et l"agrégat.' 
+summary: 'ONTAP vous aide à déterminer la consommation d"espace en fonction du volume, de l"empreinte du volume au sein de l"agrégat et de l"agrégat.' 
 ---
 = Détermination de l'utilisation de l'espace dans un volume ou un agrégat
 :allow-uri-read: 
@@ -11,7 +11,11 @@ summary: 'L"activation d"une fonctionnalité dans ONTAP peut consommer de l"espa
 
 
 [role="lead"]
-L'activation d'une fonctionnalité dans ONTAP peut consommer plus d'espace que prévu. ONTAP vous aide à déterminer la consommation d'espace en fournissant trois perspectives pour afficher l'espace : le volume, l'empreinte du volume au sein de l'agrégat et l'agrégat.
+Dans certains cas, l'activation d'une fonctionnalité dans ONTAP peut consommer plus d'espace que prévu. ONTAP vous aide à déterminer la consommation d'espace en fournissant trois perspectives pour afficher l'espace : le volume, l'empreinte du volume au sein de l'agrégat et l'agrégat.
+
+
+
+== Afficher l'allocation d'espace
 
 Un volume peut manquer d'espace en raison de sa consommation d'espace ou d'espace insuffisant au sein du volume, de l'agrégat ou d'une combinaison des deux. En voyant une répartition de l'utilisation de l'espace basée sur des fonctionnalités d'un point de vue différent, vous pouvez évaluer les fonctionnalités que vous pourriez vouloir ajuster ou désactiver, ou si vous devez prendre d'autres mesures (telles que l'augmentation de la taille de l'agrégat ou du volume).
 
@@ -36,13 +40,13 @@ Utilisez le `volume show-footprint` pour afficher l'empreinte d'un volume avec l
 
 * Utilisation de l'espace de l'agrégat
 +
-Cette perspective inclut des totaux d'empreintes des volumes de l'agrégat, de l'espace réservé aux copies Snapshot d'agrégat et des autres métadonnées de l'agrégat.
+Cette perspective inclut les totaux des empreintes de volume de tous les volumes contenus dans l'agrégat, l'espace réservé pour les copies Snapshot agrégées et d'autres métadonnées d'agrégat.
 
 +
 WAFL réserve 10 % de l'espace total sur disque pour les métadonnées et performances au niveau de l'agrégat.  L'espace utilisé pour la maintenance des volumes de l'agrégat vient de la réserve WAFL et ne peut pas être modifié.
 
 +
-À partir de la version ONTAP 9.12.1, la réserve WAFL pour les agrégats de plus de 30 To est passée de 10 à 5 % pour les plateformes AFF et FAS500f.  À partir de la version ONTAP 9.14.1, cette réduction s'applique également aux agrégats de toutes les plateformes FAS, ce qui permet d'augmenter de 5 % l'espace utilisable dans les agrégats.
+À partir de ONTAP 9.12.1, la réserve WAFL pour les agrégats de plus de 30 To est passée de 10 à 5 % pour les plateformes AFF et FAS500f.  À partir de la version ONTAP 9.14.1, cette réduction s'applique également aux agrégats de toutes les plateformes FAS, ce qui permet d'augmenter de 5 % l'espace utilisable dans les agrégats.
 
 +
 Utilisez le `storage aggregate show-space` pour afficher l'utilisation de l'espace dans l'agrégat.
@@ -55,3 +59,27 @@ Certaines fonctionnalités, comme la sauvegarde sur bande et la déduplication, 
 * link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Space_Usage["Article de la base de connaissances : utilisation de l'espace"^]
 * link:https://www.netapp.com/blog/free-up-storage-capacity-upgrade-ontap/["Libérez jusqu'à 5 % de capacité en passant à ONTAP 9.12.1"^]
 
+
+
+
+== Métadonnées de volume et rapports sur les mesures des données
+
+À l'origine, plusieurs metrics d'espace de volume ont rapporté la quantité totale de données consommées sous la forme d'une combinaison de deux metrics : les métadonnées et les données utilisateur. À partir de ONTAP 9.15.1, les mesures relatives aux métadonnées et aux données utilisateur sont signalées séparément. Deux nouveaux compteurs de métadonnées ont été introduits pour prendre en charge ce processus :
+
+* total-métadonnées
++
+Ce compteur indique la taille totale des métadonnées à l'intérieur du volume. Elle n'inclut pas les métadonnées du volume résident de l'agrégat. Le reporting séparé permet de déterminer les données logiques allouées par l'utilisateur.
+
+* empreinte-totale-des-métadonnées
++
+Ce compteur correspond à la somme des métadonnées résidentes du volume et des métadonnées du volume résident de l'agrégat. Elle assure l'empreinte totale des métadonnées du volume au sein de l'agrégat. Le reporting séparé permet de déterminer les données physiques allouées par l'utilisateur.
+
+
+
+En outre, plusieurs compteurs existants ont été mis à jour pour supprimer le composant de métadonnées et présenter uniquement les données utilisateur :
+
+* Données utilisateur
+* Empreinte des données de volume
+
+
+Ces modifications fournissent une vue plus précise des données consommées par l'utilisateur. Cela présente plusieurs avantages, notamment la possibilité de prendre des décisions de refacturation plus précises.

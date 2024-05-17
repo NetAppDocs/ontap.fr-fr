@@ -1,0 +1,39 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/strategy-concept.html 
+keywords: snapmirror, snapmirror business continuity, sm-bc, deployment, recommendations 
+summary: En savoir plus sur le déploiement et les meilleures pratiques pour la synchronisation active SnapMirror. 
+---
+= Stratégie de déploiement et bonnes pratiques pour la synchronisation active SnapMirror
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Il est important que votre stratégie de protection des données identifie clairement les workloads qui doivent être protégés pour assurer la continuité de l'activité. L'étape la plus critique de votre stratégie de protection des données est d'avoir une meilleure disposition des données des applications d'entreprise pour pouvoir décider de la manière dont vous distribuez les volumes et protégez la continuité de l'activité. Étant donné que le basculement a lieu au niveau des groupes de cohérence par application, veillez à ajouter les volumes de données nécessaires au groupe de cohérence.
+
+
+
+== Configuration d'un SVM
+
+Le diagramme représente la configuration recommandée pour les machines virtuelles de stockage (SVM) pour la synchronisation active SnapMirror.
+
+image:snapmirror-svm-layout.png["Diagramme de SVM dans un déploiement SnapMirror actif sync"]
+
+* Pour les volumes de données :
++
+** Les charges de travail de lecture aléatoire sont isolées des écritures séquentielles. Par conséquent, selon la taille de la base de données, les données et les fichiers journaux sont généralement placés sur des volumes distincts.
++
+*** Pour les grandes bases de données critiques, le fichier de données unique se trouve sur FlexVol 1 et son fichier journal correspondant sur FlexVol 2.
+*** Pour une meilleure consolidation, les bases de données non stratégiques de petite à moyenne taille sont regroupées de manière à ce que tous les fichiers de données se trouvent sur FlexVol 1 et que les fichiers journaux correspondants se trouvent sur FlexVol 2. Cependant, vous perdrez la granularité au niveau de l'application par le biais de ce regroupement.
+
+
+** Une autre variante est d'avoir tous les fichiers dans le même FlexVol 3, avec les fichiers de données dans LUN2 1 et ses fichiers journaux dans le LUN 2.
+
+
+* Si votre environnement est virtualisé, toutes les machines virtuelles des diverses applications d'entreprise sont partagées dans un datastore. En général, les VM et les binaires d'application sont répliqués de manière asynchrone à l'aide de SnapMirror.
+

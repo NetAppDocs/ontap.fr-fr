@@ -13,7 +13,7 @@ summary: 'Depuis la version ONTAP 9.13.1, vous pouvez modifier la géométrie de
 [role="lead"]
 Depuis la version ONTAP 9.13.1, vous pouvez modifier la géométrie d'un groupe de cohérence. La modification de la géométrie d'un groupe de cohérence vous permet de modifier la configuration des groupes de cohérence enfant ou parent sans interrompre les opérations d'E/S en cours.
 
-La modification de la géométrie d'un groupe de cohérence a un impact sur les copies Snapshot existantes.
+La modification de la géométrie d'un groupe de cohérence a un impact sur les copies Snapshot existantes du groupe de cohérence. Pour plus de détails, reportez-vous à la modification spécifique de la géométrie que vous souhaitez effectuer.
 
 
 NOTE: Vous ne pouvez pas modifier la géométrie d'un groupe de cohérence configuré avec une règle de protection à distance. Vous devez d'abord rompre la relation de protection, modifier la géométrie, puis restaurer la protection à distance.
@@ -24,10 +24,10 @@ NOTE: Vous ne pouvez pas modifier la géométrie d'un groupe de cohérence confi
 
 Depuis la version ONTAP 9.13.1, vous pouvez ajouter un nouveau groupe de cohérence enfant à un groupe de cohérence parent existant.
 
-.Avant de commencer
+.Description de la tâche
 * Un groupe de cohérence parent peut contenir cinq groupes de cohérence enfant au maximum. Voir xref:limits.html[limites des groupes de cohérence] pour les autres limites.
 * Vous ne pouvez pas ajouter un groupe de cohérence enfant à un seul groupe de cohérence. Vous devez d'abord <<promouvoir>> groupe de cohérence, vous pouvez ensuite ajouter un groupe de cohérence enfant.
-* Les copies Snapshot existantes du groupe de cohérence capturé avant l'opération d'extension sont considérées comme partielles. Toute opération de restauration basée sur cette copie Snapshot reflète le groupe de cohérence au moment de la copie Snapshot.
+* Les copies Snapshot existantes du groupe de cohérence capturé avant l'opération d'extension sont considérées comme partielles. Toute opération de restauration basée sur cette copie Snapshot reflète le groupe de cohérence à l'instant précis de la copie Snapshot.
 
 
 .Étapes
@@ -37,6 +37,7 @@ Depuis la version ONTAP 9.13.1, vous pouvez ajouter un nouveau groupe de cohére
 --
 Depuis ONTAP 9.13.1, vous pouvez effectuer cette opération avec System Manager.
 
+.Ajouter un nouveau groupe de cohérence enfant
 . Sélectionnez *stockage > groupes de cohérence*.
 . Sélectionnez le groupe de cohérence parent auquel vous souhaitez ajouter un groupe de cohérence enfant.
 . En regard du nom du groupe de cohérence parent, sélectionnez **plus** puis **Ajouter un nouveau groupe de cohérence enfant**.
@@ -54,6 +55,11 @@ Depuis ONTAP 9.13.1, vous pouvez effectuer cette opération avec System Manager.
 .CLI
 --
 Depuis la version ONTAP 9.14.1, vous pouvez ajouter un groupe de cohérence enfant via l'interface de ligne de commandes ONTAP.
+
+.Avant de commencer
+* Vous devez avoir le niveau de privilège admin pour effectuer cette tâche.
+* Dans ONTAP 9.14.1, vous devez être administrateur de cluster ou SVM pour effectuer cette tâche. Depuis ONTAP 9.15.1, tout utilisateur au niveau de privilège admin peut effectuer cette tâche.
+
 
 .Ajoutez un groupe de cohérence enfant avec les nouveaux volumes
 . Créez le nouveau groupe de cohérence. Indiquez des valeurs pour le nom du groupe de cohérence, le préfixe de volume, le nombre de volumes, la taille du volume, le service de stockage, et nom de la règle d'export :
@@ -77,8 +83,8 @@ Depuis la version ONTAP 9.14.1, vous pouvez ajouter un groupe de cohérence enfa
 
 Depuis la version ONTAP 9.13.1, vous pouvez supprimer un groupe de cohérence enfant de son groupe de cohérence parent et le convertir en groupe de cohérence individuel.
 
-.Avant de commencer
-* Le détachement d'un groupe de cohérence enfant entraîne l'invalidation et l'inaccessibilité des snapshots du groupe de cohérence parent. Les snapshots granulaires de volume restent valides.
+.Description de la tâche
+* Le détachement d'un groupe de cohérence enfant rend les copies Snapshot du groupe de cohérence parent non valides et inaccessibles. Les copies Snapshot granulaires de volume restent valides.
 * Les copies Snapshot existantes d'un groupe de cohérence individuel restent valides.
 * Cette opération échoue si un groupe de cohérence unique existant porte le même nom que le groupe de cohérence enfant que vous souhaitez détacher. Si ce scénario se produit, vous devez renommer le groupe de cohérence lorsque vous le détachez.
 
@@ -90,6 +96,7 @@ Depuis la version ONTAP 9.13.1, vous pouvez supprimer un groupe de cohérence en
 --
 Depuis ONTAP 9.13.1, vous pouvez effectuer cette opération avec System Manager.
 
+.Détacher un groupe de cohérence enfant
 . Sélectionnez *stockage > groupes de cohérence*.
 . Sélectionnez le groupe de cohérence parent contenant l'enfant à détacher.
 . En regard du groupe de cohérence enfant à détacher, sélectionnez **plus** puis **détacher du parent**.
@@ -102,6 +109,12 @@ Depuis ONTAP 9.13.1, vous pouvez effectuer cette opération avec System Manager.
 --
 Depuis la version ONTAP 9.14.1, vous pouvez détacher un groupe de cohérence enfant à l'aide de l'interface de ligne de commandes ONTAP.
 
+.Avant de commencer
+* Vous devez avoir le niveau de privilège admin pour effectuer cette tâche.
+* Dans ONTAP 9.14.1, vous devez être administrateur de cluster ou SVM pour effectuer cette tâche. Depuis ONTAP 9.15.1, tout utilisateur au niveau de privilège admin peut effectuer cette tâche.
+
+
+.Détacher un groupe de cohérence enfant
 . Détachez le groupe de cohérence. Si vous le souhaitez, renommez le groupe de cohérence détaché avec le `-new-name` paramètre.
 +
 `consistency-group detach -vserver _SVM_name_ -consistency-group _child_consistency_group_ -parent-consistency-group _parent_consistency_group_ [-new-name _new_name_]`
@@ -116,10 +129,10 @@ Depuis la version ONTAP 9.14.1, vous pouvez détacher un groupe de cohérence en
 
 À partir de la version ONTAP 9.13.1, vous pouvez convertir un groupe de cohérence existant en groupe de cohérence enfant. Au cours de l'opération de déplacement, vous pouvez déplacer le groupe de cohérence sous un groupe de cohérence parent existant ou créer un nouveau groupe de cohérence parent.
 
-.Avant de commencer
+.Description de la tâche
 * Le groupe de cohérence parent doit avoir au moins quatre enfants. Un groupe de cohérence parent peut contenir cinq groupes de cohérence enfant au maximum. Voir xref:limits.html[limites des groupes de cohérence] pour les autres limites.
-* Les copies snapshot existantes du groupe de cohérence _parent_ capturées avant cette opération seront considérées comme partielles. Toute opération de restauration basée sur l'une de ces copies Snapshot reflète le groupe de cohérence au moment précis de la copie Snapshot.
-* Les snapshots de groupes de cohérence existants d'un seul groupe de cohérence restent valides.
+* Les copies Snapshot existantes du groupe de cohérence _parent_ capturées avant cette opération sont considérées comme partielles. Toute opération de restauration basée sur l'une de ces copies Snapshot reflète le groupe de cohérence au moment précis de la copie Snapshot.
+* Les copies Snapshot de groupe de cohérence existant du groupe de cohérence unique restent valides.
 
 
 .Étapes
@@ -129,6 +142,7 @@ Depuis la version ONTAP 9.14.1, vous pouvez détacher un groupe de cohérence en
 --
 Depuis ONTAP 9.13.1, vous pouvez effectuer cette opération avec System Manager.
 
+.Déplacez un groupe de cohérence unique existant sous un groupe de cohérence parent
 . Sélectionnez *stockage > groupes de cohérence*.
 . Sélectionnez le groupe de cohérence à convertir.
 . Sélectionnez **plus** puis **déplacer sous un autre groupe de cohérence**.
@@ -146,6 +160,11 @@ Depuis ONTAP 9.13.1, vous pouvez effectuer cette opération avec System Manager.
 .CLI
 --
 Depuis la version ONTAP 9.14.1, vous pouvez déplacer un groupe de cohérence unique sous un groupe de cohérence parent à l'aide de l'interface de ligne de commandes ONTAP.
+
+.Avant de commencer
+* Vous devez avoir le niveau de privilège admin pour effectuer cette tâche.
+* Dans ONTAP 9.14.1, vous devez être administrateur de cluster ou SVM pour effectuer cette tâche. Depuis ONTAP 9.15.1, tout utilisateur au niveau de privilège admin peut effectuer cette tâche.
+
 
 .Déplacez un groupe de cohérence sous un nouveau groupe de cohérence parent
 . Créez le groupe de cohérence parent. Le `-consistency-groups` ce paramètre va migrer tous les groupes de cohérence existants vers le nouveau parent.
@@ -169,18 +188,18 @@ Depuis la version ONTAP 9.14.1, vous pouvez déplacer un groupe de cohérence un
 
 Depuis la version ONTAP 9.13.1, vous pouvez promouvoir un groupe de cohérence unique en tant que groupe de cohérence parent. Lorsque vous promouvez le groupe de cohérence unique en parent, vous créez également un nouveau groupe de cohérence enfant qui hérite de tous les volumes du groupe de cohérence unique d'origine.
 
-.Avant de commencer
+.Description de la tâche
 * Pour convertir un groupe de cohérence enfant en groupe de cohérence parent, vous devez d'abord le faire <<detach>> le groupe de cohérence enfant doit ensuite suivre la procédure suivante.
 * Une fois le groupe de cohérence mis en avant, les copies Snapshot existantes du groupe de cohérence restent valides.
 
 
-.Étapes
 [role="tabbed-block"]
 ====
 .System Manager
 --
 Depuis ONTAP 9.13.1, vous pouvez effectuer cette opération avec System Manager.
 
+.Promouvoir un groupe de cohérence enfant
 . Sélectionnez *stockage > groupes de cohérence*.
 . Sélectionnez le groupe de cohérence à promouvoir.
 . Sélectionnez **plus** puis **promouvoir en groupe de cohérence parent**.
@@ -193,6 +212,12 @@ Depuis ONTAP 9.13.1, vous pouvez effectuer cette opération avec System Manager.
 --
 Depuis la version ONTAP 9.14.1, vous pouvez déplacer un groupe de cohérence unique sous un groupe de cohérence parent à l'aide de l'interface de ligne de commandes ONTAP.
 
+.Avant de commencer
+* Vous devez avoir le niveau de privilège admin pour effectuer cette tâche.
+* Dans ONTAP 9.14.1, vous devez être administrateur de cluster ou SVM pour effectuer cette tâche. Depuis ONTAP 9.15.1, tout utilisateur au niveau de privilège admin peut effectuer cette tâche.
+
+
+.Promouvoir un groupe de cohérence enfant
 . Promouvoir le groupe de cohérence. Cette commande entraîne la création d'un groupe de cohérence parent et d'un groupe enfant.
 +
 `consistency-group promote -vserver _SVM_name_ -consistency-group _existing_consistency_group_ -new-name _new_child_consistency_group_`
@@ -207,8 +232,8 @@ Depuis la version ONTAP 9.14.1, vous pouvez déplacer un groupe de cohérence un
 
 Depuis la version ONTAP 9.13.1, vous pouvez rétrograder un groupe de cohérence parent en un seul groupe de cohérence. La rétrogradation du parent aplatit la hiérarchie du groupe de cohérence, supprimant tous les groupes de cohérence enfants associés. Tous les volumes du groupe de cohérence restent dans le nouveau groupe de cohérence unique.
 
-.Avant de commencer
-* Les copies Snapshot existantes du groupe de cohérence parent restent valides après la rétrogradation vers une cohérence unique. Les copies Snapshot existantes de l'un des groupes de cohérence enfant associés de ce parent deviennent non valides, mais les snapshots de volumes individuels continuent d'être accessibles sous forme de copies Snapshot granulaires de volumes.
+.Description de la tâche
+* Les copies Snapshot existantes du groupe de cohérence _parent_ restent valides une fois que vous les avez rétrogradés à une cohérence unique. Les copies Snapshot existantes de l'un des groupes de cohérence _child_ associés de ce parent deviennent non valides lors de la rétrogradation. Les copies Snapshot de volume individuelles au sein du groupe de cohérence enfant restent accessibles sous forme de copies Snapshot granulaires par volume.
 
 
 .Étapes
@@ -218,6 +243,7 @@ Depuis la version ONTAP 9.13.1, vous pouvez rétrograder un groupe de cohérence
 --
 Depuis ONTAP 9.13.1, vous pouvez effectuer cette opération avec System Manager.
 
+.Rétrograder un groupe de cohérence
 . Sélectionnez *stockage > groupes de cohérence*.
 . Sélectionnez le groupe de cohérence parent à rétrograder.
 . Sélectionnez **plus** puis **Rétrograder à un seul groupe de cohérence**.
@@ -229,6 +255,12 @@ Depuis ONTAP 9.13.1, vous pouvez effectuer cette opération avec System Manager.
 --
 Depuis la version ONTAP 9.14.1, vous pouvez rétrograder un groupe de cohérence à l'aide de l'interface de ligne de commandes ONTAP.
 
+.Avant de commencer
+* Vous devez avoir le niveau de privilège admin pour effectuer cette tâche.
+* Dans ONTAP 9.14.1, vous devez être administrateur de cluster ou SVM pour effectuer cette tâche. Depuis ONTAP 9.15.1, tout utilisateur au niveau de privilège admin peut effectuer cette tâche.
+
+
+.Rétrograder un groupe de cohérence
 . Rétrograder le groupe de cohérence. Utilisez l'option `-new-name` paramètre permettant de renommer le groupe de cohérence.
 +
 `consistency-group demote -vserver _SVM_name_ -consistency-group _parent_consistency_group_ [-new-name _new_consistency_group_name_]`

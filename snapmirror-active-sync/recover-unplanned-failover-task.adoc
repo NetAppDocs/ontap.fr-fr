@@ -1,0 +1,83 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/recover-unplanned-failover-task.html 
+keywords: fan-out, snapmirror active sync, unplanned failover 
+summary: 'Une opération automatique de basculement non planifié (AUFO) se produit lorsque le cluster principal est en panne ou isolé.  Dans ce cas, le cluster secondaire est converti au cluster principal et commence à servir les clients.' 
+---
+= Restaurez vos données après des opérations automatiques de basculement non planifié
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Une opération automatique de basculement non planifié (AUFO) se produit lorsque le cluster principal est en panne ou isolé. Le médiateur ONTAP détecte les basculements et exécute un basculement automatique non planifié vers le cluster secondaire. Le cluster secondaire est converti en cluster principal et commence à servir les clients. Cette opération est effectuée uniquement avec l'aide du médiateur ONTAP.
+
+
+NOTE: Après le basculement automatique non planifié, il est important d'analyser à nouveau les chemins d'E/S des LUN hôtes afin d'éviter toute perte de chemins d'E/S.
+
+
+
+== Rétablir la relation de protection après un basculement non planifié
+
+Vous pouvez rétablir la relation de protection à l'aide de System Manager ou de l'interface de ligne de commandes ONTAP.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Étapes
+
+IMPORTANT: De ONTAP 9.8 à 9.14.1, la synchronisation active SnapMirror est appelée SnapMirror Business Continuity (SM-BC).
+
+. Accédez à *protection > relations* et attendez que l'état de la relation affiche "insync".
+. Pour reprendre les opérations sur le cluster source d'origine, cliquez sur image:icon_kabob.gif["icône kabob"] Et sélectionnez *basculement*.
+
+
+--
+.CLI
+--
+Vous pouvez surveiller l'état du basculement automatique non planifié à l'aide du `snapmirror failover show` commande.
+
+Par exemple :
+
+....
+ClusterB::> snapmirror failover show -instance
+Start Time: 9/23/2020 22:03:29
+         Source Path: vs1:/cg/scg3
+    Destination Path: vs3:/cg/dcg3
+     Failover Status: completed
+        Error Reason:
+            End Time: 9/23/2020 22:03:30
+Primary Data Cluster: cluster-2
+Last Progress Update: -
+       Failover Type: unplanned
+  Error Reason codes: -
+....
+Reportez-vous à la link:https://docs.netapp.com/us-en/ontap-ems-9131/smbc-aufo-events.html["Référence EMS"^] pour en savoir plus sur les messages d'événement et sur les actions correctives à mener.
+
+--
+====
+
+
+== Reprise de la protection dans une configuration « Fan-Out » après le basculement
+
+Depuis la version ONTAP 9.15.1, la synchronisation active SnapMirror prend en charge la reconfiguration automatique dans le segment « Fan-Out » après un événement de basculement. Pour plus d'informations, voir link:interoperability-reference.html#fan-out-configurations["configurations « fan-out »"].
+
+Si vous utilisez ONTAP 9.14.1 ou une version antérieure et que vous rencontrez un basculement sur le cluster secondaire dans la relation de synchronisation active SnapMirror, la destination asynchrone SnapMirror devient défectueuse. Vous devez restaurer manuellement la protection en supprimant et en recréant la relation avec le terminal asynchrone SnapMirror.
+
+.Étapes
+. Vérifiez que le basculement s'est terminé correctement :
+`snapmirror failover show`
+. Sur le terminal asynchrone SnapMirror, supprimer le terminal Fan-Out :
+`snapmirror delete -destination-path _destination_path_`
+. Sur le troisième site, créez des relations asynchrones SnapMirror entre le nouveau volume primaire de synchronisation active SnapMirror et le volume de destination asynchrone « Fan-Out » :
+`snapmirror create -source-path _source_path_ -destination-path _destination_path_ -policy MirrorAllSnapshots -schedule _schedule_`
+. Resynchroniser la relation :
+`snapmirror resync -destination-path _destination_path_`
+. Vérifiez l'état et l'état de la relation :
+`snapmirror show`
+

@@ -31,11 +31,36 @@ Si vous exécutez un link:https://docs.netapp.com/us-en/ontap/upgrade/concept_up
 
 * Pour chaque paire haute disponibilité, chaque nœud doit avoir un ou plusieurs ports sur le même broadcast domain.
 +
-Si vous avez 8 nœuds ou plus, la méthode de mise à niveau par lot est utilisée dans la mise à niveau automatique sans interruption.  Dans ONTAP 9.7 et version antérieure, si la méthode de traitement par lots est utilisée, les LIF sont migrées vers le partenaire de haute disponibilité du nœud mis à niveau.  Si les partenaires ne disposent d'aucun port dans le même broadcast domain, la migration de LIF échoue.
+Si votre cluster ONTAP comporte 8 nœuds ou plus, la méthode de mise à niveau par lot est utilisée dans la mise à niveau automatique sans interruption pour forcer de manière préventive la migration des LIF de données avant le basculement de SFO.  Le mode de migration des LIF lors d'une mise à niveau par lot varie en fonction de votre version d'ONTAP.
 
 +
-Dans ONTAP 9.8 et version ultérieure, si la méthode de traitement par lots est utilisée, les LIF sont migrées vers l'autre groupe de batchs.
+[cols="2"]
+|===
+| Si vous utilisez ONTAP... | Migration des LIF... 
 
+
+ a| 
+** 9.15.1 ou ultérieure
+** 9.14.1P5
+** 9.13.1P10
+** 9.12.1P13
+** 9.11.1P16, P17
+** 9.10.1P19
+
+| À un nœud de l'autre groupe de lots.
+
+Si la migration vers l'autre groupe de batchs échoue, les LIFs sont migrées vers le partenaire HA du nœud dans le même groupe de batchs. 
+
+
+| 9.8 à 9.14.1 | À un nœud de l'autre groupe de lots.
+
+Si le broadcast domain réseau n'autorise pas la migration de LIF vers l'autre groupe de batchs, la migration de LIF échoue et s'interrompt. 
+
+
+| 9.7 ou antérieure | Vers le partenaire de haute disponibilité du nœud en cours de mise à niveau.
+
+Si le partenaire ne dispose d'aucun port dans le même broadcast domain, la migration de LIF échoue et l'ANDU s'interrompt. 
+|===
 * Si vous mettez à niveau ONTAP dans une configuration MetroCluster FC, le cluster doit être activé en vue du basculement automatique non planifié.
 * Si vous ne prévoyez pas de suivre la progression du processus de mise à niveau, vous devriez link:../error-messages/configure-ems-notifications-sm-task.html["Demandez des notifications EMS d'erreurs susceptibles de nécessiter une intervention manuelle"].
 * Si vous disposez d'un cluster à un seul nœud, suivez les instructions de la link:../system-admin/single-node-clusters.html["mise à niveau automatisée et disruptive"] processus.

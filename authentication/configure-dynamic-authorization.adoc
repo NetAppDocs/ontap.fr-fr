@@ -1,0 +1,326 @@
+---
+permalink: authentication/configure-dynamic-authorization.html 
+sidebar: sidebar 
+keywords: dynamic, authorization, framework, security, login, ssh 
+summary: 'Configurez le cadre d"autorisation dynamique pour augmenter la sécurité des connexions SSH et restreindre l"exécution de certaines commandes dans des circonstances suspectes.' 
+---
+= Personnaliser l'autorisation dynamique
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+En tant qu'administrateur, vous pouvez personnaliser différents aspects de votre configuration d'autorisation dynamique afin d'améliorer la sécurité des connexions SSH d'administrateur distant avec votre cluster ONTAP.
+
+Vous pouvez personnaliser les paramètres d'autorisation dynamiques suivants en fonction de vos besoins en matière de sécurité :
+
+* <<Configurer les paramètres globaux d'autorisation dynamique>>
+* <<Configurer les composants de score de confiance d'autorisation dynamique>>
+* <<Configurez un fournisseur de score de confiance personnalisé>>
+* <<Configurer les commandes restreintes>>
+* <<Configurer des groupes d'autorisation dynamiques>>
+
+
+
+
+== Configurer les paramètres globaux d'autorisation dynamique
+
+Vous pouvez configurer des paramètres globaux pour l'autorisation dynamique, y compris la VM de stockage à sécuriser, l'intervalle de suppression pour les défis d'authentification et les paramètres de score de confiance.
+
+Pour plus d'informations sur les paramètres et les valeurs par défaut du `security dynamic-authorization modify` Reportez-vous aux pages de manuel ONTAP.
+
+.Étapes
+. Configurer les paramètres globaux pour l'autorisation dynamique. Si vous n'utilisez pas le `-vserver` paramètre, la commande est exécutée au niveau du cluster. Mettez à jour les valeurs entre parenthèses <> pour les adapter à votre environnement :
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization modify \
+-lower-challenge-boundary <percent> \
+-upper-challenge-boundary <percent> \
+-suppression-interval <interval> \
+-vserver <storage_VM_name>
+----
+. Afficher la configuration résultante :
++
+[source, console]
+----
+security dynamic-authorization show
+----
+
+
+
+
+== Configurer les commandes restreintes
+
+Lorsque vous activez l'autorisation dynamique, la fonction inclut un ensemble par défaut de commandes restreintes. Vous pouvez modifier cette liste en fonction de vos besoins. Reportez-vous à la link:../multi-admin-verify/index.html["Documentation de vérification multiadministrateur"] pour plus d'informations sur la liste par défaut des commandes restreintes.
+
+
+
+=== Ajouter une commande restreinte
+
+Vous pouvez ajouter une commande à la liste des commandes dont l'autorisation dynamique est limitée.
+
+Pour plus d'informations sur les paramètres et les valeurs par défaut du `security dynamic-authorization rule create` Reportez-vous aux pages de manuel ONTAP.
+
+.Étapes
+. Ajoutez la commande. Mettez à jour les valeurs entre parenthèses <> pour les adapter à votre environnement. Si vous n'utilisez pas le `-vserver` paramètre, la commande est exécutée au niveau du cluster. Les paramètres en gras sont obligatoires :
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization rule create \
+-query <query> \
+*-operation <text>* \
+-index <integer> \
+-vserver <storage_VM_name>
+----
+. Afficher la liste résultante des commandes restreintes :
++
+[source, console]
+----
+security dynamic-authorization rule show
+----
+
+
+
+
+=== Supprime une commande restreinte
+
+Vous pouvez supprimer une commande de la liste des commandes dont l'autorisation dynamique est limitée.
+
+Pour plus d'informations sur les paramètres et les valeurs par défaut du `security dynamic-authorization rule delete` Reportez-vous aux pages de manuel ONTAP.
+
+.Étapes
+. Supprimez la commande. Mettez à jour les valeurs entre parenthèses <> pour les adapter à votre environnement. Si vous n'utilisez pas le `-vserver` paramètre, la commande est exécutée au niveau du cluster. Les paramètres en gras sont obligatoires :
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization rule delete \
+*-operation <text>* \
+-vserver <storage_VM_name>
+----
+. Afficher la liste résultante des commandes restreintes :
++
+[source, console]
+----
+security dynamic-authorization rule show
+----
+
+
+
+
+== Configurer des groupes d'autorisation dynamiques
+
+Par défaut, l'autorisation dynamique s'applique à tous les utilisateurs et groupes dès que vous l'activez. Toutefois, vous pouvez créer des groupes à l'aide de `security dynamic-authorization group create` de sorte que l'autorisation dynamique ne s'applique qu'à ces utilisateurs spécifiques.
+
+
+
+=== Ajouter un groupe d'autorisation dynamique
+
+Vous pouvez ajouter un groupe d'autorisation dynamique.
+
+Pour plus d'informations sur les paramètres et les valeurs par défaut du `security dynamic-authorization group create` Reportez-vous aux pages de manuel ONTAP.
+
+.Étapes
+. Créez le groupe. Mettez à jour les valeurs entre parenthèses <> pour les adapter à votre environnement. Si vous n'utilisez pas le `-vserver` paramètre, la commande est exécutée au niveau du cluster. Les paramètres en gras sont obligatoires :
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization group create \
+*-group-name <group-name>* \
+-vserver <storage_VM_name> \
+-exclude-users <user1,user2,user3...>
+
+----
+. Afficher les groupes d'autorisation dynamiques résultants :
++
+[source, console]
+----
+security dynamic-authorization group show
+----
+
+
+
+
+=== Supprimer un groupe d'autorisation dynamique
+
+Vous pouvez supprimer un groupe d'autorisation dynamique.
+
+.Étapes
+. Supprimez le groupe. Mettez à jour les valeurs entre parenthèses <> pour les adapter à votre environnement. Si vous n'utilisez pas le `-vserver` paramètre, la commande est exécutée au niveau du cluster. Les paramètres en gras sont obligatoires :
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization group delete \
+*-group-name <group-name>* \
+-vserver <storage_VM_name>
+----
+. Afficher les groupes d'autorisation dynamiques résultants :
++
+[source, console]
+----
+security dynamic-authorization group show
+----
+
+
+
+
+== Configurer les composants de score de confiance d'autorisation dynamique
+
+Vous pouvez configurer la pondération maximale du score pour modifier la priorité des critères de notation ou pour supprimer certains critères de l'évaluation du risque.
+
+
+NOTE: Dans le cadre de la meilleure pratique, vous devez laisser les valeurs de pondération par défaut en place et les ajuster uniquement si nécessaire.
+
+Pour plus d'informations sur les paramètres et les valeurs par défaut du `security dynamic-authorization trust-score-component modify` Reportez-vous aux pages de manuel ONTAP.
+
+Vous pouvez modifier les composants suivants, ainsi que leur score par défaut et leur pondération en pourcentage :
+
+[cols="4*"]
+|===
+| Critères | Nom du composant | Pondération de score brut par défaut | Poids en pourcentage par défaut 
+
+
+| Périphérique de confiance | `trusted-device` | 20 | 50 
+
+
+| Historique d'authentification de connexion utilisateur | `authentication-history` | 20 | 50 
+|===
+.Étapes
+. Modifier les composants du score de confiance. Mettez à jour les valeurs entre parenthèses <> pour les adapter à votre environnement. Si vous n'utilisez pas le `-vserver` paramètre, la commande est exécutée au niveau du cluster. Les paramètres en gras sont obligatoires :
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization trust-score-component modify \
+*-component <component-name>* \
+*-weight <integer>* \
+-vserver <storage_VM_name>
+----
+. Afficher les paramètres des composants du score de confiance obtenu :
++
+[source, console]
+----
+security dynamic-authorization trust-score-component show
+----
+
+
+
+
+=== Réinitialiser le score de confiance d'un utilisateur
+
+Si l'accès d'un utilisateur est refusé en raison de stratégies système et qu'il est capable de prouver son identité, l'administrateur peut réinitialiser le score de confiance de l'utilisateur.
+
+Pour plus d'informations sur les paramètres et les valeurs par défaut du `security dynamic-authorization user-trust-score reset` Reportez-vous aux pages de manuel ONTAP.
+
+.Étapes
+. Ajoutez la commande. Reportez-vous à la section <<Configurer les composants de score de confiance d'autorisation dynamique>> pour obtenir une liste des composants de score de confiance que vous pouvez réinitialiser. Mettez à jour les valeurs entre parenthèses <> pour les adapter à votre environnement. Si vous n'utilisez pas le `-vserver` paramètre, la commande est exécutée au niveau du cluster. Les paramètres en gras sont obligatoires :
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization user-trust-score reset \
+*-username <username>* \
+*-component <component-name>* \
+-vserver <storage_VM_name>
+----
+
+
+
+
+=== Afficher votre score de confiance
+
+Un utilisateur peut afficher son propre score de confiance pour une session de connexion.
+
+.Étapes
+. Afficher votre score de confiance :
++
+[source, console]
+----
+security login whoami
+----
++
+Vous devez voir les résultats similaires à ce qui suit :
+
++
+[listing]
+----
+User: admin
+Role: admin
+Trust Score: 50
+----
+
+
+
+
+== Configurez un fournisseur de score de confiance personnalisé
+
+Si vous recevez déjà des méthodes de notation d'un fournisseur de score de confiance externe, vous pouvez ajouter le fournisseur personnalisé à la configuration d'autorisation dynamique.
+
+.Avant de commencer
+* Le fournisseur de score de confiance personnalisé doit renvoyer une réponse JSON. Les conditions de syntaxe suivantes doivent être remplies :
++
+** Le champ qui renvoie le score de confiance doit être un champ scalaire et non un élément d'un tableau.
+** Le champ qui renvoie le score de confiance peut être un champ imbriqué, tel que `trust_score.value`.
+** Il doit y avoir un champ dans la réponse JSON qui renvoie un score de confiance numérique. Si ce n'est pas disponible en natif, vous pouvez écrire un script wrapper pour renvoyer cette valeur.
+
+
+* La valeur fournie peut être un score de confiance ou un score de risque. La différence est que le score de confiance est dans l'ordre croissant avec un score plus élevé indiquant un niveau de confiance plus élevé, alors que le score de risque est dans l'ordre décroissant. Par exemple, un score de confiance de 90 pour une plage de scores de 0 à 100 indique que le score est très digne de confiance et qu'il est susceptible d'aboutir à un « Autoriser » sans défi supplémentaire, bien qu'un score de risque de 90 pour une plage de scores de 0 à 100 indique un risque élevé et risque de donner lieu à un « refus » sans défi supplémentaire.
+* Le fournisseur de score de confiance personnalisé doit être accessible via l'API REST de ONTAP.
+* Le fournisseur de score de confiance personnalisé doit être configurable à l'aide de l'un des paramètres pris en charge. Les fournisseurs de score de confiance personnalisés qui nécessitent une configuration ne figurant pas dans la liste des paramètres pris en charge ne sont pas pris en charge.
+
+
+Pour plus d'informations sur les paramètres et les valeurs par défaut du `security dynamic-authorization trust-score-component create` Reportez-vous aux pages de manuel ONTAP.
+
+.Étapes
+. Ajoutez un fournisseur de score de confiance personnalisé. Mettez à jour les valeurs entre parenthèses <> pour les adapter à votre environnement. Si vous n'utilisez pas le `-vserver` paramètre, la commande est exécutée au niveau du cluster. Les paramètres en gras sont obligatoires :
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization trust-score-component create \
+-component <text> \
+*-provider-uri <text>* \
+-score-field <text> \
+-min-score <integer> \
+*-max-score <integer>* \
+*-weight <integer>* \
+-secret-access-key "<key_text>" \
+-provider-http-headers <list<header,header,header>> \
+-vserver <storage_VM_name>
+----
+. Afficher les paramètres du fournisseur de score de confiance :
++
+[source, console]
+----
+security dynamic-authorization trust-score-component show
+----
+
+
+
+
+=== Configurer les balises de fournisseur de score de confiance personnalisé
+
+Vous pouvez communiquer avec des fournisseurs externes de score de confiance à l'aide de balises. Cela vous permet d'envoyer des informations dans l'URL au fournisseur de score de confiance sans exposer d'informations sensibles.
+
+Pour plus d'informations sur les paramètres et les valeurs par défaut du `security dynamic-authorization trust-score-component create` Reportez-vous aux pages de manuel ONTAP.
+
+.Étapes
+. Activer les balises de fournisseur de score de confiance. Mettez à jour les valeurs entre parenthèses <> pour les adapter à votre environnement. Si vous n'utilisez pas le `-vserver` paramètre, la commande est exécutée au niveau du cluster. Les paramètres en gras sont obligatoires :
++
+[source, subs="specialcharacters,quotes"]
+----
+security dynamic-authorization trust-score-component create \
+*-component <component_name>* \
+-weight <initial_score_weight> \
+-max-score <max_score_for_provider> \
+*-provider-uri <provider_URI>* \
+-score-field <REST_API_score_field> \
+*-secret-access-key "<key_text>"*
+----
++
+Par exemple :
+
++
+[source, console]
+----
+security dynamic-authorization trust-score-component create -component comp1 -weight 20 -max-score 100 -provider-uri https://<url>/trust-scores/users/<user>/<ip>/component1.html?api-key=<access-key> -score-field score -access-key "MIIBBjCBrAIBArqyTHFvYdWiOpLkLKHGjUYUNSwfzX"
+----
+

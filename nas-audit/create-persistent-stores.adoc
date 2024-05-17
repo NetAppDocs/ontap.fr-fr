@@ -1,34 +1,53 @@
 ---
 permalink: nas-audit/create-persistent-stores.html 
 sidebar: sidebar 
-keywords: create, persistent store, fpolicy 
-summary: 'À partir de ONTAP 9.14.1, FPolicy permet de configurer un magasin persistant pour capturer les événements d"accès aux fichiers pour des règles asynchrones non obligatoires dans la SVM. Les magasins persistants peuvent aider à découpler le traitement des E/S client du traitement des notifications FPolicy afin de réduire la latence du client. Les configurations obligatoires synchrones et asynchrones ne sont pas prises en charge.' 
+keywords: create, persistent store, fpolicy, asynchronous, non, mandatory 
+summary: 'À partir de ONTAP 9.14.1, FPolicy permet de configurer un magasin persistant pour capturer les événements d"accès aux fichiers pour des règles asynchrones non obligatoires.' 
 ---
-= Créez des magasins persistants
+= Créez des magasins persistants FPolicy
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-À partir de ONTAP 9.14.1, FPolicy vous permet de configurer un link:persistent-stores.html["Magasins persistants"] Pour capturer les événements d'accès aux fichiers pour les politiques asynchrones non obligatoires dans la SVM. Les magasins persistants peuvent aider à découpler le traitement des E/S client du traitement des notifications FPolicy afin de réduire la latence du client. Les configurations obligatoires synchrones (obligatoires ou non) et asynchrones ne sont pas prises en charge.
+Les magasins persistants peuvent aider à découpler le traitement des E/S client du traitement des notifications FPolicy afin de réduire la latence du client. À partir de ONTAP 9.14.1, FPolicy vous permet de configurer votre système link:persistent-stores.html["magasins persistants"] Pour capturer les événements d'accès aux fichiers pour les politiques asynchrones non obligatoires dans la SVM. Les configurations obligatoires synchrones (obligatoires ou non) et asynchrones ne sont pas prises en charge.
 
-.Et des meilleures pratiques
-* Avant d'utiliser la fonction de stockage persistant, assurez-vous que vos applications partenaires prennent en charge cette configuration.
-* Le volume de stockage persistant est configuré par SVM. Pour chaque SVM activé FPolicy, vous avez besoin d'un volume de stockage persistant.
-* Le nom du volume de stockage persistant et le chemin de jonction spécifiés au moment de la création du volume doivent correspondre.
-* Créez le volume de stockage persistant sur le nœud avec les LIF qui prévoient que le trafic maximal sera surveillé par Fpolicy.
-* Définissez la règle de snapshot sur `none` pour ce volume au lieu de `default`. Cela permet de s'assurer qu'il n'y a pas de restauration accidentelle de l'instantané, ce qui entraîne la perte des événements actuels et d'empêcher le traitement des événements en double.
-* Rendre le volume de stockage persistant inaccessible pour l'accès au protocole utilisateur externe (CIFS/NFS) afin d'éviter toute corruption accidentelle ou suppression des enregistrements d'événements persistants. Pour ce faire, une fois FPolicy activé, démontez le volume dans ONTAP pour supprimer le chemin de jonction, ce qui le rend inaccessible pour l'accès au protocole utilisateur.
+À partir de ONTAP 9.15.1, la configuration du stockage persistant FPolicy est simplifiée. Le `persistent-store create` Automatise la création de volume pour le SVM et configure le volume pour le magasin persistant.
+
+Selon la version ONTAP, il existe deux façons de créer un magasin persistant :
+
+* ONTAP 9.15.1 ou version ultérieure : lorsque vous créez le magasin persistant, ONTAP crée et configure automatiquement son volume en même temps. Cela simplifie la configuration du magasin persistant FPolicy et met en œuvre toutes les bonnes pratiques.
+* ONTAP 9.14.1 : créez et configurez manuellement un volume, puis créez un magasin persistant pour le volume qui vient d'être créé.
+
+
+Il n'est possible de configurer qu'un seul magasin persistant sur chaque SVM. Ce magasin persistant unique doit être utilisé pour toutes les configurations FPolicy de cette SVM, même si les règles proviennent de différents partenaires.
+
+
+
+== Création d'un magasin persistant (ONTAP 9.15.1 ou version ultérieure)
+
+À partir de ONTAP 9.15.1, utilisez le `fpolicy persistent-store create` Commande permettant de créer le stockage persistant FPolicy avec création et configuration de volumes en ligne. ONTAP bloque automatiquement le volume pour l'accès aux protocoles utilisateur externes (CIFS/NFS).
+
+.Avant de commencer
+* La SVM sur laquelle vous souhaitez créer le magasin persistant doit avoir au moins un agrégat.
+* Vous devez avoir accès aux agrégats disponibles pour la SVM et disposer des autorisations suffisantes pour créer des volumes.
 
 
 .Étapes
-. Créer sur le SVM un volume vide pouvant être provisionné pour le magasin persistant :
+. Créez le magasin persistant, qui crée et configure automatiquement le volume :
 +
-`volume create -vserver <SVM Name> -volume <volume> -state <online> -junction-path <path> -policy <default> -unix-permissions <777> -size <value> -aggregate <aggregate name> -snapshot-policy <none>`
+`vserver fpolicy persistent-store create -vserver <vserver> -persistent-store <name> -volume <volume_name> -size <size> -autosize-mode <off|grow|grow_shrink>`
 
 +
-** La taille du volume de stockage persistant dépend de la durée pendant laquelle vous souhaitez conserver les événements qui ne sont pas livrés au serveur externe (application partenaire).
+** Le `vserver` Paramètre est le nom du SVM.
+** Le `persistent-store` paramètre est le nom du magasin persistant.
+** Le `volume` paramètre est le nom du volume du magasin persistant.
++
+
+NOTE: Si vous souhaitez utiliser un volume existant vide, utilisez le `volume show` pour la rechercher et la spécifier dans le paramètre volume.
+
+** Le `size` le paramètre est basé sur la durée pendant laquelle vous souhaitez conserver les événements qui ne sont pas transmis au serveur externe (application partenaire).
 +
 Par exemple, si vous souhaitez que 30 minutes d'événements se poursuivent dans un cluster avec une capacité de 30 000 notifications par seconde :
 
@@ -38,7 +57,57 @@ Taille du volume requis = 30000 x 30 x 60 x 0,6 Ko (taille moyenne des enregistr
 +
 Pour connaître le taux de notification approximatif, vous pouvez accéder à votre application partenaire FPolicy ou utiliser le compteur FPolicy `requests_dispatched_rate`.
 
-** Un utilisateur administrateur disposant de privilèges RBAC suffisants (pour créer un volume) créera un volume (à l'aide de la commande cli du volume ou de l'API REST) de la taille souhaitée et fournira le nom de ce volume en tant que `-volume` Dans le magasin persistant, créez la commande CLI ou l'API REST.
++
+
+NOTE: Si vous utilisez un volume existant, le paramètre size est facultatif. Si vous indiquez une valeur pour le paramètre size, le volume sera modifié avec la taille que vous spécifiez.
+
+** Le `autosize-mode` paramètre spécifie le mode de dimensionnement automatique du volume. Les modes de dimensionnement automatique pris en charge sont les suivants :
++
+*** Désactivé : la taille du volume n'augmente pas ou ne diminue pas en fonction de la quantité d'espace utilisé.
+*** Grow : le volume augmente automatiquement lorsque l'espace utilisé dans le volume dépasse le seuil Grow.
+*** Grow_Grow - la taille du volume augmente ou diminue en fonction de la quantité d'espace utilisé.
+
+
+
+
+. Créez la règle FPolicy et ajoutez le nom du stockage persistant à cette règle. Pour plus d'informations, voir link:create-fpolicy-policy-task.html["Créez la règle FPolicy"].
+
+
+
+
+== Création d'un magasin persistant (ONTAP 9.14.1)
+
+Vous pouvez créer un volume, puis créer un magasin persistant pour utiliser ce volume. Vous pouvez ensuite bloquer le nouveau volume créé à partir de l'accès au protocole utilisateur externe (CIFS/NFS).
+
+.Étapes
+. Créer sur le SVM un volume vide pouvant être provisionné pour le magasin persistant :
++
+`volume create -vserver <SVM Name> -volume <volume> -state <online> -policy <default> -unix-permissions <777> -size <value> -aggregate <aggregate name> -snapshot-policy <none>`
+
++
+Un utilisateur administrateur disposant de privilèges RBAC suffisants (pour créer un volume) crée un volume (à l'aide de la commande cli du volume ou de l'API REST) de la taille souhaitée et fournit le nom de ce volume en tant que `-volume` Dans le magasin persistant, créez la commande CLI ou l'API REST.
+
++
+** Le `vserver` Paramètre est le nom du SVM.
+** Le `volume` paramètre est le nom du volume du magasin persistant.
+** Le `state` le paramètre doit être défini sur en ligne afin que le volume soit disponible.
+** Le `policy` Le paramètre est défini sur la stratégie de service FPolicy, si vous en avez déjà un configuré. Si ce n'est pas le cas, vous pouvez utiliser le `volume modify` plus tard, pour ajouter la règle.
+** Le `unix-permissions` le paramètre est facultatif.
+** Le `size` le paramètre est basé sur la durée pendant laquelle vous souhaitez conserver les événements qui ne sont pas transmis au serveur externe (application partenaire).
++
+Par exemple, si vous souhaitez que 30 minutes d'événements se poursuivent dans un cluster avec une capacité de 30 000 notifications par seconde :
+
++
+Taille du volume requis = 30000 x 30 x 60 x 0,6 Ko (taille moyenne des enregistrements de notification) = 32400000 Ko = ~32 Go
+
++
+Pour connaître le taux de notification approximatif, vous pouvez accéder à votre application partenaire FPolicy ou utiliser le compteur FPolicy `requests_dispatched_rate`.
+
+** Le paramètre aggregate est nécessaire pour les volumes FlexVol, sinon il n'est pas requis.
+** Le `snapshot-policy` le paramètre doit être défini sur aucun. Cela permet de s'assurer qu'il n'y a pas de restauration accidentelle de l'instantané, ce qui entraîne la perte des événements actuels et empêche le traitement des événements en double.
++
+Si vous souhaitez utiliser un volume existant vide, utilisez le `volume show` pour le trouver et le `volume modify` commande permettant d'apporter les modifications nécessaires. Assurez-vous que la stratégie, la taille et `snapshot-policy` les paramètres sont définis correctement pour le magasin persistant.
+
 
 
 . Créez le magasin persistant :
@@ -46,10 +115,10 @@ Pour connaître le taux de notification approximatif, vous pouvez accéder à vo
 `vserver fpolicy persistent store create -vserver <SVM> -persistent-store <PS_name> -volume <volume>`
 
 +
-** Stockage persistant : nom du magasin persistant
-** Volume : volume du magasin persistant
+** Le `vserver` Paramètre est le nom du SVM.
+** Le `persistent-store` paramètre est le nom du magasin persistant.
+** Le `volume` paramètre est le nom du volume du magasin persistant.
 
 
-. Une fois le magasin persistant créé, vous pouvez créer la règle FPolicy et ajouter le nom du magasin persistant à cette règle.
-Pour plus d'informations, voir link:https://docs.netapp.com/us-en/ontap/nas-audit/create-fpolicy-policy-task.html["Créez la règle FPolicy"].
+. Créez la règle FPolicy et ajoutez le nom du stockage persistant à cette règle. Pour plus d'informations, voir link:create-fpolicy-policy-task.html["Créez la règle FPolicy"].
 

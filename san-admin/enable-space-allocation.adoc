@@ -2,7 +2,7 @@
 permalink: san-admin/enable-space-allocation.html 
 sidebar: sidebar 
 keywords: enable, space allocation, space reclamation, unmap 
-summary: 'Si vous définissez l"option d"allocation d"espace sur activé, ONTAP notifie l"hôte lorsque l"espace du volume est insuffisant et la LUN du volume ne peut pas accepter les écritures. Cette option permet également à ONTAP de récupérer automatiquement de l"espace lorsque votre hôte supprime des données.' 
+summary: 'Activez l"allocation d"espace pour permettre à l"hôte et au système de stockage de coopérer sur la gestion de l"espace.' 
 ---
 = Activez l'allocation d'espace pour SAN
 :allow-uri-read: 
@@ -11,12 +11,18 @@ summary: 'Si vous définissez l"option d"allocation d"espace sur activé, ONTAP 
 
 
 [role="lead"]
-Si votre hôte FC ou iSCSI prend en charge le provisionnement fin SCSI, vous pouvez activer l'allocation d'espace.  Lorsque l'allocation d'espace est activée et qu'un volume est à court d'espace, la LUN du volume reste en ligne et est définie en mode lecture seule.  L'hôte est alors averti que la LUN ne peut plus accepter les écritures.  Si l'allocation d'espace n'est pas prise en charge sur votre hôte ou si elle n'est pas activée, lorsqu'un volume est à court d'espace et qu'il ne peut pas croître automatiquement, ONTAP met la LUN hors ligne.
+Activez l'allocation d'espace pour permettre à vos hôtes et systèmes de stockage de coopérer sur la gestion de l'espace LUN. Activation du `space-allocation` le réglage permet les avantages suivants :
 
-De même, lorsque l'allocation d'espace est activée, la gestion de l'espace côté hôte identifie les blocs de données qui ont été supprimés sur le système de fichiers hôte et en émet automatiquement un ou plusieurs `SCSI UNMAP` Commandes pour libérer les blocs correspondants sur le système de stockage et permettre à ONTAP de récupérer de l'espace.
+* *ONTAP peut communiquer à un hôte qu'aucun espace libre n'est disponible pour le service d'une écriture*: Cette communication est un moyen plus gracieux pour les hôtes de gérer des situations hors de l'espace. La LUN reste en ligne, mais ne peut pas traiter d'E/S d'écriture tant que l'espace n'est pas disponible. Les E/S de lecture peuvent toujours être effectuées. L'effet exact sur un système d'exploitation hôte dépend de la configuration de l'hôte. Dans certains cas, le système d'exploitation tente d'écrire E/S jusqu'à ce qu'il réussisse. Dans d'autres cas, le système de fichiers pourrait être mis hors ligne.
++
+
+NOTE: Si le `space-allocation` Le paramètre n'est pas activé, une LUN passe à l'état `space-error` Lorsqu'il atteint un seuil d'espace faible et que toutes les E/S échouent. La LUN doit être redéfinie sur `online` après la résolution du problème d'espace. Il peut également être nécessaire de renumériser les périphériques LUN sur l'hôte pour restaurer les chemins et les périphériques à un état opérationnel.
+
+* *Un hôte peut exécuter `SCSI UNMAP` (parfois appelé `TRIM`) Opérations*: Ces opérations permettent à un hôte d'identifier des blocs de données sur une LUN qui ne sont plus nécessaires parce qu'ils ne contiennent plus de données valides. L'identification se produit normalement après la suppression du fichier. Le système de stockage peut ensuite désallouer ces blocs de données afin que l'espace puisse être consommé ailleurs. Cette désallocation améliore considérablement l'efficacité globale du stockage, en particulier avec les systèmes de fichiers dont le volume de données est élevé.
+
 
 .Avant de commencer
-Pour activer l'allocation d'espace, le provisionnement fin SCSI doit être pris en charge par votre hôte. Le provisionnement fin SCSI utilise le provisionnement de blocs logiques tel que défini dans la norme SCSI SBC-3. Seuls les hôtes prenant en charge cette norme peuvent utiliser le provisionnement fin SCSI dans ONTAP.
+L'activation de l'allocation d'espace nécessite une configuration hôte capable de gérer correctement les erreurs d'allocation d'espace lorsqu'une écriture ne peut pas être terminée. Valorisation `SCSI UNMAP` Nécessite une configuration pouvant utiliser le provisionnement de blocs logiques tel que défini dans la norme SCSI SBC-3.
 
 Les hôtes suivants prennent actuellement en charge le provisionnement fin SCSI lorsque vous activez l'allocation d'espace :
 
@@ -37,32 +43,18 @@ L'allocation d'espace n'est pas prise en charge sur les hôtes NVMe.
 
 NOTE: Lorsque vous mettez à niveau votre cluster vers ONTAP 9.15.1, le paramètre d'allocation d'espace pour toutes les LUN créées avant la mise à niveau logicielle reste le même après la mise à niveau, quel que soit le type d'hôte.  Par exemple, si une LUN a été créée dans ONTAP 9.13.1 pour un hôte VMware dont l'allocation d'espace est désactivée, l'allocation d'espace sur cette LUN reste désactivée après la mise à niveau vers ONTAP 9.15.1.
 
-Vous devez mettre la LUN hors ligne pour activer l'allocation d'espace. Vous devez ensuite effectuer une découverte sur l'hôte avant que l'hôte ne reconnaisse que l'allocation d'espace a été activée.
-
 .Étapes
-. Mettre la LUN hors ligne :
-+
-[source, cli]
-----
-lun modify -vserver vserver_name -volume volume_name -lun lun_name -state offline
-----
 . Activer l'allocation d'espace :
 +
-[source, cli]
-----
-lun modify -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -space-allocation enabled
-----
+`lun modify -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -space-allocation enabled`
+
 . Vérifiez que l'allocation d'espace est activée :
 +
-[source, cli]
-----
-lun show -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -fields space-allocation
-----
-. Mettre la LUN en ligne :
+`lun show -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -fields space-allocation`
+
+. Vérifiez que l'allocation d'espace est activée sur le système d'exploitation hôte.
 +
-[source, cli]
-----
-lun modify -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -state online
-----
-. Sur l'hôte, relancez l'analyse de tous les disques pour vous assurer que la modification apportée à l' `-space-allocation` l'option est correctement découverte.
+
+NOTE: Certaines configurations hôtes, notamment ESX, peuvent reconnaître automatiquement la modification des paramètres et ne nécessitent pas l'intervention de l'utilisateur. D'autres configurations peuvent nécessiter une nouvelle analyse du périphérique. Certains systèmes de fichiers et gestionnaires de volumes peuvent nécessiter des paramètres spécifiques supplémentaires pour activer la récupération d'espace à l'aide de `SCSI UNMAP`. Le montage des systèmes de fichiers ou le redémarrage complet du système d'exploitation peuvent être nécessaires. Consultez la documentation de votre système d'exploitation spécifique pour obtenir de l'aide.
+
 

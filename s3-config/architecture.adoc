@@ -2,7 +2,7 @@
 permalink: s3-config/architecture.html 
 sidebar: sidebar 
 keywords: s3 architecture, ontap 9 
-summary: 'Dans ONTAP, l"architecture sous-jacente d"un compartiment est un volume FlexGroup. Il s"agit d"un namespace unique composé de plusieurs volumes membres constitutifs, mais il est géré comme un seul volume.' 
+summary: 'Dans ONTAP, l"architecture sous-jacente d"un compartiment est un volume FlexGroup, qui est un namespace unique composé de plusieurs volumes de membres constitutifs, mais qui est géré comme un seul volume.' 
 ---
 = Architecture
 :allow-uri-read: 
@@ -11,17 +11,53 @@ summary: 'Dans ONTAP, l"architecture sous-jacente d"un compartiment est un volum
 
 
 [role="lead"]
-Dans ONTAP, l'architecture sous-jacente d'un compartiment est un volume FlexGroup. Il s'agit d'un namespace unique composé de plusieurs volumes de membres constitutifs, mais géré comme un seul volume.
+Dans ONTAP, l'architecture sous-jacente d'un compartiment est un link:https://docs.netapp.com/us-en/ontap/flexgroup/definition-concept.html["Volume FlexGroup"]--un namespace unique composé de plusieurs volumes de membres constitutifs, mais géré comme un seul volume.
 
-image:fg-overview-s3-config.gif["Volume FlexGroup représenté sous forme de groupe de volumes FlexVol appelés composants"]
+image::../media/fg-overview-s3-config.gif[Volume FlexGroup représenté sous forme de groupe de volumes FlexVol appelés composants]
 
-Les compartiments ne sont limités que par les valeurs maximales physiques du matériel sous-jacent, les valeurs maximales d'architecture peuvent être plus élevées. Le dimensionnement flexible de FlexGroup permet d'étendre automatiquement un composant d'un volume FlexGroup s'il manque d'espace. La capacité du volume FlexGroup est limitée à 1000 compartiments par volume FlexGroup, soit 1/3 de celle-ci (pour tenir compte de la croissance du volume des données par compartiments).
+L'accès au compartiment est fourni par le biais d'utilisateurs autorisés et d'applications client.
+
+image::../media/s3-svm-layout.png[Accès au compartiment SVM S3]
 
 [NOTE]
 ====
-Aucun accès NAS ou SAN n'est autorisé au volume FlexGroup contenant des compartiments S3.
+Lorsqu'un compartiment est utilisé exclusivement pour les applications S3, y compris en tant que terminal FabricPool, le volume FlexGroup sous-jacent ne prend en charge que le protocole S3.
+
+À partir de ONTAP 9.12.1, le protocole S3 peut également être activé dans link:../s3-multiprotocol/index.html["Volumes NAS multiprotocoles"] lequel il a été préconfiguré pour utiliser les protocoles NAS. Lorsque le protocole S3 est activé sur des volumes NAS multiprotocoles, les applications client peuvent lire et écrire des données à l'aide de NFS, SMB et S3.
 
 ====
-L'accès au compartiment est fourni par le biais d'utilisateurs autorisés et d'applications client.
 
-image:s3-svm-layout.png["Accès au compartiment SVM S3"]
+
+== Limites du godet
+
+La taille minimale du godet est de 95 Go. + la taille maximale du godet est limitée à la taille maximale de FlexGroup de 60 po.
+
+Il existe une limite de 1000 compartiments par volume FlexGroup, soit 12,000 compartiments par cluster (avec 12 volumes FlexGroup).
+
+
+
+== Dimensionnement automatique du FlexGroup avec ONTAP 9.14.1 et versions ultérieures
+
+À partir de ONTAP 9.14.1, la taille de FlexGroup par défaut est basée sur la taille des compartiments sous-jacents. Le volume FlexGroup augmente ou diminue automatiquement à mesure que des compartiments sont ajoutés ou supprimés.
+
+Par exemple, si un compartiment_A initial est provisionné sur 100 Go, le FlexGroup sera provisionné à l'aide de l'allocation dynamique de 100 Go. Si deux compartiments supplémentaires sont créés, Bucket_B à 300 Go et Bucket_C à 500 Go, le volume FlexGroup passera à 900 Go.
+
+(Bucket_A à 100 Go + Bucket_B à 300 Go + Bucket_C à 500 Go = 900 Go.)
+
+Si Bucket_A est supprimé, le volume FlexGroup sous-jacent passe à 800 Go.
+
+
+
+== Correction des tailles de FlexGroup par défaut dans ONTAP 9.13.1 et versions antérieures
+
+Pour prendre en charge l'extension de compartiment, la capacité totale utilisée de tous les compartiments du volume FlexGroup doit être inférieure à 33 % de la capacité maximale du volume FlexGroup en fonction des agrégats de stockage disponibles dans le cluster. Si cela n'est pas possible, le nouveau compartiment créé est provisionné sur un nouveau volume FlexGroup créé automatiquement.
+
+Avant ONTAP 9.14.1, la taille de la FlexGroup est définie sur une taille par défaut en fonction de son environnement :
+
+* 1,6 po en ONTAP
+* 100 To dans ONTAP Select
+
+
+Si un cluster ne dispose pas de suffisamment de capacité pour provisionner un volume FlexGroup à sa taille par défaut, ONTAP réduit de moitié sa taille par défaut jusqu'à ce qu'il puisse être provisionné dans l'environnement existant.
+
+Par exemple, dans un environnement de 300 To, un volume FlexGroup est automatiquement provisionné à 200 To (les volumes FlexGroup de 1,6 po, 800 To et 400 To étant trop volumineux pour l'environnement).

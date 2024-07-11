@@ -1,0 +1,89 @@
+---
+sidebar: sidebar 
+permalink: smb-admin/windows-backup-symlinks.html 
+keywords: windows, windows server, backup, backup application, symbolic link, symlink, unix, unix-style 
+summary: 'Lorsqu"une application de sauvegarde s"exécutant sous Windows rencontre un lien symbolique de style Unix (symlink), le lien est suivi et les données sont sauvegardées. Depuis ONTAP 9.15.1, vous avez la possibilité de sauvegarder les liens symboliques au lieu des données. Cette fonctionnalité est entièrement prise en charge avec les solutions ONTAP FlexGroups et FlexVols.' 
+---
+= Applications de sauvegarde Windows et liens symboliques de style Unix
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Lorsqu'une application de sauvegarde s'exécutant sous Windows rencontre un lien symbolique de style Unix (symlink), le lien est suivi et les données sont sauvegardées. Depuis ONTAP 9.15.1, vous avez la possibilité de sauvegarder les liens symboliques au lieu des données. Cette fonctionnalité est entièrement prise en charge avec les solutions ONTAP FlexGroups et FlexVols.
+
+
+
+== Présentation
+
+Avant de modifier la façon dont ONTAP gère les liens symboliques au cours d'une opération de sauvegarde Windows, vous devez connaître les avantages, les concepts clés et les options de configuration.
+
+
+
+=== Avantages
+
+Lorsque cette fonction est désactivée ou indisponible, chaque lien symbolique est parcouru et les données auxquelles elle est liée sont sauvegardées. C'est pourquoi il est parfois possible de sauvegarder des données inutiles et, dans certains cas, l'application risque de se retrouver en boucle. La sauvegarde des liens symboliques permet d'éviter ces problèmes. Et comme les fichiers symlink sont très petits par rapport aux données dans la plupart des cas, les sauvegardes prennent moins de temps. La réduction des opérations d'E/S permet également d'améliorer les performances globales du cluster.
+
+
+
+=== Environnement de serveur Windows
+
+Cette fonction est prise en charge pour les applications de sauvegarde s'exécutant sous Windows. Vous devez comprendre les aspects techniques pertinents de l'environnement avant de l'utiliser.
+
+.Attributs étendus
+Windows prend en charge les attributs étendus (EA) qui forment collectivement des métadonnées supplémentaires éventuellement associées aux fichiers. Ces attributs sont utilisés par diverses applications, telles que le sous-système Windows pour Linux, comme décrit à la section https://learn.microsoft.com/en-us/windows/wsl/file-permissions["Autorisations de fichier pour WSL"^]. Les applications peuvent demander des attributs étendus pour chaque fichier lors de la lecture de données à partir de ONTAP.
+
+Les liens symboliques sont renvoyés dans les attributs étendus lorsque la fonction est activée. Par conséquent, une application de sauvegarde doit fournir une prise en charge EA standard utilisée pour stocker les métadonnées. Certains utilitaires Windows prennent en charge et conservent les attributs étendus. Toutefois, si le logiciel de sauvegarde ne prend pas en charge la sauvegarde et la restauration des attributs étendus, il ne conservera pas les métadonnées associées à chaque fichier et ne traitera pas correctement les liens symboliques.
+
+.Configuration Windows
+Les applications de sauvegarde exécutées sur un serveur Microsoft Windows peuvent bénéficier d'un privilège spécial leur permettant de contourner la sécurité normale des fichiers. Pour ce faire, vous devez généralement ajouter les applications au groupe opérateurs de sauvegarde. Les applications peuvent ensuite sauvegarder et restaurer les fichiers selon les besoins, ainsi que réaliser d'autres opérations système connexes. Le protocole SMB utilisé par les applications de sauvegarde est subtils changements qui peuvent être détectés par ONTAP lors de la lecture et de l'écriture des données.
+
+
+
+=== De formation
+
+La fonction de sauvegarde de lien symbolique a plusieurs exigences, notamment :
+
+* Votre cluster exécute ONTAP 9.15.1 ou une version ultérieure.
+* Application de sauvegarde Windows bénéficiant de privilèges de sauvegarde spéciaux.
+* L'application de sauvegarde doit également prendre en charge les attributs étendus et les demander pendant les opérations de sauvegarde.
+* La fonctionnalité de sauvegarde ONTAP symlink est activée pour le SVM de données applicable.
+
+
+
+
+=== Options de configuration
+
+Outre l'interface de ligne de commandes de ONTAP, vous pouvez également gérer cette fonctionnalité via l'API REST. Voir https://docs.netapp.com/us-en/ontap-automation/whats-new.html["Nouveautés de l'API REST ONTAP et de l'automatisation"^] pour plus d'informations. La configuration déterminant la façon dont ONTAP traite les symlinks de style Unix doit être effectuée séparément pour chaque SVM.
+
+
+
+== Activez la fonction de sauvegarde de lien symbolique dans ONTAP
+
+Une option de configuration a été ajoutée à une commande CLI existante avec ONTAP 9.15.1. Vous pouvez utiliser cette option pour activer ou désactiver le traitement des liens symboliques de style Unix.
+
+.Avant de commencer
+Passez en revue le de base <<De formation>>. Par ailleurs :
+
+* Être capable de porter vos privilèges d'interface de ligne de commandes au niveau avancé.
+* Déterminer le SVM de données à modifier Le SVM `vs1` est utilisé dans la commande exemple.
+
+
+.Étapes
+. Définissez le niveau de privilège avancé.
++
+[source, cli]
+----
+set privilege advanced
+----
+. Activer la sauvegarde du fichier symlink.
++
+[source, cli]
+----
+vserver cifs options modify -vserver vs1 -is-backup-symlink-enabled true
+----
+

@@ -2,7 +2,7 @@
 permalink: smb-hyper-v-sql/configure-shares-continuous-availability-task.html 
 sidebar: sidebar 
 keywords: configure, shares, continuous, availability, hyper, v, sql, server, virutal, machine, database, file 
-summary: 'Vous pouvez modifier les partages existants pour devenir des partages disponibles en permanence que les serveurs d"applications Hyper-V et SQL Server utilisent pour accéder sans interruption aux fichiers de configuration et des machines virtuelles Hyper-V et aux fichiers de base de données SQL Server.' 
+summary: 'Modifier les partages pour qu"ils soient disponibles en continu les serveurs d"applications Hyper-V et SQL Server permettent un accès sans interruption' 
 ---
 = Configurez les partages existants pour assurer la disponibilité sans interruption
 :allow-uri-read: 
@@ -42,45 +42,52 @@ Les propriétés de partage suivantes ne doivent pas être définies. S'ils sont
 .Étapes
 . Afficher les paramètres de partage actuels et la liste actuelle des propriétés de partage configurées :
 +
-`*vserver cifs share show -vserver _vserver_name_ -share-name _share_name_*`
-
-. Si nécessaire, modifiez les paramètres de partage pour désactiver les symlinks et définissez les fichiers hors ligne en mode manuel à l'aide de l' `vserver cifs share properties modify` commande.
-+
-Vous pouvez désactiver les symlinks en définissant la valeur de l' `-symlink` paramètre à `""`.
-
+[source, cli]
+----
+vserver cifs share show -vserver <vserver_name> -share-name <share_name>
+----
+. Si nécessaire, modifiez les paramètres de partage pour désactiver les liens symboliques et définissez les fichiers hors ligne sur manuel à l'aide de la `vserver cifs share modify` commande.
 +
 ** Vous pouvez désactiver les symlinks en définissant la valeur de l' `-symlink` paramètre à `""`.
 ** Vous pouvez définir le `-offline-files` paramètre au réglage correct en spécifiant `manual`.
 
 
-. Ajoutez le `continuously-available` partager la propriété, et, si nécessaire, le `oplocks` propriété de partage :
+. Ajoutez la `continuously-available` propriété de partage et, si nécessaire, la `oplocks` propriété de partage :
 +
-`*vserver cifs share properties add -vserver _vserver_name_ -share-name _share_name_ -share-properties continuously-available[,oplock]*`
-
+[source, cli]
+----
+vserver cifs share properties add -vserver <vserver_name> -share-name <share_name> -share-properties continuously-available[,oplock]
+----
 +
 Si le `oplocks` la propriété de partage n'est pas déjà définie, vous devez l'ajouter avec `continuously-available` propriété de partage.
 
 . Supprimez toutes les propriétés de partage qui ne sont pas prises en charge sur les partages disponibles en continu :
 +
-`*vserver cifs share properties remove -vserver _vserver_name_ -share-name _share_name_ -share-properties properties[,...]*`
-
+[source, cli]
+----
+vserver cifs share properties remove -vserver <vserver_name> -share-name <share_name> -share-properties properties[,...]
+----
 +
 Vous pouvez supprimer une ou plusieurs propriétés de partage en spécifiant les propriétés de partage avec une liste délimitée par des virgules.
 
 . Vérifiez que le `-symlink` et `-offline-files` les paramètres sont correctement réglés :
 +
-`*vserver cifs share show -vserver _vserver_name_ -share-name _share_name_ -fields symlink-properties,offline-files*`
-
+[source, cli]
+----
+vserver cifs share show -vserver <vserver_name> -share-name <share_name> -fields symlink-properties,offline-files
+----
 . Vérifiez que la liste des propriétés de partage configurées est correcte :
 +
-`*vserver cifs shares properties show -vserver _vserver_name_ -share-name share_name*`
-
+[source, cli]
+----
+vserver cifs share properties show -vserver <vserver_name> -share-name <share_name>
+----
 
 
 .Exemples
-L'exemple suivant montre comment configurer un partage existant nommé « `sunre1` » sur la machine virtuelle de stockage (SVM) vs1 pour les NDO avec un serveur d'application sur SMB :
+L'exemple suivant montre comment configurer un partage existant nommé « share1 » sur la machine virtuelle de stockage (SVM) « vs1 » pour les NDO avec un serveur d'application sur SMB :
 
-* Les symlinks sont désactivés sur le partage en définissant la `-symlink` paramètre à « ».
+* Les liens symboliques sont désactivés sur le partage en définissant le `-symlink` paramètre sur `""`.
 * Le `-offline-file` le paramètre est modifié et défini sur `manual`.
 * Le `continuously-available` la propriété de partage est ajoutée au partage.
 * Le `oplocks` la propriété de partage figure déjà dans la liste des propriétés de partage ; il n'est donc pas nécessaire de l'ajouter.

@@ -1,0 +1,164 @@
+---
+sidebar: sidebar 
+permalink: ontap-security-hardening/default-admin-accounts.html 
+keywords: tr-4569, ontap hardening guide, security, RBAC, roles, Restricting access, admin, diag 
+summary: 'Restriction de l"accès aux comptes admin et diag' 
+---
+= Comptes d'administration par défaut
+:hardbreaks:
+:allow-uri-read: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media
+
+
+[role="lead"]
+Le compte admin doit être restreint car le rôle d'administrateur est autorisé à accéder à l'aide de toutes les applications. Le compte diag permet l'accès à l'interpréteur de commandes du système et ne doit être réservé qu'au support technique pour effectuer les tâches de dépannage.
+
+Il existe deux comptes d'administration par défaut : `admin` et `diag`.
+
+Les comptes orphelins sont un vecteur de sécurité majeur qui entraîne souvent des vulnérabilités, y compris l'escalade des privilèges. Il s'agit de comptes inutiles et inutilisés qui restent dans le référentiel de comptes d'utilisateurs. Il s'agit principalement de comptes par défaut qui n'ont jamais été utilisés ou pour lesquels les mots de passe n'ont jamais été mis à jour ou modifiés. Pour résoudre ce problème, ONTAP prend en charge la suppression et le changement de nom des comptes.
+
+
+NOTE: ONTAP ne peut ni supprimer ni renommer les comptes intégrés. Cependant, NetApp recommande de verrouiller tous les comptes intégrés inutiles à l'aide de la commande lock.
+
+Bien que les comptes orphelins constituent un problème de sécurité important, NetApp recommande fortement de tester l'effet de la suppression des comptes du référentiel de comptes local.
+
+
+
+== Répertorie les comptes locaux
+
+Pour lister les comptes locaux, exécutez la `security login show` commande.
+
+[listing]
+----
+cluster1::*> security login show -vserver cluster1
+
+Vserver: cluster1
+                             Authentication             Acct   Is-Nsswitch
+User/Group Name  Application Method    Role Name        Locked Group
+---------------- ----------- --------- ---------------- ------ -----------
+admin            console     password  admin            no     no
+admin            http        password  admin            no     no
+admin            ontapi      password  admin            no     no
+admin            service-processor password admin       no     no
+admin            ssh         password  admin            no     no
+autosupport      console     password  autosupport      no     no
+6 entries were displayed.
+
+----
+
+
+== Supprimez le compte admin par défaut
+
+Le `admin` compte a le rôle d'administrateur et est autorisé à accéder à l'aide de toutes les applications.
+
+.Étapes
+. Créez un autre compte de niveau administrateur.
++
+Pour supprimer complètement le compte par défaut `admin` , vous devez d'abord créer un autre compte de niveau administrateur qui utilise l' `console` application de connexion.
+
++
+
+NOTE: Ces modifications peuvent avoir des effets indésirables. Testez toujours d'abord les nouveaux paramètres susceptibles d'affecter l'état de sécurité de la solution sur un cluster hors production.
+
++
+Exemple :
+
++
+[listing]
+----
+cluster1::*> security login create -user-or-group-name NewAdmin -application console -authentication-method password -vserver cluster1
+----
++
+[listing]
+----
+cluster1::*> security login show -vserver cluster1
+
+Vserver: cluster1
+                             Authentication             Acct   Is-Nsswitch
+User/Group Name  Application Method    Role Name        Locked Group
+---------------- ----------- --------- ---------------- ------ -----------
+NewAdmin         console     password  admin            no     no
+admin            console     password  admin            no     no
+admin            http        password  admin            no     no
+admin            ontapi      password  admin            no     no
+admin            service-processor password admin       no     no
+admin            ssh         password  admin            no     no
+autosupport      console     password  autosupport      no     no
+7 entries were displayed.
+----
+. Une fois que vous avez créé le nouveau compte admin, testez l'accès à ce compte avec la `NewAdmin` connexion du compte. Avec la `NewAdmin` connexion, configurez le compte pour qu'il ait les mêmes applications de connexion que le compte admin par défaut ou précédent (par exemple, `http`, , `ontapi` `service-processor`ou `ssh`). Cette étape permet de s'assurer que le contrôle d'accès est maintenu.
++
+Exemple :
+
++
+[listing]
+----
+cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application ssh -authentication-method password
+cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application http -authentication-method password
+cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application ontapi -authentication-method password
+cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application service-processor -authentication-method password
+----
+. Une fois toutes les fonctions testées, vous pouvez désactiver le compte admin pour toutes les applications avant de le supprimer de ONTAP. Cette étape sert de test final pour confirmer qu'il n'y a pas de fonctions persistantes qui s'appuient sur le compte admin précédent.
++
+[listing]
+----
+cluster1::*> security login lock -vserver cluster1 -user-or-group-name admin -application *
+----
+. Pour supprimer le compte admin par défaut et toutes les entrées qui lui sont destinées, exécutez la commande suivante :
++
+[listing]
+----
+cluster1::*> security login delete -vserver cluster1 -user-or-group-name admin -application *
+cluster1::*> security login show -vserver cluster1
+
+Vserver: cluster1
+                             Authentication             Acct   Is-Nsswitch
+User/Group Name  Application Method    Role Name        Locked Group
+---------------- ----------- --------- ---------------- ------ -----------
+NewAdmin         console     password  admin            no     no
+NewAdmin         http        password  admin            no     no
+NewAdmin         ontapi      password  admin            no     no
+NewAdmin         service-processor password admin       no     no
+NewAdmin         ssh         password  admin            no     no
+autosupport      console     password  autosupport      no     no
+7 entries were displayed.
+
+----
+
+
+
+
+== Définissez le mot de passe du compte de diagnostic (diag)
+
+Un compte de diagnostic nommé `diag` est fourni avec votre système de stockage. Vous pouvez utiliser le `diag` compte pour effectuer des tâches de dépannage dans `systemshell`. Le `diag` compte est le seul compte qui peut être utilisé pour accéder au systemshell via la `diag` commande Privileged `systemshell`.
+
+
+CAUTION: Le systemshell et le compte associé `diag` sont destinés à des fins de diagnostic de bas niveau. Leur accès requiert le niveau de privilège diagnostic et est réservé uniquement pour être utilisé avec l'aide du support technique pour effectuer des tâches de dépannage. Ni le compte ni le n' `diag` `systemshell` est destiné à des fins administratives générales.
+
+.Avant de commencer
+Avant d'accéder au `systemshell`, vous devez définir le `diag` mot de passe du compte à l'aide de la `security login password` commande. Vous devez utiliser des principes de mot de passe forts et modifier le `diag` mot de passe à intervalles réguliers.
+
+.Étapes
+. Définissez le `diag` mot de passe de l'utilisateur du compte :
++
+[listing]
+----
+cluster1::> set -privilege diag
+
+Warning: These diagnostic commands are for use by NetApp personnel only.
+Do you want to continue? \{y|n}: y
+
+cluster1::*> systemshell -node node-01
+    (system node systemshell)
+diag@node-01's password:
+
+Warning: The system shell provides access to low-level
+diagnostic tools that can cause irreparable damage to
+the system if not used properly. Use this environment
+only when directed to do so by support personnel.
+
+node-01%
+----
+

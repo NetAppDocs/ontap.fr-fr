@@ -1,7 +1,7 @@
 ---
 permalink: san-admin/enable-space-allocation.html 
 sidebar: sidebar 
-keywords: enable, space allocation, space reclamation, unmap 
+keywords: enable, space allocation, space reclamation, unmap, lun 
 summary: 'Activez l"allocation d"espace pour permettre à l"hôte et au système de stockage de coopérer sur la gestion de l"espace.' 
 ---
 = Activez l'allocation d'espace pour SAN
@@ -11,7 +11,11 @@ summary: 'Activez l"allocation d"espace pour permettre à l"hôte et au système
 
 
 [role="lead"]
-Activez l'allocation d'espace pour permettre à vos hôtes et systèmes de stockage de coopérer sur la gestion de l'espace LUN. Activation du `space-allocation` le réglage permet les avantages suivants :
+Activez l'allocation d'espace pour permettre à vos hôtes et systèmes de stockage de coopérer sur la gestion de l'espace LUN.
+
+Depuis la version ONTAP 9.15.1, l'allocation d'espace est activée par défaut pour les nouvelles LUN créées. L'allocation d'espace avait été désactivée par défaut dans les versions précédentes de ONTAP (9.14.1 et antérieures).
+
+L'activation du `space-allocation` paramètre offre les avantages suivants :
 
 * *ONTAP peut communiquer à un hôte qu'aucun espace libre n'est disponible pour le service d'une écriture*: Cette communication est un moyen plus gracieux pour les hôtes de gérer des situations hors de l'espace. La LUN reste en ligne, mais ne peut pas traiter d'E/S d'écriture tant que l'espace n'est pas disponible. Les E/S de lecture peuvent toujours être effectuées. L'effet exact sur un système d'exploitation hôte dépend de la configuration de l'hôte. Dans certains cas, le système d'exploitation tente d'écrire E/S jusqu'à ce qu'il réussisse. Dans d'autres cas, le système de fichiers pourrait être mis hors ligne.
 +
@@ -38,20 +42,21 @@ Les hôtes suivants prennent actuellement en charge le provisionnement fin SCSI 
 L'allocation d'espace n'est pas prise en charge sur les hôtes NVMe.
 
 .Description de la tâche
-À partir de ONTAP 9.15.1, l'allocation d'espace est activée par défaut pour les LUN VMware et Hyper-V nouvellement créées, et elle est désactivée pour toutes les LUN qui viennent d'être créées et qui ne sont pas utilisées par VMware et Hyper-V.
-
-
-NOTE: Lorsque vous mettez à niveau votre cluster vers ONTAP 9.15.1, le paramètre d'allocation d'espace pour toutes les LUN créées avant la mise à niveau logicielle reste le même après la mise à niveau, quel que soit le type d'hôte.  Par exemple, si une LUN a été créée dans ONTAP 9.13.1 pour un hôte VMware dont l'allocation d'espace est désactivée, l'allocation d'espace sur cette LUN reste désactivée après la mise à niveau vers ONTAP 9.15.1.
+Lorsque vous mettez à niveau votre cluster vers ONTAP 9.15.1, le paramètre d'allocation d'espace pour toutes les LUN créées avant la mise à niveau logicielle reste le même après la mise à niveau, quel que soit le type d'hôte. Par exemple, si une LUN a été créée dans ONTAP 9.13.1 pour un hôte VMware dont l'allocation d'espace est désactivée, l'allocation d'espace sur cette LUN reste désactivée après la mise à niveau vers ONTAP 9.15.1.
 
 .Étapes
 . Activer l'allocation d'espace :
 +
-`lun modify -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -space-allocation enabled`
-
+[source, cli]
+----
+`lun modify -vserver <vserver_name> -volume <volume_name> -lun <lun_name> -space-allocation enabled
+----
 . Vérifiez que l'allocation d'espace est activée :
 +
-`lun show -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -fields space-allocation`
-
+[source, cli]
+----
+lun show -vserver <vserver_name> -volume <volume_name> -lun <lun_name> -fields space-allocation
+----
 . Vérifiez que l'allocation d'espace est activée sur le système d'exploitation hôte.
 +
 

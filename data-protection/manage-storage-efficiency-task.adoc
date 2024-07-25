@@ -1,8 +1,8 @@
 ---
 permalink: data-protection/manage-storage-efficiency-task.html 
 sidebar: sidebar 
-keywords: manage, storage, efficiency, snapmirror, snap mirror, compression, compress, postporcess, update relationship, volume 
-summary: 'SnapMirror préserve l"efficacité du stockage sur les volumes source et de destination, à une exception près lorsque la compression des données post-traitement est activée sur le volume de destination. Dans ce cas, l"efficacité du stockage n"est plus sur la destination. Pour corriger ce problème, vous devez désactiver la compression post-traitement sur la destination, mettre à jour la relation manuellement et réactiver l"efficacité du stockage.' 
+keywords: snapmirror, efficiency, manage, storage, snap mirror, compression, compress, postprocess, post-process, update relationship, volume 
+summary: 'Afin de préserver l"efficacité du stockage entre les volumes source et de destination avec SnapMirror, vous devez désactiver la compression post-traitement sur le volume de destination' 
 ---
 = Gérer l'efficacité du stockage
 :allow-uri-read: 
@@ -11,39 +11,36 @@ summary: 'SnapMirror préserve l"efficacité du stockage sur les volumes source 
 
 
 [role="lead"]
-SnapMirror préserve l'efficacité du stockage sur les volumes source et de destination, à une exception près lorsque la compression des données post-traitement est activée sur le volume de destination. Dans ce cas, l'efficacité du stockage n'est plus sur la destination. Pour corriger ce problème, vous devez désactiver la compression post-traitement sur la destination, mettre à jour la relation manuellement et réactiver l'efficacité du stockage.
-
-.Ce dont vous avez besoin
-* Les clusters source et de destination et les SVM doivent être associés.
-+
-https://docs.netapp.com/us-en/ontap-system-manager-classic/peering/index.html["Cluster et SVM peering"^]
-
-* Vous devez désactiver la compression post-traitement sur la destination.
-
+SnapMirror préserve l'efficacité du stockage sur les volumes source et de destination, sauf lorsque la compression post-traitement est activée sur le volume de destination. Dans ce cas, toute l'efficacité du stockage est perdue sur le volume de destination. Pour résoudre ce problème, vous devez désactiver la compression post-traitement sur le volume de destination, mettre à jour la relation manuellement et réactiver l'efficacité du stockage.
 
 .Description de la tâche
 Vous pouvez utiliser le `volume efficiency show` commande pour déterminer si l'efficacité est activée sur un volume. Pour plus d'informations, consultez les pages de manuel.
 
-Vous pouvez vérifier si SnapMirror préserve l'efficacité du stockage en consultant les journaux d'audit SnapMirror et en localiser la description du transfert. Si la description du transfert s'affiche `transfer_desc=Logical Transfer`, SnapMirror n'assure pas l'efficacité du stockage. Si la description du transfert s'affiche `transfer_desc=Logical Transfer with Storage Efficiency`, SnapMirror assure l'efficacité du stockage. Par exemple :
+Vous pouvez vérifier si SnapMirror préserve l'efficacité du stockage en consultant les journaux d'audit SnapMirror et en localiser la description du transfert. Si la description du transfert affiche `transfer_desc=Logical Transfer with Storage Efficiency`, SnapMirror maintient l'efficacité du stockage. Si la description du transfert affiche `transfer_desc=Logical Transfer`, SnapMirror ne maintient pas l'efficacité du stockage. Par exemple :
 
 [listing]
 ----
 Fri May 22 02:13:02 CDT 2020 ScheduledUpdate[May 22 02:12:00]:cc0fbc29-b665-11e5-a626-00a09860c273 Operation-Uuid=39fbcf48-550a-4282-a906-df35632c73a1 Group=none Operation-Cookie=0 action=End source=<sourcepath> destination=<destpath> status=Success bytes_transferred=117080571 network_compression_ratio=1.0:1 transfer_desc=Logical Transfer - Optimized Directory Mode
 ----
-Transfert logique avec stockage
+.Avant de commencer
+* Les clusters source et de destination et les SVM doivent être associés.
++
+https://docs.netapp.com/us-en/ontap-system-manager-classic/peering/index.html["Cluster et SVM peering"^]
 
-Depuis ONTAP 9.3, il n'est plus nécessaire de mettre à jour manuellement l'efficacité du stockage. Si SnapMirror détecte que la compression post-traitement a été désactivée, l'efficacité du stockage est réactivée automatiquement lors de la prochaine mise à jour planifiée. La source et la destination doivent exécuter ONTAP 9.3.
-
-Depuis ONTAP 9.3, les systèmes AFF gèrent les paramètres d'efficacité du stockage différemment des systèmes FAS après la création d'un volume de destination inscriptible :
-
-* Après avoir créé un volume de destination inscriptible à l'aide du `snapmirror break` commande, la politique de mise en cache du volume est automatiquement définie sur « auto » (par défaut).
+* Vous devez désactiver la compression post-traitement sur le volume de destination.
+* Transfert logique avec stockage : à partir de ONTAP 9.3, il n'est plus nécessaire de procéder à une mise à jour manuelle pour réactiver l'efficacité du stockage. Si SnapMirror détecte que la compression post-traitement a été désactivée, l'efficacité du stockage est réactivée automatiquement lors de la prochaine mise à jour planifiée. La source et la destination doivent exécuter ONTAP 9.3.
+* Depuis ONTAP 9.3, les systèmes AFF gèrent les paramètres d'efficacité du stockage différemment des systèmes FAS après la création d'un volume de destination inscriptible :
++
+** Après avoir créé un volume de destination inscriptible à l'aide du `snapmirror break` commande, la politique de mise en cache du volume est automatiquement définie sur « auto » (par défaut).
 +
 [NOTE]
 ====
 Ce comportement est applicable aux volumes FlexVol, uniquement et ne s'applique pas aux volumes FlexGroup.
 
 ====
-* Lors de la resynchronisation, la règle de mise en cache est automatiquement définie sur « aucune » et la déduplication et la compression à la volée sont automatiquement désactivées, quels que soient vos paramètres d'origine. Vous devez modifier les paramètres manuellement si nécessaire.
+** Lors de la resynchronisation, la règle de mise en cache est automatiquement définie sur « aucune » et la déduplication et la compression à la volée sont automatiquement désactivées, quels que soient vos paramètres d'origine. Vous devez modifier les paramètres manuellement si nécessaire.
+
+
 
 
 [NOTE]
@@ -51,18 +48,20 @@ Ce comportement est applicable aux volumes FlexVol, uniquement et ne s'applique 
 Les mises à jour manuelles optimisant l'efficacité du stockage peuvent s'avérer chronophages. Vous pouvez exécuter l'opération en dehors des heures de pointe.
 
 ====
-.Étape
+.Étapes
 . Mettre à jour une relation de réplication et réactiver l'efficacité du stockage :
 +
-`snapmirror update -source-path <SVM:volume>|<cluster://SVM/volume>, ... -destination-path <SVM:volume>|<cluster://SVM/volume>, ... -enable-storage-efficiency true`
-
+[source, cli]
+----
+snapmirror update -source-path <SVM:volume>|<cluster://SVM/volume>, ... -destination-path <SVM:volume>|<cluster://SVM/volume>, ... -enable-storage-efficiency true
+----
 +
 Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
 
 +
 [NOTE]
 ====
-On doit exécuter cette commande depuis le SVM de destination ou le cluster destination. Échec de la commande si une copie Snapshot commune n'existe pas sur la source et la destination. Utiliser `snapmirror initialize` pour réinitialiser la relation.
+On doit exécuter cette commande depuis le SVM de destination ou le cluster destination. Si aucune copie Snapshot commune n'existe sur la source et la destination, la commande échoue. Utilisez `snapmirror initialize` pour réinitialiser la relation.
 
 ====
 +

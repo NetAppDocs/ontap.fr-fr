@@ -1,0 +1,89 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/modify-automatic-snapshot-options-task.html 
+keywords: anti-ransomware, automatic Snapshot copy, suspected attack, vserver options, autonomous ransomware protection, arp 
+summary: Modifiez les paramètres des copies Snapshot de protection anti-ransomware autonome générées automatiquement en réponse aux attaques de ransomware suspectées. 
+---
+= Modifiez les options des copies Snapshot automatiques
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Depuis la version ONTAP 9.11.1, vous pouvez utiliser l'interface de ligne de commandes pour contrôler les paramètres de conservation des copies Snapshot ARP (Autonomous ransomware protection) qui sont générées automatiquement en réponse à des attaques de ransomware suspectées.
+
+.Avant de commencer
+Vous pouvez uniquement modifier les options ARP snapshots sur une SVM de nœud.
+
+.Étapes
+. Pour afficher tous les paramètres de copie snapshot ARP actuels, entrez :
+`vserver options -vserver _svm_name_ arw*`
++
+
+NOTE: Le `vserver options` commande est une commande masquée. Pour afficher la page man, entrez `man vserver options` Sur l'interface de ligne de commandes de ONTAP.
+
+. Pour afficher les paramètres de copie snapshot ARP actuels sélectionnés, entrez :
+`vserver options -vserver _svm_name_ -option-name _arw_setting_name_`
+. Pour modifier les paramètres de copie snapshot ARP, entrez :
+`vserver options -vserver _svm_name_ -option-name _arw_setting_name_ -option-value _arw_setting_value_`
++
+Les paramètres suivants peuvent être modifiés :
+
++
+[cols="1,3"]
+|===
+| Réglage ARW | Description 
+
+
+| `arw.snap.max.count`  a| 
+Spécifie le nombre maximal de copies snapshot ARP pouvant exister dans un volume à tout moment. Les anciennes copies sont supprimées pour garantir que le nombre total de copies snapshot ARP se situe dans cette limite spécifiée.
+Le `-option-value` le paramètre accepte des entiers compris entre 3 et 8, inclus. La valeur par défaut est 6.
+
+
+
+| `arw.snap.create.interval.hours`  a| 
+Spécifie l'intervalle _en heures_ entre les copies snapshot ARP. Une nouvelle copie ARP Snapshot est créée lorsqu'une attaque basée sur l'entropie des données est suspectée et que la dernière copie ARP Snapshot créée est antérieure à l'intervalle spécifié.
+Le `-option-value` le paramètre accepte des entiers compris entre 1 et 48, inclus. La valeur par défaut est 4.
+
+
+
+| `arw.snap.normal.retain.interval.hours`  a| 
+Spécifie la durée _en heures_ pendant laquelle une copie snapshot ARP est conservée. Lorsqu'une copie snapshot ARP atteint le seuil de rétention, toute autre copie snapshot ARP créée avant d'être supprimée. Il ne peut exister plus d'une copie snapshot ARP antérieure au seuil de rétention.
+Le `-option-value` le paramètre accepte des entiers compris entre 4 et 96, inclus. La valeur par défaut est 48.
+
+
+
+| `arw.snap.max.retain.interval.days`  a| 
+Spécifie la durée maximale _en jours_ pendant laquelle une copie snapshot ARP peut être conservée. Toute copie snapshot ARP antérieure à cette durée est supprimée lorsqu'aucune attaque n'est signalée sur le volume.
+
+
+NOTE: L'intervalle de rétention maximal pour les copies snapshot ARP est ignoré si une menace modérée est détectée. La copie snapshot ARP créée en réponse à la menace est conservée jusqu'à ce que vous ayez répondu à la menace. Le marquage d'une menace comme faux positif entraîne la suppression des copies Snapshot ARP sur le volume.
+Le `-option-value` le paramètre accepte des entiers compris entre 1 et 365, inclus. La valeur par défaut est 5.
+
+
+
+| `arw.snap.create.interval.hours.post.max.count`  a| 
+Spécifie l'intervalle _en heures_ entre les copies snapshot ARP lorsque le volume contient déjà le nombre maximal de copies snapshot ARP. Lorsque le nombre maximum est atteint, une copie snapshot ARP est supprimée pour faire place à une nouvelle copie. La nouvelle vitesse de création de copie Snapshot ARP peut être réduite pour conserver l'ancienne copie à l'aide de cette option. Si le volume contient déjà le nombre maximal de copies snapshot ARP, l'intervalle spécifié dans cette option est utilisé pour la création de la copie Snapshot ARP suivante, au lieu de `arw.snap.create.interval.hours`.
+Le `-option-value` le paramètre accepte des entiers compris entre 4 et 48, inclus. La valeur par défaut est 8.
+
+
+
+| `arw.surge.snap.interval.days`  a| 
+Spécifie l'intervalle _en jours_ entre les copies snapshot ARP créées en réponse aux pics d'E/S. ONTAP crée une copie snapshot ARP en cas de surcharge du trafic d'E/S et lorsque la dernière copie Snapshot ARP créée est antérieure à l'intervalle spécifié. Cette option spécifie également la période de rétention _in Day_ pour les copies snapshot de surtension ARP.
+Le `-option-value` le paramètre accepte des entiers compris entre 1 et 365, inclus. La valeur par défaut est 5.
+
+
+
+| `arw.snap.new.extns.interval.hours`  a| 
+Cette option spécifie l'intervalle _en heures_ entre les copies snapshot ARP créées lorsqu'une nouvelle extension de fichier est détectée. Une nouvelle copie snapshot ARP est créée lorsque
+Une nouvelle extension de fichier est observée ; l'instantané précédent créé lors de l'observation d'une nouvelle extension de fichier est plus ancien que cet intervalle spécifié. Sur une charge de travail qui crée fréquemment de nouvelles extensions de fichiers, cet intervalle permet de contrôler la fréquence des copies Snapshot ARP. Cette option existe indépendamment de `arw.snap.create.interval.hours`, Qui spécifie l'intervalle pour les copies Snapshot ARP basées sur l'entropie des données.
+Le `-option-value` le paramètre accepte des entiers compris entre 24 et 8760. La valeur par défaut est 48.
+
+|===
+

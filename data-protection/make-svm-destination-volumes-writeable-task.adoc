@@ -1,8 +1,8 @@
 ---
 permalink: data-protection/make-svm-destination-volumes-writeable-task.html 
 sidebar: sidebar 
-keywords: make, svm, destination, volume, writable 
-summary: 'Vous devez rendre les volumes SVM de destination inscriptibles avant de pouvoir transmettre des données aux clients. La procédure est en grande partie identique à la procédure de réplication de volume, à exception près. Si vous définissez -Identity-preserve true lors de la création de la relation de réplication de la SVM, vous devez arrêter la SVM source avant d"activer la SVM de destination.' 
+keywords: make, svm, storage vm, destination, volume, writable 
+summary: Vous devez rendre les volumes SVM de destination inscriptibles avant de pouvoir transmettre des données aux clients. 
 ---
 = Rendre les volumes de destination du SVM inscriptibles
 :allow-uri-read: 
@@ -11,7 +11,9 @@ summary: 'Vous devez rendre les volumes SVM de destination inscriptibles avant d
 
 
 [role="lead"]
-Vous devez rendre les volumes SVM de destination inscriptibles avant de pouvoir transmettre des données aux clients. La procédure est en grande partie identique à la procédure de réplication de volume, à exception près. Si vous avez défini `-identity-preserve true` Lorsque vous avez créé la relation de réplication SVM, vous devez arrêter le SVM source avant d'activer le SVM destination.
+Vous devez rendre les volumes SVM de destination inscriptibles avant de pouvoir transmettre des données aux clients.
+
+La procédure est en grande partie identique à la procédure de réplication de volume, à exception près. Si vous avez défini `-identity-preserve true` lors de la création de la relation de réplication du SVM, vous devez arrêter le SVM source avant d'activer le SVM de destination.
 
 .Description de la tâche
 Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
@@ -21,17 +23,36 @@ Pour connaître la syntaxe complète de la commande, reportez-vous à la page ma
 En cas de reprise d'activité, vous ne pouvez pas effectuer de mise à jour SnapMirror depuis le SVM source vers le SVM de destination de reprise après incident car votre SVM source et ses données sont inaccessibles. Les mises à jour depuis la dernière resynchronisation peuvent être en mauvais état ou corrompues.
 
 ====
+Depuis ONTAP 9.8, il est possible d'utiliser System Manager pour activer une machine virtuelle de stockage de destination après un incident. L'activation de la VM de stockage de destination rend les volumes de destination du SVM inscriptibles et vous permet de transmettre des données aux clients.
+
 .Étapes
+Vous pouvez effectuer cette tâche depuis System Manager ou l'interface de ligne de commandes de ONTAP.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Si le cluster source est accessible, vérifiez que le SVM est arrêté : accédez à *stockage > VM de stockage* et vérifiez la colonne *State* de la SVM.
+. Si l'état du SVM source est « running », arrêtez-le : sélectionnez image:icon_kabob.gif["Icône des options de menu"] et choisissez *Stop*.
+. Sur le cluster de destination, recherchez la relation de protection souhaitée : accédez à *protection > relations*.
+. Passez le curseur sur le nom de la machine virtuelle de stockage source souhaitée, cliquez sur image:icon_kabob.gif["Icône des options de menu"], puis choisissez *Activer la machine virtuelle de stockage de destination*.
+. Dans la fenêtre *Activer la VM de stockage de destination*, sélectionnez *Activer la VM de stockage de destination et rompre la relation*.
+. Cliquez sur *Activer*.
+
+
+--
+.CLI
+--
 . Depuis le SVM de destination ou le cluster de destination, arrêter les transferts programmés vers la destination :
 +
-`snapmirror quiesce -source-path _SVM_: -destination-path _SVM_:`
-
+[source, cli]
+----
+snapmirror quiesce -source-path <SVM>: -destination-path <SVM>:
+----
 +
-[NOTE]
-====
-Vous devez entrer deux-points (:) après le nom de SVM dans la `-source-path` et `-destination-path` options. Voir l'exemple ci-dessous.
 
-====
+NOTE: Vous devez entrer deux-points (:) après le nom de SVM dans la `-source-path` et `-destination-path` options. Voir l'exemple ci-dessous.
+
 +
 L'exemple suivant arrête les transferts planifiés entre la SVM source `svm1` Et le SVM de destination `svm_backup`:
 
@@ -42,14 +63,14 @@ cluster_dst::> snapmirror quiesce -source-path svm1: -destination-path svm_backu
 ----
 . Depuis le SVM destination ou le cluster destination, arrêter les transferts en cours vers la destination :
 +
-`snapmirror abort -source-path _SVM_: -destination-path _SVM_:`
-
+[source, cli]
+----
+snapmirror abort -source-path <SVM>: -destination-path <SVM>:
+----
 +
-[NOTE]
-====
-Vous devez entrer deux-points (:) après le nom de SVM dans la `-source-path` et `-destination-path` options. Voir l'exemple ci-dessous.
 
-====
+NOTE: Vous devez entrer deux-points (:) après le nom de SVM dans la `-source-path` et `-destination-path` options. Voir l'exemple ci-dessous.
+
 +
 L'exemple suivant arrête les transferts en cours entre la SVM source `svm1` Et le SVM de destination `svm_backup`:
 
@@ -60,14 +81,14 @@ cluster_dst::> snapmirror abort -source-path svm1: -destination-path svm_backup:
 ----
 . Depuis le SVM destination ou le cluster destination, faire un break de la relation de réplication :
 +
-`snapmirror break -source-path _SVM_: -destination-path _SVM_:`
-
+[source, cli]
+----
+snapmirror break -source-path <SVM>: -destination-path <SVM>:
+----
 +
-[NOTE]
-====
-Vous devez entrer deux-points (:) après le nom de SVM dans la `-source-path` et `-destination-path` options. Voir l'exemple ci-dessous.
 
-====
+NOTE: Vous devez entrer deux-points (:) après le nom de SVM dans la `-source-path` et `-destination-path` options. Voir l'exemple ci-dessous.
+
 +
 L'exemple suivant rompt la relation entre la SVM source `svm1` Et le SVM de destination `svm_backup`:
 
@@ -78,8 +99,10 @@ cluster_dst::> snapmirror break -source-path svm1: -destination-path svm_backup:
 ----
 . Si vous avez défini `-identity-preserve true` Lorsque vous avez créé la relation de réplication de SVM, arrêter le SVM source :
 +
-`vserver stop -vserver _SVM_`
-
+[source, cli]
+----
+vserver stop -vserver <SVM>
+----
 +
 L'exemple suivant arrête le SVM source `svm1`:
 
@@ -90,8 +113,10 @@ cluster_src::> vserver stop svm1
 ----
 . Démarrer le SVM de destination :
 +
-`vserver start -vserver _SVM_`
-
+[source, cli]
+----
+vserver start -vserver <SVM>
+----
 +
 L'exemple suivant démarre le SVM de destination `svm_backup`:
 
@@ -104,3 +129,6 @@ cluster_dst::> vserver start svm_backup
 
 .Une fois que vous avez terminé
 Configuration des volumes de destination des SVM pour l'accès aux données, comme décrit à la section link:configure-destination-volume-data-access-concept.html["Configuration du volume de destination pour l'accès aux données"].
+
+--
+====

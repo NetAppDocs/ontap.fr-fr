@@ -13,7 +13,7 @@ summary: 'Vous pouvez créer une stratégie de réplication personnalisée si la
 [role="lead"]
 Vous pouvez créer une stratégie de réplication personnalisée si la stratégie par défaut d'une relation n'est pas appropriée. Vous pouvez compresser les données d'un transfert réseau, par exemple, ou modifier le nombre de tentatives de transfert de copies Snapshot par SnapMirror.
 
-Vous pouvez utiliser une règle par défaut ou personnalisée lorsque vous créez une relation de réplication. Dans le cas d'une archivage personnalisé (anciennement SnapVault) ou d'une règle de réplication unifiée, vous devez définir une ou plusieurs _règles_ qui déterminent les copies Snapshot qui sont transférées lors de l'initialisation et de la mise à jour.vous pouvez également définir un calendrier pour la création de copies Snapshot locales sur le volume de destination.
+Vous pouvez utiliser une règle par défaut ou personnalisée lorsque vous créez une relation de réplication. Pour une archive personnalisée (anciennement SnapVault) ou une règle de réplication unifiée, vous devez définir une ou plusieurs _règles_ qui déterminent quelles copies Snapshot sont transférées au cours de l'initialisation et de la mise à jour. Vous pouvez également planifier la création de copies Snapshot locales sur la destination.
 
 Le _policy type_ de la règle de réplication détermine le type de relation qu'elle prend en charge. Le tableau ci-dessous présente les types de stratégies disponibles.
 
@@ -63,11 +63,34 @@ SnapMirror synchrone en mode synchrone (pris en charge à partir de ONTAP 9.5)
 Lorsque vous créez une stratégie de réplication personnalisée, il est conseillé de modéliser la stratégie après une stratégie par défaut.
 
 ====
-.Étape
+.Étapes
+Vous pouvez créer des règles de protection des données personnalisées avec System Manager ou l'interface de ligne de commandes de ONTAP. Depuis ONTAP 9.11.1, vous pouvez utiliser System Manager pour créer des règles de miroir et de coffre-fort personnalisées, ainsi que pour afficher et sélectionner des règles héritées. Cette fonctionnalité est également disponible dans ONTAP 9.8P12 et versions ultérieures de ONTAP 9.8.
+
+Créez des règles de protection personnalisées sur le cluster source et destination.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Cliquez sur *protection > Paramètres de stratégie locale*.
+. Sous *politiques de protection*, cliquez sur image:icon_arrow.gif["Icône de flèche"].
+. Dans le volet *stratégies de protection*, cliquez sur image:icon_add.gif["Ajouter une icône"].
+. Entrez le nouveau nom de la stratégie et sélectionnez sa portée.
+. Choisissez un type de stratégie. Pour ajouter une stratégie de coffre-fort ou de miroir uniquement, choisissez *Asynchronous*, puis cliquez sur *utiliser un type de stratégie hérité*.
+. Renseignez les champs obligatoires.
+. Cliquez sur *Enregistrer*.
+. Répétez ces étapes sur l'autre cluster.
+
+
+--
+.CLI
+--
 . Création d'une règle de réplication personnalisée :
 +
-`snapmirror policy create -vserver _SVM_ -policy _policy_ -type async-mirror|vault|mirror-vault|strict-sync-mirror|sync-mirror -comment _comment_ -tries _transfer_tries_ -transfer-priority low|normal -is-network-compression-enabled true|false`
-
+[source, cli]
+----
+snapmirror policy create -vserver <SVM> -policy _policy_ -type <async-mirror|vault|mirror-vault|strict-sync-mirror|sync-mirror> -comment <comment> -tries <transfer_tries> -transfer-priority <low|normal> -is-network-compression-enabled <true|false>
+----
 +
 Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
 
@@ -112,3 +135,6 @@ cluster_dst::> snapmirror policy create -vserver svm1 -policy my_strictsync -typ
 Pour les types de règles « vault » et « miroir-coffre-fort », vous devez définir des règles qui déterminent les copies Snapshot qui sont transférées lors de l'initialisation et de la mise à jour.
 
 Utilisez le `snapmirror policy show` Commande pour vérifier que la règle SnapMirror a été créée. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
+
+--
+====

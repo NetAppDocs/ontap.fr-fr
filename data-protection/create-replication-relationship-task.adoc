@@ -13,10 +13,17 @@ summary: La relation entre le volume source du stockage primaire et le volume de
 [role="lead"]
 La relation entre le volume source dans le stockage primaire et le volume de destination dans le stockage secondaire est appelée « relation de protection des données »._ vous pouvez utiliser le `snapmirror create` Créez des relations de protection des données avec SnapMirror de reprise après incident, SnapVault ou réplication unifiée.
 
+Depuis ONTAP 9.11.1, System Manager permet de sélectionner des règles de copie en miroir et de copie à distance prédéfinies et personnalisées, d'afficher et de sélectionner des règles existantes, et de remplacer les planifications de transfert définies dans une règle de protection lorsque les volumes et les machines virtuelles de stockage sont protégés. Cette fonctionnalité est également disponible dans ONTAP 9.8P12 et versions ultérieures de ONTAP 9.8.
+
+[NOTE]
+====
+Si vous utilisez ONTAP 9.8P12 ou une version ultérieure de correctif ONTAP 9.8 et si vous avez configuré SnapMirror à l'aide de System Manager, vous devez utiliser ONTAP 9.9.1P13 ou version ultérieure et ONTAP 9.10.1P10 ou version ultérieure pour une mise à niveau vers ONTAP 9.9.1 ou ONTAP 9.10.1.
+
+====
 .Avant de commencer
 * Les clusters source et de destination et les SVM doivent être associés.
 +
-https://docs.netapp.com/us-en/ontap-system-manager-classic/peering/index.html["Cluster et SVM peering"^]
+link:../peering/index.html["Cluster et SVM peering"]
 
 * La langue du volume de destination doit être identique à celle du volume source.
 
@@ -102,7 +109,24 @@ La prise en charge des relations SnapMirror synchrone est prise en charge à par
 
 À partir de ONTAP 9.14.1, l' `-backoff-level` option est ajoutée aux `snapmirror create`commandes , `snapmirror modify`et `snapmirror restore` pour vous permettre de spécifier le niveau de retour arrière par relation. L'option n'est prise en charge qu'avec les relations FlexVol SnapMirror. La commande facultative spécifie le niveau de backoff SnapMirror dû aux opérations du client. Les valeurs de retour arrière peuvent être élevées, moyennes ou aucune. La valeur par défaut est élevée.
 
-.Étape
+.Étapes
+Vous pouvez utiliser System Manager ou l'interface de ligne de commandes de ONTAP pour créer une relation de réplication.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Sélectionnez le volume ou le LUN à protéger : cliquez sur *Storage > volumes* ou *Storage > LUN*, puis cliquez sur le nom de volume ou de LUN souhaité.
+. Cliquez sur image:icon_protect.gif["Icône protéger"].
+. Sélectionnez le cluster de destination et la VM de stockage.
+. La règle asynchrone est sélectionnée par défaut. Pour sélectionner une stratégie synchrone, cliquez sur *plus d'options*.
+. Cliquez sur *protéger*.
+. Cliquez sur l'onglet *SnapMirror (local ou Remote)* du volume ou du LUN sélectionné pour vérifier que la protection est correctement configurée.
+
+
+--
+.CLI
+--
 . Depuis le cluster destination, créer une relation de réplication :
 +
 Vous devez remplacer les variables entre parenthèses angulaires par les valeurs requises avant d'exécuter cette commande.
@@ -116,11 +140,9 @@ snapmirror create -source-path <SVM:volume> -destination-path <SVM:volume> -type
 Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
 
 +
-[NOTE]
-====
-Le `schedule` Le paramètre n'est pas applicable lors de la création de relations SnapMirror synchrone.
 
-====
+NOTE: Le `schedule` Le paramètre n'est pas applicable lors de la création de relations SnapMirror synchrone.
+
 +
 L'exemple suivant illustre la création d'une relation SnapMirror DR à l'aide de la valeur par défaut `MirrorLatest` règle :
 
@@ -202,18 +224,18 @@ L'exemple suivant illustre la création d'une relation SnapMirror synchrone avec
 cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -policy SnapCenterSync
 ----
 +
-[NOTE]
-====
-La règle prédéfinie `SnapCenterSync` est de type `Sync`. Cette règle réplique toute copie Snapshot créée avec le `snapmirror-label` de « cohérent_app ».
 
-====
+NOTE: La règle prédéfinie `SnapCenterSync` est de type `Sync`. Cette règle réplique toute copie Snapshot créée avec le `snapmirror-label` de « cohérent_app ».
+
 
 
 .Une fois que vous avez terminé
 Utilisez le `snapmirror show` Commande permettant de vérifier que la relation SnapMirror a été créée. Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
 
+--
+====
 .Informations associées
-* link:https://docs.netapp.com/us-en/ontap/data-protection/create-delete-snapmirror-failover-test-task.html["Créez et supprimez des volumes de test de basculement SnapMirror"].
+* link:create-delete-snapmirror-failover-test-task.html["Créez et supprimez des volumes de test de basculement SnapMirror"].
 
 
 
@@ -223,9 +245,6 @@ Utilisez le `snapmirror show` Commande permettant de vérifier que la relation S
 [cols="2"]
 |===
 | Pour effectuer ces tâches avec... | Voir ce contenu... 
-
-
-| System Manager redessiné (disponible avec ONTAP 9.7 et versions ultérieures) | link:https://docs.netapp.com/us-en/ontap/task_dp_configure_mirror.html["Configurer les miroirs et les coffres-forts"^] 
 
 
 | System Manager Classic (disponible avec ONTAP 9.7 et versions antérieures) | link:https://docs.netapp.com/us-en/ontap-system-manager-classic/volume-backup-snapvault/index.html["Présentation de la sauvegarde de volume avec SnapVault"^] 

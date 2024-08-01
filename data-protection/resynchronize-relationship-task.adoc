@@ -13,27 +13,62 @@ summary: 'Vous devez resynchroniser une relation de réplication après avoir cr
 [role="lead"]
 Vous devez resynchroniser une relation de réplication après avoir créé un volume de destination inscriptible, après une mise à jour échoue, car une copie Snapshot commune n'existe pas sur les volumes source et de destination, ou si vous souhaitez modifier la règle de réplication pour la relation.
 
+Depuis ONTAP 9.8, System Manager permet d'effectuer une opération de resynchronisation inverse en vue de supprimer une relation de protection existante et d'inverser les fonctions des volumes source et de destination. Ensuite, vous utilisez le volume de destination pour transmettre des données pendant que vous réparez ou remplacez la source, mettez à jour la source, et rétablissez la configuration d'origine des systèmes.
+
 .Description de la tâche
 * Bien que la resynchronisation ne nécessite pas de transfert de base, elle peut prendre du temps. Vous pouvez exécuter la resynchronisation en dehors des heures de pointe.
 * La resynchronisation des volumes qui font partie d'une configuration « fan-out » ou en cascade peut prendre plus de temps. Il n'est pas rare de voir la relation SnapMirror indiquant l'état « préparation » pour une période prolongée.
 
 
-.Étape
+Cette procédure remplace les données du volume source d'origine par une relation asynchrone. Vous pouvez ainsi reprendre le service des données du volume source d'origine et reprendre la relation de protection d'origine.
+
+[NOTE]
+====
+System Manager ne prend pas en charge la resynchronisation inverse avec des relations intracluster. Vous pouvez utiliser l'interface de ligne de commandes de ONTAP pour effectuer des opérations de resynchronisation inverse avec des relations intracluster.
+
+====
+Lorsque vous effectuez une opération de resynchronisation inverse, toutes les données du volume source qui sont plus récentes que les données de la copie Snapshot commune sont supprimées.
+
+.Étapes
+Vous pouvez resynchroniser les relations de réplication à l'aide de System Manager ou de l'interface de ligne de commandes de ONTAP. Une fois que vous avez inscriptible un volume de destination, vous pouvez resynchroniser une relation de réplication à l'aide de System Manager. Si vous utilisez l'interface de ligne de commandes de ONTAP, la procédure est identique, que vous enregistrable sur un volume de destination ou que vous mettez à jour la relation de réplication.
+
+[role="tabbed-block"]
+====
+.Resynchronisation inverse de System Manager
+--
+. Sur le cluster de destination, cliquez sur *protection > relations*.
+. Placez le pointeur de la souris sur la relation interrompue que vous souhaitez inverser, cliquez sur image:icon_kabob.gif["icône kabob"]et sélectionnez *Inverser la resynchronisation*.
+. Dans la fenêtre *Reverse resync Relationship*, cliquez sur *Reverse resync*.
+. Sous *Relationship*, surveillez la progression de la resynchronisation inverse en visualisant *Transfer Status* pour la relation.
+
+
+--
+.Resynchronisation de System Manager
+--
+. Cliquez sur *protection > relations*.
+. Placez le pointeur de la souris sur la relation que vous souhaitez resynchroniser, puis cliquez sur image:icon_kabob.gif["Icône des options de menu"] et sélectionnez *rompre*.
+. Lorsque l'état de la relation affiche "Broken off", cliquez sur image:icon_kabob.gif["Icône des options de menu"] et sélectionnez *Resync*.
+. Sous *relations*, surveiller la progression de la resynchronisation en vérifiant l'état de la relation. L'état est modifié en « mis en miroir » une fois la resynchronisation terminée.
+
+
+--
+.CLI
+--
 . Resynchronisation des volumes source et de destination :
 +
-`snapmirror resync -source-path <SVM:volume>|<cluster://SVM/volume>, ... -destination-path <SVM:volume>|<cluster://SVM/volume>, ... -type DP|XDP -policy _policy_`
-
+[source, cli]
+----
+snapmirror resync -source-path <SVM:volume|cluster://SVM/volume> -destination-path <SVM:volume|cluster://SVM/volume> -type DP|XDP -policy <policy>
+----
 +
 Pour connaître la syntaxe complète de la commande, reportez-vous à la page man.
 
 +
-[NOTE]
-====
-On doit exécuter cette commande depuis le SVM de destination ou le cluster destination.
 
-====
+NOTE: On doit exécuter cette commande depuis le SVM de destination ou le cluster destination.
+
 +
-L'exemple suivant resynchronque la relation entre le volume source `volA` marche `svm1` et le volume de destination `volA_dst` marche `svm_backup`:
+L'exemple suivant resynchronise la relation entre le volume source `volA` sur et le volume de destination sur `svm1` `volA_dst` `svm_backup`:
 
 +
 [listing]
@@ -41,3 +76,6 @@ L'exemple suivant resynchronque la relation entre le volume source `volA` marche
 cluster_dst::> snapmirror resync -source-path svm1:volA -destination-path svm_backup:volA_dst
 ----
 
+
+--
+====

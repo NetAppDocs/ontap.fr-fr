@@ -1,0 +1,58 @@
+---
+permalink: flexcache-writeback/flexcache-write-back-use-cases.html 
+sidebar: sidebar 
+keywords: tr-4743, flexcache writeback, flexcache write-back, use cases, workloads, technical report, netapp tr, ontap tr 
+summary: 'Il s"agit de profils d"écriture mieux adaptés à un FlexCache à écriture différée. Vous devez tester votre charge de travail pour vérifier si l"écriture différée ou l"annulation fournit les meilleures performances.' 
+---
+= Cas d'utilisation d'écriture différée FlexCache
+:allow-uri-read: 
+
+
+[role="lead"]
+Il s'agit de profils d'écriture mieux adaptés à un FlexCache à écriture différée. Vous devez tester votre charge de travail pour vérifier si l'écriture différée ou l'annulation fournit les meilleures performances.
+
+
+NOTE: La réécriture ne remplace pas la réinscription. Bien que la réécriture soit conçue avec des charges de travail intensives en écriture, la réinscription demeure le meilleur choix pour de nombreuses charges de travail.
+
+
+
+== Workloads cibles
+
+.Taille du fichier
+La taille du fichier est moins importante que le nombre d'écritures émises entre `OPEN` le et les `CLOSE` appels pour un fichier. Les petits fichiers ont par nature moins d' `WRITE` appels, ce qui les rend moins idéaux pour les réécritures. Les fichiers volumineux peuvent avoir plus d'écritures entre `OPEN` les appels et `CLOSE` , mais cela n'est pas garanti.
+
+.Taille d'écriture
+Lors de l'écriture à partir d'un client, d'autres appels NAS sont impliqués autres que des appels d'écriture :
+
+* `CREATE`
+* `OPEN`
+* `CLOSE`
+* `READDIR/READDIRPLUS`
+*  `SETATTR`: `SETATTR` les appels qui ne modifient que `mtime`, `atime`ou `ctime` sont traités dans le cache.
+
+
+Ces appels doivent être traités à l'origine et déclencher une réécriture de toutes les données corrompues accumulées au niveau du cache activé pour l'écriture différée pour le fichier en cours d'exécution. Les E/S vers le fichier seront suspendues jusqu'à ce que l'écriture différée soit terminée.
+
+En sachant que ces appels doivent traverser le WAN, vous pouvez identifier les charges de travail adaptées à la réécriture. En général, plus le nombre d'écritures pouvant être effectuées entre `OPEN` les appels et `CLOSE` sans que l'un des autres appels <write-size,above> ne soit émis est élevé, plus le gain de performances est élevé.
+
+.Lecture après écriture
+Dans le passé, les workloads de lecture après écriture ont des performances médiocres chez FlexCache. Ceci est dû au mode de fonctionnement de la réécriture avant 9.15.1. L' `WRITE` appel au fichier doit être validé à l'origine et l'appel suivant `READ` devra renvoyer les données dans le cache. Les deux opérations sont donc pénalisés par le WAN. Par conséquent, les charges de travail de lecture après écriture sont déconseillées pour FlexCache en mode d'écriture immédiate. Avec l'introduction de la fonctionnalité de réécriture dans la version 9.15.1, les données sont désormais validées au niveau du cache et peuvent être immédiatement lues à partir du cache, éliminant ainsi les pénalités liées au WAN. Si votre charge de travail inclut la lecture après écriture sur les volumes FlexCache, vous devez configurer le cache pour qu'il fonctionne en mode écriture différée.
+
+
+TIP: Si la lecture après écriture est un élément critique de votre charge de travail, vous devez configurer votre cache pour qu'il fonctionne en mode écriture différée.
+
+.Écriture après écriture
+Lorsqu'un fichier accumule des données corrompues dans un cache, le cache réécrit les données de manière asynchrone vers l'origine. Cela se traduit naturellement par des moments où le client ferme le fichier avec des données corrompues en attendant toujours d'être retransférées vers l'origine. Si un autre fichier ouvert ou en écriture vient d'être enregistré pour le fichier qui vient d'être fermé et qui contient toujours des données corrompues, l'écriture sera suspendue jusqu'à ce que toutes les données corrompues aient été vidées à l'origine.
+
+
+
+== Considérations relatives à la latence
+
+Lorsque FlexCache fonctionne en mode écriture différée, il est plus avantageux pour les clients NAS car la latence augmente entre le cache et l'origine. Il est toutefois important de noter que la surcharge liée à l'écriture différée est supérieure aux avantages obtenus dans les environnements à faible latence. Dans certains tests NetApp, les bénéfices de l'écriture différée ont commencé autour d'une latence minimale entre le cache et l'origine de 8 ms. Cette latence varie en fonction des charges de travail. Assurez-vous donc de tester pour en savoir plus sur les avantages.
+
+Le graphique suivant montre le point de retour pour l'écriture différée dans les tests de laboratoire NetApp. L' `x` axe est la taille du fichier et l' `y` axe est le temps écoulé. Le test a utilisé NFSv3, à monter avec une et de 256 Ko, et une `rsize` `wsize` latence WAN de 64 ms. Ce test a été réalisé en utilisant une petite instance ONTAP Select pour le cache et l'origine, ainsi qu'une seule opération d'écriture par thread. Vos résultats peuvent varier.
+
+image::flexcache-write-back-point-of-return-nfs3.png[Point de retour]
+
+
+IMPORTANT: L'écriture différée ne doit pas être utilisée pour la mise en cache intracluster. La mise en cache intracluster se produit lorsque l'origine et le cache se trouvent dans le même cluster.

@@ -1,0 +1,93 @@
+---
+permalink: flexcache-writeback/flexcache-write-back-overview.html 
+sidebar: sidebar 
+keywords: tr-4743, flexcache writeback, flexcache write-back, overview, technical report, netapp tr, ontap tr 
+summary: 'Introduit dans ONTAP 9.15.1, l"écriture différée FlexCache est un autre mode de fonctionnement pour l"écriture au niveau du cache.' 
+---
+= Présentation de la réécriture de FlexCache
+:allow-uri-read: 
+
+
+[role="lead"]
+Introduit dans ONTAP 9.15.1, l'écriture différée FlexCache est un autre mode de fonctionnement pour l'écriture au niveau du cache. La réécriture permet de valider l'écriture sur un stockage stable au niveau du cache et d'en accuser réception au client sans attendre que les données soient à l'origine. Les données sont transférées de manière asynchrone vers l'origine. Le résultat est un système de fichiers distribué à l'échelle mondiale qui permet aux écritures d'effectuer des opérations à des vitesses proches de celles locales pour des charges de travail et des environnements spécifiques, et qui offre des avantages considérables en termes de performances.
+
+
+NOTE: ONTAP 9.12.1 a présenté une fonctionnalité de réécriture sous forme de préversion publique. Il s'agit de la version à écriture différée 1 (wbv1) et ne doit pas être considéré comme la version à écriture différée dans ONTAP 9.15.1, qui est appelée la version à écriture différée 2 (wbv2).
+
+
+NOTE: Depuis juillet 2024, le contenu des rapports techniques publiés au format PDF a été intégré à la documentation produit de ONTAP. La documentation relative à la sécurité de ONTAP inclut désormais du contenu publié par le document TR-4743 : FlexCache in ONTAP 9.11.1.
+
+
+
+== Écriture différée contre écriture immédiate
+
+Depuis son lancement dans ONTAP 9.5, FlexCache est un cache en lecture-écriture, mais il fonctionne en mode d'écriture immédiate. Les écritures du cache ont été envoyées à l'origine pour être stockées dans un stockage stable. Une fois que l'origine a validé l'écriture sur un stockage stable, elle a reconnu l'écriture dans le cache. Le cache accuse alors réception de l'écriture sur le client. Ainsi, chaque écriture a des frais de déplacement du réseau entre le cache et l'origine. La réécriture de FlexCache change cela.
+
+
+NOTE: Après la mise à niveau vers ONTAP 9.15.1, vous pouvez convertir un cache d'écriture immédiate classique en cache à écriture différée et, si nécessaire, revenir à l'écriture immédiate. Cela peut cependant compliquer la lecture des journaux de diagnostic en cas de problème.
+
+|===
+|  | Ecrivez | Réécriture 
+
+
+| Version ONTAP | 9.6+ | 9.15.1+ 
+
+
+| Cas d'utilisation | Charge de travail exigeante en lecture | Charge de travail exigeante en écritures 
+
+
+| Données validées à | Origine | Cache 
+
+
+| Expérience client | De type WAN | LAN-lke 
+
+
+| Limites | 100 par origine | 10 par origine 
+
+
+| https://en.wikipedia.org/wiki/CAP_theorem["CAP Theorem"^] | Disponible et tolérant à la partition | Disponibilité et cohérence 
+|===
+
+
+== Terminologie de réécriture FlexCache
+
+Comprendre les concepts et les termes clés qui travaillent avec la réécriture FlexCache.
+
+[cols="12%,88%"]
+|===
+| Durée | Définition 
+
+
+| [[données-sales]]*données corrompues* | Données qui ont été validées pour un stockage stable au niveau du cache, mais qui n'ont pas été transférées vers l'origine. 
+
+
+| *Exclusive Lock délégation (XLD)* | Autorité de verrouillage au niveau du protocole accordée par fichier à un cache. Cette autorité permet au cache de distribuer des verrous d'écriture exclusifs aux clients sans contacter l'origine. 
+
+
+| *Délégation de verrous partagés (SLD)* | Autorité de verrouillage au niveau du protocole accordée par fichier à un cache. Cette autorité permet au cache de distribuer des verrous de lecture partagés aux clients sans contacter l'origine. 
+
+
+| *Réécriture* | Mode de fonctionnement FlexCache dans lequel les écritures dans un cache sont validées sur un stockage stable au niveau de ce cache et immédiatement réceptionnées sur le client. Les données sont écrites de manière asynchrone vers l'origine. 
+
+
+| *Ecrit* | Mode de fonctionnement FlexCache dans lequel les écritures dans un cache sont transmises à l'origine pour être validées dans un stockage stable. Une fois validé, l'origine reconnaît l'écriture dans le cache et le cache reconnaît l'écriture au client. 
+
+
+| *Système d'enregistrement de données (DDRS) sale* | Mécanisme propriétaire qui assure le suivi des données corrompues dans un cache à écriture différée par fichier. 
+
+
+| *Origine* | FlexGroup ou FlexVol contenant les données source de tous les volumes FlexCache cache. Il s'agit de la source unique de vérité, orchestre le verrouillage et assure 100 % de cohérence des données, de devise et de cohérence. 
+
+
+| *Cache* | FlexGroup qui est un volume de cache fragmenté de l'origine FlexCache. 
+|===
+
+
+=== Cohérent, actuel et cohérent
+
+FlexCache est la solution de NetApp pour disposer des bonnes données, partout et à tout moment. FlexCache est 100 % cohérent, actuel et cohérent 100 % du temps :
+
+* *Cohérent:* les données sont les mêmes partout où elles sont consultées.
+* *Actuel:* les données sont toujours à jour.
+* *Cohérent:* les données sont correctes/non corrompues.
+

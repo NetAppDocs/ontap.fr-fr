@@ -1,0 +1,121 @@
+---
+permalink: flexcache-writeback/flexcache-write-back-architecture.html 
+sidebar: sidebar 
+keywords: tr-4743, flexcache writeback, flexcache write-back, flexcache, write-back, write back, lock delegations, data delegations, dirty data, cache scrubbers, disconnected mode, grok it, sequence diagrams, technical report, netapp tr, ontap tr 
+summary: 'Analysez plus en détail le fonctionnement de l"écriture différée FlexCache.' 
+---
+= Architecture de réécriture de FlexCache
+:allow-uri-read: 
+
+
+[role="lead"]
+La solution de réinscription FlexCache a été conçue dans un souci de cohérence. Le mode de fonctionnement classique avec écriture immédiate et le nouveau mode de fonctionnement avec écriture différée introduit dans ONTAP 9.15.1 garantissent que les données accédées seront toujours cohérentes à 100 %, actuelles et cohérentes.
+
+Les concepts suivants décrivent en détail le fonctionnement de l'écriture différée FlexCache.
+
+
+
+== Délégations
+
+Les délégations de verrouillage et les délégations de données permettent à FlexCache de conserver des caches d'écriture différée et d'écriture immédiate, cohérents et à jour. L'origine orchestre les deux délégations.
+
+
+
+=== Verrouiller les délégations
+
+Une délégation de verrouillage est une autorité de verrouillage au niveau du protocole que l'origine accorde à chaque fichier à un cache pour émettre des verrous de protocole aux clients selon les besoins. Ceux-ci incluent xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[Délégations de verrous exclusives (XLD)] et xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[Délégations de verrous partagés (SLD)].
+
+.XLD et réécriture
+Pour s'assurer que ONTAP n'a jamais à réconcilier une écriture en conflit, un XLD est accordé à un cache où un client demande d'écrire dans un fichier. Il est important de noter qu'un seul XLD peut exister pour n'importe quel fichier à tout moment, ce qui signifie qu'il n'y aura jamais plus d'un rédacteur dans un fichier à la fois.
+
+Lorsque la demande d'écriture dans un fichier arrive dans un cache activé pour l'écriture différée, les étapes suivantes sont effectuées :
+
+. Le cache vérifie s'il possède déjà un XLD pour le fichier demandé. Si c'est le cas, il accordera le verrouillage en écriture au client tant qu'un autre client n'écrit pas dans le fichier au niveau du cache. Si le cache n'a pas de XLD pour le fichier demandé, il en demandera un à l'origine. Il s'agit d'un appel propriétaire qui traverse le réseau intercluster.
+. Lors de la réception de la demande XLD du cache, l'origine vérifie s'il existe un XLD en attente pour le fichier dans un autre cache. Si c'est le cas, il se souviendra de la XLD de ce fichier, qui déclenche un vidage de tout de xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[données corrompues] ce cache à l'origine.
+. Une fois que les données corrompues de ce cache sont vidées et validées dans un stockage stable à l'origine, l'origine accorde le fichier XLD au cache demandeur.
+. Une fois le fichier XLD reçu, le cache accorde le verrouillage au client et l'écriture commence.
+
+
+Un schéma de séquence de haut niveau couvrant certaines de ces étapes est décrit dans le <<write-back-sequence-diagram>> schéma de séquence.
+
+Du point de vue du client, tout verrouillage fonctionnera comme s'il s'agissait d'écrire dans un FlexVol ou un FlexGroup standard avec un petit délai potentiel lorsque le verrouillage en écriture est demandé.
+
+Dans son itération actuelle, si un cache activé pour l'écriture différée contient le XLD pour un fichier, ONTAP bloquera l'accès *any* à ce fichier dans d'autres caches, y compris les `READ` opérations.
+
+
+NOTE: Il y a une limite de 170 XLD par composant d'origine.
+
+
+
+=== Délégations de données
+
+Une délégation de données est une garantie par fichier donnée à un cache par l'origine que les données mises en cache pour ce fichier sont à jour. Tant que le cache dispose d'une délégation de données pour un fichier, il peut transmettre les données en cache pour ce fichier au client sans avoir à contacter l'origine. Si le cache n'a pas de délégation de données pour le fichier, il doit contacter l'origine pour recevoir les données demandées par le client.
+
+En mode écriture différée, la délégation de données d'un fichier est révoquée si un XLD est pris pour ce fichier dans un autre cache ou à l'origine. Cela permet de délocher efficacement le fichier des clients de tous les autres caches et de l'origine, même pour les lectures. Il s'agit d'un compromis à effectuer pour s'assurer que les anciennes données ne sont jamais utilisées.
+
+Les lectures effectuées sur un cache avec écriture différée fonctionnent généralement de la même manière que les lectures effectuées sur un cache avec écriture immédiate. Dans les caches à écriture immédiate et à écriture différée, il peut y avoir un impact initial `READ` sur les performances lorsque le fichier demandé dispose d'un verrouillage en écriture exclusif dans un cache à écriture différée autre que celui où la lecture est émise. La XLD doit être révoquée et les données corrompues doivent être validées à l'origine avant que la lecture sur l'autre cache puisse être traitée.
+
+
+
+== Suivi des données corrompues
+
+L'écriture différée du cache à l'origine se produit de manière asynchrone. Cela signifie que les données corrompues ne sont pas immédiatement réécrites à l'origine. ONTAP utilise un système d'enregistrement des données corrompues pour assurer le suivi des données corrompues par fichier. Chaque enregistrement de données corrompues (DDR) représente environ 20 Mo de données corrompues pour un fichier particulier. Lorsqu'un fichier est en cours d'écriture, ONTAP commence à vider les données corrompues une fois que deux DDRs ont été remplis et que le troisième DDR est en cours d'écriture. Il en résulte qu'environ 40 Mo de données corrompues restent dans un cache pendant les écritures. Pour les protocoles avec état (NFSv4.x, SMB), les 40 Mo de données restantes seront retransmis à l'origine lorsque le fichier est fermé. Pour les protocoles sans état (NFSv3), les 40 Mo de données sont réappliqués lorsque l'accès au fichier est demandé dans un autre cache ou lorsque le fichier est inactif pendant deux minutes ou plus, jusqu'à cinq minutes maximum. Pour plus d'informations sur le vidage des données corrompues déclenché par un temporisateur ou déclenché par un espace, reportez-vous à la section <<Épurateurs de cache>>.
+
+Outre les DDRs et les épurateurs, certaines opérations NAS front-end déclenchent également le vidage de toutes les données corrompues d'un fichier :
+
+* `SETATTR`
++
+** `SETATTRs`: Seules les `mtime`modifications , `atime`ou `ctime` sont traitées au niveau du cache.
+
+
+* `CLOSE`
+* `OPEN` dans un autre cache
+* `READ` dans un autre cache
+* `READDIR` dans un autre cache
+* `READDIRPLUS` dans un autre cache
+* `WRITE` dans un autre cache
+
+
+
+
+== Mode déconnecté
+
+Lorsqu'un XLD pour un fichier est conservé dans un cache d'écriture et que ce cache est déconnecté de l'origine, les lectures pour ce fichier sont toujours autorisées sur les autres caches et à l'origine. Ce comportement est différent lorsqu'un XLD est conservé par un cache activé pour l'écriture différée. Dans ce cas, si le cache est déconnecté, les lectures dans le fichier se suspendent partout. Cela permet d'assurer une cohérence de 100 %, le maintien de la monnaie et de la cohérence. Les lectures sont autorisées en mode d'écriture immédiate car l'origine est garantie que toutes les données disponibles ont été acquittées en écriture sur le client. En mode écriture différée pendant une déconnexion, l'origine ne peut pas garantir que toutes les données écrites et reconnues par le cache activé pour l'écriture différée ont été transmises à l'origine avant la déconnexion.
+
+Si un cache avec un XLD pour un fichier est déconnecté pendant une période prolongée, un administrateur système peut révoquer manuellement le XLD à l'origine. Cela permettra aux E/S du fichier de reprendre au niveau des caches survivants et de l'origine.
+
+
+WARNING: La révocation manuelle du XLD entraîne la perte de toutes les données corrompues du fichier au niveau du cache déconnecté. La révocation manuelle d'un XLD ne doit être effectuée qu'en cas d'interruption catastrophique entre le cache et l'origine.
+
+
+
+== Épurateurs de cache
+
+Des épurateurs dans ONTAP s'exécutent en réponse à des événements spécifiques, tels qu'une temporisation arrivant à expiration ou un dépassement des seuils d'espace. Les épurateurs prennent un verrou exclusif sur le fichier en cours de nettoyage, gelant efficacement les E/S dans ce fichier jusqu'à la fin du nettoyage.
+
+Les épurateurs comprennent :
+
+* *Nettoyage à base de mtime sur le cache:* ce nettoyage démarre toutes les cinq minutes et nettoie tout fichier restant non modifié pendant deux minutes. Si des données corrompues du fichier sont toujours dans le cache, les E/S vers ce fichier sont suspendues et une réécriture est déclenchée. L'E/S reprendra une fois l'écriture différée terminée.
+* *Mtime-based scrobber on origin:* tout comme le scrobber mtime-based au niveau du cache, il s'exécute également toutes les cinq minutes. Cependant, il élimine tout fichier assis non modifié pendant 15 minutes, rappelant la délégation de l'inode. Cette épurateur ne lance pas de réécriture.
+* *RW base de la limite de l'épurateur à l'origine:* ONTAP surveille le nombre de délégations de verrous RW qui sont distribuées par constituant d'origine. Si ce nombre dépasse 170, ONTAP commence à nettoyer les délégations de verrouillage d'écriture sur une base au moins récemment utilisée (LRU).
+* *Nettoyage basé sur l'espace sur le cache:* si un volume FlexCache atteint 90% plein, le cache est vidé, et il est supprimé sur une base LRU.
+* *Scrobber à l'origine :* si un volume d'origine FlexCache atteint 90% plein, le cache est vidé, ce qui l'expulse sur une base LRU.
+
+
+
+
+== Diagrammes de séquence
+
+Ces diagrammes de séquence décrivent la différence entre les accusés de réception d'écriture et les modes de réécriture.
+
+
+
+=== Ecrivez
+
+image::flexcache-write-around-sequence-diagram.png[Diagramme de séquence d'écriture FlexCache]
+
+
+
+=== Réécriture
+
+image::flexcache-write-back-sequence-diagram.png[Schéma de séquence FlexCache-Write-back]

@@ -1,10 +1,10 @@
 ---
 permalink: volumes/qtree-changes-affect-quotas-concept.html 
 sidebar: sidebar 
-keywords: how, qtree, changes, affect, quotas 
+keywords: how, qtree, quota, delete qtree, rename qtree, tree quotas, security, style of a qtree, security style, style 
 summary: 'Lorsque vous supprimez, renommez ou modifiez le style de sécurité d"un qtree, les quotas appliqués par ONTAP peuvent changer en fonction des quotas actuels.' 
 ---
-= Présentation de l'impact des modifications qtree sur les quotas
+= Comment les modifications des qtrees affectent les quotas
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -12,3 +12,44 @@ summary: 'Lorsque vous supprimez, renommez ou modifiez le style de sécurité d"
 
 [role="lead"]
 Lorsque vous supprimez, renommez ou modifiez le style de sécurité d'un qtree, les quotas appliqués par ONTAP peuvent changer en fonction des quotas actuels.
+
+
+
+== Suppressions de qtree et quotas d'arborescence
+
+Lorsque vous supprimez un qtree, tous les quotas applicables à ce qtree, qu'ils soient explicites ou dérivées, ne sont plus appliqués par ONTAP.
+
+La persistance ou non des règles de quota dépend de l'endroit où vous supprimez le qtree :
+
+* Si vous supprimez un qtree via ONTAP, les règles de quotas de ce qtree sont automatiquement supprimées, y compris les règles de quotas d'arborescence, ainsi que toutes les règles de quotas d'utilisateurs et de groupes configurées pour ce qtree.
+* Si vous supprimez un qtree à l'aide de votre client CIFS ou NFS, vous devez supprimer toute règle de quotas applicable à ce qtree pour éviter d'obtenir des erreurs lors de la réinitialisation des quotas. Si vous créez un qtree avec le même nom que celui que vous avez supprimé, les règles de quota existantes ne s'appliquent pas au nouveau qtree tant que vous n'avez pas réinitialisé des quotas.
+
+
+
+
+== La manière dont la modification du nom d'un qtree affecte les quotas
+
+Lorsque vous renommez un qtree en utilisant ONTAP, les règles de quotas correspondant à ce qtree sont automatiquement mises à jour. Si vous renommez un qtree en utilisant vos clients CIFS ou NFS, vous devez mettre à jour les règles de quotas de ce qtree.
+
+
+NOTE: Si vous renommez un qtree en utilisant votre client CIFS ou NFS et que vous ne mettez pas à jour les règles de quota pour ce qtree avec le nouveau nom avant de réinitialiser les quotas, les quotas ne seront pas appliqués au qtree. Les quotas explicites pour le qtree, y compris les quotas d'arborescence et les quotas d'utilisateurs ou de groupes pour le qtree, peuvent être convertis en quotas dérivés
+
+
+
+== Styles de sécurité qtree et quotas d'utilisateurs
+
+Vous pouvez appliquer des listes de contrôle d'accès (ACL) sur les qtrees en utilisant des styles de sécurité NTFS ou mixte, mais pas en utilisant le style de sécurité UNIX. La modification du style de sécurité d'un qtree peut affecter le calcul des quotas. Vous devez toujours réinitialiser les quotas après avoir modifié le style de sécurité d'un qtree.
+
+Si vous modifiez le style de sécurité d'un qtree de NTFS ou Mixed à UNIX, toutes les ACL des fichiers de ce qtree sont ignorées et l'utilisation du fichier est comptabilisée par rapport aux ID d'utilisateurs UNIX.
+
+Si vous modifiez le style de sécurité d'un qtree d'UNIX vers un qtree NTFS ou mixte, les ACL précédemment masquées sont visibles. De plus, les ACL ignorés sont de nouveau effectives et les informations utilisateur NFS sont ignorées. Si aucune ACL n'existait auparavant, les informations NFS continuent à être utilisées dans le calcul du quota.
+
+
+NOTE: Pour s'assurer que les utilisations des quotas d'utilisateurs UNIX et Windows sont correctement calculées après la modification du style de sécurité d'un qtree, vous devez réinitialiser les quotas du volume contenant ce qtree.
+
+.Exemple
+L'exemple suivant montre comment une modification du style de sécurité d'un qtree entraîne l'utilisation d'un utilisateur différent pour l'utilisation d'un fichier dans ce qtree.
+
+Supposons que la sécurité NTFS soit en vigueur sur le qtree A et qu'une liste de contrôle d'accès confère à `corp\joe` l'utilisateur Windows la propriété d'un fichier de 5 Mo. L'utilisateur `corp\joe` est facturé avec 5 Mo d'espace disque utilisé pour le qtree A.
+
+Vous modifiez maintenant le style de sécurité du qtree A de NTFS à UNIX. Une fois les quotas réinitialisés, l'utilisateur Windows `corp\joe` n'est plus facturé pour ce fichier ; à la place, l'utilisateur UNIX correspondant à l'UID du fichier est facturé pour le fichier. L'UID peut être un utilisateur UNIX mappé à `corp\joe` ou à l'utilisateur root.

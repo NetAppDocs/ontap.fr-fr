@@ -13,7 +13,34 @@ summary: Vous pouvez envoyer des requêtes Telnet au cluster pour effectuer des 
 [role="lead"]
 Vous pouvez envoyer des requêtes Telnet au cluster pour effectuer des tâches administratives. Telnet est désactivé par défaut.
 
-.Ce dont vous avez besoin
+Au fil du temps, la façon dont ONTAP gère le type de trafic pris en charge sur les LIF a changé.
+
+* ONTAP 9.5 et les versions antérieures utilisent des rôles LIF et des services de pare-feu
+* Les versions ONTAP 9.6 et ultérieures utilisent les stratégies de service LIF
++
+** La version ONTAP 9.5 a introduit les stratégies de service LIF
+** ONTAP 9.6 a remplacé les rôles LIF par des stratégies de service LIF
+** ONTAP 9.10.1 a remplacé les services de pare-feu par des politiques de service LIF
+
+
+
+
+La méthode que vous configurez dépend de la version de ONTAP que vous utilisez.
+
+Pour en savoir plus sur :
+
+* Politiques de pare-feu, voir link:https://docs.netapp.com/us-en/ontap-cli//system-services-firewall-policy-show.html["Commande : firewall-policy-show"^]
+* Rôles LIF, voir link:../networking/lif_roles95.html["Rôles LIF (ONTAP 9.5 et versions antérieures)"]
+* Politiques de service LIF, voir link:../networking/lifs_and_service_policies96.html["LIF et règles de service (ONTAP 9.6 et versions ultérieures)"]
+
+
+Telnet et RSH ne sont pas des protocoles sécurisés, vous devez envisager d'utiliser SSH pour accéder au cluster. SSH fournit un shell distant sécurisé et une session réseau interactive. Pour plus d'informations, reportez-vous à la section link:./access-cluster-ssh-task.html["Accédez au cluster via SSH"]
+
+[role="tabbed-block"]
+====
+.ONTAP 9.6 ou version ultérieure
+--
+.Avant de commencer
 Les conditions suivantes doivent être remplies pour que vous puissiez utiliser Telnet pour accéder au cluster :
 
 * Vous devez disposer d'un compte utilisateur local de cluster configuré pour utiliser Telnet.
@@ -76,3 +103,65 @@ login: joe
 Password:
 cluster1::>
 ----
+--
+.ONTAP 9.5 ou version antérieure
+--
+.Avant de commencer
+Les conditions suivantes doivent être remplies pour que vous puissiez utiliser Telnet pour accéder au cluster :
+
+* Vous devez disposer d'un compte utilisateur local de cluster configuré pour utiliser Telnet.
++
+Le `-application` paramètre des commandes de connexion de sécurité spécifie la méthode d'accès pour un compte utilisateur. Pour plus d'informations, consultez les pages de manuel de connexion de sécurité.
+
+* Telnet doit déjà être activé dans la politique de pare-feu de gestion utilisée par les LIF de cluster ou de node management afin que les requêtes Telnet puissent passer par le pare-feu.
++
+Par défaut, Telnet est désactivé. La commande de stratégie de pare-feu show des services système avec le paramètre `-service telnet `indique si Telnet a été activé dans une politique de pare-feu. Pour plus d'informations, consultez les pages de manuel de la politique de pare-feu des services système.
+
+* Si vous utilisez des connexions IPv6, vous devez déjà configurer et activer IPv6 sur le cluster, et les politiques de pare-feu doivent déjà être configurées avec des adresses IPv6.
++
+La commande ipv6 show des options réseau indique si IPv6 est activé ou non. La commande system services firewall policy show affiche les politiques de pare-feu.
+
+
+
+.Description de la tâche
+* Telnet n'est pas un protocole sécurisé.
++
+Vous devez envisager d'utiliser SSH pour accéder au cluster. SSH fournit un shell distant sécurisé et une session réseau interactive.
+
+* ONTAP prend en charge un maximum de 50 sessions Telnet simultanées par nœud.
++
+Si la LIF de cluster management réside sur le nœud, il partage cette limite avec la LIF de node management.
+
++
+Si le taux de connexions en cours est supérieur à 10 par seconde, le service est temporairement désactivé pendant 60 secondes.
+
+* Pour accéder à l'interface de ligne de commandes de ONTAP à partir d'un hôte Windows, vous pouvez faire appel à un utilitaire tiers tel que PuTTY.
+
+
+.Étapes
+. Depuis un hôte d'administration, entrez la commande suivante :
++
+`telnet hostname_or_IP`
+
++
+`hostname_or_IP` Est le nom d'hôte ou l'adresse IP de la LIF de cluster management ou d'une LIF de node management. Il est recommandé d'utiliser la LIF de cluster management. Vous pouvez utiliser une adresse IPv4 ou IPv6.
+
+
+
+.Exemple de requête Telnet
+L'exemple suivant montre comment l'utilisateur nommé « joe », qui a été configuré avec un accès Telnet, peut émettre une demande Telnet pour accéder à un cluster dont la LIF de cluster management est 10.72.137.28 :
+
+[listing]
+----
+
+admin_host$ telnet 10.72.137.28
+
+Data ONTAP
+login: joe
+Password:
+
+cluster1::>
+
+----
+--
+====

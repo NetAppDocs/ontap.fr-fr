@@ -1,7 +1,7 @@
 ---
 permalink: system-admin/forward-command-history-log-file-destination-task.html 
 sidebar: sidebar 
-keywords: forward, audit, log, destination, cluster, forwarding, splunk 
+keywords: forward, audit, log, destination, cluster, forwarding, splunk, RFC-3164, RFC-5424 
 summary: 'Vous pouvez transférer le journal d"audit vers un maximum de 10 destinations. Par exemple, vous pouvez transférer le journal vers un serveur Splunk ou syslog à des fins de surveillance, d"analyse ou de sauvegarde.' 
 ---
 = Gérer les destinations du journal d'audit
@@ -16,12 +16,20 @@ Vous pouvez transférer le journal d'audit vers un maximum de 10 destinations. P
 .Description de la tâche
 Pour configurer le transfert, vous devez fournir l'adresse IP de l'hôte syslog ou Splunk, son numéro de port, un protocole de transmission et la fonction syslog à utiliser pour les journaux transférés. https://datatracker.ietf.org/doc/html/rfc5424["En savoir plus sur les installations de syslog"^].
 
-Vous pouvez sélectionner l'une des valeurs de transmission suivantes :
+Vous pouvez sélectionner l'une des valeurs de transmission suivantes à l'aide du `-protocol` paramètre :
 
 UDP non crypté:: Protocole de datagramme utilisateur sans sécurité (par défaut)
 TCP non chiffré:: Protocole de contrôle de transmission sans sécurité
 TCP chiffré:: Protocole de contrôle de transmission avec TLS (transport Layer Security) +
 Une option *Verify Server* est disponible lorsque le protocole TCP chiffré est sélectionné.
+
+
+Le port par défaut est 514 pour UDP et 6514 pour TCP, mais vous pouvez désigner n'importe quel port répondant aux besoins de votre réseau.
+
+Vous pouvez sélectionner l'un des formats de message suivants à l'aide de la `-message-format` commande :
+
+legacy-NetApp:: Variation du format Syslog RFC-3164 (format : <PRIVAL> pris en charge NOM D'HÔTE : MSG)
+rfc-5424:: Format syslog selon RFC-5424 (format : <PRIVAL> MÉRÉRÉSION TIMESTAMP NOM D'HÔTE : MSG)
 
 
 Vous pouvez transférer les journaux d'audit depuis l'interface de ligne de commandes de ONTAP et depuis ONTAP 9.11.1 depuis System Manager.
@@ -45,7 +53,7 @@ cluster1::> cluster log-forwarding create -destination 192.168.123.96
 -port 514 -facility user
 
 cluster1::> cluster log-forwarding create -destination 192.168.123.98
--port 514 -protocol tcp-encrypted -facility user
+-port 6514 -protocol tcp-encrypted -facility user
 ----
 +
 ** Si le `cluster log-forwarding create` la commande ne peut pas envoyer de requête ping à l'hôte de destination pour vérifier la connectivité, la commande échoue avec une erreur. Bien qu'il ne soit pas recommandé, utiliser le `-force` le paramètre utilisé avec la commande ignore la vérification de connectivité.
@@ -62,12 +70,12 @@ cluster1::> cluster log-forwarding show
 Destination Host          Port   Protocol        Server Facility
 ------------------------- ------ --------        ------ --------
 192.168.123.96            514    udp-unencrypted false  user
-192.168.123.98            514    tcp-encrypted   true   user
+192.168.123.98            6514   tcp-encrypted   true   user
 2 entries were displayed.
 ----
 
 
-Consultez les pages de manuel pour plus de détails.
+Consultez la `cluster log-forwarding create` page man pour plus de détails.
 
 --
 ====

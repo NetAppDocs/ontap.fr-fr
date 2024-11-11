@@ -16,23 +16,26 @@ summary: À partir de la version ONTAP 9.11.1, les paramètres de détection de 
 
 
 [role="lead"]
-À partir de la version ONTAP 9.11.1, vous pouvez modifier les paramètres de détection des ransomwares sur un volume spécifique optimisé par la protection anti-ransomware autonome et signaler une augmentation connue sous le nom d'activité de fichier normale. Le réglage des paramètres de détection permet d'améliorer la précision des rapports en fonction de votre charge de travail de volume spécifique.
+Depuis la version ONTAP 9.11.1, vous pouvez modifier les paramètres de détection des ransomwares sur un volume spécifique lorsque la protection anti-ransomware autonome est activée et signaler une augmentation connue sous le nom d'activité de fichier normale. Le réglage des paramètres de détection permet d'améliorer la précision des rapports en fonction de votre charge de travail de volume spécifique.
 
 
 
 == Fonctionnement de la détection des attaques
 
-Lorsque la protection anti-ransomware autonome (ARP) est en mode d'apprentissage, elle développe des valeurs de base pour les comportements de volume. Il s'agit d'entropie, d'extensions de fichiers et, à partir de ONTAP 9.11.1, d'IOPS. Ces données de base sont utilisées pour évaluer les menaces de ransomware. Pour plus d'informations sur ces critères, reportez-vous à la section xref:index.html#what-arp-detects[Ce que le protocole ARP détecte].
+Lorsque la protection anti-ransomware autonome (ARP) est en mode d'apprentissage, elle développe des valeurs de base pour les comportements de volume. Il s'agit d'entropie, d'extensions de fichiers et, à partir de ONTAP 9.11.1, d'IOPS. Ces données de base sont utilisées pour évaluer les menaces de ransomware. Pour plus d'informations sur ces critères, voir xref:index.html#what-arp-detects[Ce que le protocole ARP détecte].
 
 Dans ONTAP 9.10.1, ARP émet un avertissement s'il détecte les deux conditions suivantes :
 
-* plus de 20 fichiers avec des extensions de fichier qui n'ont pas été observées précédemment dans le volume
-* données d'entropie élevées
+* Plus de 20 fichiers avec des extensions de fichier qui n'ont pas été observées précédemment dans le volume
+* Données d'entropie élevées
 
 
-À partir de ONTAP 9.11.1, ARP émet un avertissement de menace si _seule_ une condition est remplie. Par exemple, si plus de 20 fichiers avec des extensions de fichier qui n'ont pas été observées précédemment dans le volume sont observés dans une période de 24 heures, ARP catégorise ceci comme une menace _indépendamment_ de l'entropie observée. (Les valeurs de fichier 24 heures et 20 sont des valeurs par défaut, qui peuvent être modifiées.)
+À partir de ONTAP 9.11.1, ARP émet un avertissement de menace si _seule_ une condition est remplie. Par exemple, si plus de 20 fichiers avec des extensions de fichier qui n'ont pas été observées précédemment dans le volume sont observés dans une période de 24 heures, ARP catégorise ceci comme une menace _indépendamment_ de l'entropie observée. Les valeurs de 24 heures et 20 fichiers sont des valeurs par défaut, qui peuvent être modifiées.
 
-À partir de ONTAP 9.14.1, vous pouvez configurer des alertes lorsque ARP observe une nouvelle extension de fichier et lorsque ARP crée un instantané. Pour plus d'informations, voir <<modify-alerts>>
+
+NOTE: Pour réduire le nombre élevé d'alertes fausses positives, accédez à *stockage > volumes > sécurité > configurer les caractéristiques de la charge de travail* et désactivez *surveiller les nouveaux types de fichiers*. Ce paramètre est désactivé par défaut dans ONTAP 9.14.1 P7, 9.15.1 P1 et 9.16.1 RC et versions ultérieures.
+
+À partir de ONTAP 9.14.1, vous pouvez configurer des alertes lorsque ARP observe une nouvelle extension de fichier et lorsque ARP crée un snapshot. Pour plus d'informations, voir <<modify-alerts>>.
 
 Certains volumes et charges de travail requièrent des paramètres de détection différents. Par exemple, votre volume ARP peut héberger de nombreux types d'extensions de fichiers. Dans ce cas, vous pouvez modifier le nombre de seuils pour les extensions de fichiers jamais vues à un nombre supérieur à la valeur par défaut de 20 ou désactiver les avertissements basés sur des extensions de fichiers jamais vues. À partir de ONTAP 9.11.1, vous pouvez modifier les paramètres de détection des attaques afin qu'ils s'adaptent mieux à vos workloads spécifiques.
 
@@ -75,7 +78,7 @@ Pour obtenir la liste complète des paramètres, reportez-vous à la section lin
 
 == Signaler les surtensions connues
 
-ARP continue de modifier les valeurs de base pour les paramètres de détection, même en mode actif. Si vous connaissez des surtensions dans votre activité de volume--des surtensions ou une surtension qui est caractéristique d'une nouvelle normale--vous devriez la signaler comme sûre. La déclaration manuelle de ces surtensions comme étant sûres contribue à améliorer la précision des évaluations des menaces d'ARP.
+ARP continue de modifier les valeurs de base pour les paramètres de détection, même en mode actif. Si vous connaissez des surtensions dans votre activité de volume, des surtensions ou des surtensions qui sont caractéristiques d'une nouvelle normale, vous devez les signaler comme étant sûres. La déclaration manuelle de ces surtensions comme étant sûres contribue à améliorer la précision des évaluations des menaces d'ARP.
 
 .Signaler une surtension ponctuelle
 . Si une surtension ponctuelle se produit dans des circonstances connues et que vous souhaitez que ARP signale une surtension similaire dans des circonstances futures, éliminez la poussée du comportement de la charge de travail :
@@ -131,7 +134,7 @@ Les alertes d'événements peuvent être contrôlées par une vérification mult
 +
 `security anti-ransomware volume event-log modify -vserver <svm_name> -is-enabled-on-new-file-extension-seen true`
 
-* Pour définir des alertes pour la création d'un instantané ARP :
+* Pour définir des alertes pour la création d'un snapshot ARP :
 +
 `security anti-ransomware volume event-log modify -vserver <svm_name> -is-enabled-on-snapshot-copy-creation true`
 
@@ -143,7 +146,7 @@ Les alertes d'événements peuvent être contrôlées par une vérification mult
 +
 `security anti-ransomware vserver event-log modify -vserver <svm_name> -is-enabled-on-new-file-extension-seen true`
 
-* Pour définir des alertes pour la création d'un instantané ARP :
+* Pour définir des alertes pour la création d'un snapshot ARP :
 +
 `security anti-ransomware vserver event-log modify -vserver <svm_name> -is-enabled-on-snapshot-copy-creation true`
 

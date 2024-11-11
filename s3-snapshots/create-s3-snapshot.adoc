@@ -1,0 +1,117 @@
+---
+sidebar: sidebar 
+permalink: s3-snapshots/create-s3-snapshot.html 
+keywords: s3 snapshots, snapshot create 
+summary: Vous pouvez générer manuellement des snapshots S3 ou définir des règles de snapshots pour créer automatiquement des snapshots S3. 
+---
+= Créer des snapshots S3
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez générer manuellement des snapshots S3 ou définir des règles de snapshots pour créer automatiquement des snapshots S3. Les snapshots servent de copies statiques des objets que vous utilisez pour la sauvegarde et la restauration de données. Pour déterminer la durée de conservation des snapshots, vous pouvez créer des stratégies de snapshots qui facilitent la création automatique de snapshots à des intervalles spécifiques.
+
+Les copies Snapshot S3 vous aident à protéger vos données d'objet dans des compartiments S3, avec ou sans activation de la gestion des versions d'objets.
+
+
+TIP: Les copies Snapshot peuvent être particulièrement utiles pour établir une protection des données lorsque la gestion des versions d'objet n'est pas activée dans un compartiment S3, car elles servent d'enregistrements à un point dans le temps que vous pouvez utiliser pour des opérations de restauration lorsqu'aucune version d'objet précédente n'est disponible.
+
+.Description de la tâche
+* Les règles de nommage suivantes s'appliquent aux instantanés (pour les instantanés manuels et automatiques) :
++
+** Les noms des snapshots S3 peuvent comporter jusqu'à 30 caractères
+** Les noms des snapshots S3 ne peuvent être composés que de lettres minuscules, de chiffres, de points (.) et de tirets (-)
+** Les noms des snapshots S3 doivent se terminer par une lettre ou un chiffre
+** Les noms d'instantanés S3 ne peuvent pas contenir de sous-chaîne `s3snap`
+
+
+* Dans le cadre du protocole S3, les restrictions de dénomination des compartiments limitent le nom d'un compartiment à 63 caractères. Comme les snapshots ONTAP S3 sont présentés sous forme de compartiments via le protocole S3, des restrictions similaires s'appliquent aux noms des compartiments de snapshots. Par défaut, le nom de compartiment d'origine est utilisé comme nom de compartiment de base.
+* Pour faciliter l'identification du snapshot qui appartient à quel compartiment, le nom du compartiment de snapshot se compose du nom du compartiment de base, ainsi que d'une chaîne spéciale `-s3snap-`, préfixée au nom du snapshot. Les noms des compartiments d'instantanés sont formatés comme `<base_bucket_name>-s3snap-<snapshot_name>`.
++
+Par exemple, si vous exécutez la commande suivante pour créer `snap1` sur `bucket-a`, crée un compartiment de snapshot avec nom `bucket-a-s3snap-snap1`, qui est accessible via les clients S3 si vous êtes autorisé à accéder au compartiment de base.
+
++
+[listing]
+----
+vserver object-store-server bucket snapshot create -bucket bucket-a -snapshot snap1
+----
+* Vous ne pouvez pas créer un snapshot dont le nom de compartiment de snapshot comporte plus de 63 caractères.
+* Le nom du snapshot automatique contient le nom de la planification de la règle et l'horodatage, ce qui est similaire à la convention de nommage des snapshots de volume traditionnels. Par exemple, les noms des snapshots planifiés peuvent être `daily-2024-01-01-0015` et `hourly-2024-05-22-1105`.
+
+
+
+
+== Créer manuellement des snapshots S3
+
+Vous pouvez créer manuellement un snapshot S3 à l'aide de l'interface de ligne de commandes de ONTAP. La procédure crée un snapshot sur le cluster local uniquement.
+
+.Étapes
+. Créer un snapshot S3 :
++
+[listing]
+----
+vserver object-store-server bucket snapshot create -vserver <svm_name> -bucket <bucket_name> -snapshot <snapshot_name>
+----
++
+L'exemple suivant illustre la création d'un snapshot nommé `pre-update` sur la `vs0` VM et le compartiment de stockage `website-data` :
+
++
+[listing]
+----
+vserver object-store-server bucket snapshot create -vserver vs0 -bucket website-data -snapshot pre-update
+----
+
+
+
+
+== Attribuez une politique de snapshots S3 à un compartiment
+
+Lorsque vous configurez les règles de Snapshot au niveau du compartiment S3, ONTAP crée automatiquement des snapshots S3 planifiés. À l'instar des règles Snapshot classiques, il est possible de configurer jusqu'à cinq planifications pour les snapshots S3.
+
+Une règle de snapshot spécifie généralement les planifications pour créer des snapshots, le nombre de copies à conserver pour chaque planification, ainsi que le préfixe de planification. Par exemple, une règle peut créer un snapshot S3 tous les jours à 12:10, conserver les deux copies les plus récentes et les nommer `daily-<timestamp>` .
+
+La règle de snapshot par défaut préserve :
+
+* Six copies Snapshot par heure
+* Deux snapshots quotidiens
+* Deux instantanés hebdomadaires
+
+
+.Avant de commencer
+* Une règle Snapshot doit avoir été créée avant de l'attribuer au compartiment S3.
+
+
+
+NOTE: Les règles pour les copies Snapshot S3 suivent les mêmes règles que les autres règles pour les copies Snapshot ONTAP. Cependant, une règle de snapshot avec une période de conservation configurée dans l'une des planifications de snapshots ne peut pas être attribuée à un compartiment S3.
+
+Pour plus d'informations sur la création de règles de snapshot pour la génération automatique de snapshots, reportez-vous link:../data-protection/configure-custom-snapshot-policies-concept.html["Présentation de la configuration des règles de snapshot personnalisées"]à la section .
+
+.Étapes
+. Affecter la politique de snapshots sur votre compartiment :
++
+[listing]
+----
+vserver object-store-server bucket create -vserver <svm_name> -bucket <bucket_name> -snapshot-policy <policy_name>
+----
++
+ou
+
++
+[listing]
+----
+vserver object-store-server bucket modify -vserver <svm_name> -bucket <bucket_name> -snapshot-policy <policy_name>
+----
+
+
+
+NOTE: Si vous devez restaurer un cluster à une version ONTAP antérieure à ONTAP 9.16.1, assurez-vous que la valeur de `snapshot-policy` pour tous les compartiments est définie sur `none` (ou `-`).
+
+.Informations associées
+link:../s3-snapshots/index.html["Présentation des snapshots S3"]

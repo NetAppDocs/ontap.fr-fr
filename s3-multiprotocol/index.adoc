@@ -1,10 +1,10 @@
 ---
 permalink: s3-multiprotocol/index.html 
 sidebar: sidebar 
-keywords: multiprotocol, s3, configuration, overview, nfs, smb 
+keywords: multiprotocol, s3, configuration, overview, nfs, smb, multipart 
 summary: Depuis ONTAP 9.12.1, vous pouvez activer les clients exécutant le protocole S3 pour accéder aux données qui sont servies aux clients qui utilisent les protocoles NFS et SMB sans nouveau formatage. 
 ---
-= Présentation multiprotocole S3
+= Prise en charge multiprotocole S3 dans ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -27,13 +27,13 @@ Vous pouvez désormais fournir un accès intégré pour des applications telles 
 
 
 
-== Fonctionnement du protocole multiprotocole S3
+== Fonctionnement de la prise en charge multiprotocole S3
 
-ONTAP multiprotocole permet de présenter le même jeu de données que la hiérarchie de fichiers ou qu'en tant qu'objets dans un compartiment. Pour ce faire, ONTAP crée des « compartiments NAS S3 » qui permettent aux clients S3 de créer, lire, supprimer et énumérer des fichiers dans le stockage NAS à l'aide de requêtes d'objets S3. Ce mappage est conforme à la configuration de sécurité NAS, en observant les autorisations d'accès aux fichiers et aux répertoires ainsi qu'en écrivant dans la piste d'audit de sécurité si nécessaire.
+La prise en charge multiprotocole de ONTAP vous permet de présenter le même jeu de données sous la forme d'une hiérarchie de fichiers ou d'objets dans un compartiment. Pour ce faire, ONTAP crée des « compartiments NAS S3 » qui permettent aux clients S3 de créer, lire, supprimer et énumérer des fichiers dans le stockage NAS à l'aide de requêtes d'objets S3. Ce mappage est conforme à la configuration de sécurité NAS, en observant les autorisations d'accès aux fichiers et aux répertoires ainsi qu'en écrivant dans la piste d'audit de sécurité si nécessaire.
 
 Ce mappage est effectué en présentant une hiérarchie de répertoires NAS spécifiée comme un compartiment S3. Chaque fichier de la hiérarchie de répertoires est représenté comme un objet S3 dont le nom est relatif à partir du répertoire mappé vers le bas, avec des limites de répertoire représentées par le caractère de barre oblique ('/').
 
-Les utilisateurs standard de ONTAP-defined S3 peuvent accéder à ce stockage, conformément aux règles de compartiment définies pour le compartiment correspondant au répertoire NAS. Pour que cela soit possible, des mappages doivent être définis entre les utilisateurs S3 et SMB/NFS. Les informations d'identification de l'utilisateur SMB/NFS seront utilisées pour la vérification des autorisations NAS et incluses dans tous les enregistrements d'audit résultant de ces accès.
+Les utilisateurs ONTAP-Defined S3 peuvent accéder à ce stockage, tel que régi par les politiques de compartiment définies pour le compartiment qui correspond au répertoire NAS. Pour que cela soit possible, des mappages doivent être définis entre les utilisateurs S3 et SMB/NFS. Les informations d'identification de l'utilisateur SMB/NFS seront utilisées pour la vérification des autorisations NAS et incluses dans tous les enregistrements d'audit résultant de ces accès.
 
 Lorsqu'un fichier est créé par des clients SMB ou NFS, il est immédiatement placé dans un répertoire, et donc visible aux clients, avant l'écriture des données. Les clients S3 s'attendent à une sémantique différente, où le nouvel objet n'est pas visible dans le namespace tant que toutes ses données n'ont pas été écrites. Le mappage de S3 sur le stockage NAS crée des fichiers avec la sémantique S3, afin de rendre les fichiers invisibles en externe jusqu'à la fin de la commande de création S3.
 
@@ -61,6 +61,27 @@ Cependant, les fichiers et les répertoires NAS mappés dans des compartiments N
 
 
 Découvrez link:../nas-audit/index.html["Audit des événements NAS sur les SVM"].
+
+
+
+== Téléchargement partitionné des objets
+
+À partir de ONTAP 9.16.1, le téléchargement partitionné des objets est pris en charge lorsque link:../flexgroup/enable-adv-capacity-flexgroup-task.html["équilibrage avancé de la capacité"] sur les volumes FlexGroup est activé.
+
+Le téléchargement partitionné des objets sur le stockage de fichiers NAS permet à un client protocole S3 de télécharger un objet volumineux en tant que parties plus petites. Le téléchargement partitionné des objets présente les avantages suivants :
+
+* Il permet de télécharger des objets en parallèle.
+* En cas d'échec du téléchargement ou de pause, seules les pièces qui n'ont pas encore été téléchargées devront être téléchargées. Le téléchargement de l'objet entier n'a pas besoin d'être redémarré.
+* Si la taille de l'objet n'est pas connue à l'avance (par exemple, lorsqu'un objet volumineux est toujours en cours d'écriture), les clients peuvent commencer à télécharger immédiatement des parties de l'objet et terminer le téléchargement après la création de l'objet entier.
+
+
+Le téléchargement partitionné prend en charge les actions S3 suivantes :
+
+* AbortMultipartUpload
+* CompleteMultipartUpload
+* CreateMultipartUpload
+* ListMultipartUpload
+
 
 
 
@@ -100,16 +121,6 @@ Gestion des versions:: Il n'est pas possible de spécifier la gestion des versio
 --
 * Les demandes qui incluent des spécifications de version non nulles (versionID=xyz query-string) reçoivent des réponses d'erreur.
 * Les demandes visant à affecter l'état de gestion des versions d'un compartiment sont rejetées avec des erreurs.
-
-
---
-Opérations en plusieurs parties:: Les opérations suivantes ne sont pas prises en charge :
-+
---
-* AbortMultipartUpload
-* CompleteMultipartUpload
-* CreateMultipartUpload
-* ListMultipartUpload
 
 
 --

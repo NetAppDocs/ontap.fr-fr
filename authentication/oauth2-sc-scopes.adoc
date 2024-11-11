@@ -1,0 +1,132 @@
+---
+sidebar: sidebar 
+permalink: authentication/oauth2-sc-scopes.html 
+keywords: self-contained scopes, scopes 
+summary: 'Les étendues autonomes sont des chaînes portées dans le jeton d"accès. Chacune d"entre elles constitue une définition de rôle personnalisée complète et comprend tout ce dont ONTAP a besoin pour prendre une décision d"accès. Le périmètre est distinct et celui de tous les rôles REST définis au sein de ONTAP lui-même.' 
+---
+= Oscilloscopes OAuth 2.0 autonomes
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Les étendues autonomes sont des chaînes portées dans le jeton d'accès. Chacune d'entre elles constitue une définition de rôle personnalisée complète et comprend tout ce dont ONTAP a besoin pour prendre une décision d'accès. Le périmètre est distinct et celui de tous les rôles REST définis au sein de ONTAP lui-même.
+
+
+
+== Format de la chaîne de portée
+
+Au niveau de la base, la portée est représentée sous la forme d'une chaîne contiguë et composée de six valeurs séparées par deux points. Les paramètres utilisés dans la chaîne de portée sont décrits ci-dessous.
+
+
+
+=== Littéral ONTAP
+
+La portée doit commencer par la valeur littérale `ontap` en minuscules. Cette opération identifie la portée en tant que spécifique à ONTAP.
+
+
+
+=== Cluster
+
+Il définit le cluster ONTAP auquel la portée s'applique. Les valeurs peuvent inclure :
+
+* UUID de cluster
++
+Identifie un seul cluster.
+
+* Astérisque (***)
++
+Indique que la portée s'applique à tous les clusters.
+
+
+
+Vous pouvez utiliser la commande CLI de ONTAP `cluster identity show` Pour afficher l'UUID de votre cluster. Si elle n'est pas spécifiée, la portée s'applique à tous les clusters.
+
+
+
+=== Rôle
+
+Nom du rôle REST contenu dans le périmètre autonome. Cette valeur n'est pas examinée par ONTAP ou associée à tout rôle REST existant défini sur ONTAP. Le nom est utilisé pour la journalisation.
+
+
+
+=== Niveau d'accès
+
+Cette valeur indique le niveau d'accès appliqué à l'application client lors de l'utilisation du noeud final de l'API dans le périmètre. Il existe six valeurs possibles, comme décrit dans le tableau ci-dessous.
+
+[cols="25,75"]
+|===
+| Niveau d'accès | Description 
+
+
+| Aucune | Refuse tout accès au noeud final spécifié. 
+
+
+| lecture seule | Autorise uniquement l'accès en lecture à l'aide de GET. 
+
+
+| read_create | Permet l'accès en lecture ainsi que la création de nouvelles instances de ressources à l'aide de POST. 
+
+
+| lire_modifier | Permet l'accès en lecture ainsi que la mise à jour des ressources existantes à l'aide d'un CORRECTIF. 
+
+
+| read_create_modify | Permet tous les accès sauf supprimer. Les opérations autorisées comprennent OBTENIR (lire), POST (créer) et PATCH (mettre à jour). 
+
+
+| tous | Permet un accès complet. 
+|===
+
+
+=== SVM
+
+Nom du SVM au sein du cluster auquel la portée s'applique. Utilisez la valeur *** (astérisque) pour indiquer tous les SVM.
+
+
+CAUTION: Cette fonctionnalité n'est pas entièrement prise en charge par ONTAP 9.14.1. Vous pouvez ignorer le paramètre du SVM et utiliser un astérisque comme emplacement réservé. Vérifiez le https://library.netapp.com/ecm/ecm_download_file/ECMLP2492508["Notes de version de ONTAP"^] Pour vérifier la prise en charge future des SVM.
+
+
+
+=== URI DE L'API REST
+
+Chemin complet ou partiel d'une ressource ou d'un ensemble de ressources associées. La chaîne doit commencer par `/api`. Si vous ne spécifiez pas de valeur, la portée s'applique à tous les terminaux d'API du cluster ONTAP.
+
+
+
+== Exemples de portée
+
+Quelques exemples de portées autonomes sont présentés ci-dessous.
+
+ontap:*:joes-role:read_create_modify:*:/api/cluster:: Permet à l'utilisateur affecté à ce rôle d'accéder en lecture, création et modification à `/cluster` point final.
+
+
+
+
+== Outil d'administration CLI
+
+Pour faciliter l'administration des étendues autonomes et réduire le risque d'erreur, ONTAP fournit la commande CLI `security oauth2 scope` pour générer des chaînes de portée basées sur vos paramètres d'entrée.
+
+La commande `security oauth2 scope` propose deux cas d'utilisation basés sur vos commentaires :
+
+* Paramètres de l'interface de ligne de commande pour la chaîne de périmètre
++
+Vous pouvez utiliser cette version de la commande pour générer une chaîne de portée basée sur les paramètres d'entrée.
+
+* Chaîne d'étendue aux paramètres CLI
++
+Vous pouvez utiliser cette version de la commande pour générer les paramètres de la commande en fonction de la chaîne de périmètre d'entrée.
+
+
+
+.Exemple
+L'exemple suivant génère une chaîne de périmètre avec le résultat inclus après l'exemple de commande ci-dessous. La définition s'applique à tous les clusters.
+
+[listing]
+----
+security oauth2 scope cli-to-scope -role joes-role -access readonly -api /api/cluster
+----
+`ontap:*:joes-role:readonly:*:/api/cluster`

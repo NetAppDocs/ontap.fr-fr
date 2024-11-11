@@ -1,0 +1,144 @@
+---
+permalink: flexgroup/enable-adv-capacity-flexgroup-task.html 
+sidebar: sidebar 
+keywords: flexgroup advanced capacity balancing, flexgroup granular data distribution, gdd, flexgroup, volume, balancing 
+summary: 'Depuis la version ONTAP 9.16.1, un équilibrage avancé de la capacité est introduit pour assurer la distribution des données entre les volumes des membres FlexGroup lorsque les fichiers de très grande taille augmentent et consomment de l"espace sur le volume d"un membre.' 
+---
+= Équilibrez les volumes ONTAP FlexGroup en redistribuant les données de fichier
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de la version ONTAP 9.16.1, vous pouvez activer l'équilibrage avancé de la capacité afin de permettre la distribution des données entre les volumes des membres FlexGroup lorsque les fichiers de très grande taille augmentent et consomment de l'espace sur un volume de membre.
+
+L'équilibrage avancé de la capacité étend les fonctionnalités de données granulaires introduites dans ONTAP 9.12.1, qui permettent à ONTAP de link:manage-flexgroup-rebalance-task.html["Rééquilibrez les volumes FlexGroup"]déplacer des fichiers vers d'autres membres. Depuis la version ONTAP 9.16.1, lorsque l'équilibrage avancé de la capacité est activé avec l' `-granular-data advanced`option, les fonctionnalités de rééquilibrage des fichiers de base ainsi que les fonctionnalités avancées de capacité sont activées.
+
+[NOTE]
+====
+Le rééquilibrage des fichiers et l'équilibrage avancé de la capacité sont désactivés par défaut. Une fois ces fonctionnalités activées, elles ne peuvent pas être désactivées. Si vous devez désactiver l'équilibrage de capacité, vous devez effectuer une restauration à partir d'un snapshot créé avant l'activation de l'équilibrage de capacité avancé.
+
+====
+L'équilibrage avancé de la capacité est déclenché par de nouvelles écritures atteignant 10 Go ou 1 % de l'espace libre d'un volume.
+
+
+
+== Comment les fichiers sont distribués
+
+Lorsqu'un fichier est créé ou qu'il est suffisamment volumineux pour déclencher l'équilibrage avancé de la capacité, le fichier est réparti en bandes entre 1 Go et 10 Go sur les volumes FlexGroup membres.
+
+Lorsque l'équilibrage avancé de la capacité est activé, ONTAP ne répartit pas rétroactivement les fichiers volumineux existants. Si un fichier volumineux existant continue de croître après l'activation de l'équilibrage avancé de la capacité, le nouveau contenu des fichiers volumineux existants peut être réparti sur les volumes FlexGroup membres, selon la taille du fichier et l'espace disponible.
+
+L'équilibrage avancé de la capacité détermine la largeur des bandes en utilisant la quantité d'espace disponible sur le volume membre. L'équilibrage avancé de la capacité crée une bande de fichier représentant 1 % de l'espace libre disponible. Cela signifie que les bandes peuvent commencer par augmenter la taille si davantage d'espace est disponible et qu'elles deviennent plus petites au fur et à mesure que le FlexGroup se remplit.
+
+Outre l'espace disponible sur le volume membre, l'équilibrage avancé de la capacité utilise plusieurs autres facteurs pour déterminer la largeur de bande :
+
+* Largeur de bande minimale : la largeur de bande la plus petite jamais choisie est 1 Go.
+* Largeur de bande maximale : la largeur de bande la plus grande possible est 10 Go.
+* Granularité : les bandes sont toujours créées en multiples de 1 Go.
+
+
+
+
+== Protocoles pris en charge
+
+L'équilibrage avancé de la capacité est pris en charge par les protocoles suivants :
+
+* NFSv3, NFSv4, NFSv4.1
+* PNFS
+* PME
+
+
+
+
+== Activez l'équilibrage avancé de la capacité
+
+L'équilibrage avancé de la capacité est désactivé par défaut. Vous devez activer l'équilibrage avancé de la capacité pour équilibrer automatiquement la capacité FlexGroup. Gardez à l'esprit que vous ne pouvez pas désactiver cette fonction une fois que vous l'avez activée, mais que vous pouvez effectuer une restauration à partir d'un snapshot créé avant l'activation de l'équilibrage avancé de la capacité.
+
+.Avant de commencer
+* Tous les nœuds du cluster doivent exécuter ONTAP 9.16.1 ou une version ultérieure.
+* Vous ne pouvez pas revenir à une version antérieure à ONTAP 9.16.1 si l'équilibrage avancé de la capacité est activé. Si vous devez revenir à la version précédente, vous devez d'abord effectuer une restauration à partir d'un snapshot créé avant d'activer l'équilibrage avancé de la capacité.
+* Si le déchargement des copies NFS a été activé (`vserver nfs -vstorage enabled`) sur un SVM, vous ne pouvez pas activer l'équilibrage avancé de la capacité sur un volume FlexGroup. De même, si l'équilibrage avancé de la capacité est activé sur un volume FlexGroup d'une SVM, vous ne pouvez pas activer la fonction de déchargement des copies NFS.
+* L'équilibrage avancé de la capacité n'est pas pris en charge par l'écriture différée FlexCache.
+
+
+.Description de la tâche
+Lors de la création de volumes de destination DP à l'aide de l'une des options de données granulaires (de base ou avancée), la destination affiche le paramètre comme « Désactivé » jusqu'à la fin du transfert SnapMirror. Une fois le transfert terminé, la destination DP affiche les données granulaires comme étant « activées ».
+
+
+
+=== Activez l'équilibrage avancé de la capacité lors de la création des FlexGroup
+
+.Étapes
+Vous pouvez utiliser System Manager ou l'interface de ligne de commandes de ONTAP pour activer l'équilibrage avancé de la capacité lorsque vous créez un volume FlexGroup.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Accédez à *Storage > volumes* et cliquez sur image:icon_add_blue_bg.gif["Ajouter une icône"].
+. Dans la fenêtre *Ajouter volume*, entrez le nom et la taille du volume. Cliquez ensuite sur *plus d'options*.
+. Sous *stockage et optimisation*, sélectionnez *distribuer les données de volume sur le cluster (FlexGroup)*.
+. Sélectionnez *équilibrage avancé de la capacité*.
+. Terminez la configuration du volume et cliquez sur *Enregistrer*.
+
+
+--
+.CLI
+--
+. Création d'un volume avec l'équilibrage de capacité avancé activé :
++
+[source, cli]
+----
+volume create -vserver <svm name> -volume <volume name> -size <volume size> -auto-provision-as flexgroup -junction-path /<path> -granular-data advanced
+----
++
+Exemple :
+
++
+[listing]
+----
+volume create -vserver vs0 -volume newvol -size 1TB -auto-provision-as flexgroup -junction-path /newvol -granular-data advanced
+----
+
+
+--
+====
+
+
+=== Activez l'équilibrage avancé de la capacité sur les volumes FlexGroup existants
+
+.Étapes
+Vous pouvez utiliser System Manager ou l'interface de ligne de commandes de ONTAP pour activer l'équilibrage avancé de la capacité.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Accédez à *Storage > volumes*, cliquez sur image:icon_kabob.gif["Icône des options de menu"]et choisissez *Edit > Volume*.
+. Dans la fenêtre *Edit volume*, sous *Storage and Optimization*, sélectionnez *Advanced Capacity Balancing*.
+. Cliquez sur *Enregistrer*.
+
+
+--
+.CLI
+--
+. Modifiez un volume FlexGroup existant pour activer l'équilibrage avancé de la capacité :
++
+[source, cli]
+----
+volume modify -vserver <svm name> -volume <volume name> -granular-data advanced
+----
++
+Exemple :
+
++
+[listing]
+----
+volume modify -vserver vs0 -volume newvol  -granular-data advanced
+----
+
+
+--
+====

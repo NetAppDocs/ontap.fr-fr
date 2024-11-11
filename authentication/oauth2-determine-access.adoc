@@ -1,0 +1,121 @@
+---
+sidebar: sidebar 
+permalink: authentication/oauth2-determine-access.html 
+keywords: oauth 2.0, oauth2, scopes, groups, roles, users, determine access 
+summary: 'Pour bien concevoir et mettre en œuvre OAuth 2.0, vous devez comprendre comment ONTAP utilise votre configuration d"autorisation pour prendre des décisions d"accès pour les clients.' 
+---
+= Comment ONTAP détermine l'accès client
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ./media/
+
+
+[role="lead"]
+Pour bien concevoir et mettre en œuvre OAuth 2.0, vous devez comprendre comment ONTAP utilise votre configuration d'autorisation pour prendre des décisions d'accès pour les clients. Les principales étapes permettant de déterminer l'accès sont présentées ci-dessous en fonction de la version de ONTAP.
+
+
+NOTE: Il n'y a pas eu de mises à jour OAuth 2.0 significatives avec ONTAP 9.15.1. Si vous utilisez la version 9.15.1, reportez-vous à la description de ONTAP 9.14.1.
+
+.Informations associées
+* link:../authentication/oauth2-as-servers.html#oauth-2-0-features-supported-in-ontap["Fonctionnalités OAuth 2.0 prises en charge dans ONTAP"]
+
+
+
+
+== ONTAP 9.16.1
+
+ONTAP 9.16.1 étend la prise en charge standard d'OAuth 2.0 pour inclure des extensions spécifiques d'Entra ID Microsoft pour les groupes d'ID Entra natifs ainsi que le mappage de rôles externes.
+
+.Déterminez l'accès client pour ONTAP 9.16.1
+[%collapsible]
+====
+.Étape 1 : oscilloscopes autonomes
+Si le jeton d'accès contient des étendues autonomes, ONTAP examine d'abord ces étendues. S'il n'y a pas de portées autonomes, passez à l'étape 2.
+
+Avec une ou plusieurs portées autonomes présentes, ONTAP applique chaque portée jusqu'à ce qu'une décision explicite *ALLOW* ou *DENY* puisse être prise. Si une décision explicite est prise, le traitement prend fin.
+
+Si ONTAP ne peut pas prendre de décision explicite en matière d'accès, passez à l'étape 2.
+
+.Étape 2 : vérifiez l'indicateur de rôles locaux
+ONTAP examine le paramètre booléen `use-local-roles-if-present` . La valeur de cet indicateur est définie séparément pour chaque serveur d'autorisation défini sur ONTAP.
+
+* Si la valeur est de `true` passez à l'étape 3.
+* Si la valeur est de `false` le traitement se termine et l'accès est refusé.
+
+
+.Étape 3 : rôle REST ONTAP nommé
+Si le jeton d'accès contient un rôle REST nommé dans le `scope` champ ou `scp`, ou en tant que sinistre, ONTAP utilise le rôle pour prendre la décision d'accès. Cela entraîne toujours une décision *ALLOW* ou *DENY* et la fin du traitement.
+
+S'il n'y a pas de rôle REST nommé ou si le rôle est introuvable, passez à l'étape 4.
+
+.Étape 4 : utilisateurs
+Extrayez le nom d'utilisateur du jeton d'accès et essayez de le faire correspondre aux utilisateurs ayant accès à l'application « http ». Les utilisateurs sont examinés en fonction de la méthode d'authentification dans l'ordre suivant :
+
+* mot de passe
+* Domaine (Active Directory)
+* Nsswitch (LDAP)
+
+
+Si un utilisateur correspondant est trouvé, ONTAP utilise le rôle défini pour l'utilisateur afin de prendre une décision d'accès. Cela entraîne toujours une décision *ALLOW* ou *DENY* et la fin du traitement.
+
+Si un utilisateur ne correspond pas ou s'il n'y a pas de nom d'utilisateur dans le jeton d'accès, passez à l'étape 5.
+
+.Étape 5 : groupes
+Si un ou plusieurs groupes sont inclus, le format est examiné. Si les groupes sont représentés en tant qu'UUID, une table de mappage de groupe interne est recherchée. S'il existe une correspondance de groupe et un rôle associé, ONTAP utilise le rôle défini pour le groupe pour prendre une décision d'accès. Cela entraîne toujours une décision *ALLOW* ou *DENY* et la fin du traitement. Pour plus d'informations, voir link:../authentication/oauth2-groups.html["Utilisation des groupes"].
+
+Si les groupes sont représentés par des noms et configurés avec l'autorisation domaine ou nsswitch, ONTAP tente de les faire correspondre à un groupe Active Directory ou LDAP, respectivement. S'il existe une correspondance de groupe, ONTAP utilise le rôle défini pour le groupe pour prendre une décision d'accès. Cela entraîne toujours une décision *ALLOW* ou *DENY* et la fin du traitement.
+
+S'il n'y a pas de correspondance de groupe ou s'il n'y a pas de groupe dans le jeton d'accès, l'accès est refusé et le traitement se termine.
+
+====
+
+
+== ONTAP 9.14.1
+
+La version initiale de OAuth 2.0 prise en charge est introduite avec ONTAP 9.14.1 en fonction des fonctionnalités standard de OAuth 2.0.
+
+.Déterminez l'accès client pour ONTAP 9.14.1
+[%collapsible]
+====
+.Étape 1 : oscilloscopes autonomes
+Si le jeton d'accès contient des étendues autonomes, ONTAP examine d'abord ces étendues. S'il n'y a pas de portées autonomes, passez à l'étape 2.
+
+Avec une ou plusieurs portées autonomes présentes, ONTAP applique chaque portée jusqu'à ce qu'une décision explicite *ALLOW* ou *DENY* puisse être prise. Si une décision explicite est prise, le traitement prend fin.
+
+Si ONTAP ne peut pas prendre de décision explicite en matière d'accès, passez à l'étape 2.
+
+.Étape 2 : vérifiez l'indicateur de rôles locaux
+ONTAP examine le paramètre booléen `use-local-roles-if-present` . La valeur de cet indicateur est définie séparément pour chaque serveur d'autorisation défini sur ONTAP.
+
+* Si la valeur est de `true` passez à l'étape 3.
+* Si la valeur est de `false` le traitement se termine et l'accès est refusé.
+
+
+.Étape 3 : rôle REST ONTAP nommé
+Si le jeton d'accès contient un rôle REST nommé dans le `scope` champ ou `scp`, ONTAP utilise le rôle pour prendre la décision d'accès. Cela entraîne toujours une décision *ALLOW* ou *DENY* et la fin du traitement.
+
+S'il n'y a pas de rôle REST nommé ou si le rôle est introuvable, passez à l'étape 4.
+
+.Étape 4 : utilisateurs
+Extrayez le nom d'utilisateur du jeton d'accès et essayez de le faire correspondre aux utilisateurs ayant accès à l'application « http ». Les utilisateurs sont examinés en fonction de la méthode d'authentification dans l'ordre suivant :
+
+* mot de passe
+* Domaine (Active Directory)
+* Nsswitch (LDAP)
+
+
+Si un utilisateur correspondant est trouvé, ONTAP utilise le rôle défini pour l'utilisateur afin de prendre une décision d'accès. Cela entraîne toujours une décision *ALLOW* ou *DENY* et la fin du traitement.
+
+Si un utilisateur ne correspond pas ou s'il n'y a pas de nom d'utilisateur dans le jeton d'accès, passez à l'étape 5.
+
+.Étape 5 : groupes
+Si un ou plusieurs groupes sont inclus et configurés avec l'autorisation domain ou nsswitch, ONTAP tente de les associer à un groupe Active Directory ou LDAP, respectivement.
+
+S'il existe une correspondance de groupe, ONTAP utilise le rôle défini pour le groupe pour prendre une décision d'accès. Cela entraîne toujours une décision *ALLOW* ou *DENY* et la fin du traitement.
+
+S'il n'y a pas de correspondance de groupe ou s'il n'y a pas de groupe dans le jeton d'accès, l'accès est refusé et le traitement se termine.
+
+====

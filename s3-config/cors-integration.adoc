@@ -1,0 +1,255 @@
+---
+permalink: s3-config/cors-integration.html 
+sidebar: sidebar 
+keywords: cors, cross-origin resource sharing, domain, same origin, s3, s3 api, buckets, nas 
+summary: 'Depuis la version ONTAP 9.16.1, vous pouvez accéder en toute sécurité à vos compartiments S3 à l"aide d"un navigateur web. L"accès est fourni au ONTAP par le biais d"une mise en œuvre de la recommandation de sécurité relative au partage des ressources interorigines (CORS).' 
+---
+= Intégration du partage des ressources entre les sources (CORS) avec ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de ONTAP 9.16.1, vous pouvez configurer le partage de ressources interorigines (CORS) pour permettre aux applications Web clientes de différents domaines d'accéder à vos compartiments ONTAP. Cela permet un accès sécurisé aux objets du compartiment à l'aide d'un navigateur Web.
+
+CORS est un framework basé sur HTTP qui permet aux scripts définis dans une page Web d'accéder aux ressources d'un serveur dans un domaine différent. Le cadre est utilisé pour contourner en toute sécurité la _même-origine politique_ qui est une base précoce pour la sécurité Web. Les concepts clés et la terminologie sont décrits ci-dessous.
+
+.Origine
+Une origine définit précisément l'emplacement et l'identité d'une ressource. Elle est représentée sous la forme d'une combinaison des valeurs suivantes :
+
+* Schéma URI (protocole)
+* Nom d'hôte (nom de domaine ou adresse IP)
+* Numéro de port
+
+
+Voici un exemple simple d'une origine: `https://www.mycompany.com:8001`. Lorsqu'une origine est utilisée avec CORS, elle identifie le client qui fait la demande.
+
+.Règle d'origine identique
+La politique de même origine (SOP) est un concept de sécurité et une restriction appliquée aux scripts basés sur navigateur. La stratégie permet aux scripts initialement chargés à partir d'une page Web d'accéder aux données d'une autre page tant que les deux pages se trouvent dans la même origine. Cette limitation empêche les scripts malveillants d'accéder aux données des pages d'une autre origine.
+
+.Cas d'utilisation CORS courants
+Il existe plusieurs cas d'utilisation généraux pour CORS. La plupart impliquent des instances bien définies d'accès interdomaine, telles que les requêtes AJAX, le chargement de polices, de feuilles de style et de scripts, ainsi que l'authentification interdomaine. Les CORS peuvent également être mis en œuvre dans le cadre d'une application monopage (SPA).
+
+.En-têtes HTTP
+CORS est implémenté à l'aide d'en-têtes insérés dans les requêtes et réponses HTTP. Par exemple, il existe plusieurs en-têtes de réponse qui implémentent le contrôle d'accès et indiquent quelles opérations, y compris les méthodes et les en-têtes, sont autorisées. La présence de l'en-tête _Origin_ dans une requête HTTP la définit comme une requête interdomaine. La valeur d'origine est utilisée par le serveur CORS pour localiser une configuration CORS valide.
+
+.Requête HTTP Preflight
+Il s'agit d'une demande facultative visant à déterminer initialement si un serveur prend en charge les codes de commande, y compris les méthodes et les en-têtes spécifiques. En fonction de la réponse, la demande CORS peut être remplie ou non.
+
+.Compartiments ONTAP
+Un compartiment est un conteneur d'objets stockés et accessibles à partir d'un espace de noms bien défini. Il existe deux types de compartiments ONTAP :
+
+* Compartiments NAS accessibles via les protocoles NAS et S3
+* Compartiments S3 accessibles uniquement via le protocole S3
+
+
+
+
+== Mise en œuvre du CORS au ONTAP
+
+La fonction CORS est activée par défaut avec ONTAP 9.16.1 et les versions ultérieures. Vous devez configurer des CORS au niveau de chaque SVM où il sera actif.
+
+
+NOTE: Il n'existe pas d'option administrative pour désactiver les codes de commande pour un cluster ONTAP. Toutefois, vous pouvez le désactiver en ne définissant aucune règle ou en supprimant toutes les règles existantes.
+
+
+
+=== Cas d'utilisation possibles
+
+L'implémentation ONTAP CORS permet plusieurs topologies possibles pour l'accès aux ressources inter-domaines, notamment :
+
+* Compartiments ONTAP S3 (au sein d'un même SVM ou cluster ou d'un autre SVM ou cluster)
+* Compartiments NAS ONTAP (au sein du même SVM ou cluster ou cluster ou différent)
+* Compartiments ONTAP S3 et NAS (au sein du même SVM ou cluster ou différent)
+* Compartiments ONTAP et compartiments externes des fournisseurs
+* Compartiments dans différentes fuseaux horaires
+
+
+
+
+=== Vue de haut niveau
+
+La figure suivante illustre en détail comment CORS permet l'accès aux compartiments ONTAP S3.
+
+image:s3-cors.png["Utilisation de CORS pour accéder aux compartiments S3"]
+
+
+
+=== Définition des règles CORS
+
+Vous devez définir des règles CORS dans ONTAP pour activer et utiliser la fonction.
+
+
+
+==== Actions de configuration
+
+Il existe trois actions de règle de configuration principale prises en charge dans ONTAP :
+
+* Afficher
+* Création
+* Supprimer
+
+
+Une règle de codes de commande définie dans ONTAP possède plusieurs propriétés, y compris le SVM et le compartiment, ainsi que les origines, les méthodes et les en-têtes autorisés.
+
+
+
+==== Options d'administration
+
+Plusieurs options sont disponibles lors de l'administration de CORS au niveau de votre cluster ONTAP.
+
+.Interface de ligne de commande ONTAP
+Vous pouvez configurer CORS à l'aide de l'interface de ligne de commande. Voir <<Administration de CORS à l'aide de l'interface de ligne de commande>> pour plus d'informations.
+
+.L'API REST DE ONTAP
+Vous pouvez configurer CORS à l'aide de l'API REST ONTAP. Aucun nouveau point final n'a été ajouté pour prendre en charge la fonction CORS. Au lieu de cela, vous pouvez utiliser le noeud final existant suivant :
+
+`/api/protocols/s3/services/{svm.uuid}/buckets/{bucket.uuid}`
+
+Pour plus d'informations, consultez le https://docs.netapp.com/us-en/ontap-automation/["Automatisation ONTAP"^] site de documentation.
+
+.API S3
+Vous pouvez utiliser l'API S3 pour créer et supprimer une configuration CORS sur un compartiment ONTAP. Un administrateur client S3 nécessite suffisamment d'Privileges, notamment :
+
+* Accès ou informations d'identification de clé secrète
+* Règles configurées sur le compartiment pour autoriser l'accès via s3api
+
+
+
+
+=== Mise à niveau et rétablissement
+
+Si vous prévoyez d'utiliser le service de commande pour accéder aux compartiments ONTAP S3, vous devez être conscient de plusieurs problèmes d'administration.
+
+.Mise à niveau
+La fonction CORS est prise en charge lorsque tous les nœuds sont mis à niveau vers 9.16.1. Dans les clusters en mode mixte, la fonction n'est disponible que si la version effective du cluster (ECV) est 9.16.1 ou ultérieure.
+
+.Rétablissement
+Du point de vue de l'utilisateur, toutes les configurations CORS doivent être supprimées avant que la restauration de cluster ne puisse continuer. En interne, l'opération supprimera toutes les bases de données CORS. Il vous sera demandé d'exécuter une commande pour effacer et rétablir ces structures de données.
+
+
+
+== Administration de CORS à l'aide de l'interface de ligne de commande
+
+Vous pouvez utiliser l'interface de ligne de commande ONTAP pour administrer les règles CORS. Les principales opérations sont décrites ci-dessous. Vous devez être au niveau de privilège ONTAP *admin* pour émettre les commandes CORS.
+
+
+
+=== Création
+
+Vous pouvez définir une règle CORS à l'aide de la `vserver object-store-server bucket cors-rule create` commande.
+
+.Paramètres
+Les paramètres utilisés pour créer une règle sont décrits ci-dessous.
+
+[cols="30,70"]
+|===
+| Paramètre | Description 
+
+
+ a| 
+`vserver`
+ a| 
+Spécifie le nom du SVM (vserver) hébergeant le compartiment de serveur de magasin d'objets où la règle est créée.
+
+
+
+ a| 
+`bucket`
+ a| 
+Nom du compartiment sur le serveur de magasin d'objets pour lequel la règle est créée.
+
+
+
+ a| 
+`index`
+ a| 
+Paramètre facultatif indiquant l'index du compartiment de serveur de magasin d'objets dans lequel la règle est créée.
+
+
+
+ a| 
+`rule id`
+ a| 
+Identifiant unique de la règle de compartiment du serveur de magasin d'objets.
+
+
+
+ a| 
+`allowed-origins`
+ a| 
+Liste des origines à partir desquelles les demandes d'origine croisée sont autorisées à provenir de.
+
+
+
+ a| 
+`allowed-methods`
+ a| 
+Liste des méthodes HTTP autorisées dans une requête d'origine croisée.
+
+
+
+ a| 
+`allowed-headers`
+ a| 
+Liste des méthodes HTTP autorisées dans les requêtes d'origine croisée.
+
+
+
+ a| 
+`expose-headers`
+ a| 
+Une liste des en-têtes supplémentaires envoie dans les réponses CORS auxquelles les clients peuvent accéder à partir de leurs applications.
+
+
+
+ a| 
+`max-age-in-seconds`
+ a| 
+Un paramètre facultatif spécifiant la durée pendant laquelle votre navigateur doit mettre en cache une réponse de pré-vol pour une ressource spécifique.
+
+|===
+.Exemple
+[listing]
+----
+vserver object-store-server bucket cors-rule create -vserver vs1 -bucket bucket1 -allowed-origins www.myexample.com -allowed-methods GET,DELETE
+----
+
+
+=== Afficher
+
+Vous pouvez utiliser la commande `vserver object-store-server bucket cors-rule show` pour afficher la liste des règles actuelles et leur contenu.
+
+
+NOTE: L'inclusion du paramètre `-instance` permet d'étendre les données présentées pour chacune des règles. Vous pouvez également spécifier les champs que vous souhaitez.
+
+.Exemple
+[listing]
+----
+server object-store-server bucket cors-rule show -instance
+----
+
+
+=== Supprimer
+
+Vous pouvez utiliser la commande delete pour supprimer une instance d'une règle CORS. Vous avez besoin de `index` la valeur de la règle et l'opération est effectuée en deux étapes :
+
+. Exécutez une `show` commande pour afficher la règle et récupérer son index.
+. Émettez la suppression à l'aide de la valeur d'index.
+
+
+.Exemple
+[listing]
+----
+vserver object-store-server bucket cors-rule delete -vserver vs1 -bucket bucket1 -index 1
+----
+
+
+=== Modifier
+
+Aucune commande CLI n'est disponible pour modifier une règle CORS existante. Pour modifier une règle, procédez comme suit :
+
+. Supprimez la règle existante.
+. Créez une nouvelle règle avec les options souhaitées.
+

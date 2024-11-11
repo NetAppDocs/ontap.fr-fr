@@ -1,0 +1,67 @@
+---
+sidebar: sidebar 
+permalink: s3-snapshots/delete-s3-snapshot.html 
+keywords: s3 snapshots, delete S3 snapshots 
+summary: 'Vous pouvez supprimer les snapshots S3 dont vous n"avez plus besoin et libérer de l"espace de stockage dans vos compartiments.' 
+---
+= Supprimer les snapshots S3
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez supprimer les snapshots S3 dont vous n'avez plus besoin et libérer de l'espace de stockage dans vos compartiments. Vous pouvez supprimer manuellement des snapshots S3 ou modifier les règles de snapshot associées aux compartiments S3 pour modifier le nombre de snapshots à conserver pour une planification.
+
+Les règles de suppression des copies Snapshot pour les compartiments S3 sont les mêmes que pour les règles de copies Snapshot ONTAP classiques. Pour plus d'informations sur la création de règles de snapshot, reportez-vous link:../data-protection/create-snapshot-policy-task.html["Création d'une règle de snapshots"]à la section .
+
+.Description de la tâche
+* Si une version d'objet (dans un compartiment versionné) ou un objet (dans un compartiment non versionné) est capturé dans plusieurs snapshots, l'objet est supprimé du système de fichiers uniquement après la suppression du dernier snapshot qui l'a protégé.
+* Si vous devez supprimer un compartiment S3 contenant des objets avec des snapshots, assurez-vous d'avoir supprimé tous les snapshots de tous les objets de ce compartiment.
+* Si vous devez restaurer une version ONTAP antérieure à ONTAP 9.16.1 d'un cluster, assurez-vous d'avoir supprimé tous les snapshots S3 pour tous les compartiments. Vous devrez peut-être aussi exécuter la `vserver object-store-server bucket clear-snapshot-metadata` commande pour supprimer les métadonnées Snapshot d'un compartiment S3. Pour plus d'informations, reportez-vous à link:../s3-snapshots/delete-s3-snapshot.html#clear-s3-snapshots-metadata["Effacez les métadonnées S3 Snapshot"]la .
+* Lorsque vous supprimez des instantanés par lots, vous pouvez supprimer un grand nombre d'objets capturés dans plusieurs instantanés, libérant ainsi plus d'espace que la suppression d'un snapshot individuel. Vous pouvez ainsi récupérer davantage d'espace pour vos objets de stockage.
+
+
+.Étapes
+. Pour supprimer un snapshot S3 spécifique, exécutez la commande suivante :
++
+[listing]
+----
+vserver object-store-server bucket snapshot delete -vserver <svm_name> -bucket <bucket_name> -snapshot <snapshot_name>
+----
+. Pour supprimer tous les snapshots S3 d'un compartiment, exécutez la commande suivante :
++
+[listing]
+----
+vserver object-store-server bucket snapshot delete -vserver <svm_name> -bucket <bucket_name> -snapshot *
+----
+
+
+
+
+== Effacez les métadonnées S3 Snapshot
+
+Avec les copies Snapshot S3, les métadonnées Snapshot sont également générées dans un compartiment. Les métadonnées de snapshot restent dans le compartiment même si tous les snapshots y sont supprimés. La présence de métadonnées Snapshot bloque les opérations suivantes :
+
+* Le cluster revient à une version ONTAP antérieure à ONTAP 9.16.1
+* Configuration de SnapMirror S3 sur le compartiment
+
+
+Avant d'effectuer ces opérations, vous devez effacer toutes les métadonnées Snapshot du compartiment.
+
+.Avant de commencer
+Assurez-vous d'avoir supprimé tous les snapshots S3 d'un compartiment avant de commencer à effacer les métadonnées.
+
+.Étapes
+. Pour effacer les métadonnées Snapshot d'un compartiment, lancer la commande suivante :
+
+
+[listing]
+----
+vserver object-store-server bucket clear-snapshot-metadata -vserver <svm_name> -bucket <bucket_name>
+----

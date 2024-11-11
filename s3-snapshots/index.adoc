@@ -1,0 +1,83 @@
+---
+sidebar: sidebar 
+permalink: s3-snapshots/index.html 
+keywords: s3 snapshots, S3 Snapshot copy overview, what is S3 snapshot, can you create S3 snapshots 
+summary: 'Créez une sauvegarde instantanée de votre compartiment S3 à l"aide de la technologie Snapshot S3.' 
+---
+= Présentation des snapshots S3
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de la version ONTAP 9.16.1, vous pouvez utiliser la technologie Snapshot de ONTAP pour générer des images instantanées en lecture seule de vos compartiments ONTAP S3.
+
+La fonctionnalité S3 snapshots vous permet de créer manuellement des snapshots ou de les générer automatiquement via des règles Snapshot. Les snapshots S3 sont présentés sous forme de compartiments S3 aux clients S3. Vous pouvez parcourir et restaurer le contenu à partir des snapshots via les clients S3.
+
+Dans ONTAP 9.16.1, les snapshots S3 capturent uniquement les versions actuelles des objets dans des compartiments S3. Les versions non actuelles des compartiments avec version ne sont pas capturées dans les snapshots S3. En outre, les balises d'objet à un point dans le temps ne sont pas capturées dans les snapshots si les balises d'objet sont modifiées une fois les snapshots pris.
+
+
+TIP: Les snapshots S3 reposent sur l'heure du cluster. Vous devez configurer le serveur NTP de votre cluster afin de le synchroniser. Pour plus d'informations, reportez-vous link:../system-admin/manage-cluster-time-concept.html["Gestion de l'heure du cluster"]à .
+
+.Quota et utilisation de l'espace
+Les quotas assurent le suivi du nombre d'objets et de la taille logique utilisés dans un compartiment S3. Lorsque des snapshots S3 sont créés, les objets capturés dans les snapshots S3 sont comptabilisés dans le nombre d'objets de compartiment et dans la taille utilisés, jusqu'à ce que les snapshots soient supprimés du système de fichiers.
+
+.Objets multipièces
+Pour les objets à pièces multiples, seuls les objets finaux sont capturés dans des instantanés. Les chargements partiels d'objets en plusieurs parties ne sont pas capturés dans des instantanés.
+
+
+
+== Snapshots dans des compartiments avec et sans version
+
+Vous pouvez créer des snapshots sur des compartiments avec et sans version. Le snapshot ne contient que les versions d'objet en cours à la fois lorsque le snapshot est capturé.
+
+.Compartiments et snapshots versionnés
+Dans les compartiments où la gestion des versions d'objet est activée, un snapshot conserve le contenu de la version d'objet la plus récente après laquelle le snapshot a été créé. Il exclut les versions non actuelles du compartiment.
+
+Prenons l'exemple suivant : dans un compartiment où la gestion des versions d'objet est activée, l'objet `obj1` possède les versions v1, v2, v3, v4, v5. Vous avez créé un snapshot `snap1` à partir de `obj1` v3 (la version la plus récente au point de capture). Lors de la navigation `snap1`, `obj1` apparaît en tant qu'objet avec le contenu créé à v3. Le contenu des versions précédentes ne sera pas renvoyé.
+
+
+NOTE: Les versions non actuelles sont conservées dans le système de fichiers jusqu'à ce que les instantanés soient supprimés.
+
+.Compartiments et snapshots sans version
+Dans les compartiments non versionnés, les snapshots S3 préservent le contenu des dernières validations avant la création des snapshots.
+
+Prenons l'exemple suivant : dans un compartiment où la gestion des versions d'objet n'est pas disponible, l'objet `obj1` a été écrasé plusieurs fois à (t1, t2, t3, t4 et t5). Vous avez créé un snapshot S3 `snap1` entre t3 et t4. Lors de la navigation `snap1`, `obj1` apparaît avec le contenu créé sur t3.
+
+
+
+== Expiration des objets et snapshots
+
+L'expiration des objets ONTAP S3 et les snapshots S3 fonctionnent indépendamment les uns des autres. La fonctionnalité d'expiration des objets ONTAP expire les versions d'objets en fonction des règles de gestion du cycle de vie définies pour le compartiment S3. Les snapshots S3 sont des copies statiques des objets du compartiment à un point dans le temps où les snapshots sont créés.
+
+Si la gestion des versions d'objet est activée dans un compartiment, lorsqu'une version spécifique d'un objet est supprimée en raison d'une règle d'expiration définie pour ce compartiment, le contenu de la version d'objet expirée continue de rester dans le système de fichiers si la version a été capturée en tant que version actuelle dans un ou plusieurs snapshots S3. Cette version d'objet cesse d'exister dans le système de fichiers uniquement lorsque ce snapshot est supprimé.
+
+De même, dans un compartiment dans lequel la gestion de version est désactivée, si un objet est supprimé en fonction d'une règle d'expiration, mais qu'il est toujours capturé dans quelques snapshots S3 existants, cet objet est conservé dans le système de fichiers. L'objet sera définitivement supprimé du système de fichiers lorsque les snapshots qui l'capturent sont supprimés.
+
+Pour plus d'informations sur l'expiration et la gestion du cycle de vie des objets S3, reportez-vous à la link:../s3-config/create-bucket-lifecycle-rule-task.html["Créez une règle de gestion du cycle de vie des compartiments"].
+
+
+
+== Limites de l'utilisation des snapshots S3
+
+Notez les exclusions et les scénarios suivants dans ONTAP 9.16.1 :
+
+* Vous pouvez générer jusqu'à 1023 copies Snapshot pour un compartiment S3.
+* Il est nécessaire de supprimer tous les snapshots S3 et toutes les métadonnées de tous les compartiments d'un cluster avant de restaurer le cluster à une version ONTAP antérieure à ONTAP 9.16.1.
+* Si vous devez supprimer un compartiment S3 contenant des objets avec des snapshots, assurez-vous d'avoir supprimé tous les snapshots correspondants de tous les objets de ce compartiment.
+* Les snapshots S3 ne sont pas pris en charge dans les configurations suivantes :
++
+** Compartiments dans une relation SnapMirror
+** Sur les compartiments où le verrouillage des objets est activé
+** Sur NetApp BlueXP 
+** Dans System Manager
+** Dans les configurations ONTAP MetroCluster
+
+
+

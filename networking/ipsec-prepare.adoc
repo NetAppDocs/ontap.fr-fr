@@ -1,0 +1,138 @@
+---
+sidebar: sidebar 
+permalink: networking/ipsec-prepare.html 
+keywords: ip security, ipsec, data-in-motion, in-flight encryption, ONTAP ipsec evolution, security policy database, spd, hardware offload, nic 
+summary: 'À partir de ONTAP 9.8, vous avez la possibilité d"utiliser la sécurité IP (IPSec) pour protéger votre trafic réseau. IPSec est l"une des nombreuses options de chiffrement de données en mouvement ou à la volée disponibles avec ONTAP. Vous devez vous préparer à configurer IPsec avant de l"utiliser dans un environnement de production.' 
+---
+= Préparez-vous à utiliser la sécurité IP
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir de ONTAP 9.8, vous avez la possibilité d'utiliser la sécurité IP (IPSec) pour protéger votre trafic réseau. IPSec est l'une des nombreuses options de chiffrement de données en mouvement ou à la volée disponibles avec ONTAP. Vous devez vous préparer à configurer IPsec avant de l'utiliser dans un environnement de production.
+
+
+
+== Mise en œuvre de la sécurité IP dans ONTAP
+
+IPSec est une norme Internet gérée par l'IETF. Il assure le cryptage et l'intégrité des données ainsi que l'authentification du trafic circulant entre les terminaux réseau au niveau IP.
+
+Avec ONTAP, IPSec sécurise l'ensemble du trafic IP entre ONTAP et les différents clients, notamment les protocoles NFS, SMB et iSCSI. En plus de la confidentialité et de l'intégrité des données, le trafic réseau est protégé contre plusieurs attaques, telles que les attaques par réexécution et les attaques de l'homme du milieu. ONTAP utilise l'implémentation du mode de transport IPsec. Il s'appuie sur le protocole Internet Key Exchange (IKE) version 2 pour négocier le matériel clé entre ONTAP et les clients utilisant IPv4 ou IPv6.
+
+Lorsque la fonctionnalité IPSec est activée sur un cluster, le réseau requiert une ou plusieurs entrées de la base de données SPD (Security Policy Database) de ONTAP correspondant aux différentes caractéristiques de trafic. Ces entrées sont mappées aux détails de protection spécifiques nécessaires au traitement et à l'envoi des données (par exemple, suite de chiffrement et méthode d'authentification). Une entrée SPD correspondante est également nécessaire pour chaque client.
+
+Pour certains types de trafic, une autre option de chiffrement des données en mouvement peut être préférable. Par exemple, pour le chiffrement du trafic NetApp SnapMirror et de peering de cluster, le protocole TLS (transport Layer Security) est généralement recommandé à la place d'IPsec. En effet, TLS offre de meilleures performances dans la plupart des situations.
+
+.Informations associées
+* https://www.ietf.org/["Internet Engineering Task Force"^]
+* https://www.rfc-editor.org/info/rfc4301["RFC 4301 : Architecture de sécurité pour le protocole Internet"^]
+
+
+
+
+== Évolution de l'implémentation ONTAP IPsec
+
+IPSec a été introduit pour la première fois avec ONTAP 9.8. La mise en œuvre a continué d'évoluer et de s'améliorer comme décrit ci-dessous.
+
+
+NOTE: Sauf mention contraire, lorsqu'une fonctionnalité est introduite à partir d'une version spécifique de ONTAP, elle est également prise en charge dans les versions ultérieures.
+
+.ONTAP 9.16.1
+Plusieurs opérations cryptographiques, telles que le cryptage et les contrôles d'intégrité, peuvent être déchargées sur une carte NIC prise en charge. Voir <<Fonctionnalité de déchargement matériel IPsec>> pour plus d'informations.
+
+.ONTAP 9.12.1
+La prise en charge du protocole hôte IPSec frontal est disponible dans les configurations MetroCluster IP et MetroCluster FAS. La prise en charge IPsec fournie avec les clusters MetroCluster est limitée au trafic hôte frontal et n'est pas prise en charge sur les LIF intercluster MetroCluster.
+
+.ONTAP 9.10.1
+Les certificats peuvent être utilisés pour l'authentification IPsec en plus des clés prépartagées (PSK). Avant ONTAP 9.10.1, seuls les PSK sont pris en charge pour l'authentification.
+
+.ONTAP 9.9.1
+Les algorithmes de chiffrement utilisés par IPsec sont validés par la norme FIPS 140-2-2. Ces algorithmes sont traités par le module cryptographique NetApp de ONTAP, qui est certifié FIPS 140-2-2.
+
+.ONTAP 9.8
+La prise en charge d'IPsec devient initialement disponible en fonction de l'implémentation du mode de transport.
+
+
+
+== Fonctionnalité de déchargement matériel IPsec
+
+Si vous utilisez ONTAP 9.16.1 ou une version ultérieure, vous avez la possibilité de transférer certaines opérations à forte intensité de calcul, telles que le cryptage et les contrôles d'intégrité, vers une carte de contrôleur d'interface réseau (NIC) installée sur le nœud de stockage. L'utilisation de cette option de déchargement matériel peut améliorer considérablement les performances et le débit du trafic réseau protégé par IPsec.
+
+
+
+=== Exigences et recommandations
+
+Vous devez tenir compte de plusieurs exigences avant d'utiliser la fonction de déchargement matériel IPsec.
+
+.Cartes Ethernet prises en charge
+Vous devez installer et utiliser uniquement les cartes Ethernet prises en charge sur les nœuds de stockage. Les cartes Ethernet suivantes sont prises en charge par ONTAP 9.16.1 :
+
+* X50131A (contrôleur Ethernet CX7 2p, 40G/100G/200G/400G)
+* X60243A (contrôleur Ethernet CX7 4 p, 10 G/25 G)
+
+
+.Étendue du cluster
+La fonction de déchargement matériel IPSec est configurée globalement pour le cluster. Et ainsi, par exemple, la commande `security ipsec config` s'applique à tous les nœuds du cluster.
+
+.Configuration cohérente
+Les cartes NIC prises en charge doivent être installées sur tous les nœuds du cluster. Si une carte NIC prise en charge n'est disponible que sur certains nœuds, vous pouvez constater une dégradation importante des performances après un basculement si certaines LIF ne sont pas hébergées sur une carte réseau prenant en charge le déchargement.
+
+.Désactiver l'anti-relecture
+Vous devez désactiver la protection anti-relecture IPSec sur ONTAP (configuration par défaut) et les clients IPsec. Si elle n'est pas désactivée, la fragmentation et le multi-chemin (route redondante) ne sont pas pris en charge.
+
+
+
+=== Limites
+
+Vous devez tenir compte de plusieurs limitations avant d'utiliser la fonction de déchargement matériel IPsec.
+
+.IPv6
+La version IP 6 n'est pas prise en charge pour la fonction de déchargement matériel IPsec. IPv6 est uniquement pris en charge avec l'implémentation du logiciel IPsec.
+
+.Numéros de séquence étendus
+Les numéros de séquence étendus IPsec ne sont pas pris en charge avec la fonction de déchargement matériel. Seuls les numéros de séquence 32 bits normaux sont utilisés.
+
+.Agrégation de liens
+La fonction de déchargement matériel IPSec ne prend pas en charge l'agrégation de liens. Il ne peut donc pas être utilisé avec une interface ou un groupe d'agrégation de liens tel qu'administré par le biais des `network port ifgrp` commandes de l'interface de ligne de commandes de ONTAP.
+
+
+
+=== Prise en charge de la configuration dans l'interface de ligne de commandes ONTAP
+
+Trois commandes CLI existantes sont mises à jour dans ONTAP 9.16.1 pour prendre en charge la fonctionnalité de déchargement matériel IPSec comme décrit ci-dessous. Voir également link:../networking/ipsec-configure.html["Configurer la sécurité IP dans ONTAP"]pour plus d'informations.
+
+[cols="40,60"]
+|===
+| Commande ONTAP | Mise à jour 
+
+
+| `security ipsec config show` | Le paramètre booléen `Offload Enabled` indique l'état actuel du déchargement de la carte réseau. 
+
+
+| `security ipsec config modify` | Le paramètre `is-offload-enabled` peut être utilisé pour activer ou désactiver la fonction de déchargement de carte réseau. 
+
+
+| `security ipsec config show-ipsecsa` | Quatre nouveaux compteurs ont été ajoutés pour afficher le trafic entrant et sortant en octets et en paquets. 
+|===
+
+
+=== Prise en charge de la configuration dans l'API REST ONTAP
+
+Deux terminaux d'API REST existants sont mis à jour dans ONTAP 9.16.1 pour prendre en charge la fonctionnalité de déchargement matériel IPSec, comme décrit ci-dessous.
+
+[cols="40,60"]
+|===
+| Terminal REST | Mise à jour 
+
+
+| `/api/security/ipsec` | Le paramètre `offload_enabled` a été ajouté et est disponible avec la méthode PATCH. 
+
+
+| `/api/security/ipsec/security_association` | Deux nouvelles valeurs de compteur ont été ajoutées pour suivre le nombre total d'octets et de paquets traités par la fonction de déchargement. 
+|===
+Pour en savoir plus sur l'API REST ONTAP, y compris https://docs.netapp.com/us-en/ontap-automation/whats-new.html["Quelles sont les nouveautés de l'API REST de ONTAP"^], consultez le site de documentation sur l'automatisation ONTAP. Vous devez également consulter la documentation ONTAP https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html["Référence API"^] pour plus de détails sur les noeuds finaux IPSec.

@@ -1,22 +1,171 @@
 ---
 permalink: volumes/qtrees-partition-your-volumes-concept.html 
 sidebar: sidebar 
-keywords: use, qtrees, partition, flexvol volumes 
-summary: Les qtrees vous permettent de partitionner vos volumes FlexVol en segments de plus petite taille, que vous pouvez gérer individuellement. Vous pouvez utiliser des qtrees pour gérer les quotas, le style de sécurité et les oplocks CIFS. 
+keywords: volumes, volume partitioning, qtrees, flexvol volumes, performance, metrics, extended performance monitoring 
+summary: 'Les qtrees vous permettent de partitionner les volumes FlexVol en segments plus petits, qui peuvent être gérés individuellement. Le partitionnement de volume activé par des qtrees offre un niveau de contrôle plus précis lors de l"administration du stockage par projet, utilisateur ou groupe. Vous pouvez utiliser des qtrees pour mieux gérer les quotas, le style de sécurité et les oplocks CIFS.' 
 ---
-= Qtrees et partitionnement FlexVol volume
+= Qtrees et partitionnement ONTAP FlexVol volume
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Les qtrees vous permettent de partitionner vos volumes FlexVol en segments de plus petite taille, que vous pouvez gérer individuellement. Vous pouvez utiliser des qtrees pour gérer les quotas, le style de sécurité et les oplocks CIFS.
+Les qtrees vous permettent de partitionner les volumes FlexVol en segments plus petits, qui peuvent être gérés individuellement. Le partitionnement de volume activé par des qtrees offre un niveau de contrôle plus précis lors de l'administration du stockage par projet, utilisateur ou groupe. Vous pouvez utiliser des qtrees pour mieux gérer les quotas, le style de sécurité et les oplocks CIFS.
 
-ONTAP crée un qtree par défaut, appelé _qtree0_, pour chaque volume. Si vous ne placez pas les données dans un qtree, elles résident dans qtree0.
 
-Les noms des qtree ne doivent pas comporter plus de 64 caractères.
+NOTE: ONTAP crée un qtree par défaut pour chaque volume nommé *qtree0*. Si vous ne placez pas de données dans un qtree spécifique, elles sont placées dans qtree0.
 
-Les répertoires ne peuvent pas être déplacés vers des qtrees. Seuls les fichiers peuvent être déplacés entre les qtrees.
 
-Si vous créez des partages au niveau des qtrees et des partages au niveau des volumes sur le même pool FlexVol ou SCVMM, les qtrees apparaissent comme des répertoires sur le partage FlexVol. Par conséquent, veillez à ne pas les supprimer accidentellement.
+
+== Limitations générales
+
+Vous devez connaître les limites des qtrees avant de les utiliser dans un environnement de production. Vérifiez également <<Fonctionnement et limitations>>si vous utilisez la fonctionnalité de contrôle des performances qtree étendue.
+
+* Les noms de qtree ne peuvent pas comporter plus de 64 caractères.
+* Certains caractères spéciaux utilisés dans les noms de qtree, tels que des virgules et des espaces, peuvent causer des problèmes avec d'autres fonctionnalités ONTAP et doivent être évités.
+* Vous ne pouvez pas déplacer de répertoires entre différents qtrees. Seuls les fichiers peuvent être déplacés entre les qtrees.
+* Si vous créez des partages au niveau des qtrees et des partages au niveau des volumes sur le même pool FlexVol ou SCVMM, les qtrees apparaissent comme des répertoires sur le partage FlexVol. Veillez à ne pas les supprimer accidentellement.
+
+
+
+
+== Commandes de gestion et de configuration des qtrees
+
+Vous pouvez gérer et configurer les qtrees à l'aide de l'interface de ligne de commande de ONTAP. En fonction de ce que vous souhaitez faire, vous devez utiliser les commandes suivantes pour administrer les qtrees.
+
+[NOTE]
+====
+La commande `volume rehost` peut entraîner l'échec d'autres opérations d'administration simultanées ciblées sur le même volume.
+
+====
+|===
+
+
+| Les fonctions que vous recherchez... | Utilisez cette commande... 
+
+
+ a| 
+Créer un qtree
+ a| 
+`volume qtree create`
+
+
+
+ a| 
+Affiche une liste filtrée des qtrees
+ a| 
+`volume qtree show`
+
+
+
+ a| 
+Supprimer un qtree
+ a| 
+`volume qtree delete`
+
+
+NOTE: Cette commande échoue à moins que le qtree soit vide ou que l'indicateur soit `-force true` utilisé.
+
+
+
+ a| 
+Modifier les autorisations UNIX d'un qtree
+ a| 
+`volume qtree modify -unix-permissions`
+
+
+
+ a| 
+Modifier le paramètre des oplocks CIFS d'un qtree
+ a| 
+`volume qtree oplocks`
+
+
+
+ a| 
+Modifier le paramètre de sécurité d'un qtree
+ a| 
+`volume qtree security`
+
+
+
+ a| 
+Renommer un qtree
+ a| 
+`volume qtree rename`
+
+
+
+ a| 
+Afficher les statistiques d'un qtree
+ a| 
+`volume qtree statistics`
+
+
+
+ a| 
+Réinitialiser les statistiques d'un qtree
+ a| 
+`volume qtree statistics -reset`
+
+|===
+
+
+== Contrôle des performances qtree étendu
+
+Depuis la version ONTAP 9.16.1, vous pouvez utiliser l'API REST ONTAP pour accéder aux fonctionnalités de surveillance qtree étendue, qui incluent des metrics de latence et des statistiques d'historique.
+
+L'API REST ONTAP comprend plusieurs terminaux associés à des qtrees. Avant ONTAP 9.16.1, les clients pouvaient accéder à des statistiques en temps réel pour les qtrees, y compris les opérations d'E/S par seconde (IOPS), ainsi qu'au débit pour les opérations de lecture, d'écriture et autres.
+
+La surveillance des performances des qtrees étendus disponible à partir de ONTAP 9.16.1 vous permet de surveiller les statistiques de latence en temps réel ainsi que les IOPS et le débit pour NFSv3, NFSv4.0, NFSv4.2, pNFS (techniquement intégré à NFSv4.1 et NFSv4.2) et CIFS. Il collecte et archive également des statistiques pour permettre l'affichage des données historiques de performances.
+
+Cette surveillance étendue fournit aux administrateurs du stockage une meilleure visibilité sur les performances du système. Vous pouvez utiliser ces données pour identifier les qtrees hautement utilisés, les goulots d'étranglement potentiels et d'autres domaines dans le cadre de l'amélioration de la qualité de service. L'analyse de ces mesures, y compris les tendances sur une période plus longue, vous permet de prendre des décisions mieux informées basées sur les données.
+
+
+
+=== Fonctionnement et limitations
+
+Il existe plusieurs caractéristiques opérationnelles, notamment des limites. Vous devez tenir compte avant d'utiliser la fonctionnalité de surveillance des performances qtree étendue dans un environnement de production.
+
+.Remontage requis
+Une fois la surveillance étendue qtree activée, vous devez remonter le volume affecté pour activer la fonctionnalité.
+
+.Disponibilité des statistiques
+Après avoir activé la surveillance étendue des performances, les données statistiques ne sont pas immédiatement disponibles. Notamment les statistiques d'IOPS, de débit et de latence. L'affichage de ces données sur un qtree peut prendre jusqu'à cinq minutes.
+
+.Nombre de qtrees par cluster
+Vous pouvez activer le contrôle des performances étendu pour un maximum de 50,000 qtrees dans un cluster ONTAP.
+
+
+
+=== Accédez à des metrics étendues via l'API REST ONTAP
+
+Depuis la version ONTAP 9.16.1, vous pouvez accéder à la fonctionnalité de surveillance des performances qtree étendue via l'API REST ONTAP. Les fonctionnalités de base se divisent en plusieurs catégories, comme décrit ci-dessous.
+
+.Activer et désactiver la surveillance étendue des performances
+Vous pouvez accéder à la propriété `ext_performance_monitoring.enabled` au niveau du noeud final `/api/storage/qtrees` pour activer ou désactiver la fonction de surveillance étendue. Les méthodes POST et PATCH sont disponibles selon que vous créez un nouveau qtree ou que vous configurez un qtree existant.
+
+.Récupère les metrics et les paramètres de surveillance globaux
+Plusieurs nouvelles propriétés globales ont été ajoutées au `/api/storage/qtrees` noeud final. Vous pouvez récupérer ces champs à l'aide de la méthode GET.
+
+.Récupère les metrics pour un qtree spécifique
+Vous pouvez utiliser la méthode GET au niveau du terminal `/api/storage/qtrees/{volume.uuid}/{id}/metrics` pour récupérer les nouvelles propriétés de statistiques et de metrics d'un qtree spécifique, telles que définies au niveau d'un volume spécifique.
+
+
+
+=== Mise à niveau et rétablissement
+
+Si vous activez cette fonctionnalité dans ONTAP 9.16.1, vous pouvez effectuer une mise à niveau vers une version ONTAP ultérieure sans restrictions. Cependant, il y a deux scénarios à prendre en compte.
+
+.Mise à niveau vers la version 9.16.1 et gestion des clusters à versions mixtes
+La fonction de surveillance étendue des performances ne peut pas être utilisée (c'est-à-dire, `ext_performance_monitoring.enabled` ne peut pas être définie sur `true`) tant que la version effective du cluster (ECV) du cluster n'est pas à 9.16.1.
+
+.Revenir à 9.16.1
+Si la propriété de chaque qtree `ext_performance_monitoring.enabled` est définie sur `true`, le rétablissement de la version 9.15.1 à partir de la version 9.16.1 n'est pas autorisé. L'opération de restauration est bloquée. La meilleure pratique consiste à définir `ext_performance_monitoring.enabled` sur `false` pour tous les qtrees avant de revenir à une version antérieure de ONTAP.
+
+
+
+=== En savoir plus >>
+
+Pour plus d'informations sur l'API REST ONTAP, reportez-vous à la documentation sur l'automatisation ONTAP, y compris https://docs.netapp.com/us-en/ontap-automation/whats-new.html["Quelles sont les nouveautés de l'API REST de ONTAP"^] . Pour plus d'informations sur les terminaux qtree de l'API REST ONTAP, consultez la documentation de ONTAP https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html["Référence API"^].

@@ -1,0 +1,73 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/switch-learning-to-active-mode.html 
+keywords: ransomware, arp, mode, switch, active, learning, autonomous ransomware protection 
+summary: 'Pour la protection anti-ransomware autonome (ARP) 9.15.1 et versions antérieures, basculez manuellement ou automatiquement un volume ARP du mode d"apprentissage au mode actif.' 
+---
+= Passez en mode ARP actif après une période d'apprentissage
+:allow-uri-read: 
+
+
+[role="lead"]
+Pour la protection anti-ransomware autonome (ARP) 9.15.1 et versions antérieures ou le protocole ARP exécuté avec des volumes FlexGroup, basculez manuellement ou automatiquement un volume compatible ARP du mode d'apprentissage au mode actif. Une fois que le protocole ARP a terminé une séquence de mode d'apprentissage d'un minimum de 30 jours recommandé, vous pouvez passer manuellement en mode actif. À partir de ONTAP 9.13.1, ARP détermine automatiquement la période d'apprentissage optimale et automatise le commutateur, qui peut se produire avant 30 jours.
+
+Si vous utilisez ARP sur des volumes FlexVol avec ONTAP 9.16.1 ou une version ultérieure, la fonctionnalité ARP/ai ne nécessite pas de période d'apprentissage et le mode actif est sélectionné par défaut.
+
+
+NOTE: Dans les volumes existants, les modes d'apprentissage et actif s'appliquent uniquement aux données nouvellement écrites, et non aux données existantes du volume. Les données existantes ne sont pas analysées et analysées, car les caractéristiques du trafic de données normal antérieur sont présumées basées sur les nouvelles données une fois que le volume est activé pour ARP.
+
+
+
+== Passer manuellement en mode actif après la période d'apprentissage
+
+Pour ONTAP 9.10.1 à 9.15.1 et ARP avec des volumes FlexGroup, vous pouvez passer manuellement du mode d'apprentissage ARP au mode actif à l'aide de System Manager ou de l'interface de ligne de commande ONTAP.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Étapes
+. Sélectionnez *stockage > volumes*, puis sélectionnez le volume prêt pour le mode actif.
+. Dans l'onglet *sécurité* de la vue d'ensemble *volumes*, sélectionnez *passer en mode actif* dans la zone anti-ransomware.
+. Vous pouvez vérifier l'état ARP du volume dans la zone *anti-ransomware*.
+
+
+--
+.CLI
+--
+.Étapes
+. Lorsque la période d'apprentissage est terminée, modifiez le volume protégé pour passer en mode actif si ce n'est pas déjà fait automatiquement :
++
+`security anti-ransomware volume enable -volume <vol_name> -vserver <svm_name>`
+
++
+Vous pouvez également passer en mode actif à l'aide de la commande modifier le volume :
+
++
+`volume modify -volume <vol_name> -vserver <svm_name> -anti-ransomware-state active`
+
+. Vérifiez l'état ARP du volume.
++
+`security anti-ransomware volume show`
+
+
+
+--
+====
+
+
+== Passage automatique du mode d'apprentissage au mode actif
+
+À partir de ONTAP 9.13.1, l'apprentissage adaptatif a été ajouté à l'analyse ARP et le passage du mode d'apprentissage au mode actif s'effectue automatiquement. La décision autonome prise par ARP de passer automatiquement du mode d'apprentissage au mode actif est basée sur les paramètres de configuration des options suivantes :
+
+[listing]
+----
+ -anti-ransomware-auto-switch-minimum-incoming-data-percent
+ -anti-ransomware-auto-switch-duration-without-new-file-extension
+ -anti-ransomware-auto-switch-minimum-learning-period
+ -anti-ransomware-auto-switch-minimum-file-count
+ -anti-ransomware-auto-switch-minimum-file-extension
+----
+Après 30 jours d'apprentissage, un volume passe automatiquement en mode actif même si une ou plusieurs de ces conditions ne sont pas satisfaites. Autrement dit, si le commutateur automatique est activé, le volume passe en mode actif au bout de 30 jours maximum. La valeur maximale de 30 jours est fixe et non modifiable.
+
+Pour plus d'informations sur les options de configuration ARP, y compris les valeurs par défaut, reportez-vous au link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-auto-switch-to-enable-mode-show.html["Référence de commande ONTAP"^].

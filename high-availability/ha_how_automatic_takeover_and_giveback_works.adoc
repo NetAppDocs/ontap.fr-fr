@@ -20,7 +20,7 @@ Par défaut, si un nœud de la paire haute disponibilité fonctionne de façon i
 
 Des prises de contrôle automatiques peuvent également se produire si l'un des nœuds ne répond plus.
 
-Le rétablissement automatique est effectué par défaut. Si vous préférez contrôler l'impact du rétablissement sur les clients, vous pouvez désactiver le rétablissement automatique et utiliser le `storage failover modify -auto-giveback false -node <node>` commande. Avant d'effectuer un retour automatique (quel que soit l'origine de l'opération), le nœud partenaire attend une durée fixe, telle que contrôlée par le `-delay- seconds` paramètre du `storage failover modify` commande. Le délai par défaut est de 600 secondes. Avec le report du rétablissement, ce processus provoque deux brèves pannes : une lors du basculement et une lors du rétablissement.
+Le rétablissement automatique est effectué par défaut. Si vous préférez contrôler l'impact du rétablissement sur les clients, vous pouvez désactiver le rétablissement automatique et utiliser `storage failover modify -auto-giveback false -node <node>` la commande. Avant d'effectuer le giveback automatique (indépendamment de ce qui l'a déclenché), le nœud partenaire attend un délai fixe tel que contrôlé par le `-delay- seconds` paramètre de la `storage failover modify` commande. Le délai par défaut est de 600 secondes.
 
 Ce processus permet d'éviter une seule panne prolongée qui inclut le temps nécessaire pour :
 
@@ -45,18 +45,18 @@ Les étapes suivantes se produisent durant le processus de basculement :
 . Si le basculement négocié est initié par l'utilisateur, les données agrégées sont déplacées du nœud partenaire vers le nœud qui effectue le basculement. Une brève panne se produit en tant que le propriétaire actuel de chaque agrégat (à l'exception de l'agrégat root) est remplacé par le nœud Takeover. Cette panne est plus qu'un problème survient lors d'un basculement sans déplacement d'agrégats.
 +
 
-NOTE: Un takover négocié pendant la panique ne peut pas se produire en cas de panique.  Le basculement peut résulter d'un échec non associé à un problème de panique. Une défaillance survient lorsque la communication est perdue entre un nœud et son partenaire, également appelée perte de pulsation. Si un basculement a lieu à cause d'une défaillance, la panne peut être plus longue, car le nœud partenaire a besoin de temps pour détecter la perte d'impulsion.
+NOTE: Une reprise négociée en cas de panique ne peut pas se produire en cas de panique. Le basculement peut résulter d'un échec non associé à un problème de panique. Une défaillance survient lorsque la communication est perdue entre un nœud et son partenaire, également appelée perte de pulsation. Si un basculement a lieu à cause d'une défaillance, la panne peut être plus longue, car le nœud partenaire a besoin de temps pour détecter la perte d'impulsion.
 
 +
-** Vous pouvez contrôler la progression à l'aide de l' `storage failover show‑takeover` commande.
-** Vous pouvez éviter le transfert d'agrégat pendant cette instance de basculement en utilisant le `‑bypass‑optimization` paramètre avec le `storage failover takeover` commande.
+** Vous pouvez surveiller la progression à l'aide de la `storage failover show-takeover` commande.
+** Pour éviter le déplacement de l'agrégat durant cette instance de basculement, utilisez le `-bypass-optimization` paramètre associé à la `storage failover takeover` commande.
 +
 Les agrégats sont transférés en série lors des opérations de basculement planifiées afin de réduire l'interruption des activités du client. Si le transfert d'agrégats est contourné, une panne client plus longue se produit lors d'événements de basculement planifiés.
 
 
 
 . Si le basculement initié par l'utilisateur est un basculement négocié, le nœud cible s'arrête normalement, suivi du basculement de l'agrégat racine du nœud cible et des agrégats qui n'ont pas été déplacés au cours de la première étape.
-. Les LIF de données (interfaces logiques) migrent du nœud cible vers le nœud Takeover, ou vers tout autre nœud du cluster basé sur les règles de failover LIF. Vous pouvez éviter la migration de LIF à l'aide de `‑skip‑lif-migration` paramètre avec le `storage failover takeover` commande. Dans le cas d'un basculement initié par l'utilisateur, les LIF de données sont migrées avant le début du basculement du stockage.  En cas de panique ou de défaillance, selon votre configuration, les LIF de données peuvent être migrées avec le stockage ou une fois le basculement terminé.
+. Les LIF de données (interfaces logiques) migrent du nœud cible vers le nœud Takeover, ou vers tout autre nœud du cluster basé sur les règles de failover LIF. Vous pouvez éviter la migration de LIF en utilisant le `-skip-lif-migration` paramètre avec la `storage failover takeover` commande. Dans le cas d'un basculement initié par l'utilisateur, les LIF de données sont migrées avant le début du basculement du stockage. En cas de panique ou de défaillance, selon votre configuration, les LIF de données peuvent être migrées avec le stockage ou une fois le basculement terminé.
 . Les sessions SMB existantes sont déconnectées lors du basculement.
 +
 
@@ -127,8 +127,8 @@ Les mises à jour en arrière-plan du firmware du disque affectent les opératio
 
 La liste ci-dessous décrit la manière dont les mises à jour du firmware des disques en arrière-plan affectent le basculement, le rétablissement et le transfert d'agrégats :
 
-* Si la mise à jour du firmware d'un disque en arrière-plan se produit sur un des nœuds, les opérations de basculement lancées manuellement sont retardées jusqu'à ce que la mise à jour du firmware du disque soit terminée sur ce disque. Si la mise à jour du firmware du disque en arrière-plan prend plus de 120 secondes, les opérations de basculement sont abandonnées et doivent être redémarrées manuellement après la fin de la mise à jour du firmware des disques. Si le basculement a été initié par le `‑bypass‑optimization` paramètre du `storage failover takeover` commande définie sur `true`, la mise à jour du micrologiciel du disque en arrière-plan effectuée sur le nœud de destination n'affecte pas le basculement.
-* Si une mise à jour du firmware du disque en arrière-plan est effectuée sur un disque du nœud source (ou basculement), et l'acquisition a été lancée manuellement avec le `‑options` paramètre du `storage failover takeover` commande définie sur `immediate`, les opérations de basculement commencent immédiatement.
+* Si la mise à jour du firmware d'un disque en arrière-plan se produit sur un des nœuds, les opérations de basculement lancées manuellement sont retardées jusqu'à ce que la mise à jour du firmware du disque soit terminée sur ce disque. Si la mise à jour du firmware du disque en arrière-plan prend plus de 120 secondes, les opérations de basculement sont abandonnées et doivent être redémarrées manuellement après la fin de la mise à jour du firmware des disques. Si le basculement a été initié avec le `-bypass-optimization` paramètre de la `storage failover takeover` commande défini sur `true`, la mise à jour du firmware du disque en arrière-plan qui a lieu sur le nœud de destination n'affecte pas le basculement.
+* Si une mise à jour du firmware du disque en arrière-plan se produit sur un disque du nœud source (ou Takeover) et que le Takeover a été initié manuellement avec le `-options` paramètre de la `storage failover takeover` commande défini sur `immediate`, les opérations de Takeover commencent immédiatement.
 * Si la mise à jour du firmware d'un disque en arrière-plan se produit sur un nœud et qu'elle fonctionne de façon incohérente, le basculement du nœud mis à niveau commence immédiatement.
 * Si une mise à jour du firmware du disque en arrière-plan est effectuée sur un disque sur un des nœuds, le rétablissement d'agrégats de données est retardé jusqu'à ce que la mise à jour du firmware du disque soit terminée sur ce disque.
 * Si la mise à jour du firmware du disque en arrière-plan prend plus de 120 secondes, les opérations de rétablissement sont abandonnées et doivent être redémarrées manuellement une fois la mise à jour du firmware du disque terminée.

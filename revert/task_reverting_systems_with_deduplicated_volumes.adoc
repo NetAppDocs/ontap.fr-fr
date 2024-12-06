@@ -4,46 +4,74 @@ sidebar: sidebar
 keywords: ontap, revert, reverting, reversion, systems, deduplication, deduplicated, volumes 
 summary: 'Avant de procéder à un rétablissement depuis une version de ONTAP 9, vous devez vérifier que les volumes contiennent suffisamment d"espace libre pour l"opération de restauration.' 
 ---
-= Vérifiez que l'espace disponible des volumes dédupliqués est suffisant avant de procéder au rétablissement
+= Vérifiez l'espace libre des volumes dédupliqués avant de restaurer ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Avant de procéder à un rétablissement depuis une version de ONTAP 9, vous devez vérifier que les volumes contiennent suffisamment d'espace libre pour l'opération de restauration.
+Avant de restaurer un cluster ONTAP à partir d'une version de ONTAP 9, vous devez vous assurer que les volumes contiennent suffisamment d'espace libre pour l'opération de restauration.
 
 L'espace requis pour le volume doit être suffisant pour prendre en charge les économies réalisées grâce à la détection à la volée de blocs de zéro. Consultez l'article de la base de connaissances link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_to_see_space_savings_from_deduplication%2C_compression%2C_and_compaction_in_ONTAP_9["Découvrez les économies d'espace obtenues grâce à la déduplication, à la compression et à la compaction dans ONTAP 9"].
 
 Si vous avez activé à la fois la déduplication et la compression des données sur un volume que vous souhaitez restaurer, vous devez revenir à la compression des données avant de restaurer la déduplication.
 
-. Utilisez la commande volume Efficiency show avec l'option -fields pour afficher la progression des opérations d'efficacité exécutées sur les volumes.
+.Étapes
+. Afficher la progression des opérations d'efficacité exécutées sur les volumes :
 +
-La commande suivante affiche la progression des opérations d'efficacité : `volume efficiency show -fields vserver,volume,progress`
-
-. Utilisez la commande volume Efficiency stop avec l'option -all pour arrêter toutes les opérations de déduplication actives et mises en attente.
+[source, cli]
+----
+volume efficiency show -fields vserver,volume,progress
+----
+. Arrêter toutes les opérations de déduplication actives et mises en file d'attente :
 +
-La commande suivante arrête toutes les opérations de déduplication actives et mises en attente sur le volume Vola : `volume efficiency stop -vserver vs1 -volume VolA -all`
-
-. Utilisez la commande set -Privilege Advanced pour vous connecter au niveau de privilège avancé.
-. Utilisez la commande de restauration de l'efficacité des volumes avec l'option -version pour revenir à une version spécifique de ONTAP des métadonnées d'efficacité d'un volume.
+[source, cli]
+----
+volume efficiency stop -vserver <svm_name> -volume <volume_name> -all
+----
+. Définissez le niveau de privilège sur avancé :
 +
-La commande suivante restaure les métadonnées d'efficacité sur le volume Vola vers ONTAP 9.x : `volume efficiency revert-to -vserver vs1 -volume VolA -version 9.x`
+[source, cli]
+----
+set -privilege advanced
+----
+. Rétrograder les métadonnées d'efficacité d'un volume vers la version cible de ONTAP :
++
+[source, cli]
+----
+volume efficiency revert-to -vserver <svm_name> -volume <volume_name> -version <version>
+----
++
+Dans l'exemple suivant, les métadonnées d'efficacité sur le volume Vola sont rétablies sur ONTAP 9.x.
 
++
+[listing]
+----
+volume efficiency revert-to -vserver vs1 -volume VolA -version 9.x
+----
 +
 
 NOTE: La commande de restauration de l'efficacité du volume restaure les volumes présents sur le nœud sur lequel cette commande est exécutée. Cette commande ne rétablit pas les volumes répartis sur les nœuds.
 
-. Utilisez la commande volume Efficiency show avec l'option -op-status pour surveiller la progression de la restauration.
+. Surveiller la progression de la rétrogradation :
 +
-La commande suivante contrôle et affiche l'état de la version antérieure : `volume efficiency show -vserver vs1 -op-status Downgrading`
-
-. Si la restauration n'a pas abouti, utilisez la commande volume Efficiency show avec l'option -instance pour voir pourquoi la restauration a échoué.
+[source, cli]
+----
+volume efficiency show -vserver <svm_name> -op-status Downgrading
+----
+. Si la restauration échoue, affichez l'instance pour voir pourquoi la restauration a échoué.
 +
-La commande suivante affiche des informations détaillées sur tous les champs : `volume efficiency show -vserver vs1 -volume vol1 - instance`
-
-. Une fois l'opération de restauration terminée, revenez au niveau de privilège admin : `set -privilege admin`
+[source, cli]
+----
+volume efficiency show -vserver <svm_name> -volume <volume_name> - instance
+----
+. Une fois l'opération de restauration terminée, revenez au niveau de privilège admin :
 +
-link:../volumes/index.html["Gestion du stockage logique"]
+[source, cli]
+----
+set -privilege admin
+----
 
 
+En savoir plus sur link:../volumes/index.html["Gestion du stockage logique"].

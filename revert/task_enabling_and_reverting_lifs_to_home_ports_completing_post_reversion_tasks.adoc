@@ -4,18 +4,24 @@ sidebar: sidebar
 keywords: ontap, revert, reverting, reversion, downgrade, downgrading, enable, enabling, lifs, home, ports 
 summary: 'Au cours d"un redémarrage, certaines LIFs ont peut-être été migrées vers leurs ports de basculement qui leur sont attribués. Une fois que vous restaurez un cluster, vous devez activer et restaurer toutes les LIF qui ne se trouvent pas sur leur port de base.' 
 ---
-= Activez ou restaurez les LIF sur les ports de base après une restauration
+= Activez et restaurez les LIF sur les ports home après un retour ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Au cours d'un redémarrage, certaines LIFs ont peut-être été migrées vers leurs ports de basculement qui leur sont attribués. Une fois que vous restaurez un cluster, vous devez activer et restaurer toutes les LIF qui ne se trouvent pas sur leur port de base.
+Au cours d'un redémarrage, certaines LIFs ont peut-être été migrées vers leurs ports de basculement qui leur sont attribués. Après la restauration d'un cluster ONTAP, vous devez activer et restaurer toutes les LIF qui ne se trouvent pas sur leur port d'attache.
 
 La commande network interface revert restaure une LIF qui n'est pas actuellement sur son port home port vers son port home port, à condition que le port home port soit opérationnel. Le port de base d'une LIF est spécifié lors de sa création ; vous pouvez déterminer le port d'origine d'une LIF à l'aide de la commande network interface show.
 
-. Afficher le statut de toutes les LIFs : `network interface show`
+.Étapes
+. Afficher le statut de toutes les LIFs :
++
+[source, cli]
+----
+network interface show
+----
 +
 Cet exemple affiche l'état de toutes les LIFs d'un Storage Virtual machine (SVM).
 
@@ -40,24 +46,24 @@ vs0
 +
 Si des LIF dont le statut Status Admin est down ou avec un état is home est false, passez à l'étape suivante.
 
-. Activation des LIFs de données : `network interface modify {-role data} -status-admin up`
+. Activation des LIFs de données :
 +
-[listing]
+[source, cli]
 ----
-cluster1::> network interface modify {-role data} -status-admin up
-8 entries were modified.
+network interface modify {-role data} -status-admin up
 ----
-. Rerestaurez les LIF sur leurs home ports : `network interface revert *`
+. Rerestaurez les LIF sur leurs home ports :
 +
-Cette commande restaure toutes les LIF vers leur port de base.
-
+[source, cli]
+----
+network interface revert *
+----
+. Vérifier que toutes les LIFs se trouvent sur leurs ports de type home :
 +
-[listing]
+[source, cli]
 ----
-cluster1::> network interface revert *
-8 entries were acted on.
+network interface show
 ----
-. Vérifier que toutes les LIFs se trouvent sur leurs ports de type home : `network interface show`
 +
 Cet exemple montre que toutes les LIFs pour SVM vs0 sont sur leurs ports de base.
 

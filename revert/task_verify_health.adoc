@@ -2,22 +2,31 @@
 permalink: revert/task_verify_health.html 
 sidebar: sidebar 
 keywords: ontap, revert, reverting, reversion, downgrade, downgrading, verifying, verify, cluster, health 
-summary: Une fois que vous avez repassé un cluster ou que vous le déclasser, vous devez vérifier que les nœuds sont en bon état et peuvent participer au cluster, et que le cluster est au quorum. 
+summary: Une fois que vous avez rétabli un cluster ONTAP, vérifiez que les nœuds sont sains et éligibles pour participer au cluster et que le cluster a le quorum. 
 ---
-= Vérification de l'état du cluster et du stockage après une restauration antérieure
+= Vérifiez l'état du cluster et du stockage après une restauration ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Une fois que vous avez déclassés ou repassé un cluster, vérifiez que les nœuds sont en bon état et peuvent participer au cluster, et que le cluster est au quorum. Vous devez également vérifier l'état de vos disques, agrégats et volumes.
+Une fois que vous avez rétabli un cluster ONTAP, vérifiez que les nœuds sont sains et éligibles pour participer au cluster et que le cluster a le quorum. Vous devez également vérifier l'état de vos disques, agrégats et volumes.
 
 
 
 == Vérification de l'état du cluster
 
-. Vérifiez que les nœuds du cluster sont en ligne et peuvent participer au cluster : `cluster show`
+.Étapes
+. Vérifiez que les nœuds du cluster sont en ligne et peuvent participer au cluster :
++
+[source, cli]
+----
+cluster show
+----
++
+Dans cet exemple, le cluster fonctionne correctement et tous les nœuds peuvent participer au cluster.
+
 +
 [listing]
 ----
@@ -30,8 +39,12 @@ node1                 true    true
 +
 Si l'un des nœuds est défectueux ou non éligible, vérifiez la présence d'erreurs dans les journaux EMS et effectuez des actions correctives.
 
-. Définissez le niveau de privilège sur avancé : +
-`set -privilege advanced`
+. Définissez le niveau de privilège sur avancé :
++
+[source, cli]
+----
+set -privilege advanced
+----
 +
 Entrez `y` pour continuer.
 
@@ -51,34 +64,40 @@ Notez que chaque anneau peut avoir un maître de quorum différent.
  a| 
 Application de gestion
  a| 
-`cluster ring show -unitname mgmt`
-
+[source, cli]
+----
+cluster ring show -unitname mgmt
+----
 
 
  a| 
 Base de données d'emplacement de volume
  a| 
-`cluster ring show -unitname vldb`
-
+[source, cli]
+----
+cluster ring show -unitname vldb
+----
 
 
  a| 
 Gestionnaire d'interface virtuelle
  a| 
-`cluster ring show -unitname vifmgr`
-
+[source, cli]
+----
+cluster ring show -unitname vifmgr
+----
 
 
  a| 
 Démon de gestion DU SAN
  a| 
-`cluster ring show -unitname bcomd`
-
+[source, cli]
+----
+cluster ring show -unitname bcomd
+----
 |===
 +
 Cet exemple représente le processus de la base de données d'emplacements de volumes :
-
-
 
 +
 [listing]
@@ -92,8 +111,20 @@ node2     vldb     154      154      14847    node0     secondary
 node3     vldb     154      154      14847    node0     secondary
 4 entries were displayed.
 ----
-. Retour au niveau de privilège admin : `set -privilege admin`
-. Si vous travaillez dans un environnement SAN, vérifiez que chaque nœud se trouve dans un quorum SAN : `event log show  -severity informational -message-name scsiblade.*`
+
+
+. Retour au niveau de privilège admin :
++
+[source, cli]
+----
+set -privilege admin
+----
+. Si vous travaillez dans un environnement SAN, vérifiez que chaque nœud se trouve dans un quorum SAN :
++
+[source, cli]
+----
+event log show  -severity informational -message-name scsiblade.*
+----
 +
 Le message d'événement scsiBlade le plus récent pour chaque nœud doit indiquer que le SCSI-Blade est quorum.
 
@@ -117,6 +148,7 @@ link:../system-admin/index.html["Administration du système"]
 
 Lorsque vous restaurez ou déclassés un cluster, vous devez vérifier l'état de vos disques, agrégats et volumes.
 
+.Étapes
 . Vérification de l'état du disque :
 +
 [cols="2*"]
@@ -127,7 +159,12 @@ Lorsque vous restaurez ou déclassés un cluster, vous devez vérifier l'état d
  a| 
 Disques cassés
  a| 
-.. Afficher les éventuels disques défectueux : `storage disk show -state broken`
+.. Afficher les éventuels disques défectueux :
++
+[source, cli]
+----
+storage disk show -state broken
+----
 .. Retirez ou remplacez tout disque endommagé.
 
 
@@ -136,12 +173,22 @@ Disques cassés
  a| 
 Disques soumis à des opérations de maintenance ou de reconstruction
  a| 
-.. Afficher tous les disques en état de maintenance, en attente ou reconstruction : `storage disk show -state maintenance|pending|reconstructing`
+.. Afficher tous les disques en état de maintenance, en attente ou reconstruction :
++
+[source, cli]
+----
+storage disk show -state maintenance|pending|reconstructing
+----
 .. Attendez la fin de l'opération de maintenance ou de reconstruction avant de poursuivre.
 
 
 |===
-. Vérifiez que tous les agrégats sont en ligne en affichant l'état du stockage physique et logique, y compris les agrégats de stockage : `storage aggregate show -state !online`
+. Vérifiez que tous les agrégats sont en ligne en affichant l'état du stockage physique et logique, y compris les agrégats de stockage :
++
+[source, cli]
+----
+storage aggregate show -state !online
+----
 +
 Cette commande affiche les agrégats qui sont _not_ online. Tous les agrégats doivent être en ligne avant et après avoir effectué une mise à niveau ou une nouvelle version majeure.
 
@@ -151,7 +198,12 @@ Cette commande affiche les agrégats qui sont _not_ online. Tous les agrégats d
 cluster1::> storage aggregate show -state !online
 There are no entries matching your query.
 ----
-. Vérifiez que tous les volumes sont en ligne en affichant les volumes _NOT_ online : `volume show -state !online`
+. Vérifiez que tous les volumes sont en ligne en affichant les volumes _NOT_ online :
++
+[source, cli]
+----
+volume show -state !online
+----
 +
 Tous les volumes doivent être en ligne avant et après avoir effectué une mise à niveau ou une nouvelle version majeure.
 
@@ -161,7 +213,12 @@ Tous les volumes doivent être en ligne avant et après avoir effectué une mise
 cluster1::> volume show -state !online
 There are no entries matching your query.
 ----
-. Vérifiez qu'il n'y a pas de volumes incohérents : `volume show -is-inconsistent true`
+. Vérifiez qu'il n'y a pas de volumes incohérents :
++
+[source, cli]
+----
+volume show -is-inconsistent true
+----
 +
 Consultez l'article de la base de connaissances link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Volume_Showing_WAFL_Inconsistent["Volume affichant des WAFL incohérentes"] sur la manière de traiter les volumes incohérents.
 
@@ -169,3 +226,9 @@ Consultez l'article de la base de connaissances link:https://kb.netapp.com/Advic
 
 .Informations associées
 link:../disks-aggregates/index.html["Gestion des disques et des agrégats"]
+
+
+
+== Vérification de l'accès client (SMB et NFS)
+
+Pour les protocoles configurés, testez l'accès des clients SMB et NFS afin de vérifier que le cluster est accessible.

@@ -1,8 +1,8 @@
 ---
-sidebar: sidebar 
 permalink: system-admin/requirements-autosupport-reference.html 
-keywords: requirements, autosupport, messages, http, https, smtp, smtps 
-summary: Vous devez utiliser HTTPS avec TLSv1.2 ou SMTP sécurisé pour la transmission des messages AutoSupport afin de garantir la meilleure sécurité et de prendre en charge les dernières fonctionnalités AutoSupport. 
+sidebar: sidebar 
+keywords: requirements, autosupport, messages, https, smtp, smtps, tls, email, proxy, certificate, validation 
+summary: Vous devez utiliser HTTPS avec TLSv1.2 ou SMTPS pour envoyer des messages AutoSupport afin de garantir une sécurité optimale et de prendre en charge les dernières fonctionnalités AutoSupport. 
 ---
 = Préparez-vous à utiliser AutoSupport
 :allow-uri-read: 
@@ -17,63 +17,49 @@ Vous pouvez configurer un cluster ONTAP pour qu'il puisse transmettre des messag
 
 == Transmettre les messages AutoSupport à NetApp
 
-Les messages AutoSupport peuvent être transmis à NetApp à l'aide du protocole HTTP ou SMTP. Pour améliorer la sécurité, vous pouvez utiliser TLS avec HTTP. À partir de ONTAP 9.15.1, vous pouvez également utiliser TLS avec SMTP.
+Les messages AutoSupport peuvent être transmis à NetApp à l'aide des protocoles HTTPS ou SMTP. À partir de ONTAP 9.15.1, vous pouvez également utiliser TLS avec SMTP.
 
 
-TIP: Utilisez HTTP avec TLS (HTTPS) autant que possible.
+TIP: Utilisez HTTPS autant que possible pour communiquer avec AutoSupport OnDemand et pour télécharger des fichiers volumineux.
 
 Notez également ce qui suit :
 
 * Un seul canal de distribution vers NetApp peut être configuré pour les messages AutoSupport. Vous ne pouvez pas utiliser deux protocoles pour transmettre des messages AutoSupport à NetApp.
 * AutoSupport limite la taille maximale de fichier pour chaque protocole. Si la taille d'un message AutoSupport dépasse la limite configurée, AutoSupport transmet autant de messages que possible, mais une troncature se produit.
-* Vous pouvez modifier la taille maximale du fichier si nécessaire. Voir la commande `system node autosupport modify` pour en savoir plus.
+* Vous pouvez modifier la taille maximale du fichier si nécessaire. Pour en savoir plus sur la[`system node autosupport modify` commande ^], consultez la référence de commande ONTAP.
 * Les deux protocoles peuvent être transportés sur IPv4 ou IPv6 en fonction de la famille d'adresses à laquelle le nom résout.
 * La connexion TCP établie par ONTAP pour envoyer des messages AutoSupport est temporaire et de courte durée.
 
 
 
 
-=== HTTP
+=== HTTPS
 
 Cela fournit les fonctionnalités les plus robustes. Notez ce qui suit :
 
 * AutoSupport OnDemand et le transfert de fichiers volumineux sont pris en charge.
-* Une requête HTTP PUT est tentée en premier. Si la demande échoue pendant la transmission, la demande redémarre à l'endroit où elle s'est arrêtée.
-* Si le serveur ne prend pas en charge PUT, la méthode HTTP POST est utilisée à la place.
-* La limite par défaut pour les transferts HTTP est de 50 Mo.
-* Le protocole HTTP non sécurisé utilise le port 80.
+* Une requête HTTPS PUT est tentée en premier. Si la demande échoue pendant la transmission, la demande redémarre à l'endroit où elle s'est arrêtée.
+* Si le serveur ne prend pas en charge PUT, la méthode HTTPS POST est utilisée à la place.
+* La limite par défaut pour les transferts HTTPS est de 50 Mo.
+* Le protocole HTTPS utilise le port 443.
 
 
 
 
 === SMTP
 
-En règle générale, vous devez utiliser SMTP uniquement si HTTPS/HTTP n'est pas autorisé ou non pris en charge pour une raison quelconque. Notez ce qui suit :
+En règle générale, vous ne devez utiliser SMTP que si HTTPS n'est pas autorisé ou n'est pas pris en charge. Notez ce qui suit :
 
 * AutoSupport OnDemand et les transferts de fichiers volumineux ne sont pas pris en charge.
 * Si les informations d'identification de connexion SMTP sont configurées, elles sont envoyées sans cryptage et en clair.
-* La limite par défaut pour les transferts HTTP est de 5 Mo.
+* La limite par défaut pour les transferts est de 5 Mo.
 * Le protocole SMTP non sécurisé utilise le port 25.
 
 
+.Améliorer la sécurité SMTP avec TLS
+Lors de l'utilisation de SMTP, tout le trafic est non chiffré et peut être facilement intercepté et lu. À partir de ONTAP 9.15.1, vous pouvez également utiliser TLS avec SMTP (SMTPS). Dans ce cas, _Explicit TLS_ est utilisé pour activer le canal sécurisé une fois la connexion TCP établie.
 
-
-=== Améliorer la sécurité avec TLS
-
-Lorsque vous utilisez HTTP ou SMTP, tout le trafic est non chiffré et peut être facilement intercepté et lu. Lorsque vous utilisez HTTP, vous devez toujours configurer le protocole pour qu'il utilise également TLS (HTTPS).
-
-
-NOTE: À partir de ONTAP 9.15.1, vous pouvez également utiliser TLS avec SMTP (SMTPS). Dans ce cas, _Explicit TLS_ est utilisé pour activer le canal sécurisé une fois la connexion TCP établie.
-
-.Ports pour les protocoles sécurisés
-Les ports suivants sont généralement utilisés pour les versions sécurisées de ces protocoles :
-
-* HTTPS - port 443
-* SMTPS - port 587
-
-
-.Validation du certificat
-Avec TLS, le certificat téléchargé à partir du serveur est validé par ONTAP sur la base du certificat de l'autorité de certification racine. Avant d'utiliser HTTPS ou SMTPS, vous devez vous assurer que le certificat racine est installé dans ONTAP. Voir <<Installez le certificat du serveur>> pour en savoir plus.
+Le port suivant est généralement utilisé pour SMTPS : port 587
 
 
 
@@ -81,9 +67,11 @@ Avec TLS, le certificat téléchargé à partir du serveur est validé par ONTAP
 
 D'autres considérations sont à prendre en compte lors de la configuration de AutoSupport.
 
+Pour plus d'informations sur les commandes pertinentes à ces considérations, reportez-vous link:../system-admin/setup-autosupport-task.html["Configurer AutoSupport"]à la section .
 
 
-=== Envoi d'une copie locale par e-mail
+
+=== Envoyez une copie locale par e-mail
 
 Quel que soit le protocole utilisé pour transmettre des messages AutoSupport à NetApp, vous pouvez également envoyer une copie de chaque message à une ou plusieurs adresses e-mail locales. Par exemple, vous pouvez envoyer des messages à votre service de support interne ou à une entreprise partenaire.
 
@@ -100,11 +88,11 @@ Selon la configuration de votre réseau, le protocole HTTPS peut nécessiter une
 
 == Installez le certificat du serveur
 
-Si vous utilisez TLS (HTTPS ou SMTPS), vous devez vous assurer que ONTAP peut valider le certificat du serveur. Cette validation est effectuée sur la base de l'autorité de certification qui a signé le certificat du serveur.
+Avec TLS (HTTPS ou SMTPS), le certificat téléchargé à partir du serveur est validé par ONTAP sur la base du certificat de l'autorité de certification racine. Avant d'utiliser HTTPS ou SMTPS, vous devez vous assurer que le certificat racine est installé dans ONTAP et que ONTAP peut valider le certificat du serveur. Cette validation est effectuée sur la base de l'autorité de certification qui a signé le certificat du serveur.
 
-ONTAP inclut un grand nombre de certificats d'autorité de certification racine pré-installés. Ainsi, dans de nombreux cas, le certificat de votre serveur sera immédiatement reconnu par ONTAP sans configuration supplémentaire. Mais selon la façon dont le certificat de serveur a été signé, vous devrez peut-être installer un certificat d'autorité de certification racine et tous les certificats intermédiaires.
+ONTAP inclut un grand nombre de certificats d'autorité de certification racine pré-installés. Dans de nombreux cas, le certificat de votre serveur sera immédiatement reconnu par ONTAP sans configuration supplémentaire. Selon la façon dont le certificat de serveur a été signé, vous devrez peut-être installer un certificat d'autorité de certification racine et tous les certificats intermédiaires.
 
-Suivez les instructions ci-dessous pour installer le certificat si nécessaire. Vous devez installer tous les certificats requis au niveau du cluster.
+Procédez comme suit pour installer le certificat, si nécessaire. Vous devez installer tous les certificats requis au niveau du cluster.
 
 .Étapes
 [role="tabbed-block"]
@@ -125,29 +113,41 @@ Suivez les instructions ci-dessous pour installer le certificat si nécessaire. 
 --
 . Commencez l'installation :
 +
-`security certificate install -type server-ca`
-
+[source, cli]
+----
+security certificate install -type server-ca
+----
 . Recherchez le message de console suivant :
 +
-`Please enter Certificate: Press <Enter> when done`
-
+[listing]
+----
+Please enter Certificate: Press <Enter> when done
+----
 . Ouvrez le fichier de certificat à l'aide d'un éditeur de texte.
 . Copiez l'intégralité du certificat, y compris les lignes suivantes :
 +
-`-----BEGIN CERTIFICATE-----`
-
+[listing]
+----
+-----BEGIN CERTIFICATE-----
+----
 +
-`-----END CERTIFICATE-----`
-
+[listing]
+----
+-----END CERTIFICATE-----
+----
 . Collez le certificat dans le terminal après l'invite de commande.
 . Appuyez sur *entrée* pour terminer l'installation.
-. Vérifiez que le certificat est installé à l'aide de l'une des méthodes suivantes :
+. Vérifiez que le certificat est installé en exécutant l'une des commandes suivantes :
 +
-`security certificate show-user-installed`
-
+[source, cli]
+----
+security certificate show-user-installed
+----
 +
-`security certificate show`
-
+[source, cli]
+----
+security certificate show
+----
 
 
 --

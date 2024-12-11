@@ -1,0 +1,135 @@
+---
+permalink: fabricpool/fabricpool-object-deletion.html 
+sidebar: sidebar 
+keywords: fabricpool, fabric pool, tiering, delete, defrag, unreclaimed, threshold 
+summary: 'FabricPool supprime des objets après qu"un certain pourcentage des blocs de l"objet ne soient plus référencés par ONTAP.' 
+---
+= Suppression et défragmentation d'objets FabricPool
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+FabricPool ne supprime pas les blocs des magasins d'objets connectés. FabricPool supprime en revanche des objets après qu'un certain pourcentage des blocs de l'objet ne soient plus référencés par ONTAP.
+
+Par exemple, un objet de 4 Mo est hiérarchisé vers Amazon S3 pour 1,024 blocs de 4 Ko. La défragmentation et la suppression ne se produisent que lorsque moins de 205 blocs de 4 Ko (20 % sur 1,024) sont référencés par ONTAP. Lorsque suffisamment de (1,024) blocs ont zéro référence, leurs objets de 4 Mo d'origine sont supprimés et un nouvel objet est créé.
+
+Vous pouvez personnaliser le pourcentage de seuil d'espace non récupéré et le définir sur différents niveaux par défaut pour différents magasins d'objets. Les paramètres par défaut sont les suivants :
+
+|===
+
+
+| Magasin d'objets | ONTAP 9.3 et versions antérieures | ONTAP 9.4 à 9.7 | ONTAP 9.8 et versions ultérieures | Cloud Volumes ONTAP 
+
+
+ a| 
+Amazon S3
+ a| 
+0%
+ a| 
+20 %
+ a| 
+20 %
+ a| 
+30 %
+
+
+
+ a| 
+Google Cloud Storage
+ a| 
+s/o
+ a| 
+12%
+ a| 
+20 %
+ a| 
+35%
+
+
+
+ a| 
+Stockage Microsoft Azure Blob Storage
+ a| 
+s/o
+ a| 
+15 %
+ a| 
+25%
+ a| 
+35%
+
+
+
+ a| 
+NetApp ONTAP S3
+ a| 
+s/o
+ a| 
+s/o
+ a| 
+40 %
+ a| 
+s/o
+
+
+
+ a| 
+NetApp StorageGRID
+ a| 
+0%
+ a| 
+40 %
+ a| 
+40 %
+ a| 
+s/o
+
+|===
+
+
+== Seuil d'espace non récupéré
+
+La modification des paramètres de seuil d'espace non récupéré par défaut augmente ou diminue la quantité acceptée de fragmentation d'objet. La réduction de la fragmentation réduit la capacité physique utilisée par le Tier cloud, aux dépens des ressources supplémentaires du magasin d'objets (lectures et écritures).
+
+
+
+=== Réduction du seuil
+
+Pour éviter des dépenses supplémentaires, pensez à réduire les seuils d'espace non récupéré lors de l'utilisation de schémas de tarification de magasin d'objets qui réduisent le coût du stockage tout en augmentant le coût des lectures. Notamment Standard-IA d'Amazon et Cool Storage d'Azure Blob Storage.
+
+Par exemple, la hiérarchisation d'un volume de projets vieux de 10 ans qui ont été sauvés pour des raisons juridiques peut s'avérer moins coûteuse lors de l'utilisation d'un système de tarification tel que Standard-IA ou Cool qu'elle ne le serait lors de l'utilisation de systèmes de tarification standard. Bien que les lectures soient plus onéreuses pour un tel volume, y compris les lectures requises par la défragmentation de l'objet, elles ne seront probablement pas fréquentes.
+
+
+
+=== Le seuil augmente
+
+Si la fragmentation des objets entraîne une utilisation supérieure de la capacité de stockage objet nécessaire pour les données référencées par ONTAP, envisagez également d'augmenter les seuils d'espace non récupéré. Par exemple, si un seuil d'espace non récupéré de 20 % dans le pire des cas, tous les objets sont également fragmentés dans la mesure maximale autorisée, cela signifie qu'il est possible que 80 % de la capacité totale dans le Tier cloud ne soit pas référencé par ONTAP. Par exemple :
+
+2 To référencés par ONTAP + 8 To non référencés par ONTAP = 10 To de capacité totale utilisée par le Tier cloud.
+
+Dans ce cas, il peut être avantageux d'augmenter le seuil d'espace non récupéré ou d'augmenter les jours de refroidissement minimaux des volumes pour réduire la capacité utilisée par les blocs non référencés.
+
+[NOTE]
+====
+Lorsque les objets sont défragmentés et que leur stockage est plus efficace, les fichiers sous-jacents peuvent être plus fragmentés lorsque les blocs référencés sont écrits sur de nouveaux objets plus efficaces. C'est pourquoi l'augmentation significative du seuil d'espace non récupéré entraîne une augmentation de l'efficacité du stockage des objets, mais une baisse éventuelle des performances de lecture séquentielle.
+
+====
+
+
+== Modifiez le seuil d'espace non récupéré
+
+Vous pouvez personnaliser le pourcentage de seuil d'espace non récupéré pour différents magasins d'objets.
+
+.Avant de commencer
+Le niveau de privilège avancé est requis.
+
+.Étapes
+. Pour modifier le seuil d'espace non récupéré par défaut, personnalisez et exécutez la commande suivante :
++
+[source, cli]
+----
+storage aggregate object-store modify -aggregate <name> -object-store-name <name> -unreclaimedspace-threshold <%> (0%-99%)
+----
+

@@ -13,8 +13,91 @@ summary: 'Depuis ONTAP 9.8, si vous êtes administrateur de cluster au niveau de
 [role="lead"]
 Depuis ONTAP 9.8, si vous êtes administrateur de cluster au niveau de privilège avancé, vous pouvez promouvoir les données de manière proactive à partir du Tier de performance à partir du cloud, à l'aide d'une combinaison de la `tiering-policy` et le `cloud-retrieval-policy` réglage.
 
-
-
-== Description de la tâche
-
+.Description de la tâche
 Cette opération peut être nécessaire si vous souhaitez arrêter l'utilisation d'FabricPool sur un volume ou si vous disposez d'un `snapshot-only` La règle de Tiering et vous voulez renvoyer les données de copie Snapshot restaurées vers le Tier de performance.
+
+
+
+== Promotion de toutes les données d'un volume FabricPool vers le Tier de performance
+
+Vous pouvez récupérer de manière proactive toutes les données d'un volume FabricPool dans le Tier cloud et les promouvoir dans le Tier de performance.
+
+.Étapes
+. Utilisez le `volume modify` commande à définir `tiering-policy` à `none` et `cloud-retrieval-policy` à `promote`.
++
+[listing]
+----
+volume modify -vserver <vserver-name> -volume <volume-name> -tiering-policy none -cloud-retrieval-policy promote
+----
+
+
+
+
+== Promotion des données du système de fichiers sur le Tier de performances
+
+Vous pouvez récupérer de manière proactive les données du système de fichiers actif à partir d'une copie Snapshot restaurée dans le Tier cloud et les promouvoir dans le Tier de performance.
+
+.Étapes
+. Utilisez le `volume modify` commande à définir `tiering-policy` à `snapshot-only` et `cloud-retrieval-policy` à `promote`.
++
+[listing]
+----
+volume modify -vserver <vserver-name> -volume <volume-name> -tiering-policy snapshot-only cloud-retrieval-policy promote
+----
+
+
+
+
+== Vérifier le statut de la promotion du niveau de performances
+
+Vous pouvez vérifier l'état de la promotion du niveau de performances pour déterminer une fois l'opération terminée.
+
+.Étapes
+. Utiliser le volume `object-store` commande avec `tiering` option permettant de vérifier le statut de la promotion du niveau de performance.
++
+[listing]
+----
+volume object-store tiering show [ -instance | -fields <fieldname>, ... ] [ -vserver <vserver name> ] *Vserver
+[[-volume] <volume name>] *Volume [ -node <nodename> ] *Node Name [ -vol-dsid <integer> ] *Volume DSID
+[ -aggregate <aggregate name> ] *Aggregate Name
+----
++
+[listing]
+----
+volume object-store tiering show v1 -instance
+
+                                  Vserver: vs1
+                                   Volume: v1
+                                Node Name: node1
+                              Volume DSID: 1023
+                           Aggregate Name: a1
+                                    State: ready
+                      Previous Run Status: completed
+                 Aborted Exception Status: -
+               Time Scanner Last Finished: Mon Jan 13 20:27:30 2020
+                 Scanner Percent Complete: -
+                      Scanner Current VBN: -
+                         Scanner Max VBNs: -
+      Time Waiting Scan will be scheduled: -
+                           Tiering Policy: snapshot-only
+     Estimated Space Needed for Promotion: -
+                        Time Scan Started: -
+  Estimated Time Remaining for scan to complete: -
+                    Cloud Retrieve Policy: promote
+----
+
+
+
+
+== Déclenchement de la migration planifiée et de la hiérarchisation
+
+Depuis ONTAP 9.8, vous pouvez déclencher une demande de scan de Tiering à tout moment si vous ne souhaitez pas attendre le scan de Tiering par défaut.
+
+.Étapes
+. Utilisez le `volume object-store` commande avec `trigger` possibilité de demander la migration et le tiering.
++
+[listing]
+----
+volume object-store tiering trigger [ -vserver <vserver name> ] *VServer Name [-volume] <volume name> *Volume Name
+----
+

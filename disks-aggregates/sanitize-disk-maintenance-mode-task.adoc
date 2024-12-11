@@ -50,35 +50,35 @@ NOTE: La commande permettant de départitionner un disque est uniquement disponi
 Vous pouvez également vous reporter à l'article de la base de connaissances link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Systems/FAS_Systems/How_to_unpartition_a_spare_drive_in_ONTAP["Comment départitionner un lecteur de réserve dans ONTAP"^]
 
 +
-`disk unpartition _disk_name_`
+`disk unpartition <disk_name>`
 
 . Procédez à la nettoyage des disques spécifiés :
 +
-`disk sanitize start [-p _pattern1_|-r [-p _pattern2_|-r [-p _pattern3_|-r]]] [-c _cycle_count_] _disk_list_`
+`disk sanitize start [-p <pattern1>|-r [-p <pattern2>|-r [-p <pattern3>|-r]]] [-c <cycle_count>] <disk_list>`
 
 +
 
 NOTE: Ne mettez pas le nœud hors tension, arrêtez la connectivité du stockage et ne retirez pas les disques cibles pendant le nettoyage. Si le nettoyage est interrompu pendant la phase de formatage, la phase de formatage doit être redémarrée et autorisée à terminer avant que les disques soient nettoyés et prêts à être renvoyés dans le pool de réserve. Si vous devez abandonner le processus de nettoyage, vous pouvez le faire en utilisant le `disk sanitize abort` commande. Si la phase de nettoyage des disques spécifiés est en cours de formatage, l'abandon ne se produit qu'une fois la phase terminée.
 
 +
- `-p` `_pattern1_` `-p` `_pattern2_` `-p` `_pattern3_` spécifie un cycle d'écrasement d'un à trois octets hexadécimaux définis par l'utilisateur qui peuvent être appliqués successivement aux disques en cours d'assainissement. Le motif par défaut est trois passes, en utilisant 0x55 pour le premier passage, 0xaa pour le second passage et 0x3c pour le troisième passage.
+ `-p` `<pattern1>` `-p` `<pattern2>` `-p` `<pattern3>` spécifie un cycle de un à trois modèles d'écrasement d'octets hexadécimaux définis par l'utilisateur qui peuvent être appliqués successivement aux disques en cours de nettoyage. Le motif par défaut est trois passes, en utilisant 0x55 pour le premier passage, 0xaa pour le second passage et 0x3c pour le troisième passage.
 
 +
 `-r` remplace un remplacement à répétition par un remplacement aléatoire pour une ou toutes les passes.
 
 +
-`-c` `_cycle_count_` spécifie le nombre de fois où les modèles d'écrasement spécifiés sont appliqués. La valeur par défaut est un cycle. La valeur maximale est de sept cycles.
+`-c` `<cycle_count>` indique le nombre de fois où les modèles d'écrasement spécifiés sont appliqués. La valeur par défaut est un cycle. La valeur maximale est de sept cycles.
 
 +
-`_disk_list_` Spécifie une liste séparée par des espaces des ID des disques de rechange à désinfecter.
+`<disk_list>` Spécifie une liste séparée par des espaces des ID des disques de spare à nettoyer.
 
 . Si vous le souhaitez, vérifiez l'état du processus de nettoyage de disque :
 +
-`disk sanitize status [_disk_list_]`
+`disk sanitize status [<disk_list>]`
 
 . Une fois le processus de nettoyage terminé, retournez les disques à l'état de spare de chaque disque :
 +
-`disk sanitize release _disk_name_`
+`disk sanitize release <disk_name>`
 
 . Quittez le mode maintenance.
 
@@ -87,7 +87,7 @@ NOTE: Ne mettez pas le nœud hors tension, arrêtez la connectivité du stockage
 .Nettoyage d'un disque avec &#8220;nodeshell&#8221; commandes (toutes les versions d'ONTAP 9)
 [%collapsible]
 ====
-Pour toutes les versions d'ONTAP 9, lorsque le nettoyage de disque est activé à l'aide des commandes du nodeshell, certaines commandes de ONTAP bas niveau sont désactivées. Une fois le nettoyage de disque activé sur un nœud, il ne peut pas être désactivé.
+Une fois que la fonctionnalité de nettoyage de disque est activée à l'aide de commandes nodeshell sur un nœud, elle ne peut pas être désactivée.
 
 .Avant de commencer
 * Les disques doivent être des disques de spare ; ils doivent être détenus par un nœud, mais pas utilisés dans un niveau local (agrégat).
@@ -113,11 +113,11 @@ NOTE: La commande permettant de départitionner un disque est uniquement disponi
 
 --
 +
-`disk unpartition _disk_name_`
+`disk unpartition <disk_name>`
 
 . Entrez le nodeshell pour le nœud qui possède les disques à désinfecter :
 +
-`system node run -node _node_name_`
+`system node run -node <node_name>`
 
 . Activation du nettoyage de disque :
 +
@@ -132,7 +132,7 @@ Vous êtes invité à confirmer la commande car elle est irréversible.
 
 . Procédez à la nettoyage des disques spécifiés :
 +
-`disk sanitize start [-p pattern1|-r [-p pattern2|-r [-p pattern3|-r]]] [-c cycle_count] disk_list`
+`disk sanitize start [-p <pattern1>|-r [-p <pattern2>|-r [-p <pattern3>|-r]]] [-c <cycle_count>] <disk_list>`
 
 +
 
@@ -144,30 +144,27 @@ abandonner la commande. Si les disques spécifiés sont en phase de formatage du
 l'abandon ne se produit pas tant que la phase n'est pas terminée.
 
 +
-`-p pattern1 -p pattern2 -p pattern3` spécifie un cycle de un à trois octets hexadécimaux définis par l'utilisateur
-remplacer les motifs qui peuvent être appliqués successivement aux disques en cours de nettoyage. La valeur par défaut
-le motif est constitué de trois passes, avec 0x55 pour le premier passage, 0xaa pour le second passage et 0x3c pour le
-troisième passe.
+`-p <pattern1> -p <pattern2> -p <pattern3>` spécifie un cycle de un à trois modèles d'écrasement d'octets hexadécimaux définis par l'utilisateur qui peuvent être appliqués successivement aux disques en cours de nettoyage. Le motif par défaut est trois passes, en utilisant 0x55 pour le premier passage, 0xaa pour le second passage et 0x3c pour le troisième passage.
 
 +
 `-r` remplace un remplacement à répétition par un remplacement aléatoire pour une ou toutes les passes.
 
 +
-`-c cycle_count` spécifie le nombre de fois où les modèles d'écrasement spécifiés sont appliqués.
+`-c <cycle_count>` indique le nombre de fois où les modèles d'écrasement spécifiés sont appliqués.
 
 +
 La valeur par défaut est un cycle. La valeur maximale est de sept cycles.
 
 +
-`disk_list` Spécifie une liste séparée par des espaces des ID des disques de rechange à désinfecter.
+`<disk_list>` Spécifie une liste séparée par des espaces des ID des disques de spare à nettoyer.
 
 . Pour vérifier l'état du processus de nettoyage de disque :
 +
-`disk sanitize status [disk_list]`
+`disk sanitize status [<disk_list>]`
 
 . Une fois le processus de nettoyage terminé, retournez les disques à l'état spare :
 +
-`disk sanitize release _disk_name_`
+`disk sanitize release <disk_name>`
 
 . Retour au niveau de privilège admin du nodeshell :
 +
@@ -201,11 +198,11 @@ Procédez comme suit :
 
 .. Affectez les disques aseptisés non affectés au nœud approprié pour chaque disque :
 +
-`storage disk assign -disk _disk_name_ -owner _node_name_`
+`storage disk assign -disk <disk_name> -owner <node_name>`
 
 .. Renvoyer les disques à l'état libre pour chaque disque :
 +
-`storage disk unfail -disk _disk_name_ -s -q`
+`storage disk unfail -disk <disk_name> -s -q`
 
 .. Revenir en mode administratif :
 +

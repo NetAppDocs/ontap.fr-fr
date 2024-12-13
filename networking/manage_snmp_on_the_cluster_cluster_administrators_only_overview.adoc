@@ -1,0 +1,73 @@
+---
+sidebar: sidebar 
+permalink: networking/manage_snmp_on_the_cluster_cluster_administrators_only_overview.html 
+keywords: 'manage, managing, snmp, monitor, monitoring, troubleshooting, error detection, traps, overview, configure snmp to monitor svms in your cluster, snmp, trap, traphosts, asynchronous, notification, notify, alert, message, thresholds, failures, errors, fail, rfc 1215, built in, built-in, standard, snmp traps, use snmp traps to periodically check for operational thresholds or failures, standard snmp traps, system snmp authtrap, rfc 1215, coldstart, warmstart, linkdown, linkup, authenticationfailure, built-in snmp traps, traphost, diskfailedshutdown, cputoobusy, and volumenearlyfull, introducing, introduction, overview, mib, management information base, text, structure, netapp.mib, what mibs are, introducing management information bases (mibs), snmp objects and traps, object identifiers, oids, traps.dat' 
+summary: Configurez SNMP pour surveiller les SVM au sein de votre cluster 
+---
+= Présentation SNMP
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez configurer le protocole SNMP pour surveiller les SVM au sein de votre cluster afin d'éviter les problèmes avant qu'ils ne se produisent et de répondre aux problèmes en cas de survenue. La gestion de SNMP implique la configuration des utilisateurs SNMP et la configuration des destinations de Traphost SNMP (stations de travail de gestion) pour tous les événements SNMP. SNMP est désactivé par défaut sur les LIFs de données.
+
+Vous pouvez créer et gérer des utilisateurs SNMP en lecture seule dans la SVM de données. Les LIFs data doivent être configurées de sorte à recevoir des requêtes SNMP sur le SVM.
+
+Les postes de travail SNMP de gestion de réseau, ou gestionnaires, peuvent interroger l'agent SNMP du SVM pour obtenir des informations. L'agent SNMP recueille des informations et les transmet aux gestionnaires SNMP. L'agent SNMP génère également des notifications d'interruption lorsque des événements spécifiques se produisent. L'agent SNMP du SVM possède des privilèges en lecture seule ; il ne peut pas être utilisé pour des opérations définies ou pour effectuer une action corrective en réponse à un trap. ONTAP fournit un agent SNMP compatible avec les versions SNMP v1, v2c et v3. SNMPv3 offre une sécurité avancée en utilisant des phrases de passe et le cryptage.
+
+Pour plus d'informations sur la prise en charge SNMP dans les systèmes ONTAP, voir https://www.netapp.com/pdf.html?item=/media/16417-tr-4220pdf.pdf["Tr-4220 : prise en charge SNMP dans Data ONTAP"^].
+
+
+
+== Présentation MIB
+
+Une base MIB (Management information base) est un fichier texte qui décrit les objets SNMP et les traps.
+
+Les MIB décrivent la structure des données de gestion du système de stockage et utilisent un espace de noms hiérarchique contenant des identifiants d'objets (OID). Chaque OID identifie une variable qui peut être lue à l'aide de SNMP.
+
+Étant donné que les MIB ne sont pas des fichiers de configuration et que ONTAP ne lit pas ces fichiers, la fonctionnalité SNMP n'est pas affectée par les MIB. ONTAP fournit le fichier MIB suivant :
+
+* Une MIB personnalisées NetApp (`netapp.mib`)
+
+
+ONTAP prend en charge les MIB IPv6 (RFC 2465), TCP (RFC 4022), UDP (RFC 4113) et ICMP (RFC 2466), qui affichent à la fois des données IPv4 et IPv6.
+
+ONTAP fournit également une référence croisée courte entre les identificateurs d'objet (OID) et les noms courts d'objet dans le `traps.dat` fichier.
+
+
+NOTE: Les dernières versions des fichiers MIB ONTAP et `traps.dat `sont disponibles sur le site de support NetApp. Cependant, les versions de ces fichiers sur le site de support ne correspondent pas nécessairement aux capacités SNMP de votre version ONTAP. Ces fichiers sont fournis pour vous aider à évaluer les fonctions SNMP dans la dernière version de ONTAP.
+
+
+
+== Interruptions SNMP
+
+Les interruptions SNMP capturent les informations de surveillance du système envoyées en tant que notification asynchrone de l'agent SNMP au gestionnaire SNMP.
+
+Il existe trois types d'interruptions SNMP : standard, intégré et défini par l'utilisateur. Les interruptions définies par l'utilisateur ne sont pas prises en charge dans ONTAP.
+
+Un trap peut être utilisé pour vérifier périodiquement les seuils opérationnels ou les échecs définis dans la MIB. Si un seuil est atteint ou qu'une panne est détectée, l'agent SNMP envoie un message (interruption) aux Traphosts les alertant de l'événement.
+
+
+NOTE: ONTAP prend en charge les déroutements SNMPv1 et, staring dans ONTAP 9.1, SNMPv3 déroutements. ONTAP ne prend pas en charge les déroutements SNMPv2c et n'informe pas.
+
+
+
+== Interruptions SNMP standard
+
+Ces interruptions sont définies dans RFC 1215. Il existe cinq interruptions SNMP standard prises en charge par ONTAP : coldstart, warmstart, Linkdown, linkup et authenticationFailure.
+
+
+NOTE: Le trap authenticationFailure est désactivé par défaut. Vous devez utiliser `system snmp authtrap` la commande pour activer le trap. Pour plus d'informations, consultez les pages man : link:../concepts/manual-pages.html["Référence de commande ONTAP"]
+
+
+
+== Interruptions SNMP intégrées
+
+Les interruptions intégrées sont prédéfinies dans ONTAP et sont automatiquement envoyées aux stations de gestion du réseau de la liste des Traphost si un événement se produit. Ces interruptions, telles que diskFailedShutdown, cpuTooBusy et volume NearlyFull, sont définies dans la MIB personnalisées.
+
+Chaque trappe intégrée est identifiée par un code d'interruption unique.

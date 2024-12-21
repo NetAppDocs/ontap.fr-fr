@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: tr-4743, flexcache writeback, flexcache write-back, use cases, workloads, technical report, netapp tr, ontap tr 
 summary: 'Il s"agit de profils d"écriture mieux adaptés à un FlexCache à écriture différée. Vous devez tester votre charge de travail pour vérifier si l"écriture différée ou l"annulation fournit les meilleures performances.' 
 ---
-= Cas d'utilisation d'écriture différée FlexCache
+= Cas d'utilisation de la réécriture de code ONTAP FlexCache
 :allow-uri-read: 
 
 
@@ -21,17 +21,19 @@ NOTE: La réécriture ne remplace pas la réinscription. Bien que la réécritur
 .Taille du fichier
 La taille du fichier est moins importante que le nombre d'écritures émises entre `OPEN` le et les `CLOSE` appels pour un fichier. Les petits fichiers ont par nature moins d' `WRITE` appels, ce qui les rend moins idéaux pour les réécritures. Les fichiers volumineux peuvent avoir plus d'écritures entre `OPEN` les appels et `CLOSE` , mais cela n'est pas garanti.
 
+Reportez-vous link:../flexcache-writeback/flexcache-write-back-guidelines.html["Instructions de réécriture de code FlexCache"]à la page pour connaître les recommandations les plus récentes concernant la taille maximale du fichier.
+
 .Taille d'écriture
-Lors de l'écriture à partir d'un client, d'autres appels NAS sont impliqués autres que des appels d'écriture :
+Lors de l'écriture à partir d'un client, d'autres appels NAS modifiés sont impliqués, autres que des appels d'écriture. Notamment :
 
 * `CREATE`
 * `OPEN`
 * `CLOSE`
-* `READDIR/READDIRPLUS`
-*  `SETATTR`: `SETATTR` les appels qui ne modifient que `mtime`, `atime`ou `ctime` sont traités dans le cache.
+* `SETATTR`
+* `SET_INFO`
 
 
-Ces appels doivent être traités à l'origine et déclencher une réécriture de toutes les données corrompues accumulées au niveau du cache activé pour l'écriture différée pour le fichier en cours d'exécution. Les E/S vers le fichier seront suspendues jusqu'à ce que l'écriture différée soit terminée.
+`SETATTR` et `SET_INFO` les appels qui définissent `mtime`, `atime`, `ctime`, `owner`, , `group` ou `size` sont traités au niveau du cache. Le reste de ces appels doit être traité à l'origine et déclencher une réécriture de toutes les données corrompues accumulées au niveau du cache activé pour l'écriture différée du fichier en cours d'exécution. Les E/S vers le fichier seront suspendues jusqu'à ce que l'écriture différée soit terminée.
 
 En sachant que ces appels doivent traverser le WAN, vous pouvez identifier les charges de travail adaptées à la réécriture. En général, plus le nombre d'écritures pouvant être effectuées entre `OPEN` les `CLOSE` appels et sans que l'un des autres appels répertoriés ci-dessus ne soit émis est élevé, plus le gain de performances est élevé.
 
@@ -48,7 +50,7 @@ Lorsqu'un fichier accumule des données corrompues dans un cache, le cache réé
 
 == Considérations relatives à la latence
 
-Lorsque FlexCache fonctionne en mode de réécriture, les clients NAS bénéficient d'avantages à mesure que la latence augmente. Il est toutefois important de noter que la surcharge liée à l'écriture différée est supérieure aux avantages obtenus dans les environnements à faible latence. Dans certains tests NetApp, les bénéfices de l'écriture différée ont commencé autour d'une latence minimale entre le cache et l'origine de 8 ms. Cette latence varie en fonction des charges de travail. Assurez-vous donc de tester pour en savoir plus sur les avantages.
+Lorsque FlexCache fonctionne en mode de réécriture, les clients NAS bénéficient d'avantages à mesure que la latence augmente. Il est toutefois important de noter que la surcharge liée à l'écriture différée est supérieure aux avantages obtenus dans les environnements à faible latence. Dans certains tests NetApp, les bénéfices de la réécriture ont commencé autour d'une latence minimale entre le cache et l'origine de 8 ms. Cette latence varie en fonction des charges de travail. Assurez-vous donc de tester pour connaître le point de retour de votre charge de travail.
 
 Le graphique suivant montre le point de retour pour l'écriture différée dans les tests de laboratoire NetApp. L' `x` axe est la taille du fichier et l' `y` axe est le temps écoulé. Le test a utilisé NFSv3, à monter avec une et de 256 Ko, et une `rsize` `wsize` latence WAN de 64 ms. Ce test a été réalisé en utilisant une petite instance ONTAP Select pour le cache et l'origine, ainsi qu'une seule opération d'écriture par thread. Vos résultats peuvent varier.
 

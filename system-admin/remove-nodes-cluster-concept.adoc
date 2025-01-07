@@ -1,0 +1,193 @@
+---
+permalink: system-admin/remove-nodes-cluster-concept.html 
+sidebar: sidebar 
+keywords: remove, node, cluster, failover, partner, erase, inaccessible 
+summary: 'Vous pouvez supprimer les nœuds non souhaités d"un cluster ou d"un nœud à la fois. Après avoir supprimé un nœud, vous devez également supprimer son partenaire de basculement. Si vous supprimez un nœud, ses données deviennent inaccessibles ou effacées.' 
+---
+= Retirer des nœuds du cluster
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez supprimer les nœuds non souhaités d'un cluster ou d'un nœud à la fois. Après avoir supprimé un nœud, vous devez également supprimer son partenaire de basculement. Si vous supprimez un nœud, ses données deviennent inaccessibles ou effacées.
+
+.Avant de commencer
+Les conditions suivantes doivent être remplies avant de supprimer des nœuds du cluster :
+
+* Plus de la moitié des nœuds du cluster doivent être en bon état.
+* Toutes les données, volumes et agrégats non racines ont été déplacés ou supprimés du nœud.
++
+** Toutes les données du nœud que vous souhaitez supprimer doivent avoir été évacuées. Cela peut inclure link:../encryption-at-rest/secure-purge-data-encrypted-volume-concept.html["purge des données d'un volume chiffré"].
+** Tous les volumes non-root ont été link:../volumes/move-volume-task.html["déplacé"] à partir d'agrégats détenus par le nœud.
+** Tous les agrégats non racines ont été link:../disks-aggregates/commands-manage-aggregates-reference.html["supprimé"] à partir du nœud.
+
+
+* Toutes les LIF et tous les VLAN ont été déplacés ou supprimés du nœud.
++
+** Les LIF de données l'ont été link:../networking/delete_a_lif.html["supprimé"] ou link:../networking/migrate_a_lif.html["déplacé"] à partir du nœud.
+** Les LIF de Cluster Management ont été link:../networking/migrate_a_lif.html["déplacé"] a partir du nœud et des ports de rattachement modifiés.
+** Toutes les LIFs intercluster ont été link:../networking/delete_a_lif.html["supprimé"]. Lorsque vous supprimez les LIFs intercluster, un avertissement qui peut être ignoré est affiché.
+** Tous les VLAN sur le nœud ont été link:../networking/configure_vlans_over_physical_ports.html#delete-a-vlan["supprimé"].
+
+
+* Le nœud ne participe à aucune relation de basculement.
++
+** Le basculement du stockage a été effectué link:../high-availability/ha_commands_for_enabling_and_disabling_storage_failover.html["désactivé"] pour le nœud.
+** Toutes les règles de basculement LIF ont été link:../networking/commands_for_managing_failover_groups_and_policies.html["modifié"] pour supprimer les ports sur le nœud.
+
+
+* Si le nœud est propriétaire de disques FIPS (Federal information Processing Standards) ou de disques à autocryptage (SED), link:../encryption-at-rest/return-seds-unprotected-mode-task.html["le chiffrement de disque a été supprimé"] en retournant les disques en mode non protégé.
++
+** Pour aller plus avant link:../encryption-at-rest/sanitize-fips-drive-sed-task.html["Procédez à la suppression des disques FIPS ou des disques SED"].
+
+
+* Si vous souhaitez supprimer des LUN sur le nœud, vous devez link:https://docs.netapp.com/us-en/ontap/san-admin/modify-slm-reporting-nodes-task.html["Modifiez la liste des nœuds de rapport SLM (Selective LUN Map)"] avant de supprimer le nœud.
++
+Si vous ne supprimez pas le nœud et son partenaire HA de la liste des noeuds-rapports SLM, l'accès aux LUN précédemment sur le nœud peut être perdu, même si les volumes contenant les LUN ont été déplacés vers un autre noeud.
+
+
+
+Il est recommandé d'émettre un message AutoSupport pour informer le support technique NetApp que la suppression de nœud est en cours.
+
+
+IMPORTANT: Vous ne devez pas effectuer d'opérations telles que `cluster remove-node`, `cluster unjoin`et `node rename` lorsqu'une mise à niveau automatique de ONTAP est en cours.
+
+.Description de la tâche
+* Si vous exécutez un cluster à versions mixtes, vous pouvez supprimer le dernier nœud à version faible à l'aide de l'une des commandes de privilège avancées commençant par ONTAP 9.3 :
++
+** ONTAP 9.3 : `cluster unjoin -skip-last-low-version-node-check`
+** ONTAP 9.4 et versions ultérieures : `cluster remove-node -skip-last-low-version-node-check`
+
+
+* Si vous dissociez 2 nœuds d'un cluster à 4 nœuds, la haute disponibilité du cluster est automatiquement activée sur les deux nœuds restants.
+
+
+
+NOTE: Toutes les données système et utilisateur de tous les disques connectés au nœud doivent être inaccessibles aux utilisateurs avant de supprimer un nœud du cluster. Si un nœud n'a pas été correctement rejoint à partir d'un cluster, contactez le support NetApp pour obtenir de l'aide concernant les options de restauration.
+
+.Étapes
+. Définissez le niveau de privilège sur avancé :
++
+[source, cli]
+----
+set -privilege advanced
+----
+. Vérifier si un nœud sur le cluster contient epsilon :
++
+[source, cli]
+----
+cluster show -epsilon true
+----
+. Si un nœud sur le cluster contient epsilon et que ce nœud va être rejoint, déplacer epsilon vers un nœud qui ne va pas être dissocié :
++
+.. Déplacer epsilon depuis le nœud qui va être désrejoint
++
+[source, cli]
+----
+cluster modify -node <name_of_node_to_be_unjoined> -epsilon false
+----
+.. Déplacer epsilon vers un nœud qui ne va pas être dissocié :
++
+[source, cli]
+----
+cluster modify -node <node_name> -epsilon true
+----
+
+
+. Identifiez le nœud maître actuel :
++
+[source, cli]
+----
+cluster ring show
+----
++
+Le nœud maître est le nœud qui contient des processus tels que `mgmt`, , `vldb` `vifmgr` , , `bcomd` et `crs`.
+
+. Si le nœud que vous souhaitez supprimer est le nœud maître actuel, activez un autre nœud du cluster pour qu'il soit choisi comme nœud maître :
++
+.. Rendre le nœud maître actuel inéligible pour participer au cluster :
++
+[source, cli]
+----
+cluster modify -node <node_name> -eligibility false
+----
++
+Cela entraîne le marquage du nœud comme défectueux jusqu'à ce que l'éligibilité soit restaurée à l'étape suivante. Lorsque le nœud maître devient inéligible, l'un des nœuds restants est choisi par le quorum du cluster comme nouveau maître.
+
+.. Rendez le nœud maître précédent éligible pour participer à nouveau au cluster :
++
+[source, cli]
+----
+cluster modify -node <node_name> -eligibility true
+----
+
+
+. Connectez-vous à la LIF de Remote node management ou à la LIF cluster-management sur un autre nœud que celui en cours de suppression.
+. Supprimer le nœud du cluster :
++
+|===
+| Pour cette version ONTAP... | Utilisez cette commande... 
+
+
+ a| 
+ONTAP 9.3
+ a| 
+[source, cli]
+----
+cluster unjoin
+----
+
+
+ a| 
+ONTAP 9.4 et versions ultérieures
+ a| 
+Avec le nom du nœud :
+
+[source, cli]
+----
+cluster remove-node -name <node_name>
+----
+Avec l'IP du nœud :
+
+[source, cli]
+----
+cluster remove-node -cluster_ip <node_ip>
+----
+|===
++
+Si vous avez une version mixte de cluster et que vous supprimez le dernier nœud inférieur, utilisez le `-skip-last-low-version-node-check` paramètre avec ces commandes.
+
++
+Le système vous informe des informations suivantes :
+
++
+** Vous devez également supprimer le partenaire de basculement du nœud du cluster.
+** Après avoir retiré le nœud et avant de le réintégrer, vous devez utiliser l'option du menu de démarrage (4) nettoyer la configuration et initialiser tous les disques ou l'option (9) configurer le partitionnement de disque avancé pour effacer la configuration du nœud et initialiser tous les disques.
++
+Un message de panne est généré si des conditions que vous devez traiter avant de supprimer le nœud. Par exemple, le message peut indiquer que le nœud dispose de ressources partagées que vous devez supprimer ou que le nœud se trouve dans une configuration de basculement du stockage ou de la configuration haute disponibilité du cluster que vous devez désactiver.
+
++
+Si le nœud est le maître de quorum, le cluster sera brièvement perdu et reviendra ensuite au quorum. Cette perte de quorum est temporaire et n'affecte aucune opération de données.
+
+
+
+. Si un message d'erreur indique des conditions d'erreur, traitez ces conditions et relancez le `cluster remove-node` ou `cluster unjoin` commande.
++
+Le nœud est redémarré automatiquement après sa suppression réussie du cluster.
+
+. Si vous requalifiez le nœud, effacez la configuration du nœud et initialisez tous les disques :
++
+.. Pendant le processus de démarrage, appuyez sur Ctrl-C pour afficher le menu de démarrage lorsque vous y êtes invité.
+.. Sélectionner l'option de menu d'amorçage (4) nettoyer la configuration et initialiser tous les disques.
+
+
+. Retour au niveau de privilège admin :
++
+[source, cli]
+----
+set -privilege admin
+----
+. Répétez la procédure précédente pour supprimer le partenaire de basculement du cluster.
+

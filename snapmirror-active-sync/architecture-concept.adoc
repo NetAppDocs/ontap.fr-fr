@@ -36,13 +36,13 @@ Autres points à prendre en compte :
 ONTAP Mediator est installé dans un troisième domaine de défaillance, distinct des deux clusters ONTAP. Son rôle principal est de servir de témoin passif des copies actives de synchronisation SnapMirror. En cas de partition réseau ou d'indisponibilité d'une copie, le système SnapMirror Active Sync utilise Mediator pour déterminer quelle copie continue à transmettre les E/S, tout en interrompt les E/S sur l'autre copie. Cette configuration comprend trois composants clés :
 
 * Cluster ONTAP principal hébergeant le groupe de cohérence principal de synchronisation active SnapMirror
-* Cluster ONTAP secondaire hébergeant le groupe de cohérence miroir
+* Cluster ONTAP secondaire hébergeant le groupe de cohérence du miroir
 * Médiateur de ONTAP
 
 
 Le médiateur ONTAP joue un rôle crucial dans les configurations de synchronisation active SnapMirror en tant que témoin de quorum passif. Il assure la maintenance du quorum et facilite l'accès aux données en cas de défaillance. Il agit comme un proxy ping pour les contrôleurs afin de déterminer la vivacité des contrôleurs homologues. Bien que le Mediator ne déclenche pas activement les opérations de basculement, il fournit une fonction essentielle en permettant au nœud survivant de vérifier l'état de son partenaire pendant les problèmes de communication réseau. Dans son rôle de témoin de quorum, le médiateur ONTAP fournit un chemin alternatif (servant effectivement de proxy) au cluster homologue.
 
-De plus, il permet aux clusters d'obtenir ces informations dans le cadre du processus de quorum. Il utilise la LIF node management et la LIF cluster management à des fins de communication. Il établit des connexions redondantes via plusieurs chemins afin de différencier les pannes de site et les défaillances de liaison ISL (interswitch Link). Lorsqu'un cluster perd la connexion avec le logiciel ONTAP Mediator et tous ses nœuds en raison d'un événement, il est considéré comme inaccessible. Cela déclenche une alerte et permet un basculement automatique vers le groupe de cohérence du miroir (CG) sur le site secondaire, ce qui garantit une continuité d'E/S pour le client. Le chemin d'accès aux données de réplication repose sur un mécanisme de pulsation. Si un problème de réseau ou un événement persiste au-delà d'une certaine période, cela peut entraîner des défaillances de pulsation, ce qui entraîne une désynchronisation de la relation. Toutefois, la présence de chemins redondants, comme le basculement de LIF vers un autre port, peut maintenir le signal de détection et éviter de telles perturbations.
+De plus, il permet aux clusters d'obtenir ces informations dans le cadre du processus de quorum. Il utilise la LIF node management et la LIF cluster management à des fins de communication. Il établit des connexions redondantes via plusieurs chemins afin de différencier les pannes de site et les défaillances de liaison ISL (interswitch Link). Lorsqu'un cluster perd la connexion avec le logiciel ONTAP Mediator et tous ses nœuds en raison d'un événement, il est considéré comme inaccessible. Cela déclenche une alerte et permet un basculement automatique vers le groupe de cohérence du miroir sur le site secondaire, garantissant ainsi une continuité d'E/S pour le client. Le chemin d'accès aux données de réplication repose sur un mécanisme de pulsation. Si un problème de réseau ou un événement persiste au-delà d'une certaine période, cela peut entraîner des défaillances de pulsation, ce qui entraîne une désynchronisation de la relation. Toutefois, la présence de chemins redondants, comme le basculement de LIF vers un autre port, peut maintenir le signal de détection et éviter de telles perturbations.
 
 Pour résumer, le médiateur ONTAP est utilisé aux fins suivantes :
 
@@ -77,7 +77,7 @@ SnapMirror Active Sync offre des solutions asymétriques.
 
 Dans les configurations _asymétriques_, la copie de stockage primaire expose un chemin optimisé pour le mode actif et traite activement les E/S du client Le site secondaire utilise un chemin distant pour les E/S. Les chemins de stockage du site secondaire sont considérés comme actifs-non optimisés. L'accès à la LUN d'écriture est proxy depuis le site secondaire.
 
-Dans les _configurations active/active symétriques_, les chemins optimisés pour le mode actif sont exposés sur les deux sites, sont spécifiques à l'hôte et sont configurables. Ainsi, les hôtes de chaque côté peuvent accéder au stockage local pour les E/S actives
+Dans les _configurations active/active symétriques_, les chemins optimisés pour le mode actif sont exposés sur les deux sites, sont spécifiques à l'hôte et sont configurables. Ainsi, les hôtes de chaque côté peuvent accéder au stockage local pour les E/S actives À partir de ONTAP 9.16.1, le mode actif-actif symétrique est pris en charge sur les clusters comportant jusqu'à quatre nœuds.
 
 image:snapmirror-active-sync-symmetric.png["Configuration active symétrique"]
 

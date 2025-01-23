@@ -31,10 +31,27 @@ Le tableau suivant explique comment `autosize-mode` les paramètres ont un impac
 |===
 .Avant de commencer
 * Vous devez être administrateur du cluster pour définir la limite d'un SVM.
-* Les limites de stockage ne peuvent pas être configurées pour des SVM contenant des volumes de protection des données, des volumes dans une relation SnapMirror ou dans une configuration MetroCluster.
+* À partir de la version ONTAP 9.16.1, des limites de stockage peuvent être configurées pour les SVM qui contiennent des volumes de protection des données, notamment les types de protection des données suivants :
++
+** Volumes FlexVol dans une reprise après incident asynchrone sans cascade
+** Volumes FlexVol dans une reprise après incident synchrone (règles de synchronisation et de synchronisation stricte)
+** link:../data-protection/restore-volume-snapvault-backup-task.html["Restaurer"]
+
+
+* Les limites de stockage des SVM sont _non_ prises en charge dans les configurations suivantes :
++
+** Relations de copie SnapMirror
+** Synchronisation active SnapMirror
+** FlexGroups
+** Groupes de cohérence
+** REPRISE APRÈS INCIDENT DES SVM
+** Cascades
+** MetroCluster
+
+
 * Lorsque vous migrez un SVM, une limite de stockage ne peut pas être activée sur le SVM source. Pour terminer l'opération de migration, désactivez la limite de stockage sur la source, puis terminez la migration.
 * La capacité SVM se distingue de xref:../volumes/quotas-concept.html[quotas]. Les quotas ne peuvent pas dépasser la taille maximale.
-* Vous ne pouvez pas définir de limite de stockage lorsque d'autres opérations sont en cours sur la SVM. Utilisez le `job show vservser _svm_name_` pour afficher les travaux existants. Essayez à nouveau d'exécuter la commande une fois les travaux terminés.
+* Vous ne pouvez pas définir de limite de stockage lorsque d'autres opérations sont en cours sur la SVM. Utilisez `job show vservser <svm_name>` la commande pour voir les travaux existants. Essayez à nouveau d'exécuter la commande une fois les travaux terminés.
 
 
 
@@ -76,18 +93,18 @@ Fournir une capacité maximale pour la SVM.
 .Étapes
 . Créer le SVM. Pour définir une limite de stockage, fournissez une `storage-limit` valeur. Pour définir une alerte de seuil pour la limite de stockage, indiquez une valeur de pourcentage pour `-storage-limit-threshold-alert`.
 +
-`vserver create -vserver _vserver_name_ -aggregate _aggregate_name_ -rootvolume _root_volume_name_ -rootvolume-security-style {unix|ntfs|mixed} -storage-limit _value_ [GiB|TIB] -storage-limit-threshold-alert _percentage_ [-ipspace IPspace_name] [-language <language>] [-snapshot-policy _snapshot_policy_name_] [-quota-policy _quota_policy_name_] [-comment _comment_]`
+`vserver create -vserver <vserver_name> -aggregate <aggregate_name> -rootvolume <root_volume_name> -rootvolume-security-style {unix|ntfs|mixed} -storage-limit <value> [GiB|TIB] -storage-limit-threshold-alert <percentage> [-ipspace IPspace_name] [-language <language>] [-snapshot-policy <snapshot_policy_name>] [-quota-policy <quota_policy_name>] [-comment <comment>]`
 
 +
 Si vous ne fournissez pas la valeur de seuil, par défaut une alerte sera déclenchée lorsque la SVM est à 90 % de sa capacité. Pour désactiver l'alerte de seuil, indiquez une valeur de zéro.
 
 . Confirmer la création du SVM réussie :
 +
-`vserver show -vserver _vserver_name_`
+`vserver show -vserver <vserver_name>`
 
 . Si vous souhaitez désactiver la limite de stockage, modifier la SVM avec `-storage-limit` paramètre défini sur zéro :
 +
-`vserver modify -vserver _vserver_name_ -storage-limit 0`
+`vserver modify -vserver <vserver_name> -storage-limit 0`
 
 
 
@@ -121,14 +138,14 @@ Si vous souhaitez désactiver la limite de capacité, décochez la case en regar
 .Étapes
 . Sur le cluster hébergeant le SVM, lancer `vserver modify` commande. Indiquez une valeur numérique pour `-storage-limit` et un pourcentage pour `-storage-limit-threshold-alert`.
 +
-`vserver modify -vserver _vserver_name_ -storage-limit _value_ [GiB|TIB] -storage-limit-threshold-alert _percentage_`
+`vserver modify -vserver <vserver_name> -storage-limit <value> [GiB|TIB] -storage-limit-threshold-alert <percentage>`
 
 +
 Si vous ne fournissez pas de valeur de seuil, vous obtenez une alerte par défaut à 90 % de la capacité. Pour désactiver l'alerte de seuil, indiquez une valeur de zéro.
 
 . Si vous souhaitez désactiver la limite de stockage, modifier la SVM avec `-storage-limit` défini sur zéro :
 +
-`vserver modify -vserver _vserver_name_ -storage-limit 0`
+`vserver modify -vserver <vserver_name> -storage-limit 0`
 
 
 

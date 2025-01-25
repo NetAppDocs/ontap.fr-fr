@@ -25,11 +25,8 @@ Si vous souhaitez configurer votre cluster ONTAP de sorte que tous les nouveaux 
 +
 Il est recommandé de laisser ARP fonctionner en mode d'apprentissage pendant au moins 30 jours. À partir de ONTAP 9.13.1, ARP détermine automatiquement la période d'apprentissage optimale et automatise le commutateur, qui peut se produire avant 30 jours.
 
-* *Pour ONTAP 9.16.1 et versions ultérieures avec les volumes FlexVol* lorsque vous activez ARP, la protection ARP/ai commence immédiatement en mode actif. Aucune période d'apprentissage n'est requise.
+* *Pour ONTAP 9.16.1 et versions ultérieures avec des volumes FlexVol* lorsque vous activez ARP, la protection ARP/ai est activée et active immédiatement. Aucune période d'apprentissage n'est requise.
 
-
-
-NOTE: Dans les volumes existants, les modes d'apprentissage et actif s'appliquent uniquement aux données nouvellement écrites, et non aux données existantes du volume. Les données existantes ne sont pas analysées et analysées, car les caractéristiques du trafic de données normal antérieur sont présumées basées sur les nouvelles données une fois que le volume est activé pour ARP.
 
 .Avant de commencer
 * Une VM de stockage (SVM) doit être activée pour NFS ou SMB (ou les deux).
@@ -60,7 +57,11 @@ Vous pouvez activer le protocole ARP à l'aide de System Manager ou de l'interfa
 
 NOTE: À partir de ONTAP 9.13.1, ARP détermine automatiquement la période d'apprentissage optimale et automatise le commutateur. Vous pouvez link:enable-default-task.html["Désactivez ce paramètre sur la machine virtuelle de stockage associée"]contrôler manuellement la transition du mode d'apprentissage au mode actif.
 
-** Si vous utilisez ARP sur des volumes FlexVol avec ONTAP 9.16.1 ou une version ultérieure, la fonctionnalité ARP/ai ne nécessite pas de période d'apprentissage et le mode actif est sélectionné par défaut.
++
+
+NOTE: Dans les volumes existants, les modes d'apprentissage et actif s'appliquent uniquement aux données nouvellement écrites, et non aux données existantes du volume. Les données existantes ne sont pas analysées et analysées, car les caractéristiques du trafic de données normal antérieur sont présumées basées sur les nouvelles données une fois que le volume est activé pour ARP.
+
+** Si vous utilisez ARP sur des volumes FlexVol avec ONTAP 9.16.1 ou version ultérieure, la fonctionnalité ARP/ai est activée et active immédiatement. Aucune période d'apprentissage n'est requise.
 
 
 . Vous pouvez vérifier l'état ARP du volume dans la zone *anti-ransomware*.
@@ -77,47 +78,49 @@ Le processus d'activation de ARP avec l'interface de ligne de commande diffère 
 .Activez ARP sur un volume existant
 . Modifiez un volume pour activer la protection contre les ransomware :
 +
-** Pour ONTAP 9.15.1 et versions antérieures et ARP avec volumes FlexGroup, définissez l'état du volume sur `dry-run` (mode d'apprentissage) :
+[source, cli]
+----
+security anti-ransomware volume dry-run -volume <vol_name> -vserver <svm_name>
+----
 +
-`security anti-ransomware volume dry-run -volume <vol_name> -vserver <svm_name>`
+Pour ONTAP 9.15.1 et versions antérieures, ainsi que pour les volumes FlexGroup, les nouveaux volumes commencent en mode d'apprentissage. Pour ONTAP 9.16.1 et versions ultérieures avec volumes FlexVol, ARP/ai est immédiatement activé. Dans les deux cas, utilisez `dry-run` comme valeur.
 
-** Pour ONTAP 9.16.1 et versions ultérieures avec des volumes ARP/ai et FlexVol, définissez l'état du volume sur `active` (mode actif) :
+. Si vous avez mis à niveau vers ONTAP 9.13.1 via ONTAP 9.15.1 et que l'état par défaut est, l'apprentissage adaptatif est `dry-run` activé de sorte que le changement d' `active`état soit effectué automatiquement. Si vous ne souhaitez pas que ce comportement soit automatiquement activé, modifier le paramètre au niveau du SVM sur tous les volumes associés :
 +
-`security anti-ransomware volume active -volume <vol_name> -vserver <svm_name>`
-
-
-
-. Si vous avez mis à niveau vers ONTAP 9.13.1 ou une version ultérieure et que l'état ARP par défaut est `dry-run`, l'apprentissage adaptatif est activé de sorte que le changement d'état actif soit effectué automatiquement. Si vous ne souhaitez pas que ce comportement soit automatiquement activé, modifier le paramètre au niveau du SVM sur tous les volumes associés :
-+
-`vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false`
-
+[source, cli]
+----
+vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false
+----
 . Vérifiez l'état ARP du volume.
 +
-`security anti-ransomware volume show`
-
+[source, cli]
+----
+security anti-ransomware volume show
+----
 
 
 .Activez ARP sur un nouveau volume
 . Créez un nouveau volume avec ARP activé avant le provisionnement des données :
 +
-** Pour ONTAP 9.15.1 et versions antérieures et ARP avec volumes FlexGroup, définissez l'état sur `dry-run` (mode d'apprentissage) :
+[source, cli]
+----
+volume create -volume <vol_name> -vserver <svm_name> -aggregate <aggr_name> -size <nn> -anti-ransomware-state dry-run -junction-path </path_name>
+----
 +
-`volume create -volume <vol_name> -vserver <svm_name> -aggregate <aggr_name> -size <nn> -anti-ransomware-state dry-run -junction-path </_path_name_>`
+Pour ONTAP 9.15.1 et versions antérieures, ainsi que pour les volumes FlexGroup, les nouveaux volumes commencent en mode d'apprentissage. Pour ONTAP 9.16.1 et versions ultérieures avec volumes FlexVol, ARP/ai est immédiatement activé. Dans les deux cas, utilisez `dry-run` comme valeur.
 
-** Pour ONTAP 9.16.1 et versions ultérieures avec des volumes ARP/ai et FlexVol, définissez l'état sur `active` (mode actif) :
+. Si vous avez mis à niveau vers ONTAP 9.13.1 via ONTAP 9.15.1 et que l'état par défaut est, l'apprentissage adaptatif est `dry-run` activé de sorte que le changement d' `active`état soit effectué automatiquement. Si vous ne souhaitez pas que ce comportement soit automatiquement activé, modifier le paramètre au niveau du SVM sur tous les volumes associés :
 +
-`volume create -volume <vol_name> -vserver <svm_name> -aggregate <aggr_name> -size <nn> -anti-ransomware-state active -junction-path </_path_name_>`
-
-
-
-. Si vous avez mis à niveau vers ONTAP 9.13.1 ou une version ultérieure et que l'état ARP par défaut est `dry-run`, l'apprentissage adaptatif est activé de sorte que le changement d'état actif soit effectué automatiquement. Si vous ne souhaitez pas que ce comportement soit automatiquement activé, modifier le paramètre au niveau du SVM sur tous les volumes associés :
+[source, cli]
+----
+vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false
+----
+. Vérifiez que le volume est défini sur `enabled` l'état.
 +
-`vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false`
-
-. Vérifiez l'état ARP du volume.
-+
-`security anti-ransomware volume show`
-
+[source, cli]
+----
+security anti-ransomware volume show
+----
 
 
 --

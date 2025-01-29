@@ -4,7 +4,7 @@ permalink: snapmirror-active-sync/add-remove-consistency-group-task.html
 keywords: SM-BC, SMBC, volume, consistency group, remove volume, add volume, snapmirror active sync 
 summary: 'Si vous souhaitez modifier la composition du groupe de cohérence en ajoutant ou en supprimant un volume, vous devez d"abord supprimer la relation d"origine, puis créer à nouveau le groupe de cohérence avec la nouvelle composition.' 
 ---
-= Permet d'ajouter ou de supprimer des volumes à un groupe de cohérence
+= Ajoutez ou supprimez des volumes à un groupe de cohérence dans ONTAP
 :hardbreaks:
 :allow-uri-read: 
 :nofooter: 
@@ -24,7 +24,7 @@ Dans la plupart des cas, il s'agit d'un processus perturbateur qui vous oblige �
 +
 Si vous souhaitez modifier la composition du groupe de cohérence en ajoutant ou en supprimant un volume, vous devez d'abord supprimer la relation d'origine, puis créer à nouveau le groupe de cohérence avec la nouvelle composition.
 
-* À partir de ONTAP 9.13.1, vous pouvez ajouter des volumes à un groupe de cohérence sans interruption avec une relation SnapMirror active depuis la source ou la destination.
+* À partir de ONTAP 9.13.1, vous pouvez ajouter des volumes à un groupe de cohérence sans interruption avec une relation SnapMirror active à partir de la source ou de la destination.
 +
 La suppression de volumes est une opération disruptive. Vous devez supprimer la relation SnapMirror avant de supprimer des volumes.
 
@@ -37,20 +37,20 @@ La suppression de volumes est une opération disruptive. Vous devez supprimer la
 .Avant de commencer
 * Vous ne pouvez pas commencer à modifier le groupe de cohérence tant qu'il se trouve dans le groupe `InSync` état.
 * Le volume de destination doit être de type DP.
-* Le nouveau volume que vous ajoutez pour développer le groupe de cohérence doit disposer d'une paire de copies Snapshot communes entre les volumes source et de destination.
+* Le nouveau volume que vous ajoutez pour développer le groupe de cohérence doit comporter une paire de snapshots communs entre les volumes source et de destination.
 
 
 .Étapes
 Les exemples présentés dans deux mappages de volume : `vol_src1` <--> `vol_dst1` et `vol_src2` <--> `vol_dst2`, dans une relation de groupe de cohérence entre les points d'extrémité `vs1_src:/cg/cg_src` et `vs1_dst:/cg/cg_dst`.
 
-. Sur le cluster source et le cluster destination, vérifiez qu'il existe un Snapshot commun entre le cluster source et le cluster destination avec la commande `snapshot show -vserver _svm_name_ -volume _volume_name_ -snapshot _snapmirror_`
+. Sur le cluster source et le cluster destination, vérifiez qu'il existe un snapshot commun entre le cluster source et le cluster destination avec la commande `snapshot show -vserver _svm_name_ -volume _volume_name_ -snapshot _snapmirror_`
 +
 `source::>snapshot show -vserver vs1_src -volume vol_src3 -snapshot snapmirror*`
 
 +
 `destination::>snapshot show -vserver vs1_dst -volume vol_dst3 -snapshot snapmirror*`
 
-. Si aucune copie Snapshot n'existe déjà, créez et initialisez une relation FlexVol SnapMirror :
+. S'il n'existe pas de snapshot commun, créer et initialiser une relation FlexVol SnapMirror :
 +
 `destination::>snapmirror initialize -source-path vs1_src:vol_src3 -destination-path vs1_dst:vol_dst3`
 
@@ -58,7 +58,7 @@ Les exemples présentés dans deux mappages de volume : `vol_src1` <--> `vol_dst
 +
 `destination::>snapmirror delete -destination-path vs1_dst:/cg/cg_dst`
 
-. Libérer la relation SnapMirror source et conserver les copies Snapshot courantes :
+. Libérer la relation SnapMirror source et conserver les snapshots courants :
 +
 `source::>snapmirror release -relationship-info-only true -destination-path vs1_dst:vol_dst3`
 
@@ -98,7 +98,7 @@ NOTE: Les LUN de destination ne sont pas mappées, tandis que les LUN présentes
 --
 .ONTAP 9.13.1 et versions ultérieures
 --
-À partir de ONTAP 9.13.1, vous pouvez ajouter des volumes à un groupe de cohérence sans interruption avec une relation active SnapMirror synchrone. La synchronisation active SnapMirror prend en charge l'ajout de volumes à la fois depuis la source et la destination.
+À partir de ONTAP 9.13.1, vous pouvez ajouter des volumes à un groupe de cohérence avec une relation active SnapMirror Sync, sans interruption. La synchronisation active SnapMirror prend en charge l'ajout de volumes à la fois depuis la source et la destination.
 
 
 IMPORTANT: De ONTAP 9.8 à 9.14.1, la synchronisation active SnapMirror est appelée SnapMirror Business Continuity (SM-BC).

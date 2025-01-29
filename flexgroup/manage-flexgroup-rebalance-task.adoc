@@ -20,7 +20,7 @@ Le rééquilibrage FlexGroup permet de redistribuer les capacités lorsque les d
 Notez que le rééquilibrage FlexGroup dégrade les performances système lorsque de nombreux fichiers sont déplacés dans le cadre d'un seul rééquilibrage ou lors d'événements de rééquilibrage multiples en raison de la création d'inodes en plusieurs parties. Chaque fichier déplacé dans le cadre d'un événement de rééquilibrage a 2 inodes à pièces multiples associées à ce fichier. Plus le nombre de fichiers avec des inodes en plusieurs parties est élevé en pourcentage du nombre total de fichiers dans une FlexGroup, plus l'impact sur les performances est important. Certains cas d'utilisation, comme la conversion FlexVol en FlexGroup, peuvent entraîner la création d'inodes multiples.
 
 ====
-Le rééquilibrage est disponible uniquement lorsque tous les nœuds du cluster exécutent ONTAP 9.12.1 ou une version ultérieure. Vous devez activer la fonctionnalité de données granulaires sur tous les volumes FlexGroup qui exécutent l'opération de rééquilibrage.  Une fois cette fonctionnalité activée, vous ne pouvez pas revenir à ONTAP 9.11.1 et aux versions antérieures sauf si vous supprimez ce volume ou restaurez-le à partir d'une copie Snapshot créée avant l'activation du paramètre.
+Le rééquilibrage est disponible uniquement lorsque tous les nœuds du cluster exécutent ONTAP 9.12.1 ou une version ultérieure. Vous devez activer la fonctionnalité de données granulaires sur tous les volumes FlexGroup qui exécutent l'opération de rééquilibrage. Une fois cette fonctionnalité activée, vous ne pouvez pas revenir à ONTAP 9.11.1 et aux versions antérieures à moins de supprimer ce volume ou de restaurer à partir d'un snapshot créé avant l'activation du paramètre.
 
 Depuis ONTAP 9.14.1, ONTAP introduit un algorithme qui déplace les fichiers de manière proactive et sans interruption dans des volumes pour lesquels les données granulaires sont activées sans interaction de l'utilisateur. L'algorithme fonctionne dans des scénarios très spécifiques et ciblés afin d'atténuer les goulots d'étranglement des performances.  Les scénarios dans lesquels cet algorithme peut agir incluent une charge d'écriture très élevée sur un ensemble de fichiers particulier sur un nœud du cluster ou un fichier en constante expansion dans un répertoire parent très actif.
 
@@ -43,15 +43,15 @@ Le rééquilibrage avec la fonction de rééquilibrage automatique des FlexGroup
 +
 La sélection de fichiers pour le rééquilibrage automatique est basée sur les blocs enregistrés.  La taille de fichier minimale prise en compte pour le rééquilibrage est de 100 Mo par défaut (elle peut être configurée à 20 Mo à l'aide du paramètre de taille de fichier min illustré ci-dessous) et la taille de fichier maximale est de 100 Go.
 
-* Fichiers dans des copies Snapshot
+* Fichiers dans des instantanés
 +
-Vous pouvez configurer le rééquilibrage FlexGroup pour tenir compte uniquement des fichiers qui ne sont actuellement présents dans aucune copie Snapshot.  Au démarrage du rééquilibrage, une notification s'affiche si une opération de copie Snapshot est planifiée à tout moment au cours d'une opération de rééquilibrage.
+Vous pouvez configurer le rééquilibrage FlexGroup de manière à ne considérer que les fichiers à déplacer qui ne sont actuellement présents dans aucun snapshot. Lorsque le rééquilibrage est lancé, une notification s'affiche si une opération de snapshot est planifiée à tout moment au cours d'une opération de rééquilibrage.
 
 +
-Les copies snapshot sont restreintes si un fichier est en cours de déplacement et est en cours de cadrage au niveau de la destination.  Une opération de restauration de copie Snapshot n'est pas autorisée tant que le rééquilibrage des fichiers est en cours.
+Les instantanés sont restreints si un fichier est déplacé et est en cours de cadrage à la destination. Une opération de restauration de snapshot n'est pas autorisée pendant le rééquilibrage des fichiers.
 
 +
-Toute copie Snapshot créée après l'activation de l' `granular-data` option ne peut pas être répliquée sur un système exécutant ONTAP 9.11.1 et les versions antérieures, car ONTAP 9.11.1 et les versions antérieures ne prennent pas en charge les inodes en plusieurs parties.
+Les instantanés créés après l'activation de l' `granular-data`option ne peuvent pas être répliqués sur un système exécutant ONTAP 9.11.1 et les versions antérieures car ONTAP 9.11.1 et les versions antérieures ne prennent pas en charge les inodes en plusieurs parties.
 
 * Opérations SnapMirror
 +
@@ -59,11 +59,11 @@ Le rééquilibrage de la FlexGroup doit avoir lieu entre les opérations SnapMir
 
 * Efficacité du stockage par compression basée sur des fichiers
 +
-Avec l'efficacité du stockage en compression basée sur les fichiers, le fichier est décompressé avant son déplacement vers la destination, ce qui entraîne une perte des économies en termes de compression. Les économies de compression sont reobtenues après l'exécution d'un scanner en arrière-plan manuel sur le volume FlexGroup après le rééquilibrage.  Cependant, si un fichier est associé à une copie Snapshot sur un volume, ce fichier est ignoré pour la compression.
+Avec l'efficacité du stockage en compression basée sur les fichiers, le fichier est décompressé avant son déplacement vers la destination, ce qui entraîne une perte des économies en termes de compression. Les économies de compression sont reobtenues après l'exécution d'un scanner en arrière-plan manuel sur le volume FlexGroup après le rééquilibrage. Cependant, si un fichier est associé à un snapshot sur un volume, le fichier est ignoré pour la compression.
 
 * Déduplication
 +
-Le déplacement des fichiers dédupliqués peut augmenter l'utilisation globale du volume FlexGroup. Lors du rééquilibrage des fichiers, seuls les blocs uniques sont déplacés vers la destination, ce qui libère cette capacité sur la source.  Les blocs partagés restent à la source et sont copiés vers la destination.  Cela permet de réduire la capacité utilisée sur un composant à source presque complète. Cependant, cela peut également entraîner une augmentation de l'utilisation globale du volume FlexGroup grâce à des copies de blocs partagés sur les nouvelles destinations.  Cela est également possible lorsque les fichiers qui font partie d'une copie Snapshot sont déplacés. Les économies d'espace ne sont pas entièrement reconnues avant le recyclage des copies Snapshot et l'absence de copie des fichiers dans des copies Snapshot.
+Le déplacement des fichiers dédupliqués peut augmenter l'utilisation globale du volume FlexGroup. Lors du rééquilibrage des fichiers, seuls les blocs uniques sont déplacés vers la destination, ce qui libère cette capacité sur la source. Les blocs partagés restent à la source et sont copiés vers la destination. Cela permet de réduire la capacité utilisée sur un composant à source presque complète. Cependant, cela peut également entraîner une augmentation de l'utilisation globale du volume FlexGroup grâce à des copies de blocs partagés sur les nouvelles destinations. Cela est également possible lorsque les fichiers faisant partie d'un snapshot sont déplacés. Les économies d'espace ne sont pas entièrement reconnues tant que la planification des snapshots n'est pas recycle et qu'il n'y a plus de copies des fichiers dans les snapshots.
 
 * Volumes FlexClone
 +
@@ -152,7 +152,7 @@ Vous pouvez également spécifier les options suivantes :
 [-START-Time <mm/dd/yyyy-00:00:00>] Date et heure de début du rééquilibrage de la planification
 
 +
-[-exclude-snapshots {true|false}] exclure les fichiers bloqués dans les copies Snapshot
+[-exclude-snapshots {true|false}] exclure les fichiers bloqués dans les instantanés
 
 +
 Exemple :
@@ -170,7 +170,7 @@ volume rebalance start -vserver vs0 -volume fg1
 
 == Modifier les configurations FlexGroup rééquilibrées
 
-Vous pouvez modifier une configuration de rééquilibrage FlexGroup pour mettre à jour le seuil de déséquilibre, la quantité de fichiers simultanés ayant la taille minimale, l'exécution maximale et pour inclure ou exclure des copies Snapshot. Des options pour modifier votre calendrier de rééquilibrage FlexGroup sont disponibles à partir de ONTAP 9.13.1.
+Vous pouvez modifier une configuration de rééquilibrage FlexGroup pour mettre à jour le seuil de déséquilibre, le nombre de fichiers simultanés déplace la taille de fichier minimale, le temps d'exécution maximal et pour inclure ou exclure des snapshots. Des options pour modifier votre calendrier de rééquilibrage FlexGroup sont disponibles à partir de ONTAP 9.13.1.
 
 [role="tabbed-block"]
 ====
@@ -217,7 +217,7 @@ Vous pouvez spécifier une ou plusieurs des options suivantes :
 [-START-Time <mm/dd/yyyy-00:00:00>] Date et heure de début du rééquilibrage de la planification
 
 +
-[-exclude-snapshots {true|false}] exclure les fichiers bloqués dans les copies Snapshot
+[-exclude-snapshots {true|false}] exclure les fichiers bloqués dans les instantanés
 
 
 
@@ -341,7 +341,7 @@ Exemple de détails d'instance de rééquilibrage :
     Minimum Imbalance Threshold per Constituent: 5%
     Maximum Concurrent File Moves per Constituent: 25
     Minimum File Size: 4KB
-    Exclude Files Stuck in Snapshot Copies: true
+    Exclude Files Stuck in snapshots: true
 ----
 
 

@@ -157,24 +157,49 @@ Le tableau suivant présente les systèmes d'exploitation pris en charge pour ch
 ====
 
 
-== Enregistrez une clé de sécurité lorsque le démarrage sécurisé UEFI est activé
+== Installez le médiateur ONTAP lorsque le démarrage sécurisé UEFI est activé
 
+ONTAP Mediator peut être installé sur un système avec ou sans démarrage sécurisé UEFI activé.
+
+.Description de la tâche
+Vous pouvez choisir de désactiver le démarrage sécurisé UEFI avant d'installer le médiateur ONTAP s'il n'est pas nécessaire ou si vous dépannez des problèmes d'installation du médiateur ONTAP. Désactivez l'option UEFI Secure Boot dans les paramètres de votre ordinateur.
+
+[NOTE]
+====
+Consultez les instructions spécifiques au système pour plus d'informations sur la désactivation de l'amorçage sécurisé UEFI.
+
+====
 Pour installer le médiateur ONTAP avec le démarrage sécurisé UEFI activé, vous devez enregistrer une clé de sécurité avant de pouvoir démarrer le service. La clé est générée lors de l'étape de compilation de l'installation SCST et enregistrée en tant que paire de clés privée-publique sur votre machine. Utilisez `mokutil` l'utilitaire pour ajouter la clé publique en tant que clé propriétaire de l'ordinateur (MOK) à votre micrologiciel UEFI, ce qui permet au système d'approuver et de charger le module signé. Enregistrez la `mokutil` phrase de passe dans un emplacement sécurisé car cela est requis lors du redémarrage de votre système pour activer le MOK.
 
-Pour déterminer si le système est activé pour UEFI et si l'amorçage sécurisé est activé, effectuez les opérations suivantes :
-
 .Étapes
-. Si `mokutil` n'est pas installé, exécutez la commande suivante :
-+
-`yum install mokutil`
-
-. Vérifiez si le démarrage sécurisé UEFI est activé sur votre système :
+. [[STEP_1_uefi]]Vérifiez si le démarrage sécurisé UEFI est activé sur votre système :
 +
 `mokutil --sb-state`
 
 +
 Les résultats indiquent si le démarrage sécurisé UEFI est activé sur ce système.
 
++
+[cols="40,60"]
+|===
+
+
+| Si... | Aller à... 
+
+
+ a| 
+Le démarrage sécurisé UEFI est activé
+ a| 
+
+
+
+
+ a| 
+Le démarrage sécurisé UEFI est désactivé
+ a| 
+link:upgrade-host-os-mediator-task.html["Mettez à niveau le système d'exploitation hôte, puis le médiateur ONTAP"]
+
+|===
 +
 [NOTE]
 ====
@@ -183,6 +208,10 @@ Les résultats indiquent si le démarrage sécurisé UEFI est activé sur ce sys
 
 
 ====
+. [[STEP_2_uefi]]si l' `mokutil`utilitaire n'est pas installé, exécutez la commande suivante :
++
+`yum install mokutil`
+
 . Ajoutez la clé publique à la liste MOK :
 +
 `mokutil --import /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/scst_module_key.der`
@@ -195,16 +224,5 @@ NOTE: Vous pouvez laisser la clé privée à son emplacement par défaut ou la d
 `[root@hostname ~]# ls /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/
 README.module-signing  scst_module_key.der  scst_module_key.priv`
 
-. Redémarrez l'hôte et utilisez le gestionnaire d'amorçage UEFI de votre périphérique pour approuver le nouveau PROTOCOLE D'accès. Vous aurez besoin de la phrase de passe fournie pour le `mokutil` à l'étape 2.
-
-
-
-
-== Désactivez le démarrage sécurisé UEFI
-
-Vous pouvez également choisir de désactiver le démarrage sécurisé UEFI avant d'installer le médiateur ONTAP.
-
-.Étapes
-. Dans les paramètres du BIOS de la machine physique, désactivez l'option « démarrage sécurisé UEFI ».
-. Dans les paramètres VMware de la machine virtuelle, désactivez l'option « démarrage sécurisé » pour vSphere 6.x ou l'option « démarrage sécurisé » pour vSphere 7.x.
+. Redémarrez l'hôte et utilisez le gestionnaire d'amorçage UEFI de votre périphérique pour approuver le nouveau PROTOCOLE D'accès. Vous aurez besoin de la phrase de passe fournie pour `mokutil` l'utilitaire dans <<step_1_uefi,Étape permettant de vérifier si le démarrage sécurisé UEFI est activé sur votre système>>.
 

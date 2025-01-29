@@ -30,9 +30,9 @@ summary: Vous pouvez modifier un groupe de cohérence en ajoutant ou en supprima
 +
 Depuis ONTAP 9.13.1, cette fonctionnalité est prise en charge dans System Manager.
 
-* Lors de l'extension d'un groupe de cohérence, les copies Snapshot du groupe de cohérence capturé avant la modification sont considérées comme partielles. Toute opération de restauration basée sur cette copie Snapshot reflète le groupe de cohérence à l'instant T du snapshot.
+* Lors du développement d'un groupe de cohérence, les snapshots du groupe de cohérence capturés avant la modification sont considérés comme partiels. Toute opération de restauration basée sur ce snapshot reflète le groupe de cohérence à l'instant présent du snapshot.
 * Si vous utilisez les ONTAP 9.10.1 à 9.11.1, vous ne pouvez pas modifier un groupe de cohérence. Pour modifier la configuration d'un groupe de cohérence dans les ONTAP 9.10.1 ou 9.11.1, vous devez supprimer ce groupe, puis créer un nouveau groupe de cohérence avec les volumes à inclure.
-* Depuis la version ONTAP 9.14.1, vous pouvez répliquer des copies Snapshot granulaires par volume sur le cluster de destination lors de l'utilisation de la réplication asynchrone SnapMirror. Lors de l'extension d'un groupe de cohérence à l'aide de la réplication asynchrone SnapMirror, les snapshots granulaires par volume ne sont répliqués qu'après l'extension du groupe de cohérence lorsque la règle SnapMirror est MirrorAll ou MirrorAndVault. Seuls les snapshots granulaires par volume plus récents que le snapshot du groupe de cohérence de référence sont répliqués.
+* Depuis ONTAP 9.14.1, vous pouvez répliquer des snapshots granulaires par volume sur le cluster de destination lors de l'utilisation de la réplication asynchrone SnapMirror. Lors de l'extension d'un groupe de cohérence à l'aide de la réplication asynchrone SnapMirror, les snapshots granulaires par volume ne sont répliqués qu'après l'extension du groupe de cohérence lorsque la règle SnapMirror est MirrorAll ou MirrorAndVault. Seuls les snapshots granulaires par volume plus récents que le snapshot du groupe de cohérence de base sont répliqués.
 * Si vous ajoutez des volumes à un groupe de cohérence dans une relation de reprise d'activité de SVM (prise en charge depuis ONTAP 9.14.1), vous devez mettre à jour la relation de reprise d'activité de SVM depuis le cluster de destination après avoir étendu le groupe de cohérence. Pour plus d'informations, reportez-vous à la section xref:../data-protection/update-replication-relationship-manual-task.html[Mettre à jour une relation de réplication manuellement].
 
 
@@ -109,7 +109,7 @@ Les volumes supprimés d'un groupe de cohérence ne sont pas supprimés. Ils res
 .Description de la tâche
 * Vous ne pouvez pas supprimer des volumes d'un groupe de cohérence dans une relation de synchronisation active SnapMirror ou de reprise d'activité de SVM. Vous devez d'abord supprimer la relation SnapMirror active Sync pour modifier le groupe de cohérence, puis rétablir la relation.
 * Si un groupe de cohérence ne contient aucun volume après l'opération de suppression, le groupe de cohérence est supprimé.
-* Lorsqu'un volume est supprimé d'un groupe de cohérence, les snapshots existants du groupe de cohérence restent considérés comme non valides. Les snapshots existants ne peuvent pas être utilisés pour restaurer le contenu d'un groupe de cohérence. Les snapshots granulaires volume restent valides.
+* Lorsqu'un volume est supprimé d'un groupe de cohérence, les snapshots existants du groupe de cohérence restent conservés, mais sont considérés comme non valides. Les snapshots existants ne peuvent pas être utilisés pour restaurer le contenu d'un groupe de cohérence. Les snapshots granulaires par volume restent valides.
 * Si vous supprimez un volume du cluster, il est automatiquement supprimé du groupe de cohérence.
 * Pour modifier la configuration d'un groupe de cohérence dans ONTAP 9.10.1 ou 9.11.1, vous devez supprimer ce groupe de cohérence, puis en créer un nouveau avec les volumes membres souhaités.
 * La suppression d'un volume du cluster entraîne sa suppression automatique.
@@ -126,7 +126,7 @@ Depuis ONTAP 9.12.1, vous pouvez effectuer cette opération avec System Manager.
 . Sélectionnez le groupe de cohérence enfant ou unique à modifier.
 . Dans le menu *volumes*, sélectionnez les cases à cocher en regard des volumes individuels que vous souhaitez supprimer du groupe de cohérence.
 . Sélectionnez *Supprimer des volumes du groupe de cohérence*.
-. Vérifiez que vous avez bien compris que la suppression des volumes entraîne la non-validité de toutes les copies Snapshot du groupe de cohérence et sélectionnez *Remove*.
+. Confirmez que vous avez compris que la suppression des volumes entraînera la non-validité de tous les snapshots du groupe de cohérence et sélectionnez *Supprimer*.
 
 
 --
@@ -159,8 +159,8 @@ Depuis la version ONTAP 9.13.1, vous pouvez déplacer des volumes entre des grou
 
 .Description de la tâche
 * Vous pouvez uniquement déplacer des volumes entre des groupes de cohérence imbriqués sous le même groupe de cohérence parent.
-* Les snapshots de groupe de cohérence existants sont devenus non valides et ne sont plus accessibles en tant que snapshots de groupe de cohérence. Les snapshots de volumes individuels restent valides.
-* Les copies Snapshot du groupe de cohérence parent restent valides.
+* Les snapshots de groupes de cohérence existants ne sont plus valides et ne sont plus accessibles en tant que snapshots de groupes de cohérence. Les snapshots de volumes individuels restent valides.
+* Les snapshots du groupe de cohérence parent restent valides.
 * Si vous déplacez tous les volumes hors d'un groupe de cohérence enfant, ce groupe de cohérence est supprimé.
 * Les modifications apportées à un groupe de cohérence doivent être respectées xref:limits.html[limites des groupes de cohérence].
 
@@ -197,7 +197,7 @@ Depuis la version ONTAP 9.14.1, vous pouvez déplacer des volumes entre des grou
 .Déplacez les volumes vers un nouveau groupe de cohérence enfant
 . La commande suivante crée un nouveau groupe de cohérence enfant dans lequel sont situés les volumes désignés.
 +
-Lorsque vous créez le nouveau groupe de cohérence, vous pouvez désigner de nouvelles règles de Snapshot, de QoS et de hiérarchisation.
+Lorsque vous créez le nouveau groupe de cohérence, vous pouvez désigner de nouvelles règles de snapshot, de QoS et de hiérarchisation.
 
 +
 `consistency-group volume reassign -vserver _SVM_name_ -consistency-group _source_child_consistency_group_ -parent-consistency-group _parent_consistency_group_ -volume _volumes_ -new-consistency-group _consistency_group_name_ [-snapshot-policy _policy_ -qos-policy _policy_ -tiering-policy _policy_]`

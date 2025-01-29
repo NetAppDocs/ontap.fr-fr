@@ -19,16 +19,16 @@ SnapMirror _réplication unifiée_ permet de configurer la reprise après incide
 
 Comme pour SnapMirror, la protection unifiée des données effectue un transfert de base dès le premier appel que vous l'appelez. La règle SnapMirror pour la relation définit le contenu de la base et toutes les mises à jour.
 
-Transfert de base avec la règle de protection des données unifiée par défaut `MirrorAndVault` Crée une copie Snapshot du volume source, puis transfère cette copie et les blocs de données qu'il renvoie vers le volume de destination. Tout comme l'archivage sécurisé, la protection unifiée des données n'inclut pas d'anciennes copies Snapshot de la ligne de base.
+Un transfert de base dans le cadre de la règle de protection des données unifiée par défaut `MirrorAndVault` effectue un snapshot du volume source, puis transfère cette copie et les blocs de données qu'elle référence au volume de destination. Tout comme l'archivage en coffre-fort, la protection unifiée des données n'inclut pas les anciens snapshots dans la configuration de base.
 
 
 
 == Mise à jour des relations de protection unifiée des données
 
-À chaque mise à jour sous `MirrorAndVault` Règle : SnapMirror crée une copie Snapshot du volume source et transfère la copie Snapshot ainsi que toutes les copies Snapshot créées depuis la dernière mise à jour, à condition que leurs étiquettes correspondent aux règles de règles Snapshot. Dans la sortie suivante du `snapmirror policy show` commande pour le `MirrorAndVault` notez la règle suivante :
+À chaque mise à jour de la `MirrorAndVault` règle, SnapMirror crée un snapshot du volume source et transfère ce snapshot ainsi que tous les snapshots créés depuis la dernière mise à jour, à condition qu'ils aient des étiquettes correspondant aux étiquettes définies dans les règles de la règle de snapshot. Dans les valeurs de sortie suivantes de `snapmirror policy show` la commande pour la `MirrorAndVault` règle, noter ce qui suit :
 
-* `Create Snapshot` est « vrai », ce qui indique cela `MirrorAndVault` Crée une copie Snapshot lorsque SnapMirror met à jour la relation.
-* `MirrorAndVault` A règles « `sm_created`', « diotidienne » et « hebdomadaire », ce qui indique que la copie Snapshot créée par SnapMirror et les copies Snapshot portant des étiquettes correspondantes sur la source sont transférées lorsque SnapMirror met à jour la relation.
+* `Create Snapshot` Est « true », ce qui signifie que `MirrorAndVault` crée un snapshot lorsque SnapMirror met à jour la relation.
+* `MirrorAndVault` Possède des règles « `sm_created`", « quotidiennes » et « hebdomadaires », ce qui indique que le snapshot créé par SnapMirror et les snapshots avec des libellés correspondants sur la source sont transférés lorsque SnapMirror met à jour la relation.
 
 
 [listing]
@@ -59,7 +59,7 @@ cluster_dst::> snapmirror policy show -policy MirrorAndVault -instance
 
 == Politique unifiée sur 7ans
 
-Le préconfiguré `Unified7year` la politique fonctionne exactement de la même manière que `MirrorAndVault`, Sauf qu'une quatrième règle transfère les copies Snapshot mensuelles et les conserve pendant sept ans.
+La règle préconfigurée `Unified7year` fonctionne exactement de la même manière que `MirrorAndVault`, sauf qu'une quatrième règle transfère les snapshots mensuels et les conserve pendant sept ans.
 
 [listing]
 ----
@@ -75,9 +75,9 @@ Le préconfiguré `Unified7year` la politique fonctionne exactement de la même 
 
 == Protégez-vous contre les risques de corruption
 
-La réplication unifiée limite le contenu du transfert de base vers la copie Snapshot créée par SnapMirror à l'initialisation. À chaque mise à jour, SnapMirror crée une autre copie Snapshot de la source et transfère cette copie Snapshot ainsi que toutes les nouvelles copies Snapshot dont les étiquettes correspondent aux règles définies dans les règles de règle Snapshot.
+La réplication unifiée limite le contenu du transfert de base vers le snapshot créé par SnapMirror au moment de l'initialisation. À chaque mise à jour, SnapMirror crée un autre snapshot de la source et le transfère ainsi que tout nouvel instantané dont les étiquettes correspondent aux étiquettes définies dans les règles de la règle de snapshot.
 
-Vous pouvez vous protéger contre la possibilité de corruption d'une copie Snapshot mise à jour en créant une copie de la dernière copie Snapshot transférée sur le volume de destination. Cette « copie locale » est conservée indépendamment des règles de conservation à la source, de sorte que même si la copie Snapshot transférée à l'origine par SnapMirror n'est plus disponible sur la source, une copie de celle-ci sera disponible sur la destination.
+Vous pouvez vous protéger contre le risque de corruption d'un instantané mis à jour en créant une copie du dernier instantané transféré sur la destination. Cette « copie locale » est conservée indépendamment des règles de conservation sur la source, de sorte que même si l'instantané initialement transféré par SnapMirror n'est plus disponible sur la source, une copie de celui-ci sera disponible sur la destination.
 
 
 
@@ -85,4 +85,4 @@ Vous pouvez vous protéger contre la possibilité de corruption d'une copie Snap
 
 Vous devez évaluer les avantages de la maintenance d'un miroir complet par rapport aux avantages offerts par la réplication unifiée : réduction de la quantité de stockage secondaire, limitation du nombre de transferts de base et diminution du trafic réseau.
 
-Le facteur clé pour déterminer la pertinence de la réplication unifiée est le taux de changement du système de fichiers actif. Un miroir traditionnel peut mieux convenir à un volume qui contient des copies Snapshot horaires de journaux de transactions de base de données, par exemple.
+Le facteur clé pour déterminer la pertinence de la réplication unifiée est le taux de changement du système de fichiers actif. Par exemple, un miroir traditionnel convient mieux à un volume contenant des snapshots horaires de journaux de transactions de base de données.

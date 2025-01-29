@@ -15,7 +15,7 @@ Un groupe de cohérence est un ensemble de volumes gérés comme une seule unit�
 
 Pour simplifier la gestion du stockage, vous pouvez utiliser des groupes de cohérence. Imaginez que vous disposez d'une base de données importante couvrant 20 LUN. Vous pouvez gérer les LUN de manière individuelle ou les traiter comme un jeu de données unique, les organiser au sein d'un même groupe de cohérence.
 
-Les groupes de cohérence facilitent la gestion des charges de travail des applications en fournissant des règles de protection locales et distantes facilement configurées, ainsi que des copies Snapshot cohérentes au niveau des applications ou après panne d'un ensemble de volumes à un point dans le temps. Les copies Snapshot d'un groupe de cohérence permettent de restaurer l'ensemble d'une charge de travail applicative.
+Les groupes de cohérence facilitent la gestion des charges de travail des applications en fournissant des règles de protection locales et distantes facilement configurées, ainsi que des copies Snapshot simultanées cohérentes au niveau des applications ou des défaillances d'un ensemble de volumes à un point dans le temps. Les copies Snapshot d'un groupe de cohérence permettent de restaurer l'ensemble d'une charge de travail applicative.
 
 
 
@@ -23,15 +23,15 @@ Les groupes de cohérence facilitent la gestion des charges de travail des appli
 
 Les groupes de cohérence prennent en charge n'importe quel volume FlexVol, quel que soit le protocole (NAS, SAN ou NVMe). Ils peuvent être gérés via l'API REST de ONTAP ou dans System Manager, dans l'élément de menu *stockage > groupes de cohérence*. Depuis la version ONTAP 9.14.1, la gestion des groupes de cohérence peut s'effectuer via l'interface de ligne de commandes ONTAP.
 
-Les groupes de cohérence peuvent exister sous la forme d'entités individuelles, sous la forme d'un ensemble de volumes, ou dans une relation hiérarchique constituée d'autres groupes de cohérence. Les volumes individuels peuvent disposer de leur propre règle Snapshot granulaire par volume. En outre, des règles Snapshot peuvent être définies au niveau du groupe de cohérence. Le groupe de cohérence ne peut avoir qu'une relation de synchronisation active SnapMirror et une règle SnapMirror partagée, qui peuvent être utilisées pour restaurer l'ensemble du groupe de cohérence.
+Les groupes de cohérence peuvent exister sous la forme d'entités individuelles, sous la forme d'un ensemble de volumes, ou dans une relation hiérarchique constituée d'autres groupes de cohérence. Les volumes individuels peuvent disposer de leur propre règle Snapshot granulaire par volume. En outre, il peut exister des règles Snapshot à l'échelle du groupe de cohérence. Le groupe de cohérence ne peut avoir qu'une relation de synchronisation active SnapMirror et une règle SnapMirror partagée, qui peuvent être utilisées pour restaurer l'ensemble du groupe de cohérence.
 
-Le graphique suivant illustre l'utilisation possible d'un groupe de cohérence individuel. Données d'une application hébergée sur `SVM1` s'étend sur deux volumes : `vol1` et `vol2`. Une règle Snapshot définie sur le groupe de cohérence capture des copies Snapshot des données toutes les 15 minutes.
+Le graphique suivant illustre l'utilisation possible d'un groupe de cohérence individuel. Les données d'une application hébergée sur s'étendent sur `SVM1` deux volumes : `vol1` et `vol2`. Une règle Snapshot du groupe de cohérence capture des instantanés des données toutes les 15 minutes.
 
-image:consistency-group-single-diagram.gif["Un groupe de cohérence unique avec ses volumes constitutifs et sa règle Snapshot locale"]
+image:consistency-group-single-diagram.gif["Un groupe de cohérence unique avec ses volumes constitutifs et sa règle de snapshot locale"]
 
 Des charges de travail applicatives plus importantes peuvent nécessiter plusieurs groupes de cohérence. Dans ce cas, vous pouvez créer des groupes de cohérence hiérarchiques, où un seul groupe de cohérence devient les composants enfants d'un groupe de cohérence parent. Le groupe de cohérence parent peut inclure au maximum cinq groupes de cohérence enfant. Comme dans les groupes de cohérence individuels, une règle de protection de synchronisation active SnapMirror distante peut être appliquée à l'ensemble de la configuration des groupes de cohérence (parents et enfants) afin de restaurer la charge de travail de l'application.
 
-Dans l'exemple suivant, une application est hébergée sur `SVM1`. L'administrateur a créé un groupe de cohérence parent, `SVM1_app`, qui inclut deux groupes de cohérence enfant : `SVM1appDataCG` pour les données et `SVM1app_logCG` pour les journaux. Chaque groupe de cohérence enfant dispose de sa propre règle Snapshot. Copies Snapshot des volumes dans `SVM1appDataCG` sont prises toutes les 15 minutes. Snapshots de `SVM1app_logCG` sont prises toutes les heures. Groupe de cohérence parent `SVM1_app` Dispose d'une règle de synchronisation active SnapMirror qui réplique les données pour assurer la continuité de service en cas d'incident.
+Dans l'exemple suivant, une application est hébergée sur `SVM1`. L'administrateur a créé un groupe de cohérence parent, `SVM1_app` qui comprend deux groupes de cohérence enfant : `SVM1appDataCG` pour les données et `SVM1app_logCG` pour les journaux. Chaque groupe de cohérence enfant dispose de sa propre politique de snapshot. Des snapshots des volumes dans `SVM1appDataCG` sont réalisés toutes les 15 minutes. Les instantanés de `SVM1app_logCG` sont pris toutes les heures. Le groupe de cohérence parent `SVM1_app` dispose d'une règle de synchronisation active SnapMirror qui réplique les données pour assurer la continuité du service en cas d'incident.
 
 image:consistency-group-nested-diagram.gif["Groupe de cohérence imbriqué avec les volumes associés"]
 
@@ -64,7 +64,7 @@ NOTE: Dans ONTAP 9.13.1, vous pouvez uniquement récupérer les metrics historiq
 
 == Protégez les groupes de cohérence
 
-Les groupes de cohérence assurent une protection cohérente au niveau des applications, assurant la cohérence de vos données sur plusieurs volumes ou LIF. Lors de la création d'une copie Snapshot d'un groupe de cohérence, une « clôture » est établie sur le groupe de cohérence. Le périmètre lance une file d'attente pour les E/S jusqu'à la fin de l'opération Snapshot, garantissant ainsi la cohérence des données à un point dans le temps entre toutes les entités du groupe de cohérence. Cette barrière peut provoquer un pic passager de latence lors des opérations de création de snapshots, par exemple une règle Snapshot planifiée ou la création d'un Snapshot avec System Manager. Pour plus d'informations dans le cadre de l'API REST et de l'interface de ligne de commandes, reportez-vous à la documentation de l'API REST ONTAP et à la page de manuel de l'interface de ligne de commandes.
+Les groupes de cohérence assurent une protection cohérente au niveau des applications, assurant la cohérence de vos données sur plusieurs volumes ou LIF. Lors de la création d'un snapshot d'un groupe de cohérence, une « barrière » est établie sur le groupe de cohérence. La clôture lance une file d'attente pour les E/S jusqu'à la fin de l'opération de snapshot, garantissant ainsi la cohérence des données à un point dans le temps entre toutes les entités du groupe de cohérence. Cette barrière peut provoquer un pic passager de latence lors des opérations de création de snapshots, par exemple une règle de snapshots planifiée ou la création d'un Snapshot avec System Manager. Pour plus d'informations dans le cadre de l'API REST et de l'interface de ligne de commandes, reportez-vous à la documentation de l'API REST ONTAP et à la page de manuel de l'interface de ligne de commandes.
 
 La protection est assurée par des groupes de cohérence :
 
@@ -100,7 +100,7 @@ Depuis ONTAP 9.11.1, vous pouvez provisionner les groupes de cohérence avec de 
 
 Une fois ces agrégats provisionnés, vous pouvez déplacer les volumes associés aux groupes de cohérence entre les agrégats en miroir et non mis en miroir. Les volumes associés à des groupes de cohérence peuvent donc être situés sur des agrégats en miroir, des agrégats sans mise en miroir, ou les deux. Vous pouvez modifier les agrégats en miroir contenant des volumes associés à des groupes de cohérence pour ne plus mettre en miroir. De même, vous pouvez modifier les agrégats non mis en miroir contenant les volumes associés à des groupes de cohérence pour activer la mise en miroir.
 
-Les volumes et les copies Snapshot associés aux groupes de cohérence placés sur des agrégats en miroir sont répliqués sur le site distant (site B). Le contenu des volumes sur le site B garantit l'ordre d'écriture du groupe de cohérence, ce qui vous permet d'effectuer une restauration depuis le site B en cas d'incident. Vous pouvez accéder aux copies Snapshot de groupe de cohérence à l'aide du groupe de cohérence avec l'API REST et System Manager sur les clusters exécutant ONTAP 9.11.1 ou version ultérieure. Depuis la version ONTAP 9.14.1, vous pouvez également accéder aux copies Snapshot via l'interface de ligne de commandes ONTAP.
+Les volumes et les snapshots associés aux groupes de cohérence placés sur des agrégats en miroir sont répliqués sur le site distant (site B). Le contenu des volumes sur le site B garantit l'ordre d'écriture du groupe de cohérence, ce qui vous permet d'effectuer une restauration depuis le site B en cas d'incident. Vous pouvez accéder aux snapshots de groupes de cohérence à l'aide du groupe de cohérence avec l'API REST et System Manager sur les clusters exécutant ONTAP 9.11.1 ou version ultérieure. Depuis la version ONTAP 9.14.1, vous pouvez également accéder aux snapshots via l'interface de ligne de commandes ONTAP.
 
 Si certains ou l'ensemble des volumes associés à un groupe de cohérence se trouvent sur des agrégats non mis en miroir qui ne sont pas actuellement accessibles, LES opérations D'OBTENTION ou DE SUPPRESSION du groupe de cohérence se comportent comme si les volumes locaux ou les agrégats d'hébergement sont hors ligne.
 
@@ -111,7 +111,7 @@ Si certains ou l'ensemble des volumes associés à un groupe de cohérence se tr
 Si le site B exécute ONTAP 9.10.1 ou une version antérieure, seuls les volumes associés aux groupes de cohérence situés sur les agrégats en miroir sont répliqués sur le site B. Les configurations de groupes de cohérence sont uniquement répliquées vers le site B, si les deux sites exécutent ONTAP 9.11.1 ou une version ultérieure. Une fois le site B mis à niveau vers ONTAP 9.11.1, les données destinées aux groupes de cohérence du site A où tous leurs volumes associés sont répliqués sur le site B.
 
 
-NOTE: Pour optimiser les performances et la disponibilité du stockage, il est recommandé de conserver au moins 20 % d'espace libre pour les agrégats en miroir. Bien que la recommandation soit de 10 % pour les agrégats non mis en miroir, le système de fichiers peut utiliser 10 % d'espace supplémentaire pour absorber les modifications incrémentielles. Les modifications incrémentielles augmentent l'utilisation de l'espace pour les agrégats en miroir grâce à l'architecture Snapshot d'ONTAP basée sur la copie en écriture. Le non-respect de ces meilleures pratiques peut avoir un impact négatif sur les performances.
+NOTE: Pour optimiser les performances et la disponibilité du stockage, il est recommandé de conserver au moins 20 % d'espace libre pour les agrégats en miroir. Bien que la recommandation soit de 10 % pour les agrégats non mis en miroir, le système de fichiers peut utiliser 10 % d'espace supplémentaire pour absorber les modifications incrémentielles. Les modifications incrémentielles augmentent l'utilisation de l'espace pour les agrégats en miroir grâce à l'architecture snapshot de copie sur écriture de ONTAP. Le non-respect de ces meilleures pratiques peut avoir un impact négatif sur les performances.
 
 
 
@@ -119,10 +119,10 @@ NOTE: Pour optimiser les performances et la disponibilité du stockage, il est r
 
 Lors de la mise à niveau vers ONTAP 9.10.1 ou une version ultérieure, les groupes de cohérence créés avec la synchronisation active SnapMirror (auparavant appelée SnapMirror Business Continuity) dans ONTAP 9.8 et 9.9.1 sont automatiquement mis à niveau et deviennent gérables sous *stockage > groupes de cohérence* dans le Gestionnaire système ou l'API REST ONTAP pour plus d'informations sur la mise à niveau à partir de ONTAP 9.8 ou 9.9.1, voir link:../snapmirror-active-sync/upgrade-revert-task.html["Considérations relatives à la mise à niveau et à la restauration de la synchronisation active SnapMirror"].
 
-Les copies Snapshot de groupe de cohérence créées dans l'API REST peuvent être gérées via l'interface de groupe de cohérence de System Manager et via les terminaux d'API REST de groupe de cohérence. Depuis la version ONTAP 9.14.1, les snapshots des groupes de cohérence peuvent également être gérés à l'aide de l'interface de ligne de commandes ONTAP.
+Les snapshots de groupes de cohérence créés dans l'API REST peuvent être gérés via l'interface de groupe de cohérence de System Manager et les terminaux de l'API REST de groupe de cohérence. Depuis la version ONTAP 9.14.1, les snapshots de groupes de cohérence peuvent également être gérés à l'aide de l'interface de ligne de commandes ONTAP.
 
 
-NOTE: Les copies Snapshot créées avec les commandes ONTAPI `cg-commit` ne sont pas reconnues comme des copies `cg-start` Snapshot de groupe de cohérence. Elles ne peuvent donc pas être gérées via l'interface des groupes de cohérence de System Manager ou les terminaux des groupes de cohérence DE l'API REST ONTAP. Depuis la version ONTAP 9.14.1, ces copies Snapshot peuvent être mises en miroir sur le volume de destination si vous utilisez une règle asynchrone SnapMirror. Pour plus d'informations, voir xref:protect-task.html#configure-snapmirror-asynchronous[Configurer SnapMirror asynchrone].
+NOTE: Les snapshots créés avec les commandes ONTAPI et `cg-commit` ne sont pas reconnus comme des snapshots de groupes de cohérence. Ils `cg-start` ne peuvent donc pas être gérés via l'interface des groupes de cohérence de System Manager ou les terminaux des groupes de cohérence de l'API REST ONTAP. Depuis la version ONTAP 9.14.1, ces snapshots peuvent être mis en miroir sur le volume de destination si vous utilisez une règle asynchrone SnapMirror. Pour plus d'informations, voir xref:protect-task.html#configure-snapmirror-asynchronous[Configurer SnapMirror asynchrone].
 
 
 
@@ -136,7 +136,7 @@ NOTE: Les copies Snapshot créées avec les commandes ONTAPI `cg-commit` ne sont
 | Groupes de cohérence hiérarchiques | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ 
 
 
-| Protection locale grâce aux copies Snapshot | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ 
+| Protection locale avec snapshots | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ 
 
 
 | Synchronisation active SnapMirror | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ 

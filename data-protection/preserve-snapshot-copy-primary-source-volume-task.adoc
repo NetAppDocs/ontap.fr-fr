@@ -2,31 +2,31 @@
 permalink: data-protection/preserve-snapshot-copy-primary-source-volume-task.html 
 sidebar: sidebar 
 keywords: ensure, snapshot, copy, mirror-vault, deployment 
-summary: 'Vous pouvez utiliser la commande snapmirror snapshot-owner create pour conserver une copie Snapshot nommée sur le système secondaire, dans un déploiement miroir-vault. Cela garantit qu"il existe une copie Snapshot commune pour la mise à jour de la relation de coffre-fort.' 
+summary: 'Vous pouvez utiliser la commande SnapMirror snapshot-owner create pour conserver un snapshot étiqueté sur le secondaire dans un déploiement de coffre-fort en miroir. Cela permet de s"assurer qu"un snapshot commun existe pour la mise à jour de la relation de coffre-fort.' 
 ---
-= Nous garantissons une copie Snapshot commune dans un déploiement de copie miroir-coffre avec ONTAP
+= Assurez un snapshot commun dans un déploiement de copie miroir avec ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Vous pouvez utiliser le `snapmirror snapshot-owner create` Commande permettant de conserver une copie Snapshot étiquetée sur le système secondaire dans un déploiement mis en miroir-vault. Cela garantit qu'il existe une copie Snapshot commune pour la mise à jour de la relation de coffre-fort.
+Vous pouvez utiliser `snapmirror snapshot-owner create` la commande pour conserver un snapshot étiqueté sur le secondaire dans un déploiement de coffre-fort en miroir. Cela permet de s'assurer qu'un snapshot commun existe pour la mise à jour de la relation de coffre-fort.
 
 .Description de la tâche
-Si vous utilisez une combinaison de mirror-vault Fan-Out ou de cascade, sachez que les mises à jour échoueront si une copie Snapshot commune n'existe pas sur les volumes source et de destination.
+Si vous utilisez une combinaison de fan-out de miroir-coffre-fort ou de déploiement en cascade, gardez à l'esprit que les mises à jour échoueront si un snapshot commun n'existe pas sur les volumes source et de destination.
 
-Ce problème ne se pose jamais pour la relation de miroir dans un déploiement de type « fan-out » (fan-out) à base de miroir ou en cascade, car SnapMirror crée toujours une copie Snapshot du volume source avant d'effectuer la mise à jour.
+Il ne s'agit jamais d'un problème pour la relation de miroir dans un déploiement en cascade ou avec « fan-out » de miroir-coffre-fort, puisque SnapMirror crée toujours un snapshot du volume source avant d'effectuer la mise à jour.
 
-Il peut en revanche s'agir d'un problème pour la relation de copie à distance, puisque SnapMirror ne crée pas de copie Snapshot du volume source lors de la mise à jour d'une relation de copie à distance. Vous devez utiliser le `snapmirror snapshot-owner create` Pour s'assurer qu'il existe au moins une copie Snapshot commune à la fois sur la source et la destination de la relation de coffre-fort.
+Il peut s'agir d'un problème pour la relation de coffre-fort, cependant, puisque SnapMirror ne crée pas de snapshot du volume source lors de la mise à jour d'une relation de coffre-fort. Vous devez utiliser `snapmirror snapshot-owner create` pour vous assurer qu'il existe au moins un snapshot commun sur la source et la destination de la relation de coffre-fort.
 
 .Étapes
-. Sur le volume source, attribuez un propriétaire à la copie Snapshot nommée que vous souhaitez conserver :
+. Sur le volume source, attribuez un propriétaire à l'instantané étiqueté que vous souhaitez conserver :
 +
 `snapmirror snapshot-owner create -vserver <SVM> -volume <volume> -snapshot <snapshot> -owner <owner>`
 
 +
-L'exemple suivant affecte `ApplicationA` en tant que propriétaire du `snap1` Copie Snapshot :
+L'exemple suivant illustre `ApplicationA` le rôle de propriétaire du `snap1` snapshot :
 
 +
 [listing]
@@ -38,7 +38,7 @@ clust1::> snapmirror snapshot-owner create -vserver vs1 -volume vol1
 +
 Vous pouvez également attendre la mise à jour planifiée de la relation miroir.
 
-. Transférer la copie Snapshot étiquetée vers la destination du coffre-fort :
+. Transférer l'instantané étiqueté vers la destination du coffre-fort :
 +
 `snapmirror update -source-path <SVM:volume>|<cluster://SVM/volume>, ... -destination-path <SVM:volume>|<cluster://SVM/volume>, ... -source-snapshot snapshot`
 
@@ -46,7 +46,7 @@ Vous pouvez également attendre la mise à jour planifiée de la relation miroir
 Pour en savoir plus, `snapmirror update` consultez le link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-update.html["Référence de commande ONTAP"^].
 
 +
-L'exemple suivant transfère le `snap1` La copie Snapshot::
+L'exemple suivant transfère le `snap1` snapshot::
 +
 --
 [listing]
@@ -54,17 +54,17 @@ L'exemple suivant transfère le `snap1` La copie Snapshot::
 clust1::> snapmirror update -vserver vs1 -volume vol1
 -source-snapshot snap1
 ----
-La copie Snapshot nommée sera conservée lors de la mise à jour de la relation de coffre-fort.
+L'instantané marqué sera conservé lorsque la relation de coffre-fort sera mise à jour.
 
 --
 
 
-. Sur le volume source, supprimez le propriétaire de la copie Snapshot nommée :
+. Sur le volume source, supprimez le propriétaire de l'instantané marqué :
 +
 `snapmirror snapshot-owner delete -vserver _SVM_ -volume _volume_ -snapshot _snapshot_ -owner _owner_`
 
 +
-Les exemples suivants sont supprimés `ApplicationA` en tant que propriétaire du `snap1` Copie Snapshot :
+Les exemples suivants sont supprimés `ApplicationA` en tant que propriétaire de l' `snap1`instantané :
 
 +
 [listing]

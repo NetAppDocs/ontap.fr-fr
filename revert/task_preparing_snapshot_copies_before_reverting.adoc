@@ -2,7 +2,7 @@
 permalink: revert/task_preparing_snapshot_copies_before_reverting.html 
 sidebar: sidebar 
 keywords: ontap, revert, reverting, reversion, snapshot, copies, prepare, preparing, disable, delete 
-summary: 'Avant de restaurer vers une version antérieure d"ONTAP, vous devez désactiver toutes les règles de copie Snapshot et supprimer toutes les copies Snapshot créées après la mise à niveau vers la version actuelle.' 
+summary: Avant de revenir à une version antérieure de ONTAP, vous devez désactiver toutes les stratégies de snapshot et supprimer tous les snapshots créés après la mise à niveau vers la version actuelle. 
 ---
 = Préparez les snapshots avant de restaurer un cluster ONTAP
 :allow-uri-read: 
@@ -11,7 +11,7 @@ summary: 'Avant de restaurer vers une version antérieure d"ONTAP, vous devez d�
 
 
 [role="lead"]
-Avant de restaurer un cluster ONTAP à partir de n'importe quelle version d'ONTAP 9, vous devez désactiver toutes les règles de copie Snapshot et supprimer toutes les copies Snapshot créées après la mise à niveau vers la version actuelle.
+Avant de restaurer un cluster ONTAP à partir d'une version de ONTAP 9, vous devez désactiver toutes les règles de snapshot et supprimer tous les snapshots créés après la mise à niveau vers la version actuelle.
 
 Si vous procédez à une restauration dans un environnement SnapMirror, vous devez d'abord avoir supprimé les relations de miroir suivantes :
 
@@ -21,13 +21,13 @@ Si vous procédez à une restauration dans un environnement SnapMirror, vous dev
 
 
 .Étapes
-. Désactiver les règles de copies Snapshot pour tous les SVM de données :
+. Désactiver les règles Snapshot pour tous les SVM de données :
 +
 [source, cli]
 ----
 volume snapshot policy modify -vserver * -enabled false
 ----
-. Désactiver les règles de copie Snapshot pour les agrégats de chaque nœud :
+. Désactiver les règles de snapshot pour les agrégats de chaque nœud :
 +
 .. Identifier les agrégats du nœud :
 +
@@ -35,7 +35,7 @@ volume snapshot policy modify -vserver * -enabled false
 ----
 run -node <nodename> -command aggr status
 ----
-.. Désactiver la règle de copie Snapshot pour chaque agrégat :
+.. Désactiver la snapshot policy pour chaque agrégat :
 +
 [source, cli]
 ----
@@ -44,7 +44,7 @@ run -node <nodename> -command aggr options aggr_name nosnap on
 .. Répétez cette étape pour chaque nœud restant.
 
 
-. Désactiver les règles de copie Snapshot pour le volume racine de chaque nœud :
+. Désactiver les politiques de snapshot pour le volume racine de chaque nœud :
 +
 .. Identifiez le volume racine du nœud :
 +
@@ -64,7 +64,7 @@ vs1::> run -node node1 vol status
            vol0 online          raid_dp, flex     root, nvfail=on
                                 64-bit
 ----
-.. Désactiver la policy de copie Snapshot sur le volume root :
+.. Désactiver la snapshot policy sur le volume root :
 +
 [source, cli]
 ----
@@ -73,7 +73,7 @@ run -node <node_name> vol options root_volume_name nosnap on
 .. Répétez cette étape pour chaque nœud restant.
 
 
-. Supprimez toutes les copies Snapshot créées après la mise à niveau vers la version actuelle :
+. Supprimez tous les snapshots créés après la mise à niveau vers la version actuelle :
 +
 .. Définissez le niveau de privilège sur avancé :
 +
@@ -87,33 +87,33 @@ set -privilege advanced
 ----
 snapshot policy modify -vserver * -enabled false
 ----
-.. Supprimez les copies Snapshot les plus récentes du nœud :
+.. Supprimez les snapshots de la version la plus récente du nœud :
 +
 [source, cli]
 ----
 volume snapshot prepare-for-revert -node <node_name>
 ----
 +
-Cette commande supprime les copies Snapshot de version les plus récentes sur chaque volume de données, agrégat racine et volume racine.
+Cette commande supprime les snapshots de la dernière version sur chaque volume de données, agrégat racine et volume racine.
 
 +
-Si aucune copie Snapshot ne peut être supprimée, la commande échoue et vous informe des actions requises que vous devez effectuer pour pouvoir supprimer les copies. Vous devez effectuer les actions requises, puis exécuter à nouveau la `volume snapshot prepare-for-revert` commande avant de passer à l'étape suivante.
+Si aucun snapshot ne peut être supprimé, la commande échoue et vous informe de toute action requise avant de supprimer les snapshots. Vous devez effectuer les actions requises, puis exécuter à nouveau la `volume snapshot prepare-for-revert` commande avant de passer à l'étape suivante.
 
 +
 [listing]
 ----
 cluster1::*> volume snapshot prepare-for-revert -node node1
 
-Warning: This command will delete all Snapshot copies that have the format used by the current version of ONTAP. It will fail if any Snapshot copy polices are enabled, or
-         if any Snapshot copies have an owner. Continue? {y|n}: y
+Warning: This command will delete all snapshots that have the format used by the current version of ONTAP. It will fail if any snapshot polices are enabled, or
+         if any snapshots have an owner. Continue? {y|n}: y
 ----
-.. Vérifiez que les copies Snapshot ont été supprimées :
+.. Vérifier que les snapshots ont été supprimés :
 +
 [source, cli]
 ----
 volume snapshot show -node nodename
 ----
-.. Si des copies Snapshot les plus récentes sont conservées, force-les à être supprimées :
+.. Si des snapshots de version plus récente sont conservés, les forcer à être supprimés :
 +
 [source, cli]
 ----

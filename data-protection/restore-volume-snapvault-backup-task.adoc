@@ -2,7 +2,7 @@
 permalink: data-protection/restore-volume-snapvault-backup-task.html 
 sidebar: sidebar 
 keywords: restore, content, volume, snapmirror, destination, snap mirror, snapshot, vault, snapvault, read-write, incremental 
-summary: 'Vous pouvez restaurer le contenu d"un volume entier à partir d"une copie Snapshot dans un volume de destination SnapMirror. Vous pouvez restaurer le contenu du volume vers le volume source d"origine ou vers un volume différent.' 
+summary: 'Vous pouvez restaurer le contenu d"un volume entier à partir d"un snapshot d"un volume de destination SnapMirror. Vous pouvez restaurer le contenu du volume vers le volume source d"origine ou vers un volume différent.' 
 ---
 = Restaurez le contenu d'un volume depuis une destination SnapMirror avec ONTAP
 :allow-uri-read: 
@@ -11,21 +11,21 @@ summary: 'Vous pouvez restaurer le contenu d"un volume entier à partir d"une co
 
 
 [role="lead"]
-Vous pouvez restaurer le contenu d'un volume entier à partir d'une copie Snapshot dans un volume de destination SnapMirror. Vous pouvez restaurer le contenu du volume vers le volume source d'origine ou vers un volume différent.
+Vous pouvez restaurer le contenu d'un volume entier à partir d'un snapshot d'un volume de destination SnapMirror. Vous pouvez restaurer le contenu du volume vers le volume source d'origine ou vers un volume différent.
 
 .Description de la tâche
 Cette procédure s'applique aux systèmes FAS, AFF et ASA actuels. Si vous disposez d'un système ASA r2 (ASA A1K, ASA A70 ou ASA A90), procédez link:https://docs.netapp.com/us-en/asa-r2/data-protection/restore-data.html["procédure à suivre"^] comme suit  pour restaurer les données. Les systèmes ASA r2 simplifient l'expérience ONTAP propre aux clients SAN.
 
 Le volume de destination de l'opération de restauration doit être l'un des suivants :
 
-* Un volume de lecture/écriture, dans lequel cas SnapMirror exécute une _restauration incrémentielle_, à condition que les volumes source et de destination aient une copie Snapshot commune (comme c'est généralement le cas lors de la restauration vers le volume source d'origine).
+* Un volume de lecture-écriture, auquel cas SnapMirror effectue une _restauration incrémentielle_, à condition que les volumes source et de destination aient un snapshot commun (comme c'est généralement le cas lors de la restauration vers le volume source d'origine).
 +
 [NOTE]
 ====
-La commande échoue si une copie Snapshot commune n'est pas disponible. Vous ne pouvez pas restaurer le contenu d'un volume sur un volume en lecture-écriture vide.
+Si aucun snapshot n'est commun, la commande échoue. Vous ne pouvez pas restaurer le contenu d'un volume sur un volume en lecture-écriture vide.
 
 ====
-* Un volume de protection des données vide, dans lequel cas SnapMirror exécute une _restauration de base_, dans lequel la copie Snapshot spécifiée et tous les blocs de données qui lui font référence sont transférés vers le volume source.
+* Volume de protection des données vide, auquel cas SnapMirror effectue une _restauration de base_, dans laquelle le snapshot spécifié et tous les blocs de données qu'il référence sont transférés au volume source.
 
 
 La restauration du contenu d'un volume constitue une opération perturbateur. Lors de l'exécution d'une opération de restauration, le trafic SMB ne doit pas être exécuté sur le volume primaire SnapVault.
@@ -34,9 +34,9 @@ Si la compression est activée sur le volume de destination pour l'opération de
 
 Toute règle de quotas définie pour le volume de destination est désactivée avant la restauration effectuée. Vous pouvez utiliser le `volume quota modify` commande permettant de réactiver les règles de quota une fois l'opération de restauration terminée.
 
-Lorsque les données d'un volume sont perdues ou corrompues, vous pouvez restaurer les données à partir d'une copie Snapshot antérieure.
+En cas de perte ou de corruption des données d'un volume, vous pouvez restaurer les données à partir d'un snapshot antérieur.
 
-Cette procédure remplace les données actuelles sur le volume source par des données issues d'une version antérieure de la copie Snapshot. Vous devez effectuer cette tâche sur le cluster de destination.
+Cette procédure remplace les données actuelles du volume source par les données d'une version antérieure de l'instantané. Vous devez effectuer cette tâche sur le cluster de destination.
 
 .Étapes
 Vous pouvez restaurer le contenu d'un volume à l'aide de System Manager ou de l'interface de ligne de commandes de ONTAP.
@@ -48,14 +48,14 @@ Vous pouvez restaurer le contenu d'un volume à l'aide de System Manager ou de l
 . Cliquez sur *protection > relations*, puis sur le nom du volume source.
 . Cliquez sur, image:icon_kabob.gif["Icône des options de menu"] puis sélectionnez *Restaurer*.
 . Sous *Source*, le volume source est sélectionné par défaut. Cliquez sur *Other Volume* si vous souhaitez choisir un volume autre que la source.
-. Sous *destination*, choisissez la copie Snapshot à restaurer.
+. Sous *destination*, choisissez l'instantané à restaurer.
 . Si votre source et votre destination sont situées sur différents clusters, sur le cluster distant, cliquez sur *protection > relations* pour contrôler la progression de la restauration.
 
 
 --
 .CLI
 --
-. Lister les copies Snapshot dans le volume de destination :
+. Lister les snapshots dans le volume de destination :
 +
 [source, cli]
 ----
@@ -65,7 +65,7 @@ volume snapshot show -vserver <SVM> -volume <volume>
 Pour en savoir plus, `volume snapshot show` consultez le link:https://docs.netapp.com/us-en/ontap-cli/volume-snapshot-show.html["Référence de commande ONTAP"^].
 
 +
-L'exemple suivant montre les copies Snapshot sur le `vserverB:secondary1` destination :
+L'exemple suivant montre les snapshots sur la `vserverB:secondary1` destination :
 
 +
 [listing]
@@ -85,7 +85,7 @@ vserverB    secondary1  hourly.2013-01-25_0005  valid   224KB     0%    0%
 
 7 entries were displayed.
 ----
-. Restaurer le contenu d'un volume à partir d'une copie Snapshot dans un volume de destination SnapMirror :
+. Restaurez le contenu d'un volume à partir d'un snapshot dans un volume de destination SnapMirror :
 +
 `snapmirror restore -source-path <SVM:volume>|<cluster://SVM/volume> -destination-path <SVM:volume>|<cluster://SVM/volume> -source-snapshot <snapshot>`
 
@@ -97,14 +97,14 @@ Pour en savoir plus, `snapmirror restore` consultez le link:https://docs.netapp.
 NOTE: Vous devez exécuter cette commande à partir du SVM source d'origine ou du cluster source d'origine.
 
 +
-La commande suivante restaure le contenu du volume source d'origine `primary1` A partir de la copie Snapshot `daily.2013-01-25_0010` dans le volume de destination d'origine `secondary1`:
+La commande suivante restaure le contenu du volume source d'origine `primary1` à partir de l'instantané `daily.2013-01-25_0010` dans le volume cible d'origine `secondary1` :
 
 +
 [listing]
 ----
 cluster_src::> snapmirror restore -source-path vserverB:secondary1 -destination-path vserverA:primary1 -source-snapshot daily.2013-01-25_0010
 
-Warning: All data newer than Snapshot copy daily.2013-01-25_0010 on volume vserverA:primary1 will be deleted.
+Warning: All data newer than snapshot daily.2013-01-25_0010 on volume vserverA:primary1 will be deleted.
 
 Do you want to continue? {y|n}: y
 

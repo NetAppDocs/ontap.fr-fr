@@ -37,8 +37,42 @@ CAUTION: En cas d'échec de l'installation, vous devrez peut-être effectuer une
 
 
 
-=== Configuration requise pour le système d'exploitation
+=== Configuration requise pour l'hôte
 
+Suivez ces exigences lors de l'installation de Red Hat Enterprise Linux (RHEL) ou de Rocky Linux et de la configuration des référentiels associés.
+
+[NOTE]
+====
+Si vous modifiez le processus d'installation ou de configuration, vous devrez peut-être effectuer des étapes supplémentaires.
+
+====
+.Conditions requises pour la distribution Linux
+* Installez RHEL ou Rocky Linux conformément aux meilleures pratiques de Red Hat. Puisque CentOS 8.x est arrivé en fin de vie, les versions compatibles de CentOS 8.x ne sont pas recommandées.
+* Lors de l'installation du service ONTAP Mediator, assurez-vous que le système a accès au référentiel requis pour que le programme d'installation puisse récupérer et installer toutes les dépendances logicielles requises.
+* Pour permettre au programme d'installation yum de trouver des logiciels dépendants dans les référentiels RHEL, enregistrez le système lors de l'installation ou après en utilisant un abonnement Red Hat valide.
++
+[NOTE]
+====
+Pour plus d'informations, reportez-vous à la documentation de Red Hat Subscription Manager.
+
+====
+
+
+.Configuration réseau requise
+* Assurez-vous que les ports suivants sont disponibles et inutilisés pour le Mediator ONTAP :
++
+** 31784
+** 3260
+
+
+* Si vous utilisez un pare-feu tiers, reportez-vous à la link:https://docs.netapp.com/us-en/ontap-metrocluster/install-ip/concept_mediator_requirements.html#firewall-requirements-for-ontap-mediator["Exigences relatives au pare-feu pour le médiateur ONTAP"^]section .
+* Pour les hôtes Linux sans accès à Internet, assurez-vous que les packages requis sont disponibles dans un référentiel local.
++
+Si vous utilisez le protocole LACP (Link Aggregation Control Protocol) dans un environnement Linux, configurez le noyau et définissez le `sysctl net.ipv4.conf.all.arp_ignore` sur `2`.
+
+
+
+.Configuration requise pour le système d'exploitation
 Votre système d'exploitation doit répondre aux exigences suivantes :
 
 * installation physique 64 bits ou machine virtuelle
@@ -47,7 +81,7 @@ Votre système d'exploitation doit répondre aux exigences suivantes :
 * Utilisateur : accès racine
 
 
-Le tableau suivant présente les systèmes d'exploitation pris en charge pour chaque version de ONTAP Mediator.
+Le tableau suivant présente les systèmes d'exploitation pris en charge pour chaque version du Media ONTAP.
 
 [cols="30,70"]
 |===
@@ -135,6 +169,58 @@ Le tableau suivant présente les systèmes d'exploitation pris en charge pour ch
 . Compatible signifie que RHEL ne prend plus en charge cette version mais que ONTAP Mediator peut toujours être installé.
 
 
+.Packs OS requis
+Les packages suivants sont requis par le service ONTAP Mediator :
+
+
+NOTE: Les packages sont préinstallés ou automatiquement installés par le programme d'installation du Mediator ONTAP.
+
+[cols="34,33,33"]
+|===
+
+
+| Toutes les versions de RHEL/CentOS | Packages supplémentaires pour RHEL 8.x / Rocky Linux 8 | Packages supplémentaires pour RHEL 9.x / Rocky Linux 9 
+
+
+ a| 
+* openssl
+* openssl-devel
+* kernel-devel-$ (nom_uname -r)
+* gcc
+* marque
+* libselinux-utils
+* correctif
+* bzip2
+* perl-Data-Dumper
+* perl-ExtUtils-MakeMaker
+* efibootmgr
+* mokutil
+
+ a| 
+* python3-pip
+* elfutils-libelf-devel
+* politiqueutils-python-utils
+* red hat-lsb-core
+* python39
+* python39-devel
+
+ a| 
+* python3-pip
+* elfutils-libelf-devel
+* politiqueutils-python-utils
+* python3
+* python3-devel
+
+
+|===
+Le package d'installation Mediator est un fichier tar compressé auto-extractible qui comprend :
+
+* Un fichier RPM contenant toutes les dépendances qui ne peuvent pas être obtenues du référentiel de la version prise en charge.
+* Un script d'installation.
+
+
+Une certification SSL valide est recommandée.
+
 
 
 === Considérations sur la mise à niveau du système d'exploitation et la compatibilité du noyau
@@ -166,7 +252,7 @@ Vous pouvez choisir de désactiver le démarrage sécurisé UEFI avant d'install
 
 [NOTE]
 ====
-Consultez les instructions spécifiques au système pour plus d'informations sur la désactivation de l'amorçage sécurisé UEFI.
+Pour obtenir des instructions détaillées sur la désactivation de l'amorçage sécurisé UEFI, reportez-vous à la documentation de votre système d'exploitation hôte.
 
 ====
 Pour installer le médiateur ONTAP avec le démarrage sécurisé UEFI activé, vous devez enregistrer une clé de sécurité avant de pouvoir démarrer le service. La clé est générée lors de l'étape de compilation de l'installation SCST et enregistrée en tant que paire de clés privée-publique sur votre machine. Utilisez `mokutil` l'utilitaire pour ajouter la clé publique en tant que clé propriétaire de l'ordinateur (MOK) à votre micrologiciel UEFI, ce qui permet au système d'approuver et de charger le module signé. Enregistrez la `mokutil` phrase de passe dans un emplacement sécurisé car cela est requis lors du redémarrage de votre système pour activer le MOK.

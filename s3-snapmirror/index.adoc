@@ -138,3 +138,20 @@ Lorsque vous créez de nouveaux compartiments, vous pouvez contrôler l'accès e
 * link:../s3-config/create-s3-user-task.html["Création d'un utilisateur S3 (interface de ligne de commandes)"]
 * link:../s3-config/create-modify-groups-task.html["Création ou modification de groupes S3 (interface de ligne de commandes)"]
 
+
+
+
+== Verrouillage des objets S3 et gestion des versions avec SnapMirror S3
+
+Vous pouvez utiliser SnapMirror S3 sur des compartiments ONTAP avec verrouillage d'objet et gestion des versions, en tenant compte de plusieurs considérations :
+
+* Pour répliquer un compartiment source avec le verrouillage d'objet activé, le verrouillage d'objet doit également être activé dans le compartiment de destination. De plus, la gestion des versions doit être activée pour la source et la destination. Cela évite les problèmes de mise en miroir des suppressions dans le compartiment de destination lorsque les deux compartiments ont des règles de conservation par défaut différentes.
+* S3 SnapMirror ne réplique pas les versions historiques des objets. Seule la version actuelle d'un objet est répliquée.
+
+
+Les objets verrouillés sont mis en miroir dans un compartiment de destination afin de conserver leur temps de conservation d'origine. Si des objets déverrouillés sont répliqués, ils adopteront la période de conservation par défaut du compartiment de destination. Par exemple :
+
+* La période de conservation par défaut du compartiment A est de 30 jours et celle du compartiment B est de 60 jours. Les objets répliqués depuis le compartiment A vers le compartiment B conservent leur période de conservation de 30 jours, même s'ils sont inférieurs à la période de conservation par défaut du compartiment B.
+* Le compartiment A ne dispose pas de période de conservation par défaut et le compartiment B possède une période de conservation par défaut de 60 jours. Lorsque les objets déverrouillés sont répliqués du compartiment A vers le compartiment B, ils adoptent la période de conservation de 60 jours. Si un objet est verrouillé manuellement dans le compartiment A, il conserve sa période de conservation d'origine lorsqu'il est répliqué dans le compartiment B.
+* La période de conservation par défaut du compartiment A est de 30 jours et celle du compartiment B n'est pas définie par défaut. Les objets répliqués depuis le compartiment A vers le compartiment B conservent leur période de conservation de 30 jours.
+

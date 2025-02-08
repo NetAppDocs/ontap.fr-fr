@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar 
 permalink: networking/ontap_port_usage_on_a_storage_system_overview.html 
-keywords: port, tcp, udp, ontap, external, externally, service, services, introduce, introduction, introducing, overview, ontap port usage overview, ontap port usage, network ports, ontap ports, tcp ports, udp ports, ssh, port 22, telnet, port 23, dns, port 53, http, port 80, rpcbind, port 111, ntp, port 123, msrpc, port 135, netbios-ssn, port 139, snmp, port 161, https, port 443, microsoft-ds, port 445, mount, port 635, named, port 953, nfs, port 2049, nrv, port 2050, iscsi, port 3260, lockd, port 4045, nsm, port 4046, rquotad, port 4049, krb524, port 4444, mdns, port 5353, https, port 5986, port 8443, ndmp, port 10000, cluster peering, port 11104, port 11105, ports 18600 through 18699, cifs witness, port 40001, tls, port 50000, port 65200 
+keywords: port, tcp, udp, http, https, ssh, ontap ports overview, communication ports, port conflicts, ontap ports for inbound traffic, ontap ports for outbound traffic, internal ports 
 summary: Ports réservés pour les communications ONTAP avec des services spécifiques 
 ---
 = Présentation des ports ONTAP
@@ -14,121 +14,232 @@ summary: Ports réservés pour les communications ONTAP avec des services spéci
 
 
 [role="lead"]
-Un certain nombre de ports connus sont réservés pour les communications ONTAP avec des services spécifiques. Des conflits de ports se produisent si une valeur de port dans votre environnement de réseau de stockage est identique à celle du port ONTAP.
+Plusieurs ports connus sont réservés aux communications ONTAP avec des services spécifiques. Les conflits de ports se produisent si une valeur de port dans votre environnement de réseau de stockage est identique à celle d'un port ONTAP.
 
-Le tableau suivant répertorie les ports TCP et UDP utilisés par ONTAP.
+
+
+== Trafic entrant
+
+Le trafic entrant sur votre stockage ONTAP utilise les protocoles et ports suivants :
 
 [cols="25,25,50"]
 |===
 
 
-| Service | Port/Protocole | Description 
+| Protocole | Port | Objectif 
 
 
-| ssh | 22/TCP | Connexion au shell sécurisée 
+| Tous les protocoles ICMP | Tout | Envoi d'une requête ping à l'instance 
 
 
-| telnet | 23/TCP | Connexion à distance 
+| TCP | 22 | Secure Shell Access à l'adresse IP de la LIF de cluster management ou d'une LIF de node management 
 
 
-| DNS | 53/TCP | DNS avec équilibrage de charge 
+| TCP | 80 | Accès à la page Web de l'adresse IP du LIF de cluster management 
 
 
-| http | 80/TCP | Protocole de transfert de texte 
+| TCP/UDP | 111 | RPCBIND, appel de procédure distante pour NFS 
 
 
-| rpcbind | 111/TCP | Appel de procédure à distance 
+| UDP | 123 | NTP, protocole de l'heure réseau 
 
 
-| rpcbind | 111/UDP | Appel de procédure à distance 
+| UDP | 135 | MSRPC, appel de procédure distante Microsoft 
 
 
-| ntp | 123/UDP | Protocole de temps réseau 
+| TCP | 139 | NETBIOS-SSN, session de service NetBIOS pour CIFS 
 
 
-| msrpc | 135/UDP | MSRPC 
+| TCP/UDP | 161-162 | SNMP, protocole de gestion de réseau simple 
 
 
-| netbios-ssn | 139/TCP | Session de service NetBIOS 
+| TCP | 443 | Accès sécurisé à la page web à l'adresse IP du LIF de cluster management 
 
 
-| snmp | 161/UDP | Protocole de gestion de réseau simple 
+| TCP | 445 | MS Active Domain Services, Microsoft SMB/CIFS sur TCP avec trame NetBIOS 
 
 
-| https | 443/TCP | HTTP sur TLS 
+| TCP/UDP | 658 | Montage NFS pour interagir avec un système de fichiers distant comme s'il s'agissait d'un système local 
 
 
-| microsoft- ds | 445/TCP | Microsoft- ds 
+| TCP | 749 | Kerberos 
 
 
-| montage | 635/TCP | Montage NFS 
+| UDP | 953 | Nom démon 
 
 
-| montage | 635/UDP | Montage NFS 
+| TCP/UDP | 2049 | Démon du serveur NFS 
 
 
-| nommé | 953/UDP | Nom démon 
+| TCP | 2050 | Protocole de volume distant NRV, NetApp 
 
 
-| nfs | 2049/UDP | Démon du serveur NFS 
+| TCP | 3260 | Accès iSCSI via le LIF de données iSCSI 
 
 
-| nfs | 2049/TCP | Démon du serveur NFS 
+| TCP/UDP | 4045 | Démon de verrouillage NFS 
 
 
-| nrv | 2050/TCP | Protocole NetApp Remote Volume 
+| TCP/UDP | 4046 | Surveillance de l'état du réseau pour NFS 
 
 
-| iscsi | 3260/TCP | Port cible iSCSI 
+| UDP | 4049 | Devis RPC NFS 
 
 
-| verrouillage | 4045/TCP | Démon de verrouillage NFS 
+| UDP | 4444 | KRB524, Kerberos 524 
 
 
-| verrouillage | 4045/UDP | Démon de verrouillage NFS 
+| UDP | 5353 | DNS multicast 
 
 
-| NSM | 4046/TCP | Moniteur d'état du réseau 
+| TCP | 10000 | Sauvegarde à l'aide du protocole NDMP (Network Data Management Protocol) 
 
 
-| NSM | 4046/UDP | Moniteur d'état du réseau 
+| TCP | 11104 | Peering de cluster, gestion bidirectionnelle des sessions de communication intercluster pour SnapMirror 
 
 
-| rquotad | 4049/UDP | Protocole NFS rquotad 
+| TCP | 11105 | Peering de cluster, transfert de données SnapMirror bidirectionnel à l'aide de LIF intercluster 
+|===
 
 
-| krb524 | 4444/UDP | Kerberos 524 
+== Trafic sortant
 
+Le trafic sortant sur votre stockage ONTAP peut être configuré à l'aide de règles de base ou avancées, selon les besoins de l'entreprise.
 
-| mdns | 5353/UDP | DNS multicast 
 
 
-| HTTPS | 5986/UDP | Port HTTPS : protocole binaire d'écoute 
+=== Règles de base pour les appels sortants
 
+Tous les ports peuvent être utilisés pour tout le trafic sortant via les protocoles ICMP, TCP et UDP.
 
-| https | 8443/TCP | Interface graphique 7MTT via https 
+[cols="25,25,50"]
+|===
 
 
-| ndmp | 10000/TCP | Protocole de gestion des données réseau 
+| Protocole | Port | Objectif 
 
 
-| Peering de clusters | 11104/TCP | Peering de cluster, bidirectionnel 
+| Tous les protocoles ICMP | Tout | Tout le trafic sortant 
 
 
-| Peering de cluster, bidirectionnel | 11105/TCP | Peering de clusters 
+| Tous les protocoles TCP | Tout | Tout le trafic sortant 
 
 
-| NDMP | 18600 - 18699/TCP | NDMP 
+| Tous les protocoles UDP | Tout | Tout le trafic sortant 
+|===
 
 
-| NDMP | 30000/TCP | accepte les connexions de contrôle sur les prises femelles sécurisées 
+=== Règles de sortie avancées
 
+Si vous avez besoin de règles rigides pour le trafic sortant, vous pouvez utiliser les informations suivantes pour ouvrir uniquement les ports requis pour la communication sortante par ONTAP.
 
-| port témoin cifs | 40001/TCP | port témoin cifs 
 
 
-| tls | 50000/TCP | Sécurité de la couche de transport 
+==== Active Directory
 
+[cols="10,10,30,25,25"]
+|===
 
-| iscsi | 65200/TCP | Port ISCSI 
+
+| Protocole | Port | Source | Destination | Objectif 
+
+
+| TCP | 88 | LIF node management, data LIF (NFS, CIFS, iSCSI) | Forêt Active Directory | Authentification Kerberos V. 
+
+
+| UDP | 137 | LIF node management, data LIF (NFS, CIFS) | Forêt Active Directory | Service de noms NetBIOS 
+
+
+| UDP | 138 | LIF node management, data LIF (NFS, CIFS) | Forêt Active Directory | Service de datagrammes NetBIOS 
+
+
+| TCP | 139 | LIF node management, data LIF (NFS, CIFS) | Forêt Active Directory | Session de service NetBIOS 
+
+
+| TCP | 389 | LIF node management, data LIF (NFS, CIFS) | Forêt Active Directory | LDAP 
+
+
+| UDP | 389 | LIF node management, data LIF (NFS, CIFS) | Forêt Active Directory | LDAP 
+
+
+| TCP | 445 | LIF node management, data LIF (NFS, CIFS) | Forêt Active Directory | Microsoft SMB/CIFS sur TCP avec encadrement NetBIOS 
+
+
+| TCP | 464 | LIF node management, data LIF (NFS, CIFS) | Forêt Active Directory | Modifier et définir le mot de passe Kerberos V (SET_CHANGE) 
+
+
+| UDP | 464 | LIF node management, LIF Data (NFS, CIFS) | Forêt Active Directory | Administration des clés Kerberos 
+
+
+| TCP | 749 | LIF node management, LIF Data (NFS, CIFS) | Forêt Active Directory | Modifier et définir le mot de passe Kerberos V (RPCSEC_GSS) 
+|===
+
+
+==== AutoSupport
+
+[cols="10,10,30,25,25"]
+|===
+
+
+| Protocole | Port | Source | Destination | Objectif 
+
+
+| TCP | 80 | FRV de gestion des nœuds | support.netapp.com | AutoSupport (uniquement si le protocole de transport est passé de HTTPS à HTTP) 
+|===
+
+
+==== SNMP
+
+[cols="10,10,30,25,25"]
+|===
+
+
+| Protocole | Port | Source | Destination | Objectif 
+
+
+| TCP/UDP | 162 | FRV de gestion des nœuds | Serveur de surveillance | Surveillance par des interruptions SNMP 
+|===
+
+
+==== SnapMirror
+
+[cols="10,10,30,25,25"]
+|===
+
+
+| Protocole | Port | Source | Destination | Objectif 
+
+
+| TCP | 11104 | FRV InterCluster | Baies de stockage inter-clusters ONTAP | Gestion des sessions de communication intercluster pour SnapMirror 
+|===
+
+
+==== Autres services
+
+[cols="10,10,30,25,25"]
+|===
+
+
+| Protocole | Port | Source | Destination | Objectif 
+
+
+| TCP | 25 | FRV de gestion des nœuds | Serveur de messagerie | Les alertes SMTP peuvent être utilisées pour AutoSupport 
+
+
+| UDP | 53 | FRV de gestion des nœuds et FRV de données (NFS, CIFS) | DNS | DNS 
+
+
+| UDP | 67 | FRV de gestion des nœuds | DHCP | Serveur DHCP 
+
+
+| UDP | 68 | FRV de gestion des nœuds | DHCP | Client DHCP pour la première configuration 
+
+
+| UDP | 514 | FRV de gestion des nœuds | Serveur Syslog | Messages de transfert syslog 
+
+
+| TCP | 5010 | FRV InterCluster | Sauvegarder le terminal ou restaurer le terminal | Des opérations de sauvegarde et de restauration pour la fonctionnalité Backup vers S3 
+
+
+| TCP | 18600 à 18699 | FRV de gestion des nœuds | Serveurs de destination | Copie NDMP 
 |===

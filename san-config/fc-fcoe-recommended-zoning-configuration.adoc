@@ -1,0 +1,105 @@
+---
+permalink: san-config/fc-fcoe-recommended-zoning-configuration.html 
+sidebar: sidebar 
+keywords: individual zones 
+summary: 'Dans la configuration de segmentation FC et FCoE recommandée, il existe un initiateur hôte par zone. La zone se compose du port hôte et d"une ou plusieurs LIF cible sur les nœuds de stockage qui fournissent l"accès aux LUN jusqu"au nombre souhaité de chemins par cible. Cette configuration permet à chaque initiateur hôte d"accéder à n"importe quel nœud, tout en empêchant les hôtes qui accèdent au même nœud de voir les ports des autres hôtes' 
+---
+= Configurations de zoning FC et FCoE recommandées
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous devez créer une configuration de zoning si votre hôte n'a pas de solution de chemins d'accès multiples installée, si quatre hôtes ou plus sont connectés à votre SAN ou si le mappage de LUN sélectif n'est pas implémenté sur les nœuds de votre cluster.
+
+Dans la configuration de segmentation FC et FCoE recommandée, chaque zone inclut un initiateur hôte, un port initiateur hôte et une ou plusieurs LIF cibles. Cette configuration permet à chaque initiateur hôte d'accéder à n'importe quel nœud, tout en empêchant les hôtes qui accèdent au même nœud de voir les ports des autres hôtes
+
+Ajoutez toutes les LIFs de la machine virtuelle de stockage (SVM) à la zone avec l'initiateur hôte. Cela vous permet de déplacer des volumes ou des LUN sans modifier vos zones existantes ni créer de nouvelles zones.
+
+
+
+== Configurations de zoning Dual fabric
+
+Les configurations de segmentation à structure double sont recommandées, car elles fournissent une protection contre la perte de données due à la défaillance d'un seul composant. Dans une configuration à structure double, chaque initiateur hôte est connecté à chaque nœud du cluster à l'aide de différents commutateurs. Si un commutateur devient indisponible, l'accès aux données est maintenu par l'autre commutateur. Vous avez besoin d'un logiciel de chemins d'accès multiples sur l'hôte pour gérer les chemins multiples.
+
+Dans la figure suivante, l'hôte a deux initiateurs et exécute un logiciel de chemins d'accès multiples. Il y a deux zones. link:../san-admin/selective-lun-map-concept.html["Mappage de LUN sélectif (SLM)"] est configuré de sorte que tous les nœuds soient considérés comme des nœuds de reporting.
+
+[NOTE]
+====
+la convention de nom utilisée dans cette figure ne constitue qu'une recommandation d'une convention de nom possible que vous pouvez utiliser pour votre solution ONTAP.
+
+====
+* Zone 1 : HBA 0, LIF_1, LIF_3, LIF_5 et LIF_7
+* Zone 2 : HBA 1, LIF_2, LIF_4, LIF_6 et LIF_8
+
+
+Chaque initiateur hôte est zoné via un autre commutateur. La zone 1 est accessible via le commutateur 1. La zone 2 est accessible via le commutateur 2.
+
+Chaque hôte peut accéder à une LIF sur chaque nœud. Cela permet à l'hôte d'accéder toujours à ses LUN en cas de panne d'un nœud. Les SVM ont accès à toutes les LIF iSCSI et FC sur chaque nœud du cluster en fonction de la configuration des nœuds de reporting SLM. Vous pouvez utiliser la segmentation de switch SLM, portsets ou FC pour réduire le nombre de chemins d'un SVM à l'hôte et le nombre de chemins d'un SVM vers une LUN.
+
+Si la configuration inclut plus de nœuds, les LIFs pour les nœuds supplémentaires sont incluses dans ces zones.
+
+image:scm-en-drw-dual-fabric-zoning.png["Zonage double structure"]
+
+[NOTE]
+====
+Le système d'exploitation hôte et le logiciel de chemins d'accès multiples doivent prendre en charge le nombre de chemins d'accès utilisés pour accéder aux LUN sur les nœuds.
+
+====
+
+
+== Segmentation à structure unique
+
+Dans une configuration à structure unique, vous connectez chaque initiateur hôte à chaque nœud de stockage via un commutateur unique. Les configurations de segmentation à structure unique ne sont pas recommandées, car elles n'offrent pas de protection contre la perte de données due à la défaillance d'un seul composant. Si vous choisissez de configurer la segmentation à structure unique, chaque hôte doit avoir deux initiateurs pour les chemins d'accès multiples pour fournir la résilience dans la solution. Vous avez besoin d'un logiciel de chemins d'accès multiples sur l'hôte pour gérer les chemins multiples.
+
+Chaque initiateur hôte doit disposer d'au moins une LIF à partir de chaque nœud auquel l'initiateur peut accéder. Le zoning doit permettre à au moins un chemin entre l'initiateur hôte et la paire haute disponibilité de nœuds dans le cluster pour fournir un chemin d'accès à la connectivité LUN. Cela signifie que chaque initiateur sur l'hôte peut ne disposer que d'une seule LIF cible par nœud dans sa configuration de zone. Si des chemins d'accès multiples sont nécessaires vers le même nœud ou vers plusieurs nœuds du cluster, chaque nœud aura plusieurs LIF par nœud dans sa configuration de zone. Cela permet à l'hôte d'accéder toujours à ses LUN en cas de défaillance d'un nœud ou si un volume contenant la LUN est déplacé vers un autre nœud. Il est également nécessaire de définir correctement les nœuds de reporting.
+
+Si vous utilisez des commutateurs Cisco FC et FCoE, une seule zone de structure ne doit pas contenir plus d'une LIF cible pour le même port physique. Si plusieurs LIF présentes sur le même port se trouvent dans la même zone, les ports LIF peuvent ne pas effectuer de restauration suite à une perte de connexion.
+
+Dans la figure suivante, l'hôte a deux initiateurs et exécute un logiciel de chemins d'accès multiples. Il y a deux zones :
+
+[NOTE]
+====
+la convention de nom utilisée dans cette figure ne constitue qu'une recommandation d'une convention de nom possible que vous pouvez utiliser pour votre solution ONTAP.
+
+====
+* Zone 1 : HBA 0, LIF_1 et LIF_3
+* Zone 2 : HBA 1, LIF_2 et LIF_4
+
+
+Si la configuration inclut plus de nœuds, les LIFs des nœuds supplémentaires sont incluses dans ces zones.s.
+
+image:scm-en-drw-single-fabric-zoning.png["Zonage en structure unique"]
+
+Dans cet exemple, vous pouvez aussi avoir les quatre LIF dans chaque zone. Dans ce cas, les zones seraient les suivantes :
+
+* Zone 1 : HBA 0, LIF_1, LIF_2, LIF_3 et LIF_4
+* Zone 2 : HBA 1, LIF_1, LIF_2, LIF_3 et LIF_4
+
+
+[NOTE]
+====
+Le système d'exploitation hôte et le logiciel de chemins d'accès multiples doivent prendre en charge le nombre de chemins pris en charge qui sont utilisés pour accéder aux LUN sur les nœuds. Pour déterminer le nombre de chemins utilisés pour accéder aux LUN sur les nœuds, reportez-vous à la section limites de configuration SAN.
+
+====
+
+
+== Restrictions de segmentation pour les commutateurs Cisco FC et FCoE
+
+Lors de l'utilisation de commutateurs Cisco FC et FCoE, certaines restrictions s'appliquent à l'utilisation de ports physiques et d'interfaces logiques (LIF) dans les zones.
+
+.Ports physiques
+* Les protocoles FC-NVMe et FC peuvent partager le même port physique de 32 Go
+* Les protocoles FC-NVMe et FCoE ne peuvent pas partager le même port physique
+* FC et FCoE peuvent partager le même port physique, mais la LIF de leur protocole doit se trouver dans des zones séparées.
+
+
+.Interfaces logiques (LIFS)
+* Une zone peut contenir une LIF de chaque port cible du cluster.
++
+Vérifiez la configuration SLM afin de ne pas dépasser le nombre maximal de chemins autorisés pour l'hôte.
+
+* Chaque LIF sur un port donné doit se trouver dans une zone distincte des autres LIFs sur ce port
+* Les LIF présentes sur différents ports physiques peuvent se trouver dans la même zone.
+

@@ -4,30 +4,87 @@ sidebar: sidebar
 keywords: determine, number, supported, nodes, san configurations 
 summary: Le nombre de nœuds par cluster pris en charge par ONTAP varie en fonction de la version de ONTAP, des modèles de contrôleur de stockage dans le cluster et du protocole de vos nœuds de cluster. 
 ---
-= Identification du nombre de nœuds pris en charge dans les configurations SAN
+= Déterminer le nombre maximal de nœuds et d'hôtes SAN pris en charge par cluster ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Le nombre de nœuds par cluster pris en charge par ONTAP varie en fonction de la version de ONTAP, des modèles de contrôleur de stockage dans le cluster et du protocole de vos nœuds de cluster.
+Le nombre de nœuds pris en charge par cluster varie en fonction de votre version de ONTAP, de vos modèles de contrôleur et du protocole de vos nœuds de cluster. Le nombre maximal d'hôtes SAN pouvant être connectés à un cluster dépend également de votre configuration spécifique.
 
-.Description de la tâche
+
+
+== Déterminez le nombre maximal de nœuds pris en charge par cluster
+
 Si un nœud du cluster est configuré pour les protocoles FC, FC-NVMe, FCoE ou iSCSI, ce cluster est limité aux limites du nœud SAN. Les limites de nœuds basées sur les contrôleurs de votre cluster sont répertoriées dans le _Hardware Universe_.
 
 .Étapes
 . Accédez à https://hwu.netapp.com["NetApp Hardware Universe"^].
-. Cliquez sur *plates-formes* dans le coin supérieur gauche (en regard du bouton *Home*) et sélectionnez le type de plate-forme.
-. Cochez la case en regard de votre version de ONTAP.
+. Dans le coin supérieur gauche, à côté de *Home*, sélectionnez *Platforms*, puis sélectionnez le type de plate-forme.
+. Sélectionnez votre version de ONTAP.
 +
 Une nouvelle colonne s'affiche pour vous permettre de choisir vos plates-formes.
 
-. Cochez les cases en regard des plateformes utilisées dans votre solution.
-. Désélectionnez la case *Sélectionner tout* dans la colonne *Choisissez vos spécifications*.
-. Cochez la case *Max Nodes per Cluster (NAS/SAN)*.
+. Sélectionnez les plates-formes utilisées dans votre solution.
+. Sous *Choisissez vos spécifications*, désélectionnez *Sélectionner tout*.
+. Sélectionnez *nombre max. De nœuds par cluster (NAS/SAN)*.
 . Cliquez sur *Afficher les résultats*.
 
 
-.Informations associées
-https://hwu.netapp.com["NetApp Hardware Universe"^]
+.Résultats
+Le nombre maximal de nœuds par cluster pour les plateformes sélectionnées s'affiche.
+
+
+
+== Déterminez si votre cluster peut prendre en charge davantage d'hôtes FC
+
+Pour les configurations FC et FC-NVMe, vous devez utiliser le nombre de nases cibles (ITN) dans votre système pour déterminer si vous pouvez ajouter d'autres hôtes à votre cluster.
+
+Un ITN représente un chemin entre l'initiateur de l'hôte et la cible du système de stockage. Le nombre maximum de N ITN par nœud dans les configurations FC et FC-NVMe est de 2,048. Si vous êtes inférieur au nombre maximum d'ITN, vous pouvez continuer à ajouter des hôtes à votre cluster.
+
+Pour déterminer le nombre d'ITN utilisés dans votre cluster, effectuez les opérations suivantes pour chaque nœud du cluster.
+
+.Étapes
+. Identifier toutes les LIFs sur un certain nœud.
+. Lancer la commande suivante pour chaque LIF sur le nœud :
++
+[source, cli]
+----
+fcp initiator show -fields wwpn, lif
+----
++
+Le nombre d'entrées affichées au bas de la sortie de la commande représente votre nombre d'ITN pour cette LIF.
+
+. Notez le nombre de moustiquaires imprégnées d'insecticide affichées pour chaque LIF.
+. Ajoutez le nombre de moustiquaires imprégnées d'insecticide pour chaque LIF sur chaque nœud de votre cluster.
++
+Ce total représente le nombre d'ITN dans votre cluster.
+
+
+
+
+
+== Déterminez si votre cluster peut prendre en charge davantage d'hôtes iSCSI
+
+Le nombre d'hôtes pouvant être connectés directement à un nœud ou qui peuvent être connectés via un ou plusieurs commutateurs dépend du nombre de ports Ethernet disponibles. Le nombre de ports Ethernet disponibles est déterminé par le modèle du contrôleur et par le nombre et le type d'adaptateurs installés dans le contrôleur. Le nombre de ports Ethernet pris en charge pour les contrôleurs et les adaptateurs est disponible dans _Hardware Universe_.
+
+Pour toutes les configurations de clusters à plusieurs nœuds, vous devez déterminer le nombre de sessions iSCSI par nœud pour savoir si vous pouvez ajouter d'autres hôtes à votre cluster. Tant que le cluster est inférieur au nombre maximal de sessions iSCSI par nœud, vous pouvez continuer à ajouter des hôtes au cluster. Le nombre maximal de sessions iSCSI par nœud varie en fonction des types de contrôleurs du cluster.
+
+.Étapes
+. Identifiez tous les groupes de portails cible sur le nœud.
+. Vérifier le nombre de sessions iSCSI pour chaque groupe de portails cible sur le nœud :
++
+[source, cli]
+----
+iscsi session show -tpgroup _tpgroup_
+----
++
+Le nombre d'entrées affichées au bas de la sortie de la commande représente le nombre de sessions iSCSI pour ce groupe de portails cible.
+
+. Notez le nombre de sessions iSCSI affichées pour chaque groupe de portails cible.
+. Ajoutez le nombre de sessions iSCSI pour chaque groupe de portails cible sur le nœud.
++
+Le total représente le nombre de sessions iSCSI sur votre nœud.
+
+

@@ -4,15 +4,45 @@ sidebar: sidebar
 keywords: host, support, multipathing 
 summary: 'ONTAP utilise toujours le protocole ALUA (Asymmetric Logical Unit Access) pour les chemins FC et iSCSI. Veillez à utiliser des configurations hôtes qui prennent en charge ALUA pour les protocoles FC et iSCSI.' 
 ---
-= Prise en charge des hôtes pour la présentation des chemins d'accès multiples
+= Prise en charge de ONTAP pour les chemins d'accès multiples d'hôtes SAN
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-ONTAP utilise toujours le protocole ALUA (Asymmetric Logical Unit Access) pour les chemins FC et iSCSI. Veillez à utiliser des configurations hôtes qui prennent en charge ALUA pour les protocoles FC et iSCSI.
+ONTAP utilise le logiciel ALUA (Asymmetric Logical Unit Access) pour les chemins d'accès multiples avec les hôtes FC et iSCSI.
 
-Depuis la version ONTAP 9.5, le basculement/rétablissement de paire haute disponibilité multivoie est pris en charge dans les configurations NVMe utilisant un accès asynchrone à l'espace de noms (ANA). Dans ONTAP 9.4, NVMe ne prend en charge qu'un chemin d'accès de l'hôte à la cible. L'hôte applicatif doit gérer le basculement des chemins vers son partenaire haute disponibilité (HA).
+Depuis la version ONTAP 9.5, le basculement/rétablissement de paire haute disponibilité multivoie est pris en charge pour les hôtes NVMe qui utilisent ANA (Asynchronous Namespace Access). Dans ONTAP 9.4, NVMe ne prend en charge qu'un seul chemin de l'hôte vers la cible. L'hôte d'application doit donc gérer le basculement de chemin vers son partenaire haute disponibilité.
+
+Le logiciel de chemins d'accès multiples est requis sur votre hôte SAN si celui-ci peut accéder à un namespace de LUN ou NVMe via plusieurs chemins. Elle présente un seul disque au système d'exploitation pour tous les chemins d'accès à un namespace de LUN ou NVMe. Sans cela, le système d'exploitation pourrait traiter chaque chemin en tant que disque distinct, ce qui aurait pour effet de corrompre les données.
+
+Votre solution est considérée comme ayant plusieurs chemins si vous avez l'un des suivants :
+
+* Un port initiateur unique sur l'hôte reliant plusieurs LIF SAN au sein du SVM
+* Plusieurs ports initiateurs se connectant à une seule LIF SAN dans le SVM
+* Plusieurs ports initiateurs qui se fixent sur plusieurs LIF SAN au sein du SVM
+
+
+Un logiciel de chemins d'accès multiples, également appelé logiciel MPIO (multivoies I/O), est recommandé dans les configurations haute disponibilité. Outre le mappage de LUN sélectif, il est également recommandé d'utiliser une segmentation de commutateur FC ou des ensembles de ports pour limiter les chemins utilisés pour accéder aux LUN.
 
 Pour plus d'informations sur les configurations d'hôte spécifiques prenant en charge ALUA ou ANA, reportez-vous au https://mysupport.netapp.com/matrix["Matrice d'interopérabilité NetApp"^] et https://docs.netapp.com/us-en/ontap-sanhost/index.html["Configuration de l'hôte SAN ONTAP"] pour votre système d'exploitation hôte.
+
+
+
+== Nombre recommandé de chemins entre l'hôte et les nœuds dans le cluster
+
+Vous ne devez pas dépasser huit chemins entre l'hôte et chaque nœud du cluster. De plus, vous ne devez pas dépasser le nombre total de chemins d'accès pris en charge pour le système d'exploitation hôte et les chemins d'accès multiples utilisés sur l'hôte.
+
+Vous devez disposer d'au moins deux chemins par LUN en vous connectant à chaque nœud de reporting via link:../san-admin/selective-lun-map-concept.html["Mappage de LUN sélectif (SLM)"]leur utilisation par la machine virtuelle de stockage (SVM) dans votre cluster. Cela élimine les points de défaillance uniques et permet au système de résister aux défaillances des composants.
+
+Si votre cluster contient quatre nœuds ou plus, ou plus de quatre ports cibles utilisés par les SVM sur l'un de vos nœuds, Vous pouvez utiliser les méthodes suivantes pour limiter le nombre de chemins pouvant être utilisés pour accéder aux LUN sur vos nœuds. De cette manière, vous ne devez pas dépasser le maximum recommandé de huit chemins.
+
+* SLM
++
+SLM réduit le nombre de chemins de l'hôte vers le LUN vers uniquement les chemins sur le nœud possédant le LUN et le partenaire HA du nœud propriétaire. SLM est activé par défaut.
+
+* link:../san-admin/limit-lun-access-portsets-igroups-concept.html["Ensembles de ports pour iSCSI"]
+* Mappages de FC igroup depuis votre hôte
+* Segmentation des commutateurs FC
+

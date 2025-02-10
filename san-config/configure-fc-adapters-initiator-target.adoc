@@ -1,0 +1,167 @@
+---
+permalink: san-config/configure-fc-adapters-initiator-target.html 
+sidebar: sidebar 
+keywords: configure, fc adapters, initiator mode, target mode, FC-NVMe, FC adapter speed 
+summary: 'Les adaptateurs FC intégrés et certaines cartes d"adaptateur d"extension FC peuvent être configurés en tant qu"initiateurs ou ports cibles. Les autres adaptateurs d"extension FC sont configurés en usine en tant qu"initiateurs ou cibles et ne peuvent pas être modifiés.' 
+---
+= Configurez les adaptateurs FC
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les adaptateurs FC intégrés et certaines cartes d'adaptateur d'extension FC peuvent être configurés individuellement en tant qu'initiateurs ou ports cibles. Les autres adaptateurs d'extension FC sont configurés en usine en tant qu'initiateurs ou cibles et ne peuvent pas être modifiés. Des ports FC supplémentaires sont également disponibles via les cartes UTA2 prises en charge configurées avec les adaptateurs FC SFP+.
+
+Les ports initiateurs peuvent être utilisés pour se connecter directement aux tiroirs disques back-end, et éventuellement à des baies de stockage étrangères. Les ports cibles peuvent être utilisés pour la connexion uniquement aux commutateurs FC.
+
+Le nombre de ports intégrés et de ports CNA/UTA2 configurés pour FC varie en fonction du modèle du contrôleur. Les adaptateurs d'extension de cible pris en charge varient également en fonction du modèle de contrôleur. Reportez-vous à la link:https://hwu.netapp.com["NetApp Hardware Universe"^] pour obtenir la liste complète des ports FC intégrés et des adaptateurs d'extension cible pris en charge pour votre modèle de contrôleur.
+
+
+
+== Configurer les adaptateurs FC pour le mode initiateur
+
+Ce mode permet de connecter les ports aux lecteurs de bande, aux librairies de bandes ou aux systèmes de stockage tiers à l'aide de FlexArray Virtualization ou Foreign LUN Import (FLI).
+
+.Avant de commencer
+* Les LIF présentes sur l'adaptateur doivent être supprimées de n'importe quel ensemble de ports dont elles sont membres.
+* Toutes les LIF de chaque machine virtuelle de stockage (SVM) utilisant le port physique à modifier doivent être migrées ou détruites avant de changer la personnalité du port physique de la cible à l'initiateur.
+
+
+[NOTE]
+====
+Le protocole NVMe/FC prend en charge le mode initiateur.
+
+====
+.Étapes
+. Supprimer toutes les LIFs de l'adaptateur :
++
+[source, cli]
+----
+network interface delete -vserver _SVM_name_ -lif _lif_name_,_lif_name_
+----
+. Mettez votre adaptateur hors ligne :
++
+[source, cli]
+----
+network fcp adapter modify -node _node_name_ -adapter _adapter_port_ -status-admin down
+----
++
+Si l'adaptateur ne passe pas hors ligne, vous pouvez également retirer le câble du port d'adaptateur approprié du système.
+
+. Modifiez l'adaptateur de la cible à l'initiateur :
++
+[source, cli]
+----
+system hardware unified-connect modify -t initiator _adapter_port_
+----
+. Redémarrez le nœud hébergeant l'adaptateur que vous avez changé.
+. Vérifier que les ports FC sont configurés dans l'état approprié pour votre configuration :
++
+[source, cli]
+----
+system hardware unified-connect show
+----
+. Remettre la carte en ligne :
++
+[source, cli]
+----
+node run -node _node_name_ storage enable adapter _adapter_port_
+----
+
+
+
+
+== Configurer les adaptateurs FC pour le mode cible
+
+Le mode cible est utilisé pour connecter les ports aux initiateurs FC.
+
+Les mêmes étapes sont utilisées pour configurer les adaptateurs FC pour le protocole FC et le protocole FC-NVMe. Cependant, seuls certains adaptateurs FC prennent en charge la connectivité FC-NVMe. Consultez la link:https://hwu.netapp.com["NetApp Hardware Universe"^] pour obtenir la liste des adaptateurs qui prennent en charge le protocole FC-NVMe.
+
+.Étapes
+. Mettez l'adaptateur hors ligne :
++
+[source, cli]
+----
+node run -node _node_name_ storage disable adapter _adapter_name_
+----
++
+Si l'adaptateur ne passe pas hors ligne, vous pouvez également retirer le câble du port d'adaptateur approprié du système.
+
+. Modifiez l'adaptateur de l'initiateur sur la cible :
++
+[source, cli]
+----
+system node hardware unified-connect modify -t target -node _node_name_ adapter _adapter_name_
+----
+. Redémarrez le nœud hébergeant l'adaptateur que vous avez changé.
+. Vérifiez que la configuration du port cible est correcte :
++
+[source, cli]
+----
+network fcp adapter show -node _node_name_
+----
+. Mettez votre adaptateur en ligne :
++
+[source, cli]
+----
+network fcp adapter modify -node _node_name_ -adapter _adapter_port_ -state up
+----
+
+
+
+
+== Configuration de la vitesse de l'adaptateur FC
+
+Vous devez configurer la vitesse du port cible de votre carte pour qu'elle corresponde à la vitesse du périphérique auquel elle se connecte, au lieu d'utiliser la négociation automatique. Un port défini pour la négociation automatique peut prendre plus de temps pour se reconnecter après un basculement/rétablissement ou une autre interruption.
+
+.Description de la tâche
+Cette tâche englobant tous les SVM (Storage Virtual machine) et toutes les LIFs d'un cluster, vous devez utiliser le `-home-port` et `-home-lif` paramètres pour limiter la portée de cette opération. Si vous n'utilisez pas ces paramètres, l'opération s'applique à toutes les LIFs du cluster, ce qui peut ne pas être souhaitable.
+
+.Avant de commencer
+Toutes les LIFs qui utilisent cet adaptateur comme port de home port doivent être hors ligne.
+
+.Étapes
+. Mettre hors ligne toutes les LIFs sur cet adaptateur :
++
+[source, cli]
+----
+network interface modify -vserver * -lif * { -home-node node1 -home-port 0c } -status-admin down
+----
+. Mettez l'adaptateur hors ligne :
++
+[source, cli]
+----
+network fcp adapter modify -node node1 -adapter 0c -state down
+----
++
+Si l'adaptateur ne passe pas hors ligne, vous pouvez également retirer le câble du port d'adaptateur approprié du système.
+
+. Déterminez la vitesse maximale de l'adaptateur de port :
++
+[source, cli]
+----
+fcp adapter show -instance
+----
++
+Vous ne pouvez pas modifier la vitesse de l'adaptateur au-delà de la vitesse maximale.
+
+. Modifier la vitesse de l'adaptateur :
++
+[source, cli]
+----
+network fcp adapter modify -node node1 -adapter 0c -speed 16
+----
+. Mettez la carte en ligne :
++
+[source, cli]
+----
+network fcp adapter modify -node node1 -adapter 0c -state up
+----
+. Mettre en ligne toutes les LIFs sur l'adaptateur :
++
+[source, cli]
+----
+network interface modify -vserver * -lif * { -home-node node1 -home-port 0c } -status-admin up
+----
+

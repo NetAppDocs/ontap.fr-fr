@@ -1,10 +1,10 @@
 ---
 permalink: fabricpool/setup-ontap-s3-cloud-tier-task.html 
 sidebar: sidebar 
-keywords: setting up, ontap s3, cloud tier 
+keywords: tr-4814, fabricpool, setting up, ontap s3, cloud tier, local tier, tiering, storage tiering, storage tier, lif 
 summary: Si vous exécutez ONTAP 9.8 ou une version ultérieure, vous pouvez configurer ONTAP S3 en tant que Tier cloud pour FabricPool. 
 ---
-= Configurez ONTAP S3 en tant que Tier cloud ONTAP FabricPool
+= Configurez ONTAP S3 en tant que Tier cloud FabricPool
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -13,22 +13,27 @@ summary: Si vous exécutez ONTAP 9.8 ou une version ultérieure, vous pouvez con
 [role="lead"]
 Si vous exécutez ONTAP 9.8 ou une version ultérieure, vous pouvez configurer ONTAP S3 en tant que Tier cloud pour FabricPool.
 
-.Ce dont vous avez besoin
-Vous devez disposer du nom du serveur ONTAP S3 et de l'adresse IP des LIFs associées sur le cluster distant.
+.Avant de commencer
+* Vous devez disposer du nom du serveur ONTAP S3 et de l'adresse IP des LIFs associées sur le cluster distant.
++
 
-[NOTE]
-====
-Le nom du serveur est utilisé comme nom de domaine complet (FQDN) par les applications clientes. En dehors de ONTAP, confirmez que les enregistrements DNS pointent vers les LIFs de données du SVM utilisées.
+NOTE: Le nom du serveur est utilisé comme nom de domaine complet (FQDN) par les applications clientes. En dehors de ONTAP, confirmez que les enregistrements DNS pointent vers les LIFs de données du SVM utilisées.
 
-====
-Il faut que des LIF intercluster se trouvent sur le cluster local.
+* Il doit y avoir <<create-lif,LIF intracluster>> sur le cluster local.
++
+Lorsqu'il est configuré pour la hiérarchisation du cluster local, un niveau local (également appelé agrégat de stockage dans l'interface de ligne de commandes ONTAP) est connecté à un compartiment local. FabricPool utilise les LIF de cluster pour le trafic intracluster.
 
-link:../s3-config/create-intercluster-lifs-remote-fabricpool-tiering-task.html["Création des LIFs intercluster pour le Tiering des FabricPool distants"]
++
+
+NOTE: Une dégradation des performances peut se produire si les ressources LIF du cluster sont saturées. Pour éviter cela, NetApp recommande d'utiliser des clusters à quatre nœuds ou plus lors du Tiering vers un compartiment local, ainsi qu'une paire haute disponibilité pour le Tier local et une paire haute disponibilité pour le compartiment local. Le Tiering vers des compartiments locaux sur une seule paire haute disponibilité n'est pas recommandé.
+
+* Pour activer le Tiering à distance de la capacité FabricPool (cloud) à l'aide de ONTAP S3, vous devez link:../s3-config/create-intercluster-lifs-remote-fabricpool-tiering-task.html["Configurer les LIFs intercluster"] utiliser le client FabricPool et link:../s3-config/create-data-lifs-task.html["Configuration des LIFs de données"]le serveur de magasin d'objets.
+
 
 .Description de la tâche
 L'équilibrage de charge est activé pour les serveurs ONTAP S3 dans ONTAP 9.8 et versions ultérieures. Lorsque le nom d'hôte du serveur résout plusieurs adresses IP, ONTAP établit des connexions client avec toutes les adresses IP renvoyées (jusqu'à 16 adresses IP maximum). Les adresses IP sont récupérées dans une méthode de séquence périodique lors de l'établissement des connexions.
 
-.Procédures
+.Procédure
 Vous pouvez configurer ONTAP S3 en tant que Tier cloud pour FabricPool avec ONTAP System Manager ou l'interface de ligne de commande ONTAP.
 
 [role="tabbed-block"]
@@ -65,8 +70,10 @@ Attribuez le nom du serveur S3 et les adresses IP à l'administrateur des serveu
  a| 
 Saisissez la commande suivante :
 
-`dns host create -vserver svm_name -address ip_address -hostname s3_server_name`
-
+[listing]
+----
+dns host create -vserver <svm_name> -address ip_address -hostname <s3_server_name>
+----
 |===
 . Spécifiez les informations de configuration ONTAP S3 à l'aide du `storage aggregate object-store config create` commande avec `-provider-type` `ONTAP_S3` paramètre.
 +
@@ -96,3 +103,8 @@ Le `storage aggregate object-store config modify` vous permet de modifier le `ON
 
 --
 ====
+[[create-lif]]
+.Informations associées
+* link:../smb-config/create-lif-task.html["Créez la LIF pour SMB"]
+* link:../nfs-config/create-lif-task.html["Créez la LIF pour NFS"]
+

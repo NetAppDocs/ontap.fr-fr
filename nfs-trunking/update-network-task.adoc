@@ -11,12 +11,12 @@ summary: 'Pour tirer parti de l"agrégation NFS, plusieurs LIF doivent résider 
 
 
 [role="lead"]
-La mise en circuit NFSv4.1 requiert que les LIF d'un groupe à agrégation résident sur le même nœud et disposent de ports home sur le même nœud. Toutes les LIFs doivent être configurées dans un groupe de failover sur le même node.
+Pour tirer parti de la mise en circuit NFSv4.1, les LIFs d'un groupe à agrégation doivent résider sur le même nœud et avoir des ports home sur le même nœud. Les LIFs doivent être configurées dans un failover group sur le même node.
 
 .Description de la tâche
-Un mappage un-à-un des LIF et des cartes réseau offre un gain de performance optimal, mais n'est pas requis pour l'agrégation.
+Un mappage un-à-un des LIF et des cartes réseau offre un gain de performance optimal, mais il n'est pas nécessaire d'activer l'agrégation. Avoir au moins deux cartes réseau installées peut offrir un avantage en termes de performances, mais ce n'est pas nécessaire.
 
-Vous pouvez avoir plusieurs failover groups, mais le failover group pour trunking doit inclure uniquement ces LIFS dans le groupe trunking.
+Toutes les LIFs du groupe à ressources partagées doivent appartenir au même groupe de basculement. Notez que lorsque les LIFs sont configurées dans un groupe de failover sur le même nœud, un basculement de contrôleur sur ce nœud peut mettre les LIFs hors ligne. Si les LIFs ne sont pas configurées dans un groupe de basculement sur le même nœud et si elles basculent sur un autre nœud, la mise en circuits ne fonctionnera plus.
 
 Vous devez ajuster le groupe de basculement à ressources partagées chaque fois que vous ajoutez ou supprimez des connexions (et des cartes réseau sous-jacentes) d'un groupe de basculement.
 
@@ -32,20 +32,20 @@ Vous devez ajuster le groupe de basculement à ressources partagées chaque fois
 
 . Créez un groupe de basculement à ressources partagées ou modifiez un groupe existant pour la mise en circuits :
 +
-`network interface failover-groups create -vserver _svm_name_ -failover-group _failover_group_name_ -targets _ports_list_`
+`network interface failover-groups create -vserver <svm_name> -failover-group <failover_group_name> -targets <ports_list>`
 
 +
-`network interface failover-groups modify -vserver _svm_name_ -failover-group _failover_group_name_ -targets _ports_list_`
+`network interface failover-groups modify -vserver <svm_name> -failover-group <failover_group_name> -targets <ports_list>`
 
 +
 
 NOTE: La mise en place d'un groupe de basculement n'est pas obligatoire, mais il est fortement recommandé.
 
 +
-** `_svm_name_` Est le nom du SVM contenant le serveur NFS.
-** `_ports_list_` est la liste des ports qui seront ajoutés au failover group.
+** `<svm_name>` Est le nom du SVM contenant le serveur NFS.
+** `<ports_list>` est la liste des ports qui seront ajoutés au failover group.
 +
-Les ports sont ajoutés au format `_node_name:port_number_`, par exemple, `node1:e0c`.
+Les ports sont ajoutés au format `<node_name>:<port_number>`, par exemple `node1:e0c` .
 
 +
 La commande suivante crée le failover group `fg3` Pour SVM vs1 et ajoute trois ports :
@@ -60,7 +60,7 @@ En savoir plus sur link:../networking/configure_failover_groups_and_policies_for
 
 . Créez des LIFs supplémentaires pour les membres du groupe d'agrégation, si nécessaire :
 +
-`network interface create -vserver _svm_name_ -lif _lif_name_ -home-node _node_name_ -home-port _port_name_ -address _IP_address_ -netmask _IP_address_ [-service-policy _policy_] [-auto-revert {true|false}]`
+`network interface create -vserver <svm_name> -lif <lif_name> -home-node <node_name> -home-port <port_name> -address <IP_address> -netmask <IP_address> [-service-policy <policy>] [-auto-revert <true|false>]`
 
 +
 ** `-home-node` - Le nœud auquel la LIF retourne lorsque la commande network interface revert est exécutée sur la LIF.
@@ -76,7 +76,7 @@ Vous pouvez indiquer si la LIF doit automatiquement revenir au nœud de rattache
 Répéter cette étape pour chaque LIF supplémentaire nécessaire dans le groupe de trunking.
 
 +
-La commande suivante crée lif-A pour le SVM vs1, sur le port e0c du nœud cluster1_01 :
+La commande suivante crée `lif-A` Pour la SVM `vs1`, sur le port `e0c` du nœud `cluster1_01`:
 
 +
 `network interface create -vserver vs1 -lif lif-A -service-policy default-intercluster -home-node cluster1_01 -home-port e0c -address 192.0.2.0`
@@ -88,8 +88,10 @@ En savoir plus sur link:../networking/create_lifs.html["Création de LIF."]
 
 . Vérifier que les LIFs ont été créées :
 +
-`network interface show`
-
+[source, cli]
+----
+network interface show
+----
 . Vérifiez que l'adresse IP configurée est accessible :
 +
 [cols="25,75"]

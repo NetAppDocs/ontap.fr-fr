@@ -2,9 +2,9 @@
 permalink: disks-aggregates/add-disks-local-tier-aggr-task.html 
 sidebar: sidebar 
 keywords: add, expand, aggregate, add drives, add disks, add capacity, local tier, add disks to local tier, add disks to aggregate, increase storage, increase aggregate size, local tier, capacity, disk, expand storage, add drives, add disks, add capacity 
-summary: 'Vous pouvez ajouter des disques à un niveau local (agrégat), afin d"augmenter le stockage des volumes qui lui sont associés.' 
+summary: 'Vous pouvez ajouter des disques à un niveau local afin qu"il puisse fournir plus de stockage aux volumes associés.' 
 ---
-= Ajout de capacité à un niveau local (ajout de disques à un agrégat)
+= Ajoutez de la capacité à un Tier local dans ONTAP
 :hardbreaks:
 :toclevels: 1
 :allow-uri-read: 
@@ -16,7 +16,10 @@ summary: 'Vous pouvez ajouter des disques à un niveau local (agrégat), afin d"
 
 
 [role="lead"]
-Vous pouvez ajouter des disques à un niveau local (agrégat), afin d'augmenter le stockage des volumes qui lui sont associés.
+Vous pouvez ajouter des disques à un niveau local afin qu'il puisse fournir plus de stockage aux volumes associés.
+
+
+NOTE: Avant ONTAP 9.7, System Manager utilise le terme _aggregate_ pour décrire un niveau _local_. Quelle que soit votre version de ONTAP, l'interface de ligne de commandes de ONTAP utilise le terme _aggregate_. Pour en savoir plus sur les niveaux locaux, voir link:../disks-aggregates/index.html["Disques et niveaux locaux"].
 
 [role="tabbed-block"]
 ====
@@ -70,30 +73,30 @@ ONTAP 9.8, 9.9 ou 9.10.1
 .Étapes
 . (Pour ONTAP 9.7 uniquement) sélectionnez *(Retour à la version classique)*.
 . Sélectionnez *matériel et diagnostics > agrégats*.
-. Sélectionnez l'agrégat auquel vous souhaitez ajouter des disques de capacité, puis sélectionnez *actions > Ajouter de la capacité*.
+. Sélectionnez le niveau local auquel vous souhaitez ajouter des disques de capacité, puis sélectionnez *actions > Ajouter de la capacité*.
 +
 
-NOTE: Il faut ajouter des disques de la même taille que les autres disques de l'agrégat.
+NOTE: Vous devez ajouter des disques de la même taille que les autres disques du niveau local.
 
 . (Pour ONTAP 9.7 uniquement) sélectionnez *passer à la nouvelle expérience*.
-. Sélectionnez *stockage > tiers* pour vérifier la taille du nouvel agrégat.
+. Sélectionnez *stockage > niveaux* pour vérifier la taille du nouveau niveau local.
 
 
 --
 .CLI
 --
 .Avant de commencer
-Vous devez savoir à quelle taille de groupe RAID est destinée à l'agrégat que vous ajoutez le stockage.
+Vous devez connaître la taille du groupe RAID correspondant au niveau local auquel vous ajoutez le stockage.
 
 .Description de la tâche
-Cette procédure d'ajout de disques partitionnés à un agrégat est similaire à la procédure d'ajout de disques non partitionnés.
+Cette procédure d'ajout de disques partitionnés à un niveau local est similaire à la procédure d'ajout de disques non partitionnés.
 
-Lorsque vous développez un agrégat, vous devez savoir si vous ajoutez des partitions ou des disques non partitionnés à cet agrégat. Lorsque vous ajoutez des disques non partitionnés à un agrégat existant, la taille des groupes RAID existants est héritée par le nouveau groupe RAID, ce qui peut affecter le nombre de disques de parité requis. Si un disque non partitionné est ajouté à un groupe RAID composé de disques partitionnés, le nouveau disque est partitionné, laissant ainsi une partition de rechange inutilisée.
+Lorsque vous développez un niveau local, vous devez savoir si vous ajoutez une partition ou des disques non partitionnés au niveau local. Lorsque vous ajoutez des disques non partitionnés à un niveau local existant, la taille des groupes RAID existants est héritée par le nouveau groupe RAID, ce qui peut affecter le nombre de disques de parité requis. Si un disque non partitionné est ajouté à un groupe RAID composé de disques partitionnés, le nouveau disque est partitionné, laissant ainsi une partition de rechange inutilisée.
 
 Lorsque vous provisionnez des partitions, vous devez vous assurer que vous ne laissez pas le nœud sans un disque dont les deux partitions sont de rechange. Dans ce cas, et le nœud subit une perturbation du contrôleur, des informations précieuses sur le problème (le fichier « core ») risquent de ne pas être disponibles pour le support technique.
 
 .Étapes
-. Afficher le stockage disponible de réserve sur le système qui possède l'agrégat :
+. Afficher le stockage de secours disponible sur le système qui possède le niveau local :
 +
 `storage aggregate show-spare-disks -original-owner _node_name_`
 
@@ -121,7 +124,7 @@ Original Owner: cl1-s2
  1.0.10                      BSAS    7200 block                0B  73.89GB  828.0GB zeroed
 2 entries were displayed.
 ----
-. Afficher les groupes RAID actuels de l'agrégat :
+. Affiche les groupes RAID actuels pour le niveau local :
 +
 [source, cli]
 ----
@@ -184,13 +187,13 @@ Aggregate capacity available for volume use would be increased by 1.83TB.
 storage aggregate add-disks -aggregate <aggr_name> -raidgroup new -diskcount <number_of_disks_or_partitions>
 ----
 +
-Lorsque vous créez un agrégat Flash Pool, si vous ajoutez des disques avec un checksum différent de celui de l'agrégat, ou si vous ajoutez des disques à un checksum mixte, vous devez utiliser le `-checksumstyle` paramètre.
+Lors de la création d'un niveau local Flash Pool, si vous ajoutez des disques avec un total de contrôle différent de celui du niveau local, ou si vous ajoutez des disques à un niveau local de somme de contrôle mixte, vous devez utiliser `-checksumstyle` le paramètre.
 
 +
-Si vous ajoutez des disques à un agrégat Flash Pool, vous devez utiliser le `-disktype` paramètre pour spécifier le type de disque.
+Si vous ajoutez des disques à un niveau local Flash Pool, vous devez utiliser le `-disktype` paramètre pour spécifier le type de disque.
 
 +
-Vous pouvez utiliser le `-disksize` paramètre permettant de spécifier la taille des disques à ajouter. Seuls les disques avec une taille spécifiée approximativement sont sélectionnés pour être supplémentaires à l'agrégat.
+Vous pouvez utiliser le `-disksize` paramètre pour spécifier la taille des disques à ajouter. Seuls les disques de taille approximative spécifiée sont sélectionnés pour être ajoutés au niveau local.
 
 +
 [listing]

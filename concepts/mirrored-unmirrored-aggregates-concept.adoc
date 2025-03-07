@@ -2,50 +2,53 @@
 permalink: concepts/mirrored-unmirrored-aggregates-concept.html 
 sidebar: sidebar 
 keywords: mirrored, unmirrored, aggregate, local tier, plex, syncmirror, dparity, raid group 
-summary: 'ONTAP dispose d"une fonction optionnelle appelée _SyncMirror_ que vous pouvez utiliser pour mettre en miroir les données de niveau local (agrégat) de manière synchrone dans des copies, ou _plex_, stockées dans différents groupes RAID. Les plexes permettent d"éviter les pertes de données en cas de panne de l"ensemble des disques de type RAID, ou en cas de perte de connectivité aux disques du groupe RAID.' 
+summary: 'ONTAP propose en option la fonctionnalité _SyncMirror_ que vous pouvez utiliser pour mettre en miroir de manière synchrone les données de niveau local dans des copies, ou _plexes_, stockées dans différents groupes RAID. Les plexes permettent d"éviter les pertes de données en cas de panne de l"ensemble des disques de type RAID, ou en cas de perte de connectivité aux disques du groupe RAID.' 
 ---
-= Niveaux locaux en miroir et sans mise en miroir (agrégats)
+= Niveaux locaux en miroir et sans miroir
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-ONTAP dispose d'une fonction optionnelle appelée _SyncMirror_ que vous pouvez utiliser pour mettre en miroir les données de niveau local (agrégat) de manière synchrone dans des copies, ou _plex_, stockées dans différents groupes RAID. Les plexes permettent d'éviter les pertes de données en cas de panne de l'ensemble des disques de type RAID, ou en cas de perte de connectivité aux disques du groupe RAID.
+Vous pouvez utiliser ONTAP _SyncMirror_ pour mettre en miroir de manière synchrone les données de niveau local dans des copies, ou _plexes_, stockées dans différents groupes RAID. Les plexes permettent d'éviter les pertes de données en cas de panne de l'ensemble des disques de type RAID, ou en cas de perte de connectivité aux disques du groupe RAID.
 
-Lorsque vous créez un niveau local avec System Manager ou depuis l'interface de ligne de commandes, vous pouvez spécifier que le niveau local est mis en miroir ou non.
+Lorsque vous créez un niveau local avec System Manager, vous pouvez spécifier si le niveau local est mis en miroir ou sans miroir.
+
+
+NOTE: Avant ONTAP 9.7, System Manager utilise le terme _aggregate_ pour décrire un niveau _local_. Quelle que soit votre version de ONTAP, l'interface de ligne de commandes de ONTAP utilise le terme _aggregate_. Pour en savoir plus sur les niveaux locaux, voir link:../disks-aggregates/index.html["Disques et niveaux locaux"].
 
 
 
-== Fonctionnement des niveaux locaux non mis en miroir (agrégats)
+== Fonctionnement des niveaux locaux sans miroir
 
-Si vous ne spécifiez pas que les niveaux locaux sont mis en miroir, ils sont créés en tant que niveaux locaux non mis en miroir (agrégats). Les niveaux locaux non mis en miroir ne possèdent qu'un seul _plex_ (une copie de leurs données), qui contient tous les groupes RAID appartenant à ce niveau local.
+Si vous ne spécifiez pas que les niveaux locaux sont mis en miroir, ils sont créés en tant que niveaux sans miroir. Les niveaux locaux non mis en miroir ne possèdent qu'un seul _plex_ (une copie de leurs données), qui contient tous les groupes RAID appartenant à ce niveau local.
 
-Le schéma suivant montre un niveau local non mis en miroir composé de disques, avec son plex unique. Le niveau local a quatre groupes RAID : rg0, rg1, rg2 et rg3. Chaque groupe RAID comporte six disques de données, un disque de parité et un disque de parité (double parité). Tous les disques utilisés par le niveau local proviennent du même pool, ""pool0"".
+Le schéma suivant montre un niveau local sans miroir composé de disques, regroupés en un plex. Le niveau local a quatre groupes RAID : rg0, rg1, rg2 et rg3. Chaque groupe RAID comporte six disques de données, un disque de parité et un disque de parité (double parité). Tous les disques utilisés par le niveau local proviennent du même pool, ""pool0"".
 
 image:drw-plexum-scrn-en-noscale.gif["Niveau local sans miroir composé de disques avec son plex unique"]
 
-Le schéma suivant présente un niveau local non mis en miroir avec des LUN de matrice, avec son plex unique. Il dispose de deux groupes RAID, rg0 et rg1. Toutes les LUN de baie utilisées par le niveau local proviennent du même pool, « pool0 ».
+Le schéma suivant présente un niveau local sans miroir avec des LUN de baie, regroupées en un plex. Il dispose de deux groupes RAID, rg0 et rg1. Toutes les LUN de baie utilisées par le niveau local proviennent du même pool, « pool0 ».
 
 image:unmirrored-aggregate-with-array-luns.gif["Niveau local sans miroir composé de LUN de baie avec son plex unique"]
 
 
 
-== Fonctionnement des niveaux locaux en miroir (agrégats)
+== Fonctionnement des niveaux locaux en miroir
 
-Les agrégats en miroir possèdent deux plexes_ (copies de leurs données), qui exploitent la fonctionnalité SyncMirror pour dupliquer les données pour assurer la redondance.
+Les niveaux locaux en miroir disposent de deux _plexes_ (copies de leurs données), qui utilisent la fonctionnalité SyncMirror pour dupliquer les données afin d'assurer la redondance.
 
-Lorsque vous créez un niveau local, vous pouvez spécifier qu'il s'agit d'un niveau local mis en miroir.  En outre, vous pouvez ajouter un second plex à un niveau local non mis en miroir existant pour en faire un niveau en miroir. Grâce à la fonctionnalité SyncMirror, ONTAP copie les données du plex d'origine (plex0) sur le nouveau plex (plex1). Les plexes sont séparés physiquement (chaque plex dispose de ses propres groupes RAID et de son propre pool), et les plex sont mis à jour simultanément.
+Lorsque vous créez un niveau local, vous pouvez spécifier qu'il est symétrisé. En outre, vous pouvez ajouter un second plex à un niveau local non mis en miroir existant pour en faire un niveau en miroir. Avec SyncMirror, ONTAP copie les données du plex d'origine (plexes 0) sur le nouveau plex (plexes 1). Les plexes sont séparés physiquement (chaque plex dispose de ses propres groupes RAID et de son propre pool), et les plex sont mis à jour simultanément.
 
-Cette configuration renforce la protection contre la perte de données en cas de défaillance de plus de disques que le niveau RAID de l'agrégat assure la protection contre ou en cas de perte de connectivité, car le plex non affecté continue de transmettre les données pendant que vous corrigez la cause de la défaillance. Une fois le plex qui avait un problème résolu, les deux plexes se synchronisaient et rétablissent la relation du miroir.
+Cette configuration offre une protection supplémentaire contre les pertes de données si le nombre de disques défaillants est supérieur au niveau RAID du niveau local, ou en cas de perte de connectivité, car le plex non affecté continue à transmettre des données pendant que vous corrigez la cause de la défaillance. Une fois le plex qui avait un problème résolu, les deux plexes se synchronisaient et rétablissent la relation du miroir.
 
-Les disques et les unités logiques de baie du système sont répartis en deux pools : « pool0 » et « pool1 ». Plex0 obtient son stockage de pool0 et plex1 obtient son stockage de pool1.
+Les disques et les LUN de baie du système sont divisés en deux pools : `pool0` et `pool1`. Plex0 obtient son stockage de pool0 et plex1 obtient son stockage de pool1.
 
-Le schéma suivant présente un niveau local composé de disques pour que la fonctionnalité SyncMirror soit activée et implémentée. Un second plex a été créé pour le niveau local, « plex1 ». Les données dans le plex1 sont une copie des données dans le plex0 et les groupes RAID sont également identiques. Les 32 disques de réserve sont alloués à pool0 ou pool1 en utilisant 16 disques par pool.
+Le schéma suivant présente un niveau local composé de disques avec SyncMirror activé et implémenté. Un deuxième plex a été créé pour le niveau local, `plex1`. Les données dans le plex1 sont une copie des données dans le plex0 et les groupes RAID sont également identiques. Les 32 disques de réserve sont alloués à pool0 ou pool1 en utilisant 16 disques par pool.
 
 image:drw-plexm-scrn-en-noscale.gif["Niveau local composé de disques avec fonctionnalité SyncMirror"]
 
-Le schéma suivant présente un niveau local composé de LUN de baie dont la fonctionnalité SyncMirror est activée et implémentée. Un second plex a été créé pour le niveau local, « plex1 ». Plex1 est une copie de plex0 et les groupes RAID sont également identiques.
+Le schéma suivant présente un niveau local composé de LUN de baie dont la fonctionnalité SyncMirror est activée et implémentée. Un deuxième plex a été créé pour le niveau local, `plex1`. Plex1 est une copie de plex0 et les groupes RAID sont également identiques.
 
 image:mirrored-aggregate-with-array-luns.gif["Niveau local composé de LUN de baie avec fonctionnalité SyncMirror"]
 

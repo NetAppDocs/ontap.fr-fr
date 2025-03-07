@@ -2,20 +2,23 @@
 permalink: disks-aggregates/relocate-aggregate-ownership-task.html 
 sidebar: sidebar 
 keywords: relocate, aggregate, ownership, local tier 
-summary: 'Vous ne pouvez modifier la propriété d"un niveau local (agrégat) qu"entre les nœuds d"une paire haute disponibilité.' 
+summary: 'Vous pouvez modifier la propriété d"un niveau local uniquement entre les nœuds d"une paire haute disponibilité.' 
 ---
-= Transférer la propriété d'un niveau local (agrégat) au sein d'une paire haute disponibilité
+= Transfert de propriété d'un niveau local ONTAP au sein d'une paire haute disponibilité
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Vous pouvez modifier la propriété des niveaux locaux (agrégats) entre les nœuds d'une paire haute disponibilité sans interrompre les services des niveaux locaux.
+Vous pouvez modifier la propriété des niveaux locaux entre les nœuds d'une paire haute disponibilité sans interrompre le service des tiers locaux.
+
+
+NOTE: Avant ONTAP 9.7, System Manager utilise le terme _aggregate_ pour décrire un niveau _local_. Quelle que soit votre version de ONTAP, l'interface de ligne de commandes de ONTAP utilise le terme _aggregate_. Pour en savoir plus sur les niveaux locaux, voir link:../disks-aggregates/index.html["Disques et niveaux locaux"].
 
 Les deux nœuds d'une paire haute disponibilité sont physiquement connectés aux disques ou aux LUN de baie des autres. Chaque LUN de disque ou de baie est détenue par un des nœuds.
 
-La propriété de tous les disques ou LUN de baie au sein d'un niveau local (agrégat) passe temporairement d'un nœud à l'autre lorsqu'un basculement se produit. Cependant, les opérations de relocalisation des niveaux locaux peuvent également modifier définitivement la propriété (par exemple, si elles sont effectuées pour équilibrer la charge). La propriété change sans processus de copie des données ni déplacement physique des disques ou des LUN de baies.
+La propriété de tous les disques ou LUN de baies au sein d'un niveau local change temporairement d'un nœud à l'autre en cas de reprise. Cependant, les opérations de relocalisation des niveaux locaux peuvent également modifier définitivement la propriété (par exemple, si elles sont effectuées pour équilibrer la charge). La propriété change sans processus de copie des données ni déplacement physique des disques ou des LUN de baies.
 
 .Description de la tâche
 * Comme les limites de nombre de volumes sont validées par programmation lors des opérations de relocalisation de niveau local, il n'est pas nécessaire de vérifier cette valeur manuellement.
@@ -40,17 +43,17 @@ Ces opérations peuvent inclure les opérations suivantes :
 
 * Si vous disposez d'une configuration MetroCluster, vous ne devez pas lancer la relocalisation des niveaux locaux pendant que les opérations de reprise sur incident (_basculement_, _rétablissement_ ou _rétablissement_) sont en cours.
 * Si vous disposez d'une configuration MetroCluster et que vous lancez une relocalisation des niveaux locaux sur un niveau local commuté, l'opération peut échouer car elle dépasse le nombre maximal de volumes du partenaire de DR.
-* Vous ne devez pas lancer le transfert de niveau local sur des agrégats corrompus ou soumis à des opérations de maintenance.
+* Vous ne devez pas initier de relocalisation de niveau local vers des niveaux locaux corrompus ou en cours de maintenance.
 * Avant de lancer la relocalisation des niveaux locaux, vous devez enregistrer les « core dumps » sur les nœuds source et de destination.
 
 
 .Étapes
-. Afficher les agrégats du nœud pour vérifier quels agrégats déplacer et vérifier qu'ils sont en ligne et en bon état :
+. Afficher les niveaux locaux sur le nœud pour confirmer les niveaux locaux à déplacer et s'assurer qu'ils sont en ligne et en bon état :
 +
 `storage aggregate show -node _source-node_`
 
 +
-La commande suivante montre six agrégats sur les quatre nœuds du cluster. Tous les agrégats sont en ligne. NODE1 et NODE3 forment une paire HA, tandis que les nœuds 2 et Node4 forment une paire HA.
+La commande suivante présente six niveaux locaux sur les quatre nœuds du cluster. Tous les niveaux locaux sont en ligne. NODE1 et NODE3 forment une paire HA, tandis que les nœuds 2 et Node4 forment une paire HA.
 
 +
 [listing]
@@ -72,12 +75,12 @@ aggr_5     239.0GB   239.0GB    0% online       4 node4  raid_dp,
                                                          normal
 6 entries were displayed.
 ----
-. Lancer la commande pour démarrer le transfert d'agrégat :
+. Lancer la commande pour lancer le transfert de niveau local :
 +
 `storage aggregate relocation start -aggregate-list _aggregate-1_, _aggregate-2_... -node _source-node_ -destination _destination-node_`
 
 +
-La commande suivante déplace les agrégats aggr_1 et aggr_2 du nœud 1 vers le nœud 3. Node4 est le partenaire HA de Node1. Les agrégats ne peuvent être déplacés qu'au sein de la paire haute disponibilité.
+La commande suivante déplace le niveau local aggr_1 et aggr_2 de Node1 vers node3. Node4 est le partenaire HA de Node1. Les niveaux locaux ne peuvent être déplacés qu'au sein de la paire haute disponibilité.
 
 +
 [listing]
@@ -86,12 +89,12 @@ cluster::> storage aggregate relocation start -aggregate-list aggr_1, aggr_2 -no
 Run the storage aggregate relocation show command to check relocation status.
 node1::storage aggregate>
 ----
-. Suivre la progression du transfert d'agrégats avec le `storage aggregate relocation show` commande :
+. Contrôler la progression du déplacement de niveau local avec la `storage aggregate relocation show` commande :
 +
 `storage aggregate relocation show -node _source-node_`
 
 +
-La commande suivante affiche la progression des agrégats en cours de déplacement vers le nœud 3 :
+La commande suivante indique la progression du déplacement des niveaux locaux vers le nœud 3 :
 
 +
 [listing]
@@ -106,6 +109,6 @@ node1
 node1::storage aggregate>
 ----
 +
-Lorsque la relocalisation est terminée, la sortie de cette commande affiche chaque agrégat avec un statut de relocalisation "Done".
+Une fois la relocalisation terminée, la sortie de cette commande affiche chaque niveau local avec le statut de déplacement « `Done' ».
 
 

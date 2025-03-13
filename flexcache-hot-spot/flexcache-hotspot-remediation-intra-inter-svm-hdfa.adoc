@@ -1,0 +1,40 @@
+---
+permalink: flexcache-hot-spot/flexcache-hotspot-remediation-intra-inter-svm-hdfa.html 
+sidebar: sidebar 
+keywords: tr, hotspot, flexcache, hdfa, configuration, inter-svm, intra-svm, architecture 
+summary: 'Une fois que vous avez déterminé la densité de votre système HDFS, décidez si vous allez accéder au système HDFS à l"aide de NFS.' 
+---
+= Déterminer une option ONTAP inter-SVM ou intra-SVM HDFA
+:allow-uri-read: 
+
+
+[role="lead"]
+Une fois que vous avez déterminé la densité de votre HDFS, décidez si vous allez accéder au HDFS à l'aide de NFS et découvrez les options HDFA et HDFA intra-SVM entre ces deux SVM.
+
+
+TIP: Si seuls les clients SMB accèdent au HDFS, vous devez créer tout le HDFS au sein d'une seule SVM. Reportez-vous à la configuration du client Windows pour savoir comment utiliser les cibles DFS pour l'équilibrage de charge.
+
+
+
+== Déploiement HDFA inter-SVM
+
+Un HDFA inter-SVM requiert la création d'un SVM pour chaque HDF du HDFA. Cela permet à tous les HDFS du HDFA d'avoir le même chemin de jonction, ce qui facilite la configuration côté client.
+
+Dans l'<<Figure-1,figure 1>>exemple, chaque HDF fait partie de son propre SVM. Il s'agit d'un déploiement HDFA inter-SVM. Chaque HDF possède un chemin de jonction de /hotspots. En outre, chaque IP a un DNS un enregistrement de cache de nom d'hôte. Cette configuration exploite le DNS Round Robin pour équilibrer la charge des montages sur les différents HDFS.
+
+.Figure 1 : configuration HDFA 4 x 1 x 4 entre SVM
+image:flexcache-hotspot-hdfa-one-hdf-per-svm.png["Figure 1 : configuration HDFA 4 x 1 x 4 entre SVM"]
+
+
+
+== Déploiement HDFA intra-SVM
+
+Une unité intra-SVM exige que chaque HDF dispose d'une Junction-path unique, mais tous les HDFS font partie d'une SVM. Cette configuration est plus simple dans ONTAP, car il ne nécessite qu'un seul SVM, mais il nécessite une configuration plus avancée côté Linux avec `autofs` et le placement des LIF de données dans ONTAP.
+
+Dans cet <<Figure-2,figure 2>> exemple, chaque HDF fait partie du même SVM. Il s'agit d'un déploiement HDFA au sein de l'SVM et ces chemins de jonction doivent être uniques. Pour que l'équilibrage de charge fonctionne correctement, vous devez créer un nom DNS unique pour chaque IP et placer les LIFs de données auxquelles le nom d'hôte résout uniquement sur les nœuds sur lesquels réside HDF. Vous devrez également configurer `autofs` avec plusieurs entréeslink:flexcache-hotspot-remediation-client-config.html["Configuration client Linux"], comme décrit dans .
+
+.Figure 2 : configuration HDFA intraSVM 4 x 1 x 4
+image:flexcache-hotspot-hdfa-4x1x4-intra-svm-hdfa.png["Figure 2 : HDFA intraSVM 4 x 1 x 4"]
+
+.Et la suite
+Maintenant que vous avez une idée de la façon dont vous voulez déployer vos HDFA, link:flexcache-hotspot-remediation-ontap-config.html["Déployez le HDFA et configurez les clients pour qu'ils y accèdent de manière distribuée"].

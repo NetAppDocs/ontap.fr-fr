@@ -1,0 +1,73 @@
+---
+permalink: flexcache-hot-spot/flexcache-hotspot-remediation-architecture.html 
+sidebar: sidebar 
+keywords: hotspot, FlexCache, hdfa, problem, solution, ONTAP 
+summary: 'Découvrez comment l"architecture avec FlexCache haute densité permet de résoudre les problèmes liés aux points d"accès.' 
+---
+= Conception d'une solution de correction de point d'accès ONTAP FlexCache
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Pour remédier aux problèmes de détection des problèmes, explorez les causes sous-jacentes des goulots d'étranglement, les raisons pour lesquelles le provisionnement automatique des FlexCache ne suffit pas et les détails techniques nécessaires pour concevoir une solution FlexCache de manière efficace. Grâce à la compréhension et à l'implémentation de baies FlexCache haute densité (HDFA), vous pouvez optimiser les performances et éliminer les goulots d'étranglement de vos charges de travail exigeantes.
+
+
+
+== La compréhension du goulot d'étranglement
+
+Voici <<Figure-1,image>>un scénario typique de détection de points d'accès à un seul fichier. Le volume est une FlexGroup avec un seul composant par nœud, et le fichier réside sur le nœud 1.
+
+Si vous distribuez toutes les connexions réseau des clients NAS sur différents nœuds du cluster, vous continuez à former un goulot d'étranglement sur le processeur qui gère l'affinité de volume où réside le fichier actif. Vous introduisez également le trafic réseau du cluster (trafic est-ouest) aux appels provenant de clients connectés à des nœuds autres que ceux où réside le fichier. La surcharge du trafic dans le nord-ouest est généralement faible, mais pour les workloads de calcul haute performance, tout petit compte.
+
+.Figure 1 : scénario de point d'accès à un seul fichier FlexGroup
+image:flexcache-hotspot-hdfa-flexgroup.png["Figure 1 : scénario de point d'accès à un seul fichier FlexGroup"]
+
+
+
+== Pourquoi un FlexCache à provisionnement automatique n'est-il pas suffisant
+
+Pour remédier à la détection des points d'accès, éliminez le goulot d'étranglement du processeur et, de préférence, le trafic est-ouest aussi. FlexCache peut vous aider s'il est correctement configuré.
+
+Dans l'exemple suivant, FlexCache est auto-provisionné avec System Manager, BlueXP  ou les arguments de l'interface de ligne de commande par défaut. <<Figure-1,Figure 1>> Et <<Figure-2,figure 2>>apparaissent au premier abord les mêmes : il s'agit de conteneurs NAS à quatre nœuds à un seul composant. La seule différence est que le conteneur NAS de la figure 1 est un FlexGroup, et le conteneur NAS de la figure 2 est un FlexCache. Chaque figure présente le même goulot d'étranglement : le processeur du nœud 1 pour l'affinité de volume assurant le service de l'accès au fichier actif, et le trafic est-ouest contribuant à la latence. Un FlexCache à provisionnement automatique n'a pas éliminé les goulots d'étranglement.
+
+.Figure 2 : scénario FlexCache auto-provisionné
+image:flexcache-hotspot-hdfa-1x4x1.png["Figure 2 : scénario FlexCache auto-provisionné"]
+
+
+
+== Anatomie d'un FlexCache
+
+Pour concevoir efficacement une solution FlexCache pour la correction des hotspots, vous devez comprendre quelques détails techniques sur FlexCache.
+
+FlexCache est toujours une FlexGroup clairsemée. Un FlexGroup est constitué de plusieurs volumes FlexVol. Ces volumes FlexVol sont appelés composants FlexGroup. Dans une disposition FlexGroup par défaut, le cluster comporte un ou plusieurs composants par nœud. Les composants sont « cousus ensemble » sous une couche d'abstraction et présentés au client comme un conteneur NAS de grande taille unique. Lorsqu'un fichier est écrit dans un FlexGroup, l'heuristique d'ingestion détermine le composant sur lequel le fichier sera stocké. Il peut s'agir d'un composant contenant la connexion NAS du client ou d'un nœud différent. L'emplacement n'est pas pertinent car tout fonctionne sous la couche d'abstraction et est invisible pour le client.
+
+Appliquons cette compréhension de FlexGroup à FlexCache. Comme FlexCache est basé sur un FlexGroup, par défaut, vous disposez d'un FlexCache unique qui possède des composants sur tous les nœuds du cluster, comme illustré dans la <<Figure-1,figure 1>>. Dans la plupart des cas, c'est une grande chose. Vous utilisez toutes les ressources de votre cluster.
+
+Cependant, pour résoudre les problèmes liés aux fichiers fortement sollicités, cette approche n'est pas idéale en raison des deux goulots d'étranglement : le processeur pour un seul fichier et le trafic est-ouest. Si vous créez une FlexCache avec des composants sur chaque nœud pour un fichier actif, ce fichier ne résidera toujours que sur un des composants. Cela signifie qu'il y a un seul processeur pour assurer l'accès au fichier actif. Vous souhaitez également limiter la quantité de trafic est-ouest nécessaire pour atteindre le fichier actif.
+
+La solution est un ensemble de FlexCaches haute densité.
+
+
+
+== Anatomie d'un FlexCache haute densité
+
+Un FlexCache haute densité (HDF) aura des composants sur un nombre de nœuds aussi faible que les besoins en capacité pour les données en cache le permettent. L'objectif est de placer votre cache sur un seul nœud. Si les besoins en capacité rendent cela impossible, les composants ne peuvent se trouvent que sur quelques nœuds.
+
+Par exemple, un cluster à 24 nœuds peut contenir trois FlexCas haute densité :
+
+* Celui qui couvre les nœuds 1 à 8
+* Un second qui couvre les nœuds 9 à 16
+* Un troisième qui couvre les nœuds 17 à 24
+
+
+Ces trois HDFS constituent une baie FlexCache haute densité (HDFA). Si les fichiers sont distribués uniformément dans chaque HDF, il est possible que le fichier demandé par le client réside localement dans la connexion NAS frontale. Si vous deviez avoir 12 HDFS couvrant seulement deux nœuds chacun, vous avez une chance de 50 % que le fichier soit local. Si vous pouvez réduire HDF à un seul nœud et en créer 24, vous êtes sûr que le fichier est local.
+
+Cette configuration éliminera tout le trafic est-ouest et, plus important encore, fournira 24 processeurs/affinités de volume pour accéder au fichier actif.
+
+.Et la suite ?
+link:flexcache-hotspot-remediation-hdfa-examples.html["Déterminez la densité de la baie FlexCache"]
+
+.Informations associées
+link:../volume-admin/index.html["Documentation sur FlexGroup et TR"]

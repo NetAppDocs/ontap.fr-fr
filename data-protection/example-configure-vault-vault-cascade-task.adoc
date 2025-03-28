@@ -2,7 +2,7 @@
 permalink: data-protection/example-configure-vault-vault-cascade-task.html 
 sidebar: sidebar 
 keywords: example, configure, vault-vault, cascade 
-summary: 'Un exemple montre en termes concrets comment vous pouvez configurer des relations de réplication une étape à la fois. Vous pouvez utiliser le déploiement en cascade de Vault configuré dans l"exemple pour conserver plus de 251 snapshots nommés « my-Weekly ».' 
+summary: 'Un exemple montre en termes concrets comment vous pouvez configurer des relations de réplication une étape à la fois. Vous pouvez utiliser le déploiement en cascade Vault-Vault configuré dans l"exemple pour conserver plus de 251 instantanés nommés « my-Weekly ».' 
 ---
 = Exemple : configurer une cascade de coffre-fort
 :allow-uri-read: 
@@ -11,9 +11,9 @@ summary: 'Un exemple montre en termes concrets comment vous pouvez configurer de
 
 
 [role="lead"]
-Un exemple montre en termes concrets comment vous pouvez configurer des relations de réplication une étape à la fois. Vous pouvez utiliser le déploiement en cascade de coffre-fort configuré dans l'exemple pour conserver plus de 251 snapshots nommés « my-Weekly ».
+Un exemple montre en termes concrets comment vous pouvez configurer des relations de réplication une étape à la fois. Vous pouvez utiliser le déploiement en cascade Vault-Vault configuré dans l'exemple pour conserver plus de 251 snapshots étiquetés `my-weekly`.
 
-.Ce dont vous avez besoin
+.Avant de commencer
 * Les clusters source et de destination et les SVM doivent être associés.
 * Vous devez exécuter ONTAP 9.2 ou version ultérieure. Les cascades de coffre-fort ne sont pas prises en charge dans les versions précédentes de ONTAP.
 
@@ -21,31 +21,31 @@ Un exemple montre en termes concrets comment vous pouvez configurer des relation
 .Description de la tâche
 L'exemple suppose ce qui suit :
 
-* Vous avez configuré des snapshots sur le cluster source avec les libellés « my-Daily », « my-Weekly » et « my-monthly » de SnapMirror.
-* Des volumes de destination nommés « Vola » ont été configurés sur les clusters de destination secondaire et tertiaire.
-* Vous avez configuré des planifications de tâches de réplication nommées « my_snapvault » sur les clusters de destination secondaire et tertiaire.
+* Vous avez configuré les snapshots sur le cluster source avec les étiquettes SnapMirror `my-daily` , , `my-weekly` et `my-monthly`.
+* Vous avez configuré des volumes de destination nommés `volA` sur les clusters de destination secondaire et tertiaire.
+* Vous avez configuré des planifications de tâches de réplication nommées `my_snapvault` sur les clusters de destination secondaire et tertiaire.
 
 
 L'exemple montre comment créer des relations de réplication basées sur deux règles personnalisées :
 
-* La règle « SnapVault_secondary » conserve 7 snapshots quotidiens, 52 snapshots hebdomadaires et 180 snapshots mensuels sur le cluster de destination secondaire.
-* La « SnapVault_Tertiary policy » conserve 250 snapshots hebdomadaires sur le cluster de destination tertiaire.
+* La `snapvault_secondary` règle conserve 7 snapshots quotidiens, 52 snapshots hebdomadaires et 180 snapshots mensuels sur le cluster de destination secondaire.
+* Le système `snapvault_tertiary policy` conserve 250 snapshots hebdomadaires sur le cluster de destination tertiaire.
 
 
 .Étapes
-. Sur le cluster de destination secondaire, créez la stratégie « napvault_Secondary » :
+. Sur le cluster destination secondaire, créer la `snapvault_secondary` politique :
 +
-`cluster_secondary::> snapmirror policy create -policy snapvault_secondary -type vault -comment “Policy on secondary for vault to vault cascade” -vserver svm_secondary`
+`cluster_secondary::> snapmirror policy create -policy snapvault_secondary -type vault -comment "Policy on secondary for vault to vault cascade" -vserver svm_secondary`
 
-. Sur le cluster de destination secondaire, définissez la règle "my-Daily" pour la politique :
+. Sur le cluster de destination secondaire, définir la `my-daily` règle pour la règle :
 +
 `cluster_secondary::> snapmirror policy add-rule -policy snapvault_secondary -snapmirror-label my-daily -keep 7 -vserver svm_secondary`
 
-. Sur le cluster de destination secondaire, définissez la règle "my-hebdomadaire" pour la politique :
+. Sur le cluster de destination secondaire, définir la `my-weekly` règle pour la règle :
 +
 `cluster_secondary::> snapmirror policy add-rule -policy snapvault_secondary -snapmirror-label my-weekly -keep 52 -vserver svm_secondary`
 
-. Sur le cluster de destination secondaire, définissez la règle "mois-mois" pour la politique :
+. Sur le cluster de destination secondaire, définir la `my-monthly` règle pour la règle :
 +
 `cluster_secondary::> snapmirror policy add-rule -policy snapvault_secondary -snapmirror-label my-monthly -keep 180 -vserver svm_secondary`
 
@@ -83,11 +83,11 @@ L'exemple montre comment créer des relations de réplication basées sur deux r
 +
 `cluster_secondary::> snapmirror initialize -source-path svm_primary:volA -destination-path svm_secondary:volA`
 
-. Sur le cluster de destination tertiaire, créez la stratégie "napvault_tertiaire" :
+. Sur le cluster destination tertiaire, créer la `snapvault_tertiary` règle :
 +
-`cluster_tertiary::> snapmirror policy create -policy snapvault_tertiary -type vault -comment “Policy on tertiary for vault to vault cascade” -vserver svm_tertiary`
+`cluster_tertiary::> snapmirror policy create -policy snapvault_tertiary -type vault -comment "Policy on tertiary for vault to vault cascade" -vserver svm_tertiary`
 
-. Sur le cluster de destination tertiaire, définissez la règle "semaine-moyenne" pour la politique :
+. Sur le cluster destination tertiaire, définir la `my-weekly` règle pour la règle :
 +
 `cluster_tertiary::> snapmirror policy add-rule -policy snapvault_tertiary -snapmirror-label my-weekly -keep 250 -vserver svm_tertiary`
 

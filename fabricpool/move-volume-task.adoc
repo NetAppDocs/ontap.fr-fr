@@ -24,7 +24,7 @@ NOTE: Avant ONTAP 9.7, System Manager utilise le terme _aggregate_ pour décrire
 
 Si le Tier local de destination d'un déplacement de volume n'est associé à aucun Tier cloud, les données du volume source stocké sur le Tier cloud sont écrites sur le Tier local du Tier local de destination.
 
-À partir de ONTAP 9.8, lorsqu'un volume est link:determine-data-inactive-reporting-task.html["reporting des données inactives"] activé, FabricPool utilise la carte thermique du volume pour mettre immédiatement en file d'attente les données inactives afin de commencer le Tiering dès qu'elles sont écrites sur l'agrégat de destination.
+À partir de ONTAP 9.8, lorsqu'un volume est link:determine-data-inactive-reporting-task.html["reporting des données inactives"] activé, FabricPool utilise la carte thermique du volume pour mettre immédiatement en file d'attente les données inactives afin de commencer le Tiering dès qu'elles sont écrites sur le Tier local de destination.
 
 Avant ONTAP 9.8, le déplacement d'un volume vers un autre niveau local réinitialise la période d'inactivité des blocs sur le niveau local. Par exemple, un volume utilisant la règle de Tiering automatique du volume avec des données sur le Tier local qui ont été inactives pendant 20 jours, mais n'avaient pas encore été hiérarchisées, la température des données est réinitialisée à 0 jours après un déplacement de volume.
 
@@ -32,14 +32,16 @@ Avant ONTAP 9.8, le déplacement d'un volume vers un autre niveau local réiniti
 
 == Déplacement optimisé des volumes
 
-À partir de ONTAP 9.6, si le Tier local de destination du déplacement de volume utilise le même compartiment que le Tier local source, les données du volume source stocké dans le compartiment ne reviennent pas au niveau local. Cette migration de volume optimisée se traduit par une efficacité réseau considérable.
+À partir de ONTAP 9.6, si le Tier local de destination du déplacement de volume utilise le même compartiment que le Tier local source, les données du volume source stocké dans le compartiment ne reviennent pas au niveau local. Les données hiérarchisées restent au repos et seules les données actives doivent être déplacées d'un Tier local à un autre. Cette migration de volume optimisée se traduit par une efficacité réseau considérable.
+
+Les déplacements de volumes non optimisés génèrent un trafic réseau et de calcul supplémentaire (lectures/écritures/écritures/écritures), ce qui augmente les demandes sur le cluster ONTAP et le magasin d'objets, ce qui peut entraîner une augmentation des coûts lors du Tiering vers des magasins d'objets publics.
 
 [NOTE]
 ====
 Certaines configurations sont incompatibles avec les déplacements de volumes optimisés :
 
 * Modification de la règle de Tiering pendant le déplacement de volumes
-* Les agrégats source et de destination utilisent différentes clés de chiffrement
+* Les niveaux locaux source et de destination utilisent différentes clés de chiffrement
 * Volumes FlexClone
 * Volumes parents FlexClone
 * MetroCluster (prise en charge des déplacements de volume optimisés dans ONTAP 9.8 et versions ultérieures)
@@ -52,6 +54,16 @@ Si le Tier local de destination d'un déplacement de volume dispose d'un Tier cl
 L'écriture des données sur le niveau local améliore d'abord les performances du déplacement de volume et réduit le délai de mise en service. Si aucune règle de hiérarchisation de volume n'est spécifiée lors du déplacement de volume, le volume de destination utilise la règle de hiérarchisation du volume source.
 
 Si une règle de hiérarchisation différente est spécifiée lors du déplacement de volume, le volume de destination est créé avec la règle de hiérarchisation spécifiée et le déplacement de volume n'est pas optimisé.
+
+
+
+=== Métadonnées de volume
+
+Qu'un déplacement de volume soit optimisé ou non, ONTAP stocke des informations concernant l'emplacement de toutes les données, y compris les données locales et hiérarchisées. Lorsqu'un volume est déplacé d'un niveau local à un autre, ces informations doivent également être déplacées vers le niveau local de destination. Ces métadonnées restent toujours sur le Tier local, mais en fonction de la quantité de données hiérarchisées, ce processus peut prendre plus de temps que prévu.
+
+Par exemple, un déplacement de volume optimisé de 300 To signifie que 300 To de données inactives n'ont pas besoin de passer d'un Tier local à un autre (ou déclenchement de 300 To de lectures et 300 To d'écritures dans le magasin d'objets). Cependant, cela signifie que les métadonnées associées à 300 To de données (environ 15 To de données dans cet exemple) devront être écrites sur le Tier local de destination.
+
+Il est important de comprendre que le débit indiqué par `volume move show` la commande ne correspond pas au débit des données déplacées depuis le Tier cloud, mais aux métadonnées mises à jour localement.
 
 
 NOTE: Dans une relation de SVM DR, les volumes source et de destination doivent utiliser la même règle de Tiering.

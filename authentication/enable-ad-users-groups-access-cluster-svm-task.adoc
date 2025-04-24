@@ -56,6 +56,8 @@ NOTE: Lorsque vous effectuez une mise à niveau vers ONTAP 9.14.1 ou une version
 
 Si vous avez déjà configuré un serveur SMB pour un SVM de données, vous pouvez utiliser le `security login domain-tunnel create` Commande permettant de configurer le SVM en tant que passerelle ou _tunnel_, pour l'accès AD au cluster.
 
+Avant ONTAP 9.16.1, vous devez utiliser un tunnel d'authentification pour gérer les comptes d'administrateur du cluster avec AD.
+
 .Avant de commencer
 * Un serveur SMB doit être configuré pour un SVM de données.
 * Vous devez avoir activé un compte utilisateur AD domain pour accéder au SVM admin pour le cluster.
@@ -67,11 +69,13 @@ Depuis ONTAP 9.10.1, si vous disposez d'une passerelle SVM (tunnel du domaine) p
 
 NOTE: L'authentification Kerberos a toujours été tentée en premier. En cas d'échec, l'authentification NTLM est alors tentée.
 
-.Étape
+.Étapes
 . Configurer un SVM de données compatible SMB en tant que tunnel d'authentification pour l'accès au contrôleur de domaine AD au cluster :
 +
-`security login domain-tunnel create -vserver _svm_name_`
-
+[source, cli]
+----
+security login domain-tunnel create -vserver <svm_name>
+----
 +
 Pour en savoir plus, `security login domain-tunnel create` consultez le link:https://docs.netapp.com/us-en/ontap-cli/security-login-domain-tunnel-create.html["Référence de commande ONTAP"^].
 
@@ -82,7 +86,7 @@ Le SVM doit être exécuté pour que l'utilisateur puisse être authentifié.
 
 ====
 +
-La commande suivante configure le SVM de données SMB « engData » comme un tunnel d'authentification.
+La commande suivante configure le SVM de données compatible SMB `engData` comme un tunnel d'authentification.
 
 +
 [listing]
@@ -100,19 +104,23 @@ Si vous n'avez pas configuré de serveur SMB pour un SVM de données, vous pouve
 .Description de la tâche
 Une fois que vous avez saisi le `vserver active-directory create` Vous êtes invité à fournir les informations d'identification d'un compte utilisateur AD avec suffisamment de privilèges pour ajouter des ordinateurs à l'unité organisationnelle spécifiée dans le domaine. Le mot de passe du compte ne peut pas être vide.
 
+Depuis ONTAP 9.16.1, vous pouvez utiliser cette procédure pour gérer des comptes d'administrateur de cluster avec AD.
+
 .Avant de commencer
 Pour effectuer cette tâche, vous devez être un administrateur de cluster ou de SVM.
 
-.Étape
+.Étapes
 . Créer un compte ordinateur pour un SVM sur le domaine AD :
 +
-`vserver active-directory create -vserver _SVM_name_ -account-name _NetBIOS_account_name_ -domain _domain_ -ou _organizational_unit_`
+[source, cli]
+----
+vserver active-directory create -vserver <SVM_name> -account-name <NetBIOS_account_name> -domain <domain> -ou <organizational_unit>
+----
++
+Depuis ONTAP 9.16.1, le `-vserver` paramètre accepte le SVM admin Pour en savoir plus, `vserver active-directory create` consultez le link:https://docs.netapp.com/us-en/ontap-cli/vserver-active-directory-create.html["Référence de commande ONTAP"^].
 
 +
-Pour en savoir plus, `vserver active-directory create` consultez le link:https://docs.netapp.com/us-en/ontap-cli/vserver-active-directory-create.html["Référence de commande ONTAP"^].
-
-+
-La commande suivante crée un compte ordinateur nommé « ADSERVER1 » sur le domaine « example.com`" pour SVM « engData ». Une fois la commande saisie, vous êtes invité à saisir les informations d'identification du compte utilisateur AD.
+La commande suivante crée un compte ordinateur nommé `ADSERVER1` sur le domaine de `example.com` la SVM `engData`. Une fois la commande saisie, vous êtes invité à saisir les informations d'identification du compte utilisateur AD.
 
 +
 [listing]

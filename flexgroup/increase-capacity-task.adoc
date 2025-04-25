@@ -22,7 +22,7 @@ Si vous souhaitez ajouter de l'espace, vous pouvez augmenter la taille collectiv
 Pour améliorer les performances, vous pouvez étendre le volume FlexGroup. Vous pouvez étendre un volume FlexGroup et ajouter de nouveaux volumes membres dans les situations suivantes :
 
 * De nouveaux nœuds ont été ajoutés au cluster.
-* Les nouveaux agrégats ont été créés sur les nœuds existants.
+* De nouveaux niveaux locaux (agrégats) ont été créés sur les nœuds existants.
 * Les volumes membres existants du volume FlexGroup ont atteint la taille maximale de FlexVol pour le matériel (100 To ou 300 To si link:../volumes/enable-large-vol-file-support-task.html["prise en charge de grands volumes"] a été activé). Par conséquent, le volume FlexGroup ne peut pas être redimensionné sans ajouter de volumes de membres supplémentaires.
 
 
@@ -55,12 +55,18 @@ Développez le volume FlexGroup en ajoutant de nouveaux volumes membres (composa
 
 La valeur par défaut du `-aggr-list-multiplier` paramètre 1.
 
-Pour développer un volume FlexGroup pour FabricPool dans ONTAP 9.5, tout nouvel agrégat doit être FabricPool.
+Lors de l'extension d'un volume FlexGroup à l'aide de link:../fabricpool/index.html["FabricPool"], tous les niveaux locaux (agrégats) doivent être associés au même niveau cloud.
 
 |===
 
 
-Dans la mesure du possible, vous devez augmenter la capacité d'un volume FlexGroup. Si vous devez étendre un volume FlexGroup, vous devez ajouter des volumes membres dans les mêmes multiples que les volumes membres du volume FlexGroup existant afin d'assurer une performance prévisible. Par exemple, si le volume FlexGroup existant comporte 16 volumes membres avec huit volumes membres par nœud, vous pouvez étendre le volume FlexGroup existant de 8 ou 16 volumes membres.
+Si vous pensez que les agrégats existants (tiers locaux) ou les volumes membres n'ont pas atteint leur capacité maximale (100 To ou deux milliards de fichiers chacun), il est préférable d'augmenter la taille globale du volume FlexGroup plutôt que d'ajouter des volumes de membres supplémentaires.
+
+Utilisez l'extension de volume uniquement si l'augmentation de la taille du volume existant ou du nombre de fichiers n'est pas possible ou si la FlexGroup est en cours d'extension sur du nouveau matériel. Vous devez ajouter le même nombre de volumes membres à tous les nœuds afin d'assurer une performance prévisible. Par exemple, si un volume FlexGroup existant comporte 8 volumes membres avec quatre volumes membres par nœud, l'ajout de deux membres par nœud se traduira par 12 volumes membres, soit six volumes membres par nœud.
+
+Lorsque vous ajoutez de nouveaux membres à de nouveaux nœuds, essayez de maintenir un nombre cohérent de volumes membres par nœud comme dans les nœuds existants. Par exemple, si un volume FlexGroup existant possède 8 volumes membres avec quatre volumes membres par nœud, si les volumes FlexGroup sont étendus au nouveau nœud, quatre volumes membres doivent être ajoutés, ce qui donne un volume FlexGroup de 12 membres.
+
+L'ajout de nouveaux membres à un volume FlexGroup modifie les heuristiques d'ingestion pour favoriser les nouveaux volumes de membres vides et peut affecter les performances globales du système en vue de l'ingestion de nouvelles données jusqu'à ce que les nouveaux volumes de membres soient équilibrés avec les volumes de membres préexistants.
 
 .Exemples
 *Exemple d'augmentation de la capacité des volumes membres existants*
@@ -75,10 +81,10 @@ Si le volume FlexGroup comporte 16 volumes membres, l'espace de chaque volume me
 
 *Exemple d'amélioration des performances en ajoutant de nouveaux volumes de membres*
 
-L'exemple suivant montre comment ajouter deux volumes membres supplémentaires au volume FlexGroup Volx :
+L'exemple suivant montre comment ajouter quatre volumes de membres supplémentaires, deux à chacun des niveaux locaux sous-jacents (agrégats) au volume FlexGroup fg1 :
 
 [listing]
 ----
-cluster1::> volume expand -vserver vs1 -volume volX -aggr-list aggr1,aggr2
+cluster1::> volume expand -vserver svm1 -volume fg1 -aggr-list aggr1,aggr2 -aggr-list-multiplier 2
 ----
 La taille des nouveaux volumes membres est identique à celle des volumes membres existants.

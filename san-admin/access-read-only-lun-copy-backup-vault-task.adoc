@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: access, read-only, lun, copy, snapvault, backup 
 summary: 'Vous pouvez accéder à une copie en lecture seule d"une LUN à partir du dernier snapshot d"une sauvegarde SnapVault. L"ID, le chemin et le numéro de série de la LUN source sont différents de celui-ci et doivent d"abord être mappés. Les réservations permanentes, les mappages de LUN et les groupes initiateurs ne sont pas répliqués sur le volume secondaire SnapVault.' 
 ---
-= Accédez à une copie LUN en lecture seule à partir d'une sauvegarde SnapVault
+= Accédez à une copie LUN en lecture seule à partir d'une sauvegarde ONTAP SnapVault
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -26,7 +26,12 @@ Vous pouvez accéder à une LUN directement à partir du volume secondaire SnapV
 Si un nouvel instantané est ajouté au volume secondaire SnapVault alors qu'une LUN est mappée à partir d'un snapshot précédent, le contenu de la LUN mappée change. La LUN est toujours mappée avec les mêmes identifiants, mais les données sont extraites du nouveau snapshot. Si la taille de LUN change, certains hôtes détectent automatiquement la modification de taille ; les hôtes Windows exigent une nouvelle analyse du disque pour identifier toute modification de taille.
 
 .Étapes
-. Exécutez le `lun show` Commande permettant de lister les LUN disponibles dans le volume secondaire SnapVault.
+. Répertorie les LUN disponibles dans le volume secondaire SnapVault.
++
+[source, cli]
+----
+lun show
+----
 +
 Dans cet exemple, vous pouvez voir les LUN d'origine dans le volume primaire srcvolA et les copies dans le volume secondaire SnapVault dstvolB :
 
@@ -49,7 +54,12 @@ vserverB  /vol/dstvolB/lun_C  online  unmapped windows  300.0GB
 +
 Pour en savoir plus, `lun show` consultez le link:https://docs.netapp.com/us-en/ontap-cli/lun-show.html["Référence de commande ONTAP"^].
 
-. Si le groupe initiateur pour l'hôte souhaité n'existe pas déjà sur la SVM contenant le volume secondaire SnapVault, exécutez la `igroup create` commande de création d'un groupe initiateur.
+. Si le groupe initiateur de l'hôte souhaité n'existe pas déjà sur le SVM contenant le volume secondaire SnapVault, créez un groupe initiateur.
++
+[source, cli]
+----
+igroup create -vserver <SVM_name> -igroup <igroup_name> -protocol <protocol> -ostype <ostype> -initiator <initiator_name>
+----
 +
 Cette commande crée un groupe initiateur pour un hôte Windows qui utilise le protocole iSCSI :
 
@@ -60,7 +70,12 @@ cluster::> igroup create -vserver vserverB -igroup temp_igroup
   -protocol iscsi -ostype windows
   -initiator iqn.1991-05.com.microsoft:hostA
 ----
-. Exécutez le `lun mapping create` Commande permettant de mapper la copie de LUN souhaitée sur le groupe initiateur.
+. Mappez la copie de LUN souhaitée sur le groupe initiateur.
++
+[source, cli]
+----
+lun mapping create -vserver <SVM_name> -path <LUN_path> -igroup <igroup_name>
+----
 +
 [listing]
 ----

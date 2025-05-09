@@ -2,7 +2,7 @@
 permalink: flexgroup/provision-automatically-task.html 
 sidebar: sidebar 
 keywords: provision, flexgroup, volume, automatic, create, flex group, aggregate, space 
-summary: Lorsque vous créez un volume FlexGroup, vous pouvez choisir de faire provisionner le volume FlexGroup par ONTAP en sélectionnant automatiquement les agrégats. Les agrégats sont sélectionnés en fonction des meilleures pratiques pour des performances optimales. 
+summary: 'Lorsque vous créez un volume FlexGroup, vous pouvez choisir de faire provisionner le volume FlexGroup par ONTAP en sélectionnant automatiquement les tiers locaux (agrégats). Les niveaux locaux sont sélectionnés en fonction des meilleures pratiques pour des performances optimales.' 
 ---
 = Provisionnez automatiquement un volume ONTAP FlexGroup
 :allow-uri-read: 
@@ -11,28 +11,31 @@ summary: Lorsque vous créez un volume FlexGroup, vous pouvez choisir de faire p
 
 
 [role="lead"]
-Lorsque vous créez un volume FlexGroup, vous pouvez choisir que ONTAP provisionne automatiquement le volume FlexGroup en sélectionnant les agrégats. Les agrégats sont sélectionnés en fonction des meilleures pratiques pour des performances et une capacité optimales.
+Lorsque vous créez un volume FlexGroup, vous pouvez choisir de faire en sorte que ONTAP provisionne automatiquement le volume FlexGroup en sélectionnant les tiers locaux sous-jacents (agrégats). Les niveaux locaux sont sélectionnés en fonction des meilleures pratiques pour des performances et une capacité optimales.
 
 .Avant de commencer
-Chaque nœud du cluster doit disposer d'au moins un agrégat.
+Chaque nœud du cluster doit avoir au moins un niveau local.
 
 [NOTE]
 ====
-Pour créer un volume FlexGroup pour FabricPool dans ONTAP 9.5, chaque nœud doit disposer d'au moins un agrégat FabricPool.
+Lors de la création d'un volume FlexGroup qui hiérarchise les données inactives, chaque nœud doit avoir au moins un Tier local avec FabricPool activé.
 
 ====
 .Description de la tâche
-ONTAP sélectionne deux agrégats disposant de la plus grande quantité d'espace utilisable sur chaque nœud pour créer le volume FlexGroup. Si deux agrégats ne sont pas disponibles, ONTAP sélectionne un agrégat par nœud pour créer le volume FlexGroup.
+Pour créer le volume FlexGroup, ONTAP sélectionne deux tiers locaux avec la plus grande quantité d'espace utilisable sur chaque nœud. Si deux tiers locaux ne sont pas disponibles, ONTAP sélectionne un Tier local par nœud pour créer le volume FlexGroup.
 
-À partir de ONTAP 9.15.1, lorsque vous provisionnez automatiquement un volume FlexGroup, ONTAP utilise le placement équilibré (BP) pour choisir la disposition des agrégats et des composants FlexGroup. L'un des aspects de BP est la façon dont elle limite le sur-provisionnement des agrégats lors de la création de volumes FlexGroup non garantis. La taille du volume FlexGroup global est limitée par la quantité d'espace libre sur les agrégats, bien que la limite soit supérieure à celle des volumes FlexGroup garantis par « volume ». La création d'un volume FlexGroup à l'aide d'API REST ou `auto-provision-as` de l'interface de ligne de commandes ONTAP peut entraîner l'échec du provisionnement en raison d'un espace insuffisant pour cause de cette limite. Vous pouvez éviter cela en créant des volumes FlexGroup plus petits ou en link:create-task.html["Création d'un volume FlexGroup et sélection manuelle des agrégats"] utilisant le `aggr-list` paramètre.
+À partir de ONTAP 9.15.1, lorsque vous provisionnez automatiquement un volume FlexGroup, ONTAP utilise le placement équilibré (BP) pour choisir la disposition des niveaux locaux et des volumes membres FlexGroup (constituants). L'un des aspects de BP est la manière dont elle limite le sur-provisionnement des niveaux locaux lors de la création de volumes FlexGroup « aucun » garantis (à provisionnement fin). La taille du volume FlexGroup global est limitée par la quantité d'espace libre sur le Tier local, bien que la limite soit supérieure à celle des volumes FlexGroup garantis (à provisionnement lourd) par « volume ». La création d'un volume FlexGroup à l'aide d'API REST ou `auto-provision-as` de l'interface de ligne de commandes ONTAP peut entraîner l'échec du provisionnement en raison d'un espace insuffisant pour cause de cette limite. Vous pouvez éviter cela en créant des volumes FlexGroup plus petits ou en link:create-task.html["Création d'un volume FlexGroup et sélection manuelle des niveaux locaux"] utilisant le `aggr-list` paramètre.
 
 .Étapes
 . Provisionnez le volume FlexGroup :
 +
-`volume create -vserver svm_name -volume fg_vol_name –auto-provision-as flexgroup -size fg_size [–encrypt true] [-qos-policy-group qos_policy_group_name] [-support-tiering true]`
+`volume create -vserver svm_name -volume fg_vol_name –auto-provision-as flexgroup -size fg_size [–encrypt true] [-qos-policy-group qos_policy_group_name] [-support-tiering true] [-granular-data advanced]`
 
 +
-Depuis ONTAP 9.5, vous pouvez créer des volumes FlexGroup pour FabricPool. Pour provisionner automatiquement un volume FlexGroup sur FabricPool, vous devez définir la `-support-tiering` paramètre à `true`. La garantie de volume doit toujours être définie sur `none` Pour FabricPool. Vous pouvez également spécifier la règle de Tiering ainsi que la période de refroidissement minimale de Tiering du volume FlexGroup.
+À partir de ONTAP 9.16.1, vous pouvez activer link:../enable-adv-capacity-flexgroup-task.html["équilibrage avancé de la capacité"] (`-granular-data advanced` dans l'interface de ligne de commandes) pour écrire des données sur plusieurs volumes de membres FlexGroup lorsque les fichiers dépassent 10 Go.
+
++
+À partir de ONTAP 9.5, vous pouvez créer des volumes FlexGroup sur des niveaux locaux avec FabricPool activé. Pour provisionner automatiquement un volume FlexGroup sur des niveaux locaux avec FabricPool activé, vous devez définir le `-support-tiering` paramètre sur `true`. La garantie de volume doit toujours être définie sur `none` pour FabricPool. Vous pouvez également spécifier la règle de Tiering ainsi que la période de refroidissement minimale de Tiering du volume FlexGroup.
 
 +
 link:../disks-aggregates/index.html["Gestion des disques et des agrégats"]
@@ -86,7 +89,7 @@ Do you want to continue? {y|n}: y
 [Job 34] Job succeeded: Successful
 ----
 +
-L'exemple suivant montre comment provisionner un volume FlexGroup de 400 To sur des agrégats de FabricPool dans ONTAP 9.5 :
+L'exemple suivant montre comment provisionner un volume FlexGroup de 400 To sur des niveaux locaux avec FabricPool activé :
 
 +
 [listing]
@@ -98,7 +101,7 @@ Do you want to continue? {y|n}: y
 [Job 34] Job succeeded: Successful
 ----
 +
-Le volume FlexGroup est créé avec huit composants sur chaque nœud du cluster. Les composants sont répartis de manière égale entre les deux agrégats les plus importants de chaque nœud.
+Le volume FlexGroup est créé avec huit volumes membres sur chaque nœud du cluster. Les volumes membres sont répartis de manière égale entre les deux niveaux locaux les plus grands de chaque nœud.
 
 +
 Par défaut, le volume FlexGroup est créé avec le `volume` Paramètre de garantie d'espace disponible sauf sur les systèmes AFF. Pour les systèmes AFF, le volume FlexGroup est créé par défaut avec le `none` garantie d'espace.

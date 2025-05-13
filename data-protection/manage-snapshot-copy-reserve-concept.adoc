@@ -1,10 +1,10 @@
 ---
 permalink: data-protection/manage-snapshot-copy-reserve-concept.html 
 sidebar: sidebar 
-keywords: manage, snapshot, copy, reserve 
+keywords: manage, snapshot, copy, reserve, increase, protected files 
 summary: 'La réserve Snapshot réserve un pourcentage d"espace disque réservé pour les snapshots, cinq pour cent par défaut. Étant donné que les snapshots utilisent de l"espace dans le système de fichiers actif lorsque la réserve de snapshots est épuisée, vous pouvez augmenter la réserve de snapshots si nécessaire. Vous pouvez également supprimer automatiquement les snapshots lorsque la réserve est pleine.' 
 ---
-= Gérer l'aperçu de la réserve d'instantanés
+= En savoir plus sur la gestion de la réserve de snapshots ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -12,3 +12,50 @@ summary: 'La réserve Snapshot réserve un pourcentage d"espace disque réservé
 
 [role="lead"]
 Le paramètre _snapshot Reserve_ met de côté un pourcentage d'espace disque pour les snapshots, cinq pour cent par défaut. Étant donné que les snapshots utilisent de l'espace dans le système de fichiers actif lorsque la réserve de snapshots est épuisée, vous pouvez augmenter la réserve de snapshots si nécessaire. Vous pouvez également supprimer automatiquement les snapshots lorsque la réserve est pleine.
+
+
+
+== Quand augmenter la réserve d'instantanés
+
+Pour décider d'augmenter la réserve d'instantanés, il est important de se rappeler qu'un instantané n'enregistre que les modifications apportées aux fichiers depuis le dernier instantané. Elle consomme de l'espace disque uniquement lorsque des blocs du système de fichiers actif sont modifiés ou supprimés.
+
+Cela signifie que le taux de modification du système de fichiers est le facteur clé dans la détermination de la quantité d'espace disque utilisée par les snapshots. Quel que soit le nombre de snapshots que vous créez, ils ne consomment pas d'espace disque si le système de fichiers actif n'a pas changé.
+
+Un FlexVol volume contenant des journaux de transactions de base de données, par exemple, peut disposer d'une réserve de snapshots pouvant atteindre 20 % pour tenir compte de son taux de modification plus élevé. Non seulement vous voulez créer davantage de snapshots pour capturer les mises à jour plus fréquentes de la base de données, mais vous devez également disposer d'une réserve de snapshots plus importante pour gérer l'espace disque supplémentaire utilisé par les snapshots.
+
+[TIP]
+====
+Un snapshot est constitué de pointeurs vers des blocs plutôt que de copies de blocs. Un pointeur peut être vu comme une « revendication » sur un bloc : ONTAP « conserve » le bloc jusqu'à ce que le snapshot soit supprimé.
+
+====
+image:how-snapshots-consume-disk-space.gif["Espace disque utilisé par les snapshots"]
+
+
+
+== La manière dont la suppression des fichiers protégés peut entraîner une diminution de l'espace fichier par rapport aux attentes
+
+Un snapshot pointe vers un bloc même après la suppression du fichier qui a utilisé ce bloc. Cela explique pourquoi une réserve d'instantanés épuisée peut conduire à un résultat contre-intuitif : la suppression d'un système de fichiers entier entraîne une réduction de l'espace disponible par rapport au système de fichiers occupé.
+
+Prenons l'exemple suivant. Avant de supprimer des fichiers, le `df` la sortie de la commande est la suivante :
+
+[listing]
+----
+
+Filesystem          kbytes  used    avail  capacity
+/vol/vol0/          3000000 3000000 0       100%
+/vol/vol0/.snapshot 1000000 500000  500000   50%
+----
+Après avoir supprimé tout le système de fichiers et créé un snapshot du volume, la `df` commande génère les valeurs de sortie suivantes :
+
+[listing]
+----
+
+Filesystem          kbytes  used    avail  capacity
+/vol/vol0/          3000000 2500000 500000   83%
+/vol/vol0/.snapshot 1000000 3500000 0       350%
+----
+Comme le montre la sortie, l'ensemble des 3 Go précédemment utilisés par le système de fichiers actif est désormais utilisé par les snapshots, en plus des 0.5 Go utilisés avant la suppression.
+
+Comme l'espace disque utilisé par les snapshots dépasse maintenant la réserve d'instantanés, le débordement de 2.5 Go "`spillus`" dans l'espace réservé aux fichiers actifs, vous laissant 0.5 Go d'espace libre pour les fichiers où vous pourriez raisonnablement vous attendre à 3 Go.
+
+Pour en savoir plus sur les commandes décrites dans cette procédurelink:https://docs.netapp.com/us-en/ontap-cli/["Référence de commande ONTAP"^], reportez-vous à la .

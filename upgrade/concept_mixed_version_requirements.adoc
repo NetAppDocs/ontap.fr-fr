@@ -4,65 +4,197 @@ sidebar: sidebar
 keywords: ontap, upgrade, mixed, version, clusters, mixed-version nodes, requirements 
 summary: Un cluster ONTAP à version mixte se compose de nœuds exécutant deux versions principales de ONTAP différentes, telles que ONTAP 9.8 et 9.12.1. Les clusters ONTAP à versions mixtes ne sont pris en charge que dans des scénarios spécifiques. 
 ---
-= Vérifiez les clusters ONTAP à versions mixtes avant de procéder à une mise à niveau
+= Vérifiez la compatibilité des versions ONTAP avec les clusters à versions mixtes
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Un cluster ONTAP à version mixte se compose de nœuds exécutant deux versions principales de ONTAP différentes pendant une durée limitée.  Par exemple, si un cluster se compose actuellement de nœuds exécutant ONTAP 9.8 et 9.12.1, il s'agit d'un cluster à version mixte.  De même, un cluster dans lequel les nœuds exécutent ONTAP 9.9.1 et 9.13.1 est un cluster à version mixte.  NetApp prend en charge les clusters ONTAP à versions mixtes pendant une période limitée et dans des scénarios spécifiques.
+Dans un cluster ONTAP à version mixte, les nœuds exécutent deux versions principales de ONTAP différentes pendant un court instant. Par exemple, un cluster avec des nœuds exécutant ONTAP 9.8 et 9.12.1 ou ONTAP 9.9.1 et 9.13.1 est un cluster à version mixte. Les clusters avec des nœuds exécutant différents niveaux de patch dans la même version, comme ONTAP 9.9.1P1 et 9.9.1P5, ne sont pas des clusters à versions mixtes.
+
+
+NOTE: Cloud Volumes ONTAP ne prend pas en charge les clusters à versions mixtes.
+
+NetApp prend en charge les clusters ONTAP à versions mixtes pendant une période limitée et dans des scénarios spécifiques.
 
 Les scénarios suivants sont les plus courants dans lesquels un cluster ONTAP sera dans un état de version mixte :
 
 * Mises à niveau logicielles ONTAP dans les clusters de grande taille
++
+La mise à niveau de tous les nœuds d'un cluster de grande taille peut prendre plusieurs jours, voire plusieurs semaines. Le cluster entre et reste dans un état de version mixte jusqu'à la mise à niveau de tous les nœuds.
+
 * Des mises à niveau logicielles ONTAP sont nécessaires lorsque vous prévoyez d'ajouter de nouveaux nœuds à un cluster
-
-
-Ces informations s'appliquent aux versions ONTAP qui prennent en charge les systèmes de plateformes NetApp, tels que les systèmes AFF A-Series et C-Series, ASA, FAS et C-Series. Ces informations ne s'appliquent pas aux versions cloud de ONTAP (9.x.0) telles que 9.12.0.
-
-
-
-== Conditions requises pour les clusters ONTAP à versions mixtes
-
-Si votre cluster doit avoir un état de version mixte de ONTAP, vous devez connaître les exigences et restrictions importantes.
-
-* Un cluster ne peut pas contenir plus de deux versions principales de ONTAP différentes. Par exemple, ONTAP 9.9.1 et 9.13.1 sont pris en charge, mais pas ONTAP 9.9.1, 9.12.1 et 9.13.1. Les clusters dont les nœuds fonctionnent avec différents niveaux de patch P ou D de la même version ONTAP, tels que ONTAP 9.9.1P1 et 9.9.1P5, ne sont pas considérés comme des clusters ONTAP de version mixte.
-* Le cluster étant à l'état de version mixte, vous ne devez pas saisir de commandes pour modifier le fonctionnement ou la configuration du cluster, à l'exception de celles requises pour le processus de mise à niveau ou de migration des données.  Par exemple, les activités telles que la migration de LIF, les opérations planifiées de basculement du stockage ou la création ou suppression d'objets à grande échelle ne doivent pas être effectuées avant la fin de la mise à niveau et de la migration des données.
-* Pour un fonctionnement optimal du cluster, la durée pendant laquelle celui-ci se trouve dans un état à version mixte doit être aussi courte que possible.  La durée maximale pendant laquelle un cluster peut rester dans un état de version mixte dépend de la version ONTAP la plus faible du cluster.
 +
-[cols="2*"]
+Vous pouvez ajouter de nouveaux nœuds à votre cluster pour augmenter sa capacité, ou vous pouvez ajouter de nouveaux nœuds lors du processus de remplacement complet de vos contrôleurs. Dans les deux cas, vous devrez peut-être saisir un état de version mixte pour pouvoir migrer vos données depuis des contrôleurs existants vers les nouveaux nœuds de votre nouveau système.
+
+
+
+Pour un fonctionnement optimal du cluster, la durée pendant laquelle celui-ci se trouve dans un état à version mixte doit être aussi courte que possible. La durée maximale pendant laquelle un cluster peut prendre en charge dans un état de version mixte dépend de la version ONTAP la plus faible du cluster.
+
+[cols="2"]
 |===
-| Si la version la plus basse de ONTAP s'exécutant dans le cluster de version mixte est : | Vous pouvez alors rester dans un état de version mixte pendant un maximum de 
+| Si la version la plus basse de ONTAP s'exécutant dans le cluster de version mixte est... | Vous pouvez alors rester dans un état de version mixte pendant un maximum de... 
 
 
-| ONTAP 9.8 ou supérieur | 90 jours 
+| ONTAP 9.8 ou version ultérieure | 90 jours 
 
 
-| ONTAP 9.7 ou inférieur | 7 jours 
+| ONTAP 9.7 ou version antérieure | 7 jours 
 |===
-* À partir de ONTAP 9.8, la différence de version entre les nœuds d'origine et les nouveaux nœuds ne peut pas être supérieure à quatre. Par exemple, un cluster ONTAP à version mixte peut avoir des nœuds exécutant ONTAP 9.8 et 9.12.1, ou des nœuds exécutant ONTAP 9.9.1 et 9.13.1. Cependant, un cluster ONTAP à versions mixtes avec des nœuds exécutant ONTAP 9.8 et 9.13.1 ne serait pas pris en charge.
-+
-Pour obtenir la liste complète des clusters à versions mixtes pris en charge, reportez-vous à la section link:concept_upgrade_paths.html["chemins de mise à niveau pris en charge"]. Tous les chemins de mise à niveau _direct_ sont pris en charge pour les clusters de versions mixtes.
+Le cluster étant à l'état de version mixte, vous ne devez pas saisir de commandes pour modifier le fonctionnement ou la configuration du cluster, à l'exception de celles requises pour le processus de mise à niveau ou de migration des données. Par exemple, les activités telles que la migration de LIF, les opérations planifiées de basculement du stockage ou la création ou suppression d'objets à grande échelle ne doivent pas être effectuées avant la fin de la mise à niveau et de la migration des données.
 
 
 
+== Prise en charge de clusters à version mixte pour les mises à niveau du logiciel ONTAP
+
+Vous pouvez entrer un état de version mixte avec n'importe quelle version de ONTAP prise en charge pour une mise à niveau directe à partir de votre version la plus basse. Par exemple, si vous exécutez ONTAP 9.11.1, vous pouvez entrer un état de version mixte avec les nœuds exécutant ONTAP 9.15.1. Vous ne pouvez pas entrer un état de version mixte avec des nœuds exécutant ONTAP 9.11.1 et ONTAP 9.16.1. ONTAP 9.16.1 n'est pas pris en charge pour la mise à niveau directe à partir de ONTAP 9.11.1.
+
+Pour effectuer une mise à niveau vers une version ONTAP qui n'est pas prise en charge pour une mise à niveau directe à partir de votre version actuelle, vous devez effectuer une mise à niveau en plusieurs étapes. Dans une mise à niveau en plusieurs étapes, vous entrez d'abord un état de version mixte avec la version la plus élevée prise en charge pour une mise à niveau directe à partir de votre version actuelle. Vous avez terminé cette mise à niveau, puis vous effectuez une mise à niveau séparée vers votre version cible. Par exemple, si la version la plus récente est ONTAP 9.10.1 et que vous souhaitez effectuer une mise à niveau vers ONTAP 9.16.1, vous devez d'abord saisir un état de version mixte pour mettre à niveau tous vos nœuds vers ONTAP 9.14.1. Ensuite, vous effectuez une mise à niveau séparée de ONTAP 9.14.1 vers ONTAP 9.16.1. En savoir plus sur link:concept_upgrade_paths.html#types-of-upgrade-paths["mises à niveau en plusieurs étapes"] et link:concept_upgrade_paths.html#supported-upgrade-paths["chemins de mise à niveau pris en charge"].
+
+Un cluster à versions mixtes ne peut contenir que deux versions majeures de ONTAP. Par exemple, vous pouvez avoir un cluster à version mixte avec des nœuds exécutant ONTAP 9.13.1 et 9.15.1 ou avec des nœuds exécutant ONTAP 9.13.1 et 9.16.1. Vous ne pouvez pas avoir de cluster à version mixte avec des nœuds exécutant ONTAP 9.13.1, 9.15.1 et 9.16.1.
+
+[cols="25,25,50"]
+|===
+| Si votre version actuelle de ONTAP est… | Et votre version ONTAP cible est… | L'état de version mixte pour la mise à niveau est… 
 
 
-== Mise à jour de la version ONTAP d'un grand cluster
+| 9.15.1 | 9.16.1 | Pris en charge 
 
-Pour la saisie d'un état de cluster à version mixte, vous devez notamment mettre à niveau la version ONTAP d'un cluster à plusieurs nœuds afin de bénéficier des fonctionnalités disponibles dans les versions ultérieures de ONTAP 9. Lorsque vous devez mettre à niveau la version ONTAP d'un cluster de plus grande taille, vous entrez une version mixte de l'état du cluster pendant un certain temps au fur et à mesure de la mise à niveau de chaque nœud du cluster.
 
+.2+| 9.14.1 | 9.16.1 | Pris en charge 
+
+
+| 9.15.1 | Pris en charge 
+
+
+.3+| 9.13.1 | 9.16.1 | Pris en charge 
+
+
+| 9.15.1 | Pris en charge 
+
+
+| 9.14.1 | Pris en charge 
+
+
+.4+| 9.12.1 | 9.16.1 | Pris en charge 
+
+
+| 9.15.1 | Pris en charge 
+
+
+| 9.14.1 | Pris en charge 
+
+
+| 9.13.1 | Pris en charge 
+
+
+.5+| 9.11.1 | 9.16.1  a| 
+Non pris en charge
+
+
+
+| 9.15.1 | Pris en charge 
+
+
+| 9.14.1 | Pris en charge 
+
+
+| 9.13.1 | Pris en charge 
+
+
+| 9.12.1 | Pris en charge 
+
+
+.6+| 9.10.1 | 9.16.1  a| 
+Non pris en charge
+
+
+
+| 9.15.1  a| 
+Non pris en charge
+
+
+
+| 9.14.1 | Pris en charge 
+
+
+| 9.13.1 | Pris en charge 
+
+
+| 9.12.1 | Pris en charge 
+
+
+| 9.11.1 | Pris en charge 
+
+
+.7+| 9.9.1 | 9.16.1  a| 
+Non pris en charge
+
+
+
+| 9.15.1  a| 
+Non pris en charge
+
+
+
+| 9.14.1  a| 
+Non pris en charge
+
+
+
+| 9.13.1 | Pris en charge 
+
+
+| 9.12.1 | Pris en charge 
+
+
+| 9.11.1 | Pris en charge 
+
+
+| 9.10.1 | Pris en charge 
+
+
+.8+| 9.8 | 9.16.1  a| 
+Non pris en charge
+
+
+
+| 9.15.1  a| 
+Non pris en charge
+
+
+
+| 9.14.1  a| 
+Non pris en charge
+
+
+
+| 9.13.1  a| 
+Non pris en charge
+
+
+
+| 9.12.1 | Pris en charge 
+
+
+| 9.11.1 | Pris en charge 
+
+
+| 9.10.1  a| 
+Pris en charge
+
+
+
+| 9.9.1 | Pris en charge 
+|===
 
 
 == Ajout de nouveaux nœuds à un cluster ONTAP
 
-Un autre scénario de saisie d'un état de cluster de version mixte implique l'ajout de nouveaux nœuds à votre cluster. Vous pouvez ajouter de nouveaux nœuds à votre cluster pour augmenter sa capacité, ou vous pouvez ajouter de nouveaux nœuds lors du processus de remplacement complet de vos contrôleurs. Dans les deux cas, vous devez activer la migration de vos données à partir de contrôleurs existants vers les nouveaux nœuds de votre nouveau système.
+Si vous prévoyez d'ajouter de nouveaux nœuds au cluster et que ces nœuds nécessitent une version minimale de ONTAP ultérieure à la version actuellement en cours d'exécution, vous devez effectuer toutes les mises à niveau logicielles prises en charge sur les nœuds existants du cluster avant d'ajouter de nouveaux nœuds. Dans l'idéal, vous devez mettre à niveau tous les nœuds existants vers la version minimale de ONTAP requise par les nœuds que vous prévoyez d'ajouter au cluster. Toutefois, si cela n'est pas possible parce que certains de vos nœuds ne prennent pas en charge la version ultérieure de ONTAP, vous devrez entrer un état de version mixte pendant une durée limitée dans le cadre de votre processus de mise à niveau.
 
-Si vous prévoyez d'ajouter de nouveaux nœuds au cluster et que ces nœuds nécessitent une version minimale de ONTAP ultérieure à la version actuellement en cours d'exécution, vous devez effectuer toutes les mises à niveau logicielles prises en charge sur les nœuds existants du cluster avant d'ajouter de nouveaux nœuds.
-
-Dans l'idéal, vous devez mettre à niveau tous les nœuds existants vers la version minimale de ONTAP requise par les nœuds que vous prévoyez d'ajouter au cluster. Toutefois, si cela n'est pas possible parce que certains de vos nœuds ne prennent pas en charge la version ultérieure de ONTAP, vous devrez entrer un état de version mixte pendant une durée limitée dans le cadre de votre processus de mise à niveau. Si certains nœuds ne prennent pas en charge la version ONTAP minimale requise par vos nouveaux contrôleurs, effectuez les opérations suivantes :
-
+.Étapes
 . link:concept_upgrade_methods.html["Mise à niveau"] Jusqu'à la version maximale de ONTAP prise en charge par les nœuds qui ne prennent pas en charge la version minimale de ONTAP requise par vos nouveaux contrôleurs.
 +
 Par exemple, si vous disposez d'un système FAS8080 exécutant ONTAP 9.5 et que vous ajoutez une nouvelle plateforme C-Series exécutant ONTAP 9.12.1, vous devez mettre à niveau votre système FAS8080 vers ONTAP 9.8 (qui correspond à la version ONTAP maximale prise en charge).

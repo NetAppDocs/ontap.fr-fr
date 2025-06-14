@@ -2,7 +2,7 @@
 permalink: upgrade/remove-ems-lif-service-task.html 
 sidebar: sidebar 
 keywords: ontap, upgrade, after, post, ems, event, management, system, lifs, messages, not, delivered 
-summary: Après la mise à niveau de ONTAP 9.7 ou version antérieure vers la version 9.8 ou ultérieure, si vous utilisez EMS, vous devrez peut-être supprimer le service EMS LIF de certaines stratégies de service réseau. 
+summary: 'Après la mise à niveau d"ONTAP 9.7 ou version antérieure vers 9.8 ou version ultérieure, si vous utilisez EMS, vous devrez peut-être supprimer le service EMS LIF de certaines stratégies de service réseau.' 
 ---
 = Supprimer le service EMS LIF des politiques de service réseau après une mise à niveau ONTAP
 :allow-uri-read: 
@@ -11,14 +11,16 @@ summary: Après la mise à niveau de ONTAP 9.7 ou version antérieure vers la ve
 
 
 [role="lead"]
-Si des messages du système de gestion des événements (EMS) sont configurés avant la mise à niveau de ONTAP 9.7 ou version antérieure vers ONTAP 9.8 ou version ultérieure, il est possible que vos messages EMS ne soient pas transmis après la mise à niveau.
+Si vous avez configuré des messages du système de gestion des événements (EMS) avant la mise à niveau d'ONTAP 9.7 ou version antérieure vers ONTAP 9.8 ou version ultérieure, vos messages EMS risquent de ne pas être remis après la mise à niveau.
 
-Au cours de la mise à niveau, management-ems, qui est le service EMS LIF, est ajouté à toutes les stratégies de service existantes.  Cela permet d'envoyer des messages EMS depuis n'importe laquelle des LIFs associées à l'une des stratégies de service.  Si la LIF sélectionnée n'a pas l'accessibilité à la destination de notification d'événement, le message n'est pas transmis.
+Pendant la mise à niveau,  `management-ems` , qui est le service EMS LIF, est ajouté à toutes les politiques de service existantes dans les SVM d'administration et système. Cela permet d'envoyer des messages EMS depuis n'importe quel LIF associé aux politiques de service. Si la LIF sélectionnée n'a pas l'accessibilité à la destination de notification d'événement, le message n'est pas transmis.
 
-Pour éviter cela, après la mise à niveau, vous devez supprimer le service EMS LIF des stratégies de service réseau qui ne permettent pas de reachabilité à la destination.
+Pour éviter cela, après la mise à niveau, vous devez supprimer le service EMS LIF des politiques de service réseau qui ne fournissent pas d'accessibilité à la destination.
+
+link:../networking/lifs_and_service_policies96.html#service-policies-for-system-svms["En savoir plus sur les LIF et les politiques de service d'ONTAP"].
 
 .Étapes
-. Identifier les LIFs et les stratégies de service réseau associées via lesquelles les messages EMS peuvent être envoyés :
+. Identifiez les LIF et les politiques de service réseau associées via lesquelles les messages EMS peuvent être envoyés :
 +
 [source, cli]
 ----
@@ -28,15 +30,11 @@ network interface show -fields service-policy -services management-ems
 [listing]
 ----
 vserver        lif            service-policy
--------------- ------------ ------------------
-cluster-1      cluster_mgmt
-                                      default-management
-cluster-1      node1-mgmt
-                                      default-management
-cluster-1      node2-mgmt
-                                      default-management
-cluster-1      inter_cluster
-                                      default-intercluster
+-------------- ------------   ------------------
+cluster-1      cluster_mgmt   default-management
+cluster-1      node1-mgmt     default-management
+cluster-1      node2-mgmt     default-management
+cluster-1      inter_cluster  default-intercluster
 4 entries were displayed.
 ----
 . Vérifier la connectivité de chaque LIF à la destination EMS :
@@ -64,7 +62,7 @@ no answer from 10.10.10.10
 ----
 set advanced
 ----
-. Pour les LIF qui n'ont pas de accessibilité, supprimer le service LIF management-ems des politiques de service correspondantes :
+. Pour les LIF qui n'ont pas d'accessibilité, supprimez le  `management-ems` Service LIF des politiques de service correspondantes :
 +
 [source, cli]
 ----
@@ -80,6 +78,3 @@ Pour en savoir plus, `network interface service-policy remove-service` consultez
 network interface show -fields service-policy -services management-ems
 ----
 
-
-.Liens connexes
-link:../networking/lifs_and_service_policies96.html#service-policies-for-system-svms["LIF et politiques de service dans ONTAP 9.6 et versions ultérieures"]

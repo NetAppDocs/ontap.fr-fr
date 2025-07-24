@@ -2,28 +2,33 @@
 sidebar: sidebar 
 permalink: anti-ransomware/recover-data-task.html 
 keywords: Restore data after an attack, anti-ransomware backup, restore data from snapshots, potential ransomware attack, ransomware attack, recovery snapshots are deleted, recover deleted snapshots, autonomous, ransomware, protection, arp 
-summary: 'Des instantanés sont créés lorsque ARP détecte une attaque potentielle. Vous pouvez restaurer les données à partir de ces copies anti-ransomware ou d"autres copies Snapshot.' 
+summary: 'ARP crée des instantanés pour se protéger contre une menace potentielle de rançongiciel. Vous pouvez restaurer des données à partir de ces instantanés ARP ou d"autres instantanés.' 
 ---
 = Restaurez les données à partir des snapshots ARP ONTAP après une attaque par ransomware
-:hardbreaks:
-:toclevels: 1
 :allow-uri-read: 
-:toclevels: 1
-:nofooter: 
 :icons: font
-:linkattrs: 
 :imagesdir: ../media/
 
 
 [role="lead"]
-La protection anti-ransomware autonome (ARP) crée des snapshots nommés `Anti_ransomware_backup` lorsqu'elle détecte une menace potentielle de ransomware. Vous pouvez utiliser l'un de ces snapshots ARP ou un autre instantané de votre volume pour restaurer des données.
+La protection autonome contre les ransomwares (ARP) crée des instantanés pour vous protéger contre une menace potentielle de ransomware. Vous pouvez utiliser l'un de ces instantanés ARP ou un autre instantané de votre volume pour restaurer vos données.
 
 .Description de la tâche
-Si le volume possède des relations SnapMirror, répliquez manuellement toutes les copies en miroir du volume immédiatement après la restauration à partir d'un snapshot. Cette opération risque d'entraîner des copies miroir inutilisables qui doivent d'être supprimées et recréées.
+L'ARP crée des instantanés avec l'un des noms suivants ajoutés au début :
 
-Pour effectuer une restauration à partir d'un snapshot autre que le `Anti_ransomware_backup` snapshot après l'identification d'une attaque système, vous devez d'abord libérer le snapshot ARP.
+* `Anti_ransomware_backup` : Utilisé dans ONTAP 9.16.1 et versions antérieures avec des instantanés créés en réponse à des anomalies. Par exemple :  `Anti_ransomware_backup.2022-12-20_1248` .
+* `Anti_ransomware_periodic_backup` : Utilisé dans ONTAP 9.17.1 et versions ultérieures pour les instantanés créés à intervalles réguliers. Par exemple :  `Anti_ransomware_periodic_backup.2025-06-01_1248` .
 
-Si aucune attaque système n'a été signalée, vous devez d'abord effectuer une restauration à `Anti_ransomware_backup` partir du snapshot, puis effectuer une restauration ultérieure du volume à partir du snapshot de votre choix.
+
+Pour restaurer à partir d'un instantané autre que le  `Anti_ransomware` Après l'identification d'une attaque système, vous devez d'abord libérer l'instantané ARP.
+
+Si aucune attaque système n'est signalée, vous devez d'abord restaurer à partir du  `Anti_ransomware` instantané, puis effectuez une restauration ultérieure du volume à partir de l'instantané que vous choisissez.
+
+
+NOTE: Si le volume protégé par ARP fait partie d'une relation SnapMirror , vous devrez mettre à jour manuellement toutes les copies miroir du volume après sa restauration à partir d'un snapshot. Si vous ignorez cette étape, les copies miroir risquent de devenir inutilisables et de devoir être supprimées puis recréées.
+
+.Avant de commencer
+link:respond-abnormal-task.html["Vous devez marquer l'attaque comme une attaque potentielle de ransomware"] avant de restaurer les données à partir d'un instantané.
 
 .Étapes
 Vous pouvez utiliser System Manager ou l'interface de ligne de commandes de ONTAP pour restaurer vos données.
@@ -53,7 +58,7 @@ Sélectionnez *stockage > volumes*, puis sélectionnez le volume et *copies Snap
 +
 Sélectionnez *stockage > volumes*, puis sélectionnez le volume et *copies Snapshot*.
 
-. Sélectionner image:icon_kabob.gif["Icône des options de menu"] puis choisissez le  `Anti_ransomware_backup` instantané.
+. Sélectionner image:icon_kabob.gif["Icône des options de menu"] puis choisissez le  `Anti_ransomware` instantané.
 . Sélectionnez *Restaurer*.
 . Revenez au menu *copies Snapshot*, puis choisissez l'instantané que vous souhaitez utiliser. Sélectionnez *Restaurer*.
 
@@ -62,17 +67,25 @@ Sélectionnez *stockage > volumes*, puis sélectionnez le volume et *copies Snap
 .CLI
 --
 .Restauration après une attaque système
-. Pour effectuer une restauration à partir de l'instantané ARP, passez à l'étape 2. Pour restaurer des données à partir de snapshots antérieurs, vous devez libérer le verrou sur le snapshot ARP.
-+
+Pour effectuer une restauration à partir de l'instantané ARP, passez à l'étape 2. Pour restaurer des données à partir de snapshots antérieurs, vous devez libérer le verrou sur le snapshot ARP.
+
 
 NOTE: Si vous utilisez la commande décrite ci-dessous, vous devez libérer la fonctionnalité anti-ransomware SnapLock avant de restaurer les données à partir de copies Snapshot antérieures `volume snapshot restore`. Si vous restaurez des données à l'aide de FlexClone, de la restauration par alignement de fichier unique ou d'autres méthodes, cela n'est pas nécessaire.
 
+. Marquer l'attaque comme une attaque potentielle de ransomware (`-false-positive false` ) et effacer les fichiers suspects (`clear-suspect` ):
 +
-Marquez l'attaque comme une attaque potentielle par ransomware (`-false-positive false`) et effacez les fichiers suspects (`clear-suspect`) :
-`anti-ransomware volume attack clear-suspect -vserver _svm_name_ -volume _vol_name_ [_extension identifiers_] -false-positive false` utilisez l'un des paramètres suivants pour identifier les extensions :
-`[-seq-no _integer_]` numéro de séquence du fichier dans la liste des suspects.
-`[-extension _text_, … ]` Extensions de fichier
-`[-start-time _date_time_ -end-time _date_time_]` heures de début et de fin pour la plage de fichiers à effacer, sous la forme « MM/JJ/AAAA HH:MM:SS ».
+[source, cli]
+----
+anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_name> [<extension identifiers>] -false-positive false
+----
++
+Utilisez l’un des paramètres suivants pour identifier les extensions :
+
++
+** `[-seq-no _integer_]` : Numéro de séquence du fichier dans la liste des suspects.
+** `[-extension _text_, … ]` : Extensions de fichiers
+** `[-start-time _date_time_ -end-time _date_time_]` : Heures de début et de fin de la plage de fichiers à effacer, sous la forme « MM/JJ/AAAA HH:MM:SS ».
+
 
 . Lister les snapshots dans un volume :
 +
@@ -159,12 +172,11 @@ L'exemple suivant restaure le contenu de `vol1`:
 ----
 cluster1::> volume snapshot restore -vserver vs0 -volume vol1 -snapshot daily.2013-01-25_0010
 ----
-. Répétez les étapes 1 et 2 pour restaurer le volume à l'aide de l'instantané souhaité.
 
 
---
 Pour en savoir plus, `volume snapshot` consultez le link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=volume+snapshot["Référence de commande ONTAP"^].
 
+--
 ====
 .Informations associées
 * link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Ransomware_prevention_and_recovery_in_ONTAP["Base de connaissances : prévention des ransomwares et restauration dans ONTAP"^]

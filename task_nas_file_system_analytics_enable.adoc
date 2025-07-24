@@ -18,6 +18,9 @@ summary: 'Pour collecter et afficher les données d"utilisation telles que l"ana
 [role="lead"]
 Pour collecter et afficher des données d'utilisation telles que l'analyse de la capacité, vous devez activer l'analytique du système de fichiers sur un volume.
 
+
+NOTE: Depuis ONTAP 9.17.1, l'analyse du système de fichiers (FSA) est activée par défaut sur les volumes créés sur les SVM nouvellement créées sur les clusters ONTAP alloués aux protocoles NAS. L'analyse du système de fichiers est automatiquement activée dès la création d'un volume, offrant des capacités d'analyse immédiates sans configuration supplémentaire. Si vous ne souhaitez pas activer l'analyse du système de fichiers sur les nouveaux volumes, vous devez  https://docs.netapp.com/us-en/ontap-cli/volume-analytics-off.html["désactiver FSA sur les nouveaux volumes"^] du SVM.
+
 .Description de la tâche
 * Depuis ONTAP 9.8, vous pouvez activer l'analytique du système de fichiers sur un volume nouveau ou existant. Si vous mettez à niveau un système vers ONTAP 9.8 ou une version ultérieure, assurez-vous que tous les processus de mise à niveau sont terminés avant d'activer l'analyse du système de fichiers.
 * Le temps nécessaire à l'activation de l'analyse dépend de la taille et du contenu du volume. System Manager affiche la progression et présente les données analytiques une fois terminées. Pour des informations plus précises sur la progression de l'acquisition lors de l'initialisation, utilisez la commande de l'interface de ligne de commande ONTAP `volume analytics show`.
@@ -61,9 +64,15 @@ Vous pouvez activer l'analytique du système de fichiers avec ONTAP System Manag
 .CLI
 --
 .Activez l'analyse du système de fichiers à l'aide de la CLI
-. Exécutez la commande suivante :
-`volume analytics on -vserver _svm_name_ -volume _volume_name_ [-foreground {true|false}]`
-Par défaut, la commande s'exécute au premier plan ; ONTAP affiche la progression et présente les données analytiques une fois l'opération terminée. Si vous avez besoin d'informations plus précises, vous pouvez exécuter la commande en arrière-plan à l'aide de la `-foreground false` puis utilisez l' `volume analytics show` Commande permettant d'afficher la progression de l'initialisation dans l'interface de ligne de commandes.
+. Exécutez la commande suivante :
++
+[source, cli]
+----
+volume analytics on -vserver <svm_name> -volume <volume_name> [-foreground {true|false}]
+----
++
+Par défaut, la commande s'exécute au premier plan ; ONTAP affiche la progression et présente les données d'analyse une fois l'opération terminée. Pour des informations plus précises, vous pouvez exécuter la commande en arrière-plan à l'aide de l'icône  `-foreground false` option, puis utilisez le  `volume analytics show` commande pour afficher la progression de l'initialisation dans la CLI.
+
 . Une fois l'analyse du système de fichiers terminée, utilisez System Manager ou l'API REST ONTAP pour afficher les données analytiques.
 
 
@@ -85,22 +94,22 @@ Depuis la version ONTAP 9.13.1, vous pouvez modifier les paramètres des SVM ou 
 Si vous utilisez System Manager, vous pouvez modifier les paramètres de la machine virtuelle de stockage ou du cluster pour activer l'analyse de la capacité et le suivi des activités lors de la création du volume par défaut. L'activation par défaut s'applique uniquement aux volumes créés après la modification des paramètres, et non aux volumes existants.
 
 .Modifier les paramètres d'analyse du système de fichiers sur un cluster
-. Dans System Manager, accédez à **Paramètres de cluster**.
-. Dans **Paramètres du cluster**, consultez l'onglet Paramètres du système de fichiers. Pour modifier les paramètres, sélectionnez l' image:icon_gear.gif["Icône actions"] icône.
-. Dans le champ **Activity Tracking**, entrez les noms des SVM pour lequel le suivi des activités est activé par défaut. Si vous ne renseignez pas ce champ, le suivi d'activité sera désactivé sur tous les SVM.
+. Dans le Gestionnaire système, accédez à *Paramètres du cluster*.
+. Dans *Paramètres du cluster*, consultez l'onglet Paramètres du système de fichiers. Pour modifier les paramètres, sélectionnez l'option image:icon_gear.gif["Icône actions"] icône.
+. Dans le champ *Suivi d'activité*, saisissez les noms des SVM pour lesquels le suivi d'activité est activé par défaut. Si ce champ est vide, le suivi d'activité sera désactivé sur tous les SVM.
 +
-Décochez la case **Activer sur les nouveaux ordinateurs virtuels de stockage** pour désactiver le suivi des activités par défaut sur les nouveaux ordinateurs virtuels de stockage.
+Décochez la case *Activer sur les nouvelles machines virtuelles de stockage* pour désactiver le suivi d'activité par défaut sur les nouvelles machines virtuelles de stockage.
 
-. Dans le champ **Analytics**, entrez les noms des machines virtuelles de stockage pour lesquels l'analyse des capacités doit être activée par défaut. Si vous ne renseignez pas ce champ, l'analyse de la capacité est désactivée sur tous les SVM.
+. Dans le champ *Analyse*, saisissez les noms des machines virtuelles de stockage pour lesquelles l'analyse de capacité doit être activée par défaut. Si ce champ est vide, l'analyse de capacité sera désactivée sur toutes les machines virtuelles de stockage.
 +
-Décochez la case **Activer sur les nouvelles machines virtuelles de stockage** pour désactiver l'analyse des capacités par défaut sur les nouvelles machines virtuelles de stockage.
+Décochez la case *Activer sur les nouvelles machines virtuelles de stockage* pour désactiver l'analyse de capacité par défaut sur les nouvelles machines virtuelles de stockage.
 
-. Sélectionnez **Enregistrer**.
+. Sélectionnez *Enregistrer*.
 
 
 .Modification des paramètres d'analytique du système de fichiers sur une SVM
-. Sélectionner le SVM à modifier puis **Storage VM settings**.
-. Dans la carte **File System Analytics**, utilisez les commutateurs pour activer ou désactiver le suivi des activités et l'analyse des capacités pour tous les nouveaux volumes de la machine virtuelle de stockage.
+. Sélectionnez la SVM que vous souhaitez modifier, puis *Paramètres de la VM de stockage*.
+. Dans la carte *Analyse du système de fichiers*, utilisez les boutons bascule pour activer ou désactiver le suivi des activités et l'analyse de la capacité pour tous les nouveaux volumes sur la machine virtuelle de stockage.
 
 
 --
@@ -109,13 +118,18 @@ Décochez la case **Activer sur les nouvelles machines virtuelles de stockage** 
 Vous pouvez configurer la machine virtuelle de stockage pour activer l'analytique du système de fichiers par défaut sur les nouveaux volumes à l'aide de l'interface de ligne de commande ONTAP.
 
 .Activer l'analytique des systèmes de fichiers par défaut sur une SVM
-. Modifier le SVM pour activer l'analytique de capacité et le suivi des activités par défaut sur tous les volumes nouvellement créés :
-`vserver modify -vserver _svm_name_ -auto-enable-activity-tracking true -auto-enable-analytics true`
+. Modifiez le SVM pour activer l'analyse de capacité et le suivi des activités par défaut sur tous les volumes nouvellement créés :
++
+[source, cli]
+----
+vserver modify -vserver <svm_name> -auto-enable-activity-tracking true -auto-enable-analytics true
+----
++
+Pour en savoir plus, `vserver modify` consultez le link:https://docs.netapp.com/us-en/ontap-cli/vserver-modify.html["Référence de commande ONTAP"^].
+
 
 
 --
-Pour en savoir plus, `vserver modify` consultez le link:https://docs.netapp.com/us-en/ontap-cli/vserver-modify.html["Référence de commande ONTAP"^].
-
 ====
 .Informations associées
 * link:https://docs.netapp.com/us-en/ontap-cli/["Référence de commande ONTAP"^]

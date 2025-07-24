@@ -4,27 +4,36 @@ sidebar: sidebar
 keywords: perform, directory, delete, files, asynchronous, share, flexvol, flex vol, flexgroup, flex group, cancel 
 summary: Depuis ONTAP 9.8, vous pouvez utiliser la commande async-delete du fichier volume pour supprimer des fichiers et des répertoires des partages clients Linux et Windows en arrière-plan. Vous pouvez effectuer une suppression asynchrone sur les volumes FlexVol et FlexGroup. 
 ---
-= Supprimer des répertoires de manière asynchrone sur des clusters ONTAP avec FlexGroups
+= Supprimer les répertoires de manière asynchrone des volumes ONTAP FlexGroup
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-À partir de ONTAP 9.8, vous pouvez utiliser la fonctionnalité de suppression asynchrone pour supprimer les répertoires des partages clients Linux et Windows de manière asynchrone (c'est-à-dire en arrière-plan). Les administrateurs du cluster et des SVM peuvent effectuer des suppressions asynchrones sur les volumes FlexVol et FlexGroup.
+À partir d' ONTAP 9.8, vous pouvez supprimer des répertoires des partages clients Linux et Windows de manière asynchrone (c'est-à-dire en arrière-plan). Les administrateurs de cluster et de SVM peuvent effectuer des suppressions asynchrones sur les volumes FlexVol et FlexGroup .
 
-Si vous utilisez une version de ONTAP antérieure à ONTAP 9.11.1, vous devez être administrateur du cluster ou administrateur SVM utilisant le mode de privilège avancé.
+.Description de la tâche
+Vous devez être un administrateur de cluster ou un administrateur SVM utilisant le mode de privilège avancé.
+
+Depuis la version ONTAP 9.8, vous pouvez utiliser la fonctionnalité de suppression asynchrone via l'interface de ligne de commande de ONTAP. Depuis la version ONTAP 9.9.1, vous pouvez utiliser cette fonctionnalité avec System Manager. Pour plus d'informations sur ce processus, reportez-vous à link:../task_nas_file_system_analytics_take_corrective_action.html["Prendre des mesures correctives basées sur les analyses ONTAP dans FSA"]la section .
 
 Depuis ONTAP 9.11.1, un administrateur de stockage peut accorder des droits sur un volume pour permettre aux clients NFS et SMB d'effectuer des opérations de suppression asynchrone. Pour plus d'informations, voir link:manage-client-async-dir-delete-task.html["Gérez les droits des clients pour supprimer des répertoires de manière asynchrone"].
 
-Depuis la version ONTAP 9.8, vous pouvez utiliser la fonctionnalité de suppression asynchrone via l'interface de ligne de commande de ONTAP. Depuis la version ONTAP 9.9.1, vous pouvez utiliser cette fonctionnalité avec System Manager. Pour plus d'informations sur ce processus, reportez-vous à link:../task_nas_file_system_analytics_take_corrective_action.html["Prendre des mesures correctives basées sur les analyses ONTAP dans FSA"]la section .
+Vous pouvez utiliser le  `volume file async-delete show` commande permettant de vérifier l'état des tâches de suppression asynchrones en cours et, à partir d' ONTAP 9.17.1, l'état des tâches de suppression asynchrones émises par les clients est également affiché.
+
+
+
+== Supprimer les répertoires de manière asynchrone
+
+Vous pouvez utiliser System Manager ou l'interface de ligne de commande ONTAP pour supprimer des répertoires de manière asynchrone.
 
 [role="tabbed-block"]
 ====
 .System Manager
 --
 |===
-| À ONTAP 9.8 et 9.9.1 | À partir de ONTAP 9.10.1 
+| Dans ONTAP 9.9.1 | À partir de ONTAP 9.10.1 
 
 
  a| 
@@ -54,22 +63,26 @@ NOTE: Lorsque des répertoires et des fichiers sont supprimés, les nouvelles va
 
 . Entrer en mode de privilège avancé :
 +
-`-privilege advance`
+`set -privilege advanced`
 
 . Supprimez des répertoires sur un volume FlexVol ou FlexGroup :
 +
-`volume file async-delete start -vserver vserver_name -volume volume_name -path file_path -throttle throttle`
+`volume file async-delete start -vserver <SVM_name> -volume <volume_name> -path <file_path> -throttle <throttle>`
 
 +
-La valeur minimale de l'accélérateur est 10, la valeur maximale est 100,000 et la valeur par défaut est 5000.
+La valeur minimale de limitation est de 10, la valeur maximale est de 100 000 et la valeur par défaut est de 5 000. Les valeurs de limitation inférieures utilisent moins de ressources, ce qui peut entraîner un taux de suppression plus lent, tandis que les valeurs de limitation supérieures utilisent plus de ressources, mais peuvent entraîner un taux de suppression plus rapide.
 
 +
 L'exemple suivant supprime le répertoire nommé d2, qui se trouve dans le répertoire nommé d1.
 
 +
 ....
-cluster::*>volume file async-delete start -vserver vs1 -volume vol1 -path d1/d2
+cluster::*> volume file async-delete start -vserver vs1 -volume vol1 -path d1/d2
 ....
+. (Facultatif) Vérifiez l'état des tâches de suppression asynchrone en cours :
++
+`volume file async-delete show`
+
 . Vérifiez que le répertoire a été supprimé :
 +
 `event log show`
@@ -79,17 +92,22 @@ L'exemple suivant montre les valeurs de sortie du journal des événements lorsq
 
 +
 ....
-cluster-cli::*> event log show
-Time                 Node             Severity      Event
--------------------  ---------------- ------------- --------------------
-MM/DD/YYYY 00:11:11  cluster-vsim     INFORMATIONAL asyncDelete.message.success: Async delete job on path d1/d2 of volume (MSID: 2162149232) was completed.
+cluster::*> event log show
+
+Time                Node             Severity      Event
+------------------- ---------------- ------------- ---------------------------
+7/7/2025 09:04:04   cluster-vsim     NOTICE        asyncDelete.message.success: Async delete job on path d1/d2 of volume (MSID: 2162149232) was completed. Number of files deleted: 7, Number of directories deleted: 5. Total number of bytes deleted: 135168.
 ....
 +
 Pour en savoir plus, `event log show` consultez le link:https://docs.netapp.com/us-en/ontap-cli/event-log-show.html["Référence de commande ONTAP"^].
 
 
 
-*Annuler un travail de suppression de répertoire*
+--
+====
+
+
+== Annuler une tâche de suppression de répertoire
 
 . Entrer en mode de privilège avancé :
 +
@@ -104,9 +122,6 @@ Si le SVM, le volume, l'ID de travail et le chemin d'accès de votre répertoire
 
 . Annuler la suppression du répertoire :
 +
-`volume file async-delete cancel -vserver _SVM_name_ -volume _volume_name_ -jobid _job_id_`
+`volume file async-delete cancel -vserver <SVM_name> -volume <volume_name> -jobid <job_id>`
 
 
-
---
-====

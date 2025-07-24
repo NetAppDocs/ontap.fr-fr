@@ -1,10 +1,10 @@
 ---
 sidebar: sidebar 
 permalink: snapmirror-active-sync/protect-task.html 
-keywords: SM-BC, snapmirror business continuity, consistency group, remote protection, destination 
+keywords: SM-BC, snapmirror business continuity, consistency group, remote protection, destination, scsi, nvme 
 summary: 'La configuration de la protection pour la continuité de l"activité implique de sélectionner des LUN sur le cluster ONTAP source et de les ajouter à un groupe de cohérence.' 
 ---
-= Protégez vos données avec la synchronisation active SnapMirror dans ONTAP
+= Protégez avec la synchronisation active ONTAP SnapMirror
 :hardbreaks:
 :toclevels: 1
 :allow-uri-read: 
@@ -43,7 +43,7 @@ Configurer la protection asymétrique à l'aide de SnapMirror Active Sync impliq
 .Étapes
 Vous pouvez configurer un groupe de cohérence via l'interface de ligne de commandes ONTAP ou System Manager.
 
-À partir de ONTAP 9.10.1, ONTAP propose un menu et un terminal de groupe de cohérence dans System Manager, ainsi que des utilitaires de gestion supplémentaires. Si vous utilisez ONTAP 9.10.1 ou une version ultérieure, reportez-vous à la section link:../consistency-groups/configure-task.html["Configurer un groupe de cohérence"] link:../consistency-groups/protect-task.html["configurer la protection"]pour créer une relation de synchronisation active SnapMirror.
+À partir d' ONTAP 9.10.1, ONTAP propose un point de terminaison et un menu de groupe de cohérence dans System Manager, offrant des utilitaires de gestion supplémentaires. Si vous utilisez ONTAP 9.10.1 ou une version ultérieure, consultez la section link:../consistency-groups/configure-task.html["Configurer un groupe de cohérence"] alors link:../consistency-groups/protect-task.html["configurer la protection"] pour créer une relation de synchronisation active SnapMirror .
 
 
 IMPORTANT: De ONTAP 9.8 à 9.14.1, la synchronisation active SnapMirror est appelée SnapMirror Business Continuity (SM-BC).
@@ -115,9 +115,16 @@ Vous pouvez établir une protection symétrique à l'aide de System Manager ou d
 ** Vous pouvez utiliser la configuration à quatre nœuds pour mettre à niveau les contrôleurs et le stockage. Ce processus n'engendre aucune interruption et étend le cluster tout en déplaçant les volumes vers les nouveaux nœuds. Pour plus d'informations, voir link:upgrade-revert-task.html#refresh-a-cluster["actualiser un cluster"].
 
 
+* À partir d' ONTAP 9.17.1, vous pouvez configurer une protection symétrique active/active sur les espaces de noms NVMe uniquement lorsque les deux clusters exécutent ONTAP 9.17.1 ou une version ultérieure.
 
+
+
+
+== Configurer une protection symétrique active/active à l'aide d'une configuration de synchronisation active SCSI SnapMirror
 
 .Étapes
+Vous pouvez utiliser System Manager ou l'interface de ligne de commande ONTAP pour configurer la protection symétrique active/active à l'aide des mappages d'hôtes du protocole SCSI.
+
 [role="tabbed-block"]
 ====
 .System Manager
@@ -193,7 +200,7 @@ NOTE: Depuis ONTAP 9.16.1, utilisez le `-proximal-vserver peer` paramètre dans 
 
 
 .Étapes d'une configuration non uniforme
-. Créez une nouvelle relation SnapMirror regroupant tous les volumes de l'application. Assurez-vous de désigner la stratégie `AutomatedFailOverDuplex`' pour établir une réplication de synchronisation bidirectionnelle.
+. Créez une nouvelle relation SnapMirror regroupant tous les volumes de l'application. Assurez-vous de désigner le `AutomatedFailOverDuplex` règle d'établissement de la réplication synchrone bidirectionnelle.
 +
 `snapmirror create -source-path <source_path> -destination-path <destination_path> -cg-item-mappings <source_volume:@destination_volume> -policy AutomatedFailOverDuplex`
 
@@ -214,6 +221,89 @@ SiteA::> igroup create -vserver <svm_name> -igroup <igroup_name> -initiator <hos
 SiteB::> igroup create -vserver <svm_name> -igroup <igroup_name> -initiator <host_2_name>`
 
 . Depuis l'hôte, détectez les chemins et vérifiez que les hôtes disposent d'un chemin actif/optimisé vers la LUN de stockage à partir du cluster préféré.
+. Déployez l'application et distribuez les charges de travail des machines virtuelles entre les clusters pour atteindre l'équilibrage de charge requis.
+
+
+--
+====
+
+
+== Configurer une protection symétrique active/active à l'aide d'une configuration de synchronisation active NVMe SnapMirror
+
+.Avant de commencer
+Outre les exigences de configuration de la protection symétrique active/active, vous devez connaître les configurations prises en charge et non prises en charge lors de l'utilisation du protocole NVMe.
+
+* Les groupes de cohérence peuvent avoir un ou plusieurs sous-systèmes.
+* Les volumes au sein du groupe de cohérence peuvent avoir des cartes d’espace de noms provenant de plusieurs sous-systèmes.
+* Les sous-systèmes ne peuvent pas avoir de cartes d’espace de noms appartenant à plusieurs groupes de cohérence.
+* Les sous-systèmes ne peuvent pas avoir des cartes d’espace de noms appartenant à un groupe de cohérence et des cartes d’espace de noms n’appartenant pas à un groupe de cohérence.
+* Les sous-systèmes doivent avoir des cartes d’espace de noms qui font partie du même groupe de cohérence.
+
+
+.Étapes
+À partir d' ONTAP 9.17.1, vous pouvez utiliser System Manager ou l'interface de ligne de commande ONTAP pour créer un groupe de cohérence et configurer une protection active/active symétrique à l'aide de mappages d'hôtes de protocole NVMe.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Sur le site principal, link:../consistency-groups/configure-task.html#create-a-consistency-group-with-new-luns-or-volumes["créer un groupe de cohérence à l'aide de nouveaux volumes ou d'espaces de noms NVMe."^]
+. sélectionnez *+Ajouter* et choisissez *Utiliser les nouveaux espaces de noms NVMe*.
+. Entrez le nom du groupe de cohérence.
+. Sélectionnez *Plus*.
+. Dans la section *Protection*, sélectionnez *Activer SnapMirror* puis choisissez l'option  `AutomatedFailoverDuplex` politique.
+. Dans la section *Mappage d'hôte*, choisissez *Sous-système NVMe existant* ou *Nouveau sous-système NVMe*.
+. Sélectionnez « À proximité de » pour modifier la SVM proximale. La SVM source est sélectionnée par défaut.
+. Si nécessaire, ajoutez un autre sous-système NVMe.
+
+
+--
+.CLI
+--
+. Créez une nouvelle relation SnapMirror regroupant tous les volumes contenant tous les espaces de noms NVMe utilisés par l'application. Assurez-vous de désigner le  `AutomatedFailOverDuplex` politique visant à établir une réplication de synchronisation bidirectionnelle.
++
+`snapmirror create -source-path <source_path> -destination-path <destination_path> -cg-item-mappings <source_volume:@destination_volume> -policy AutomatedFailOverDuplex`
+
++
+Exemple :
+
++
+[listing]
+----
+DST::> snapmirror create -source-path vs_src:/cg/cg_src_1 -destination-path vs_dst:/cg/cg_dst_1 -cg-item-mappings vs_src_vol1:@vs_dst_vol1,vs_src_vol2:@vs_dst_vol2 -policy AutomatedFailOverDuplex
+----
+. Initialiser la relation SnapMirror :
+`snapmirror initialize -destination-path <destination-consistency-group>`
++
+Exemple :
+
++
+[listing]
+----
+DST::> snapmirror initialize -destination-path vs1:/cg/cg_dst_1
+----
+. Confirmer que l'opération a réussi en attendant le `Mirrored State` pour afficher sous `SnapMirrored` et le `Relationship Status` comme `Insync`.
++
+`snapmirror show -destination-path <destination_path>`
+
++
+Les sous-systèmes NVMe associés aux espaces de noms NVMe dans les volumes principaux sont automatiquement répliqués sur le cluster secondaire.
+
+. Sur votre hôte, configurez la connectivité hôte avec l'accès à chaque cluster en fonction de vos besoins.
+. Spécifiez la SVM la plus proche de chacun de vos hôtes. Cela permet à l'hôte d'accéder à l'espace de noms NVMe via un chemin d'accès depuis le cluster préféré. Il peut s'agir de la SVM du cluster principal ou de celle du cluster de reprise après sinistre.
++
+La commande suivante indique que la SVM VS_A est proche de l'hôte H1 et définit VS_A comme SVM proximale :
+
++
+`SiteA::> vserver nvme subsystem host add -subsystem ss1 -host-nqn <H1_NQN> -proximal-vservers <VS_A>`
+
++
+La commande suivante indique que la SVM VS_B est proche de l'hôte H2 et définit VS_B comme la SVM proximale :
+
++
+`SiteB::> vserver nvme subsystem host add -subsystem ss1 -host-nqn <H2_NQN> -proximal-vservers <VS_B>`
+
+. Depuis l'hôte, découvrez les chemins et vérifiez que les hôtes disposent d'un chemin actif/optimisé vers le stockage à partir du cluster préféré.
 . Déployez l'application et distribuez les charges de travail des machines virtuelles entre les clusters pour atteindre l'équilibrage de charge requis.
 
 

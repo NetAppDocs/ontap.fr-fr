@@ -2,7 +2,7 @@
 sidebar: sidebar 
 permalink: anti-ransomware/use-cases-restrictions-concept.html 
 keywords: anti-ransomware workloads, anti-ransomware requirements, anti-ransomware performance, volumes, anti-ransomware encryption, anti-ransomware system configurations, arp 
-summary: 'ARP est pris en charge pour les charges de travail NAS. Il convient parfaitement aux bases de données qui reposent sur un stockage NFS, aux répertoires locaux Windows ou Linux et aux workloads de vidéos et d"images.' 
+summary: 'ARP est pris en charge pour les charges de travail NAS et SAN. Il est particulièrement adapté aux bases de données sur stockage NFS, aux répertoires personnels Windows ou Linux, ainsi qu"aux charges de travail vidéo et image.' 
 ---
 = Cas d'utilisation et considérations de la protection anti-ransomware autonome de ONTAP
 :hardbreaks:
@@ -16,7 +16,7 @@ summary: 'ARP est pris en charge pour les charges de travail NAS. Il convient pa
 
 
 [role="lead"]
-La protection anti-ransomware autonome (ARP) est disponible pour les workloads NAS à partir de ONTAP 9.10.1. Avant de déployer ARP, vous devez connaître les utilisations recommandées et les configurations prises en charge, ainsi que les implications en termes de performances.
+La protection autonome contre les ransomwares (ARP) est disponible pour les charges de travail NAS à partir d' ONTAP 9.10.1 et SAN à partir d' ONTAP 9.17.1. Avant de déployer ARP, vous devez connaître les utilisations recommandées et les configurations prises en charge, ainsi que les implications en termes de performances.
 
 
 
@@ -28,12 +28,12 @@ Lorsque vous décidez d'utiliser ARP, il est important de vous assurer que la ch
 
 === Charges de travail adaptées
 
-ARP est adapté pour :
+ARP est adapté à ces types de charges de travail :
 
-* Les bases de données sur le stockage NFS
+* Bases de données sur stockage NFS ou SAN
 * Répertoires locaux Windows ou Linux
 +
-Comme les utilisateurs pouvaient créer des fichiers avec des extensions qui n'ont pas été détectées pendant la période d'apprentissage, les risques de faux positifs sont plus élevés dans cette charge de travail.
+Dans les environnements sans ARP/AI, les utilisateurs peuvent créer des fichiers dont les extensions ne sont pas détectées lors de la période d'apprentissage. De ce fait, le risque de faux positifs est plus élevé dans cette charge de travail.
 
 * Images et vidéos
 +
@@ -45,104 +45,90 @@ Par exemple, les dossiers médicaux et les données EDA
 
 === Charges de travail non adaptées
 
-ARP n'est pas adapté pour :
+ARP n'est pas adapté à ces types de charges de travail :
 
-* Les workloads comportant une fréquence élevée de création ou de suppression de fichiers (des centaines de milliers de fichiers en quelques secondes, par exemple des workloads de test/développement).
-* La détection des menaces par ARP dépend de sa capacité à reconnaître une augmentation inhabituelle de l'activité de création, de renommage ou de suppression de fichiers. Si l'application elle-même est la source de l'activité des fichiers, elle ne peut pas être efficacement distinguée de l'activité des ransomware.
-* Charges de travail où l'application ou l'hôte chiffre les données.
-ARP dépend de la distinction des données entrantes comme chiffrées ou non chiffrées. Si l'application elle-même est en train de chiffrer les données, l'efficacité de la fonction est réduite. Toutefois, la fonction peut toujours fonctionner en fonction de l'activité du fichier (supprimer, écraser ou créer, ou créer ou renommer avec une nouvelle extension de fichier) et du type de fichier.
+* Charges de travail avec une fréquence élevée d'opérations de création ou de suppression de fichiers (des centaines de milliers de fichiers en quelques secondes ; par exemple, charges de travail de test/développement).
+* La détection des menaces par ARP repose sur sa capacité à reconnaître une augmentation inhabituelle des opérations de création, de renommage ou de suppression de fichiers. Si l'application elle-même est à l'origine de l'activité du fichier, elle ne peut être distinguée efficacement d'une activité de rançongiciel.
+* Charges de travail où l’application ou l’hôte crypte les données.
++
+ARP distingue les données entrantes chiffrées ou non chiffrées. Si l'application chiffre les données elle-même, son efficacité est réduite. Cependant, ARP peut toujours fonctionner en fonction de l'activité du fichier (suppression, écrasement, création, ou renommage avec une nouvelle extension) et du type de fichier.
+
 
 
 
 
 === Configurations compatibles
 
-ARP est disponible pour les volumes FlexVol NFS et SMB dans les systèmes ONTAP sur site à partir de ONTAP 9.10.1.
+ARP est disponible pour les volumes NAS NFS et SMB FlexVol à partir d' ONTAP 9.10.1. À partir de la version 9.17.1, ARP est disponible pour les volumes SAN FlexVol pour iSCSI, FC et NVMe avec stockage SAN.
 
 La prise en charge d'autres configurations et types de volumes est disponible dans les versions ONTAP suivantes :
 
 |===
-|  | ONTAP 9.16.1 | ONTAP 9.15.1 | ONTAP 9.14.1 | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
+|  | ONTAP 9.17.1 | ONTAP 9.16.1 | ONTAP 9.15.1 | ONTAP 9.14.1 | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
 
 
-| Volumes protégés avec réplication asynchrone SnapMirror | ✓ | ✓ | ✓ | ✓ | ✓ |  |  
+| Volumes protégés avec réplication asynchrone SnapMirror | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |  
 
 
-| SVM protégé avec réplication asynchrone SnapMirror (reprise d'activité SVM) | ✓ | ✓ | ✓ | ✓ | ✓ |  |  
+| SVM protégé avec réplication asynchrone SnapMirror (reprise d'activité SVM) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |  
 
 
-| Mobilité des données des SVM (`vserver migrate`) | ✓ | ✓ | ✓ | ✓ | ✓ |  |  
+| Mobilité des données des SVM (`vserver migrate`) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |  
 
 
-| Volumes FlexGroup* | ✓ | ✓ | ✓ | ✓ |  |  |  
+| Volumes FlexGroup ^1^ | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  
 
 
-| Vérification multi-administrateurs | ✓ | ✓ | ✓ | ✓ |  |  |  
+| Vérification multi-administrateurs | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  
 
 
-| ARP/ai avec mises à jour automatiques | ✓ |  |  |  |  |  |  
+| ARP/ai avec mises à jour automatiques | ✓ | ✓ |  |  |  |  |  |  
 |===
-*ARP/ai ne prend pas en charge les volumes FlexGroup. Après la mise à niveau vers ONTAP 9.16.1, les volumes FlexGroup activés pour ARP continuent de fonctionner avec le même modèle ARP que celui utilisé avant ARP/ai.
+^1^ ARP/AI ne prend pas en charge les volumes FlexGroup . Après une mise à niveau vers ONTAP 9.16.1, les volumes FlexGroup compatibles ARP continuent de fonctionner avec le même modèle ARP qu'avant ARP/AI.
 
 
 
 ==== Interopérabilité SnapMirror et ARP
 
-Depuis ONTAP 9.12.1, ARP est pris en charge sur les volumes de destination asynchrones SnapMirror. ARP est **non** pris en charge avec SnapMirror synchrone.
+À partir d' ONTAP 9.12.1, ARP est pris en charge sur les volumes de destination asynchrones SnapMirror . ARP n'est pas pris en charge avec SnapMirror synchrone ou SnapMirror Active Sync.
 
-Si un volume source SnapMirror est compatible ARP, le volume de destination SnapMirror acquiert automatiquement l'état de configuration ARP (apprentissage, activé, etc.), les données d'entraînement ARP et l'instantané créé ARP du volume source. Aucune activation explicite n'est requise.
+Si un volume source SnapMirror est compatible ARP, le volume de destination SnapMirror acquiert automatiquement l'état de configuration ARP (tel que  `dry-run` ou  `enabled` ), données d'entraînement ARP et instantané du volume source créé par ARP. Aucune activation explicite n'est requise.
 
-Bien que le volume de destination se compose de snapshots en lecture seule (RO), aucun traitement ARP n'est effectué sur ses données. Toutefois, lorsque le volume de destination SnapMirror est converti en lecture-écriture (RW), ARP est automatiquement activé sur le volume de destination converti en RW. Le volume de destination ne nécessite pas de procédure d'apprentissage supplémentaire en plus de ce qui est déjà enregistré sur le volume source.
+Bien que le volume de destination soit constitué d'instantanés en lecture seule (RO), aucun traitement ARP n'est appliqué à ses données. Cependant, lorsque le volume de destination SnapMirror est converti en lecture-écriture (RW), ARP est automatiquement activé sur le volume de destination converti en RW. Le volume de destination ne nécessite aucune procédure d'apprentissage supplémentaire, outre celles déjà enregistrées sur le volume source.
 
-Dans ONTAP 9.10.1 et 9.11.1, SnapMirror ne transfère pas l'état de configuration ARP, les données d'entraînement et les snapshots des volumes source vers les volumes de destination. Ainsi, lorsque le volume de destination SnapMirror est converti en RW, ARP sur le volume de destination doit être explicitement activé en mode apprentissage une fois la conversion terminée.
+Dans ONTAP 9.10.1 et 9.11.1, SnapMirror ne transfère pas l'état de configuration ARP, les données d'apprentissage et les snapshots des volumes source vers les volumes de destination. Par conséquent, lors de la conversion du volume de destination SnapMirror en RW, ARP doit être explicitement activé en mode d'apprentissage sur ce volume après la conversion.
 
 
 
 ==== ARP et machines virtuelles
 
-ARP est pris en charge avec les machines virtuelles (VM). La détection ARP se comporte différemment pour les modifications à l'intérieur et à l'extérieur de la machine virtuelle. ARP n'est pas recommandé pour les workloads avec des fichiers fortement entropie dans la machine virtuelle.
+ARP est pris en charge par les machines virtuelles (VM). La détection ARP se comporte différemment selon qu'il s'agit de modifications internes ou externes à la VM. ARP n'est pas recommandé pour les charges de travail impliquant un grand nombre de fichiers hautement compressés (tels que 7z et ZIP) ou chiffrés (tels que des fichiers PDF, DOC ou ZIP protégés par mot de passe) au sein de la VM.
 
 .Modifications en dehors de la VM
-ARP peut détecter les modifications d'extension de fichier sur un volume NFS en dehors de la machine virtuelle si une nouvelle extension entre dans le volume chiffré ou si une extension de fichier change. Les modifications d'extension de fichier détectables sont les suivantes :
-
-* .vmx
-* .vmxf
-* .vmdk
-* -flat.vmdk
-* nvram
-* .vmem
-* .vmsd
-* .vmsn
-* .vswp
-* .vmss
-* .log
-* -\#.log
-
+ARP peut détecter les modifications d'extension de fichier sur un volume NFS en dehors de la machine virtuelle si une nouvelle extension entre dans le volume dans un état chiffré ou si une extension de fichier change.
 
 .Modifications au sein de la machine virtuelle
-Si l'attaque par ransomware cible la machine virtuelle et les fichiers à l'intérieur de la machine virtuelle sont modifiés sans effectuer de modifications à l'extérieur de la machine virtuelle, ARP détecte la menace si l'entropie par défaut de la machine virtuelle est faible (par exemple, fichiers .txt, .docx ou .mp4). Bien que ARP crée un snapshot de protection dans ce scénario, il ne génère pas d'alerte de menace car les extensions de fichier en dehors de la machine virtuelle n'ont pas été falsifiées.
+Si une attaque par rançongiciel modifie des fichiers à l'intérieur de la machine virtuelle sans effectuer de modifications à l'extérieur, ARP détecte la menace si l'entropie par défaut de la machine virtuelle est faible (par exemple, fichiers .txt, .docx ou .mp4). Pour ONTAP 9.16.1 et les versions antérieures, ARP crée un instantané de protection dans ce scénario, mais ne génère pas d'alerte de menace, car les extensions de fichier externes à la machine virtuelle n'ont pas été altérées. À compter de la prise en charge SAN dans ONTAP 9.17.1, ARP génère également une alerte de menace s'il détecte une anomalie d'entropie à l'intérieur de la machine virtuelle.
 
-Si, par défaut, les fichiers sont à haute entropie (par exemple, les fichiers .gzip ou protégés par mot de passe), les capacités de détection d'ARP sont limitées. ARP peut toujours prendre des snapshots proactifs dans cette instance ; cependant, aucune alerte ne sera déclenchée si les extensions de fichier n'ont pas été falsifiées en externe.
+Si, par défaut, les fichiers sont à entropie élevée (par exemple, des fichiers .gzip ou protégés par mot de passe), les capacités de détection d'ARP sont limitées. Dans ce cas, ARP peut néanmoins prendre des instantanés proactifs ; cependant, aucune alerte ne sera déclenchée si les extensions de fichier n'ont pas été altérées de manière externe.
+
+Pour SAN, ARP analyse les statistiques d'entropie au niveau du volume et déclenche des détections lorsqu'une anomalie d'entropie est détectée.
 
 
 
 === Configurations non prises en charge
 
-ARP n'est pas pris en charge dans les configurations système suivantes :
-
-* Les environnements ONTAP S3
-* Environnements SAN
-
+ARP n'est pas pris en charge dans les environnements ONTAP S3.
 
 ARP ne prend pas en charge les configurations de volume suivantes :
 
-* Volumes FlexGroup (dans ONTAP 9.10.1 à 9.12.1. À partir de ONTAP 9.13.1, les volumes FlexGroup sont pris en charge, mais sont limités au modèle ARP utilisé avant ARP/ai)
+* Volumes FlexGroup (dans ONTAP 9.10.1 à 9.12.1). À partir d' ONTAP 9.13.1, les volumes FlexGroup sont pris en charge, mais limités au modèle ARP utilisé avant ARP/AI.
 * Volumes FlexCache (ARP est pris en charge sur les volumes FlexVol d'origine, mais pas sur les volumes de cache)
 * Les volumes hors ligne
-* Volumes SAN uniquement
 * Volumes SnapLock
+* Synchronisation active SnapMirror
 * SnapMirror synchrone
-* SnapMirror asynchrone (non pris en charge uniquement dans ONTAP 9.10.1 et 9.11.1. La réplication asynchrone SnapMirror est prise en charge à partir de ONTAP 9.12.1. Pour plus d'informations, voir <<snapmirror>>.)
+* SnapMirror asynchrone (dans ONTAP 9.10.1 et 9.11.1). SnapMirror asynchrone est pris en charge à partir d' ONTAP 9.12.1. <<snapmirror>> .
 * Volumes restreints
 * Volumes root des VM de stockage
 * Volumes des machines virtuelles de stockage arrêtées
@@ -152,21 +138,26 @@ ARP ne prend pas en charge les configurations de volume suivantes :
 
 == Considérations relatives aux performances ARP et à la fréquence
 
-Le protocole ARP peut avoir un impact minimal sur les performances du système, mesuré en débit et en pic d'IOPS. L'impact de la fonctionnalité ARP dépend des charges de travail de volume spécifiques. Pour les charges de travail courantes, les limites de configuration suivantes sont recommandées :
+L'impact d'ARP sur les performances système est minime, mesuré en termes de débit et d'IOPS de pointe. L'impact de la fonctionnalité ARP dépend de la charge de travail du volume concerné. Pour les charges de travail courantes, les limites de configuration suivantes sont recommandées :
 
 [cols="30,20,30"]
 |===
-| Caractéristiques de la charge de travail | Limite de volume recommandée par nœud | Dégradation des performances lorsque la limite de volume par nœud est dépassée :[*] 
+| Caractéristiques de la charge de travail | Limite de volume recommandée par nœud | Dégradation des performances lorsque la limite de volume par nœud est dépassée ^1^ 
 
 
-| Ces données intensives en lecture ou compressées peuvent être compressées. | 150 | 4 % des IOPS maximales 
+| Lecture intensive ou les données peuvent être compressées | 150 | 4 % des IOPS maximales 
 
 
-| Des opérations d'écriture intensives et des données ne peuvent pas être compressées. | 60 | 10 % des IOPS maximales 
+| Écriture intensive et les données ne peuvent pas être compressées | 60  a| 
+* NAS : 10 % des IOPS maximum pour ONTAP 9.15.1 et versions antérieures
+* NAS : 4 % des IOPS maximum pour ONTAP 9.16.1 et versions ultérieures
+* SAN : 5 % des IOPS maximum pour ONTAP 9.17.1 et versions ultérieures
+
+
 |===
-Pass:[*] les performances du système ne sont pas dégradées au-delà de ces pourcentages, quel que soit le nombre de volumes ajoutés au-delà des limites recommandées.
+^1^ Les performances du système ne sont pas dégradées au-delà de ces pourcentages, quel que soit le nombre de volumes ajoutés au-delà des limites recommandées.
 
-L'analyse ARP étant exécutée selon une séquence prioritaire, à mesure que le nombre de volumes protégés augmente, l'analyse s'exécute moins souvent sur chaque volume.
+Étant donné que les analyses ARP s’exécutent dans une séquence prioritaire, les analyses s’exécutent sur chaque volume moins fréquemment à mesure que le nombre de volumes protégés augmente.
 
 
 
@@ -178,7 +169,7 @@ Vous devez définir des administrateurs pour un groupe MAV et créer des règles
 
 Pour en savoir plus sur `security anti-ransomware volume disable`, `security anti-ransomware volume pause` et `security anti-ransomware volume attack clear-suspect` dans le link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+anti-ransomware+volume["Référence de commande ONTAP"^].
 
-Depuis ONTAP 9.14.1, ARP propose des alertes pour la création d'un instantané ARP et pour l'observation d'une nouvelle extension de fichier. Les alertes pour ces événements sont désactivées par défaut. Les alertes peuvent être définies au niveau du volume ou des SVM. Vous pouvez créer des règles MAV au niveau du SVM en utilisant `security anti-ransomware vserver event-log modify` ou au niveau du volume avec `security anti-ransomware volume event-log modify`.
+Depuis ONTAP 9.14.1, ARP propose des alertes pour la création d'un snapshot ARP et l'observation d'une nouvelle extension de fichier. Les alertes pour ces événements sont désactivées par défaut. Elles peuvent être définies au niveau du volume ou de la SVM. Vous pouvez activer les alertes via  `security anti-ransomware vserver event-log modify` ou au niveau du volume avec  `security anti-ransomware volume event-log modify` .
 
 Pour en savoir plus sur `security anti-ransomware vserver event-log modify` et `security anti-ransomware volume event-log modify` dans le link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+anti-ransomware["Référence de commande ONTAP"^].
 

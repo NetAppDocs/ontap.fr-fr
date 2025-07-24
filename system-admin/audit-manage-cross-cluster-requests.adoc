@@ -1,0 +1,63 @@
+---
+permalink: system-admin/audit-manage-cross-cluster-requests.html 
+sidebar: sidebar 
+keywords: audit, peered, cross cluster, log, cluster, get request 
+summary: 'Activez l"audit inter-cluster pour consigner les opérations initiées à partir d"un cluster homologue et améliorer le suivi des opérations entre les clusters.' 
+---
+= Activer les audits inter-clusters ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir d' ONTAP 9.17.1, et avec ONTAP 9.16.1 P4 et les versions de correctifs ultérieures 9.16.1, vous pouvez activer l'audit inter-cluster dans ONTAP pour consigner les opérations initiées depuis un cluster appairé. Cet audit à distance est particulièrement utile dans les environnements où plusieurs clusters ONTAP interagissent, assurant la traçabilité et la responsabilité des actions à distance.
+
+L'audit inter-clusters permet de distinguer les opérations GET (lecture) et SET (création/modification/suppression) initiées par l'utilisateur. Par défaut, seules les opérations SET initiées par l'utilisateur sont auditées sur les clusters de destination. Toute requête de lecture de données, telle qu'une requête GET ou  `show` la commande dans la CLI n'est pas auditée par défaut, que la demande soit inter-cluster ou non.
+
+.Avant de commencer
+* Vous devez avoir  `advanced` autorisations de niveau
+* Le cluster doit être associé à un autre cluster et les deux clusters doivent exécuter ONTAP 9.16.1 P4 ou une version ultérieure.
++
+
+NOTE: Dans les environnements où certains nœuds sont mis à niveau vers ONTAP 9.16.1 P4 ou version ultérieure, la journalisation d'audit s'effectue uniquement sur les nœuds exécutant la version mise à niveau. Il est recommandé de mettre à niveau tous les nœuds vers une version prise en charge afin de garantir un comportement d'audit cohérent.
+
+
+
+
+
+== Activer ou désactiver l'audit inter-cluster
+
+.Étapes
+. Activez (ou désactivez) l'audit inter-cluster sur le cluster en définissant le  `cluster-peer` paramètre à  `on` ou  `off` :
++
+[source, cli]
+----
+security audit modify -cluster-peer {on|off}
+----
+. Confirmez que le paramètre d'homologue de cluster est activé ou désactivé en vérifiant l'état d'audit actuel :
++
+[listing]
+----
+security audit show
+----
++
+Réponse:
+
++
+[listing]
+----
+    Audit Setting State
+    ------------- -----
+         CLI GET: off
+        HTTP GET: off
+      ONTAPI GET: off
+    Cluster Peer: on
+----
+
+
+
+
+== Effets de l'activation de l'audit GET
+
+À partir d' ONTAP 9.17.1, si vous  https://docs.netapp.com/us-en/ontap-cli/security-audit-modify.html["activer l'audit CLI, HTTP, ONTAPI GET"^] Sur un cluster appairé, vous activez également l'audit des requêtes GET inter-clusters initiées par les utilisateurs. Dans les versions antérieures ONTAP , l'audit GET ne s'appliquait qu'aux requêtes sur un cluster local. Avec ONTAP 9.17.1, si vous activez l'audit GET avec l'option  `cluster-peer` option définie sur  `on` , les demandes de cluster local et inter-cluster seront auditées.

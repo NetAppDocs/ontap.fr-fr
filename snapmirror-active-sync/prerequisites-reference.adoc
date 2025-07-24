@@ -4,7 +4,7 @@ permalink: snapmirror-active-sync/prerequisites-reference.html
 keywords: SM-BC, SMBC, prerequisites, planning, software, hardware, licensing, protocols, network, snapmirror active sync 
 summary: 'Plusieurs conditions préalables doivent être prises en compte lors de la planification du déploiement d"une solution de synchronisation active SnapMirror.' 
 ---
-= Conditions requises pour la synchronisation active SnapMirror dans ONTAP
+= Conditions préalables pour la synchronisation active ONTAP SnapMirror
 :hardbreaks:
 :allow-uri-read: 
 :nofooter: 
@@ -26,7 +26,7 @@ Le tableau suivant présente les configurations de cluster NetApp prises en char
 |===
 
 
-| Type de cluster | Modèles pris en charge | Fonctionnalités prises en charge | Nœuds pris en charge 
+| Type de cluster | Modèles pris en charge | Fonctionnalités prises en charge | Nombre maximal de nœuds de cluster pris en charge 
 
 
  a| 
@@ -36,34 +36,35 @@ A-Series, C-Series
  a| 
 Basculement automatisé en duplex (symétrique actif/actif), basculement automatisé (asymétrique actif/actif)
  a| 
-Clusters à deux ou quatre nœuds ^1^
+* 2 (ONTAP 9.9.1 ou version ultérieure)
+* 4 (ONTAP 9.16.1 avec configurations AA symétriques)
+
 
 
 
  a| 
-Baie 100 % SAN (ASA)
+ASA
  a| 
 A-Series, C-Series
  a| 
 Automated Failover Duplex (AA symétrique), Automated Failover (AA asymétrique)
  a| 
-Clusters à deux ou quatre nœuds ^1^
+* 2 (ONTAP 9.9.1 ou version ultérieure
+* 4 (ONTAP 9.16.1 avec configurations AA symétriques)
+
 
 
 
  a| 
 ASA r2
  a| 
--
+Tout
  a| 
 Basculement automatique duplex (AA symétrique)
  a| 
-Clusters haute disponibilité à deux nœuds
+2
 
 |===
-. La prise en charge des clusters à quatre nœuds est disponible à partir de ONTAP 9.16.1 et requiert l'AA symétrique.
-
-
 Le tableau ci-dessous présente la fonctionnalité de réplication entre types de cluster.
 
 [cols="33,33,33"]
@@ -92,16 +93,22 @@ Non
 
 
  a| 
-ASA ^1^
+ASA
  a| 
 ASA r2
  a| 
 Non
 
+
+
+ a| 
+ASA r2
+ a| 
+ASA r2
+ a| 
+Oui.
+
 |===
-. Pour plus d'informations sur les types de cluster pris en charge par ASA, reportez-vous à link:../asa/support-limitations.html["Limites de configuration et prise en charge des baies SAN 100 % Flash"]la section .
-
-
 
 
 == Logiciel
@@ -116,6 +123,20 @@ Non
 
 
 | Version du médiateur ONTAP | Versions Linux prises en charge 
+
+
+ a| 
+1,10
+ a| 
+* Red Hat Enterprise Linux
++
+** Compatible : 9.5 ^1^
+** Recommandé : 8.10, 9.4, 9.6 et 10
+
+
+* Rocky Linux 8.10, 9.6 et 10
+
+
 
 
  a| 
@@ -235,10 +256,33 @@ NOTE: Si vous avez acheté vos systèmes de stockage ONTAP avant juin 2019, cons
 
 == Protocoles pris en charge
 
-* Seuls les protocoles SAN sont pris en charge (pas NFS/SMB).
-* Seuls les protocoles Fibre Channel et iSCSI sont pris en charge.
-* L'IPspace par défaut est requis par SnapMirror Active Sync pour les relations entre clusters. L'IPspace personnalisé n'est pas pris en charge.
+SnapMirror Active Sync prend en charge les protocoles SAN.
 
+* Les protocoles FC et iSCSI sont pris en charge à partir d' ONTAP 9.9.1.
+* Le protocole NVMe est pris en charge avec les charges de travail VMware à partir d' ONTAP 9.17.1.
++
+
+NOTE: NVMe/TCP avec VMware dépend de la résolution de l'ID de bogue VMware : TR1049746.
+
++
+La synchronisation active de SnapMirror ne prend pas en charge les éléments suivants avec le protocole NVMe :
+
++
+** Configurations actives/actives symétriques à 4 nœuds
+** Modifications de la taille du groupe de cohérence
++
+Vous ne pouvez pas étendre ou réduire un groupe de cohérence lorsque vous utilisez le protocole NVMe avec la synchronisation active SnapMirror .
+
+** La coexistence de LUN et d'espaces de noms dans le même groupe de cohérence n'est pas prise en charge.
+
+
+
+
+
+
+== IPspace
+
+L'IPspace par défaut est requis par SnapMirror Active Sync pour les relations entre clusters. L'IPspace personnalisé n'est pas pris en charge.
 
 
 

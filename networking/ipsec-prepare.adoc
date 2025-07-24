@@ -37,10 +37,10 @@ Pour certains types de trafic, une autre option de chiffrement des données en m
 
 == Évolution de l'implémentation ONTAP IPsec
 
-IPSec a été introduit pour la première fois avec ONTAP 9.8. La mise en œuvre a continué d'évoluer et de s'améliorer comme décrit ci-dessous.
+IPsec a été introduit pour la première fois avec ONTAP 9.8. Son implémentation a continué d'évoluer dans les versions ultérieures ONTAP , comme décrit ci-dessous.
 
-
-NOTE: Sauf mention contraire, lorsqu'une fonctionnalité est introduite à partir d'une version spécifique de ONTAP, elle est également prise en charge dans les versions ultérieures.
+.ONTAP 9.17.1
+La prise en charge du déchargement matériel IPsec est étendue à link:../networking/combine_physical_ports_to_create_interface_groups.html["groupes d'agrégation de liens"] . link:../networking/ipsec-configure.html#define-the-security-policy-database-spd["Clés pré-partagées postquantiques (PPK)"] sont pris en charge pour l'authentification par clés pré-partagées IPsec (PSK).
 
 .ONTAP 9.16.1
 Plusieurs opérations cryptographiques, telles que le cryptage et les contrôles d'intégrité, peuvent être déchargées sur une carte NIC prise en charge. Voir <<Fonctionnalité de déchargement matériel IPsec>> pour plus d'informations.
@@ -49,7 +49,7 @@ Plusieurs opérations cryptographiques, telles que le cryptage et les contrôles
 La prise en charge du protocole hôte IPSec frontal est disponible dans les configurations MetroCluster IP et MetroCluster FAS. La prise en charge IPsec fournie avec les clusters MetroCluster est limitée au trafic hôte frontal et n'est pas prise en charge sur les LIF intercluster MetroCluster.
 
 .ONTAP 9.10.1
-Les certificats peuvent être utilisés pour l'authentification IPsec en plus des clés prépartagées (PSK). Avant ONTAP 9.10.1, seuls les PSK sont pris en charge pour l'authentification.
+Les certificats peuvent être utilisés pour l'authentification IPsec en plus des clés PSK. Avant ONTAP 9.10.1, seules les clés PSK étaient prises en charge pour l'authentification.
 
 .ONTAP 9.9.1
 Les algorithmes de chiffrement utilisés par IPsec sont validés par la norme FIPS 140-2-2. Ces algorithmes sont traités par le module cryptographique NetApp de ONTAP, qui est certifié FIPS 140-2-2.
@@ -70,35 +70,39 @@ Si vous utilisez ONTAP 9.16.1 ou une version ultérieure, vous avez la possibili
 Vous devez tenir compte de plusieurs exigences avant d'utiliser la fonction de déchargement matériel IPsec.
 
 .Cartes Ethernet prises en charge
-Vous devez installer et utiliser uniquement les cartes Ethernet prises en charge. Les cartes Ethernet suivantes sont prises en charge avec ONTAP 9.16.1 sur les plates-formes suivantes. Pour plus d'informations sur les plates-formes et cartes prises en charge, reportez-vous aulink:https://hwu.netapp.com/["NetApp Hardware Universe"^].
+Vous devez installer et utiliser uniquement des cartes Ethernet compatibles. Les cartes Ethernet suivantes sont prises en charge à partir d' ONTAP 9.16.1 :
 
 * X50131A (contrôleur Ethernet 2p, 40G/100G/200G/400G)
-+
-La carte X50131A est prise en charge sur les plates-formes suivantes :
-
-+
-** ASA A1K
-** ASA A90
-** ASA A70
-** AFF A1K
-** AFF A90
-** AFF A70
-
-
 * X60132A (contrôleur Ethernet 4p, 10G/25G)
-+
-La carte X60132A est prise en charge sur les plates-formes suivantes :
-
-+
-** ASA A50
-** ASA A30
-** ASA A20
-** AFF A50
-** AFF A30
-** AFF A20
 
 
+ONTAP 9.17.1 ajoute la prise en charge des cartes Ethernet suivantes :
 
+* X50135A (contrôleur Ethernet 2p, 40G/100G)
+* X60135A (contrôleur Ethernet 2p, 40G/100G)
+
+
+Les cartes X50131A et X50135A sont prises en charge sur les plates-formes suivantes :
+
+* ASA A1K
+* ASA A90
+* ASA A70
+* AFF A1K
+* AFF A90
+* AFF A70
+
+
+Les cartes X60132A et X60135A sont prises en charge sur les plates-formes suivantes :
+
+* ASA A50
+* ASA A30
+* ASA A20
+* AFF A50
+* AFF A30
+* AFF A20
+
+
+Voir le link:https://hwu.netapp.com/["NetApp Hardware Universe"^] pour plus d'informations sur les plateformes et cartes prises en charge.
 
 .Étendue du cluster
 La fonction de déchargement matériel IPSec est configurée globalement pour le cluster. Et ainsi, par exemple, la commande `security ipsec config` s'applique à tous les nœuds du cluster.
@@ -124,13 +128,15 @@ Vous devez vous assurer que la protection anti-relecture IPSec est désactivée 
 Vous devez tenir compte de plusieurs limitations avant d'utiliser la fonction de déchargement matériel IPsec.
 
 .IPv6
-La version IP 6 n'est pas prise en charge pour la fonction de déchargement matériel IPsec. IPv6 est uniquement pris en charge avec l'implémentation du logiciel IPsec.
+IPv6 n'est pas pris en charge pour la fonctionnalité de déchargement matériel IPsec. IPv6 est uniquement pris en charge avec l'implémentation logicielle IPsec.
 
 .Numéros de séquence étendus
 Les numéros de séquence étendus IPsec ne sont pas pris en charge avec la fonction de déchargement matériel. Seuls les numéros de séquence 32 bits normaux sont utilisés.
 
 .Agrégation de liens
-La fonction de déchargement matériel IPSec ne prend pas en charge l'agrégation de liens. Il ne peut donc pas être utilisé avec une interface ou un groupe d'agrégation de liens tel qu'administré par le biais des `network port ifgrp` commandes de l'interface de ligne de commandes de ONTAP.
+À partir d' ONTAP 9.17.1, vous pouvez utiliser la fonction de déchargement matériel IPsec avec un link:../networking/combine_physical_ports_to_create_interface_groups.html["groupe d'agrégation de liens"] .
+
+Avant la version 9.17.1, la fonctionnalité de déchargement matériel IPsec ne prenait pas en charge l'agrégation de liens. Elle ne pouvait pas être utilisée avec une interface ou un groupe d'agrégation de liens administrés via le  `network port ifgrp` commandes sur l'interface CLI ONTAP .
 
 
 

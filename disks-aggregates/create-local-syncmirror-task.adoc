@@ -1,0 +1,63 @@
+---
+permalink: disks-aggregates/create-local-syncmirror-task.html 
+sidebar: sidebar 
+keywords: ontap 9, create, aggregates, syncmirror, sync mirror, add, local tier 
+summary: Vous pouvez activer SyncMirror lorsque vous créez manuellement un niveau local pour mettre en miroir de manière synchrone les données du niveau local. 
+---
+= Ajouter des niveaux locaux ONTAP avec SyncMirror activé
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Vous pouvez activer SyncMirror lorsque vous créez manuellement un niveau local pour mettre en miroir de manière synchrone les données du niveau local.
+
+En savoir plus sur link:../concepts/mirrored-unmirrored-aggregates-concept.html["niveaux locaux en miroir et sans miroir"] .
+
+.Avant de commencer
+* Le cluster doit être initialisé avec uniquement un stockage interne.
+* La configuration du cluster doit avoir été effectuée sur les deux nœuds.
+
+
+.Description de la tâche
+Cette procédure crée des niveaux locaux de données en miroir de taille égale sur chaque nœud de cluster, et chaque niveau local a un nombre de disques de 44.
+
+.Étapes
+. Désactiver l'attribution automatique du stockage :
++
+`storage disk option modify -node * -autoassign off`
+
+. Confirmez que l’attribution automatique est désactivée :
++
+`storage disk option show`
+
+. Fixez l'étagère extérieure.
+. Affectez les lecteurs externes à chaque nœud en spécifiant le pool 1 :
++
+`storage disk assign -disk <disk ID> -owner <node name> -pool 1`
+
+. Reflétez le niveau local racine sur chaque nœud :
++
+`storage aggregate mirror -aggregate <node1 root-aggr>`
+
++
+`storage aggregate mirror -aggregate <node2 root-aggr>`
+
++
+
+NOTE: Les lecteurs du pool 1 sont automatiquement partitionnés pour correspondre à ceux du plex 0.
+
+. Sur le nœud 1, créez un niveau local de données en miroir à l’aide d’un nombre de disques de 44.  Cela sélectionne 22 partitions du pool 0 et 22 partitions du pool 1.
++
+`storage aggregate create -node <node1 name> -aggregate <node1 aggr-name> -diskcount 44 -mirror true`
+
+. Sur le nœud 2, créez un niveau local de données en miroir à l’aide d’un nombre de disques de 44.  Cela sélectionne 22 partitions du pool 0 et 22 partitions du pool 1.
++
+`storage aggregate create -node <node2 name> -aggregate <node2 aggr-name> -diskcount 44 -mirror true`
+
+. Vérifiez que les niveaux locaux de taille égale ont été créés avec succès :
++
+`storage aggregate show`
+
+

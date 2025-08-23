@@ -2,7 +2,7 @@
 sidebar: sidebar 
 permalink: multi-admin-verify/manage-requests-task.html 
 keywords: ontap, mav, multi, admin, multi admin verify, verification, administrator, protected, operation, rules, request, cluster, approve, rbac, manage, cli, system, manager 
-summary: 'Lorsque les administrateurs d"un groupe d"approbation MAV (administrateurs MAV) sont avertis d"une demande d"exécution d"opération en attente, ils doivent répondre par un message d"approbation ou de veto dans un délai fixe (expiration de l"approbation).' 
+summary: 'Lorsque les administrateurs d"un groupe d"approbation MAV sont informés d"une demande d"opération en attente, ils doivent répondre par une approbation ou un veto dans un délai déterminé.' 
 ---
 = Gérer les demandes d'opérations protégées par MAV dans ONTAP
 :allow-uri-read: 
@@ -11,7 +11,7 @@ summary: 'Lorsque les administrateurs d"un groupe d"approbation MAV (administrat
 
 
 [role="lead"]
-Lorsque les administrateurs d'un groupe d'approbation MAV (administrateurs MAV) sont avertis d'une demande d'exécution d'opération en attente, ils doivent répondre par un message d'approbation ou de veto dans un délai fixe (expiration de l'approbation). Si un nombre suffisant d'approbations n'est pas reçu, le demandeur doit supprimer la demande et en faire une autre.
+Lorsque les administrateurs d'un groupe d'approbation MAV (administrateurs MAV) sont informés d'une demande d'exécution d'opération en attente, ils doivent répondre avec un message d'approbation ou de veto dans un délai déterminé (expiration de l'approbation).  Si un nombre suffisant d’approbations n’est pas reçu, le demandeur doit supprimer la demande et en faire une autre.
 
 .Description de la tâche
 Les demandes d'approbation sont identifiées par des numéros d'index, qui sont inclus dans les e-mails et sont affichées dans la file d'attente des demandes.
@@ -35,15 +35,23 @@ Commentaire:: Tout commentaire associé à la demande.
 Utilisateurs autorisés:: Liste des utilisateurs autorisés à effectuer l'opération protégée pour laquelle la demande est approuvée. Si `users-permitted` est vide, alors tout utilisateur disposant des autorisations appropriées peut effectuer l'opération.
 
 
-Toutes les demandes expirées ou exécutées sont supprimées lorsqu'une limite de 1000 demandes est atteinte ou lorsque la durée d'expiration est supérieure à 8 heures pour les demandes expirées. Les demandes de veto sont supprimées dès qu'elles sont marquées comme expirées.
+.Demande de suppression
+Lorsqu'une nouvelle demande d'administration est créée, le système vérifie une demande existante pour suppression en fonction des critères suivants :
+
+* La demande doit être expirée ou exécutée.
+* Si la demande a plus d'un jour après l'expiration de son délai d'approbation, elle est supprimée.
+* S'il y a plus de 1 000 requêtes dans le tableau, une requête plus ancienne est supprimée pour maintenir la limite.
 
 
+Si le nombre de demandes dépasse 1000 après ce nettoyage, un avertissement est émis aux administrateurs.
 
-== Procédure de System Manager
-
+[role="tabbed-block"]
+====
+.System Manager
+--
 Les administrateurs MAV reçoivent des e-mails contenant les détails de la demande d'approbation, la période d'expiration de la demande et un lien pour approuver ou rejeter la demande. Ils peuvent accéder à une boîte de dialogue d'approbation en cliquant sur le lien dans l'e-mail ou accédez à *Events & Jobs> requêtes* dans System Manager.
 
-La fenêtre *requêtes* est disponible lorsque la vérification multi-administrateur est activée, affichant les demandes en attente basées sur l'ID de connexion de l'utilisateur et le rôle MAV (approbateur ou non).
+La fenêtre *Demandes* est disponible lorsque la vérification multi-administrateur est activée, affichant les demandes en attente en fonction de l'ID de connexion de l'utilisateur et du rôle MAV (approbateur ou non).
 
 * Fonctionnement
 * Index (nombre)
@@ -60,11 +68,10 @@ Si une demande est rejetée par un approbateur, aucune autre action n'est possib
 
 Les administrateurs MAV disposent de contrôles supplémentaires dans cette fenêtre ; ils peuvent approuver, rejeter ou supprimer des opérations individuelles ou des groupes d'opérations sélectionnés. Toutefois, si l'administrateur MAV est l'utilisateur qui demande, il ne peut approuver, rejeter ou supprimer ses propres demandes.
 
-
-
-== Procédure CLI
-
-. Lorsqu'une demande est signalée par courrier électronique en attente, notez le numéro d'index de la demande et la période d'expiration de l'approbation. Le numéro d'index peut également être affiché à l'aide des options *show* ou *show-Pending* mentionnées ci-dessous.
+--
+.CLI
+--
+. Lorsque vous êtes informé des demandes en attente par courrier électronique, notez le numéro d'index de la demande et la période d'expiration de l'approbation.  Le numéro d'index peut également être affiché à l'aide des options *show* ou *show-pending* mentionnées ci-dessous.
 . Approuver ou opposer un veto à la demande.
 +
 [cols="50,50"]
@@ -170,6 +177,8 @@ Required Approvers: 2
            Comment: -
    Users Permitted: -
 ----
+--
+====
 .Informations associées
 * link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+multi-admin-verify["sécurité multi-administrateur-vérification"^]
 

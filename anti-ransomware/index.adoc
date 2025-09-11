@@ -121,7 +121,7 @@ TIP: La commande `security anti-ransomware volume workload-behavior show` affich
 | Actif  a| 
 Après avoir exécuté ARP en mode d'apprentissage pendant une durée suffisante pour évaluer les caractéristiques de la charge de travail, vous pouvez passer en mode actif et commencer à protéger vos données. À partir d' ONTAP 9.13.1, ARP détermine automatiquement l'intervalle d'apprentissage optimal et automatise le basculement, qui peut intervenir avant 30 jours.
 
-Avec ONTAP 9.10.1 à 9.15.1, ARP passe en mode actif une fois la période d'apprentissage optimale terminée. Une fois ARP activé, ONTAP crée des snapshots ARP pour protéger les données en cas de détection d'une menace.
+Avec ONTAP 9.15.1 à 9.10.1, ARP passe en mode actif une fois la période d'apprentissage optimale terminée. Une fois ARP activé, ONTAP crée des snapshots ARP pour protéger les données en cas de détection d'une menace.
 
 En mode actif, si une extension de fichier est signalée comme anormale, vous devez évaluer l'alerte. Vous pouvez agir sur l'alerte pour protéger vos données ou la marquer comme faux positif. Marquer une alerte comme faux positif met à jour le profil d'alerte. Par exemple, si l'alerte est déclenchée par une nouvelle extension de fichier et que vous la marquez comme faux positif, vous ne recevrez pas d'alerte la prochaine fois que l'extension de fichier sera détectée.
  a| 
@@ -193,26 +193,28 @@ Le tableau suivant résume les différences d’instantanés ARP entre ONTAP 9.1
 
 [cols="1,3,3"]
 |===
-| Fonction | ONTAP 9.16.1 et versions antérieures | ONTAP 9.17.1 et versions ultérieures 
+| Fonction | ONTAP 9.17.1 et versions ultérieures | ONTAP 9.16.1 et versions antérieures 
 
 
 | Déclencheur de création  a| 
+Les instantanés sont créés à des intervalles fixes de 4 heures, quel que soit le déclencheur spécifique, et ne sont pas nécessairement révélateurs d'une attaque.
+ a| 
 * Une entropie élevée est détectée
 * Une nouvelle extension de fichier est détectée (9.15.1 et versions antérieures)
 * Une augmentation des opérations sur les fichiers est détectée (9.15.1 et versions antérieures)
 
 
 L'intervalle de création d'instantané est basé sur le type de déclencheur.
+
+
+
  a| 
 * Les instantanés sont créés à des intervalles fixes de 4 heures, quel que soit un déclencheur spécifique
 * Confirmation d'une attaque
 
 
 Un instantané « périodique » ou « d’attaque » est créé en fonction du type de déclencheur.
-
-
-
-| Convention de nom préfixé | « Sauvegarde anti-ransomware » | « Sauvegarde périodique anti-ransomware » « Sauvegarde anti-attaque anti-ransomware » 
+| Convention de nom préfixé | « Sauvegarde périodique anti-ransomware » « Sauvegarde anti-attaque anti-ransomware » 
 
 
 | Comportement de suppression | L'instantané ARP est verrouillé et ne peut pas être supprimé par l'administrateur | L'instantané ARP est verrouillé et ne peut pas être supprimé par l'administrateur 
@@ -222,14 +224,17 @@ Un instantané « périodique » ou « d’attaque » est créé en fonction du 
 
 
 | Période de conservation  a| 
-* Déterminé en fonction des conditions de déclenchement (non fixe)
-* Les instantanés créés avant l'attaque sont conservés jusqu'à ce que l'administrateur marque l'attaque comme vraie ou comme un faux positif (suspect clair).
-
- a| 
 Les instantanés sont normalement conservés pendant 12 heures.
 
 * Volumes NAS : si une attaque est confirmée par l'analyse des fichiers, les instantanés créés avant l'attaque sont conservés jusqu'à ce que l'administrateur marque l'attaque comme vraie ou comme un faux positif (suspect clair).
 * Volume SAN ou banques de données de machines virtuelles : si une attaque est confirmée par une analyse d'entropie de bloc, les instantanés créés avant l'attaque sont conservés pendant 10 jours (configurable).
++
+La période de conservation d'un snapshot créé avant le début d'une attaque est étendue à 10 jours (configurable).
+
+
+ a| 
+* Déterminé en fonction des conditions de déclenchement (non fixe)
+* Les instantanés créés avant l'attaque sont conservés jusqu'à ce que l'administrateur marque l'attaque comme vraie ou comme un faux positif (suspect clair).
 
 
 
@@ -240,8 +245,6 @@ Les administrateurs peuvent effectuer une action de suspicion claire qui défini
 * 24 heures pour la rétention des faux positifs
 * 7 jours pour une rétention de vrais positifs
 
-
-Ce comportement de conservation préventive n'existe pas avant ONTAP 9.16.1
  a| 
 Les administrateurs peuvent effectuer une action de suspicion claire qui définit la conservation en fonction de la confirmation :
 
@@ -249,9 +252,11 @@ Les administrateurs peuvent effectuer une action de suspicion claire qui défini
 * 7 jours pour une rétention de vrais positifs
 
 
+Ce comportement de conservation préventive n'existe pas avant ONTAP 9.16.1
 
 
-| Délai d'expiration | Aucune | Un délai d'expiration est défini pour tous les instantanés 
+
+| Délai d'expiration | Un délai d'expiration est défini pour tous les instantanés | Aucune 
 |===
 
 

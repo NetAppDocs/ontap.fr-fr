@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: environment, variable, information, backup, restore, operation, ndmp, application, storage, system 
 summary: 'Les variables d"environnement servent à communiquer des informations sur une opération de sauvegarde ou de restauration entre une application de sauvegarde NDMP et un système de stockage.' 
 ---
-= Présentation des variables d'environnement
+= Découvrez les variables d'environnement prises en charge pour ONTAP NDMP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -23,3 +23,563 @@ La définition et l'examen des variables d'environnement sont généralement tra
 Un administrateur de sauvegarde spécifie rarement des variables d'environnement. Il est toutefois préférable de modifier la valeur d'une variable d'environnement dans cette variable définie par l'application de sauvegarde pour caractériser ou contourner un problème de fonctionnement ou de performances. Par exemple, un administrateur peut désactiver temporairement la génération de l'historique des fichiers pour déterminer si le traitement par l'application de sauvegarde des informations de l'historique des fichiers contribue à des problèmes de performances ou à des problèmes fonctionnels.
 
 De nombreuses applications de sauvegarde offrent un moyen de remplacer ou de modifier des variables d'environnement ou de spécifier des variables d'environnement supplémentaires. Pour plus d'informations, consultez la documentation de votre application de sauvegarde.
+
+
+
+== Variables d'environnement prises en charge par ONTAP
+
+ONTAP prend en charge les variables d'environnement, qui ont une valeur par défaut associée.  Cependant, vous pouvez modifier manuellement ces valeurs par défaut.
+
+Si vous modifiez manuellement les valeurs définies par l'application de sauvegarde, il se peut que l'application se comporte de façon imprévisible. En effet, les opérations de sauvegarde ou de restauration ne peuvent pas faire ce que l'application de sauvegarde attend d'elles. Mais dans certains cas, une modification judicieuse pourrait aider à identifier ou à gérer des problèmes.
+
+Les tableaux ci-dessous répertorient les variables d'environnement dont le comportement est commun à dump et SMTape, ainsi que les variables prises en charge uniquement pour dump et SMTape. Ces tableaux contiennent également des descriptions du fonctionnement des variables d'environnement prises en charge par ONTAP, le cas échéant :
+
+[NOTE]
+====
+Dans la plupart des cas, les variables qui ont la valeur, `Y` accepter également `T` et `N` accepter également `F`.
+
+====
+
+
+== Variables d'environnement prises en charge pour dump et SMTape
+
+|===
+| Variable d'environnement | Valeurs valides | Valeur par défaut | Description 
+
+
+ a| 
+DÉBOGAGE
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Spécifie que les informations de débogage sont imprimées.
+
+
+
+ a| 
+SYSTÈME DE FICHIERS
+ a| 
+`string`
+ a| 
+`none`
+ a| 
+Indique le chemin d'accès de la racine des données en cours de sauvegarde.
+
+
+
+ a| 
+NDMP_VERSION
+ a| 
+`return_only`
+ a| 
+`none`
+ a| 
+Vous ne devez pas modifier la variable NDMP_VERSION. Créée par l'opération de sauvegarde, la variable NDMP_VERSION renvoie la version NDMP.
+
+ONTAP définit la variable NDMP_VERSION lors d'une sauvegarde à des fins d'utilisation interne et de la transmission à une application de sauvegarde à titre d'information. La version NDMP d'une session NDMP n'est pas définie avec cette variable.
+
+
+
+ a| 
+SÉPARATEUR_CHEMIN
+ a| 
+`return_value`
+ a| 
+`none`
+ a| 
+Spécifie le caractère séparateur de nom de chemin d'accès.
+
+Ce caractère dépend du système de fichiers à sauvegarder. Pour ONTAP, le caractère "`/`" est attribué à cette variable. Le serveur NDMP définit cette variable avant de démarrer une opération de sauvegarde sur bande.
+
+
+
+ a| 
+TYPE
+ a| 
+`dump` ou `smtape`
+ a| 
+`dump`
+ a| 
+Indique le type de sauvegarde pris en charge pour effectuer des opérations de sauvegarde et de restauration sur bande.
+
+
+
+ a| 
+PROLIXE
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Augmente les messages du journal lors de l'exécution d'une opération de sauvegarde sur bande ou de restauration.
+
+|===
+
+
+== Variables d'environnement prises en charge pour dump
+
+|===
+| Variable d'environnement | Valeurs valides | Valeur par défaut | Description 
+
+
+ a| 
+ACL_START
+ a| 
+`return_only`
+ a| 
+`none`
+ a| 
+Créée par l'opération de sauvegarde, la variable ACL_START est une valeur de décalage utilisée par une opération de restauration à accès direct ou de sauvegarde NDMP redémarrable.
+
+La valeur de décalage est le décalage d'octet dans le fichier de vidage où les données ACL (Pass V) commencent et sont renvoyées à la fin d'une sauvegarde. Pour qu'une opération de restauration d'accès direct restaure correctement les données sauvegardées, la valeur ACL_START doit être transmise à l'opération de restauration lorsqu'elle démarre. Une opération de sauvegarde NDMP redémarrable utilise la valeur ACL_START pour communiquer à l'application de sauvegarde où la partie non redémarrable du flux de sauvegarde commence.
+
+
+
+ a| 
+DATE_DE_BASE
+ a| 
+`0`, `-1`, ou `DUMP_DATE` valeur
+ a| 
+`-1`
+ a| 
+Spécifie la date de début des sauvegardes incrémentielles.
+
+Lorsqu'il est réglé sur `-1`, LE spécificateur incrémentiel BASE_DATE est désactivé. Lorsqu'il est réglé sur `0` sur une sauvegarde de niveau 0, les sauvegardes incrémentielles sont activées. Après la sauvegarde initiale, la valeur de la variable DUMP_DATE de la sauvegarde incrémentielle précédente est affectée à la variable BASE_DATE.
+
+Ces variables constituent une alternative aux sauvegardes incrémentielles BASÉES SUR LE NIVEAU/MISE À JOUR.
+
+
+
+ a| 
+DIRECTE
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Indique qu'une restauration doit être envoyée rapidement vers l'emplacement de la bande sur lequel se trouvent les données du fichier au lieu d'analyser la bande entière.
+
+Pour que la restauration puisse fonctionner, l'application de sauvegarde doit fournir des informations de positionnement. Si cette variable est définie sur `Y`, l'application de sauvegarde indique les noms de fichier ou de répertoire et les informations de positionnement.
+
+
+
+ a| 
+NOM_DMP
+ a| 
+`string`
+ a| 
+`none`
+ a| 
+Indique le nom d'une sauvegarde de plusieurs sous-arborescences.
+
+Cette variable est obligatoire pour les sauvegardes de plusieurs sous-arborescences.
+
+
+
+ a| 
+DUMP_DATE
+ a| 
+`return_value`
+ a| 
+`none`
+ a| 
+Vous ne modifiez pas cette variable directement. Elle est créée par la sauvegarde si la variable BASE_DATE est définie sur une valeur autre que `-1`.
+
+La variable DUMP_DATE est dérivée par la préattente de la valeur de niveau 32 bits vers une valeur de temps de 32 bits calculée par le logiciel dump. Le niveau est incrémenté à partir de la valeur du dernier niveau passée dans la variable BASE_DATE. La valeur obtenue est utilisée comme valeur BASE_DATE sur une sauvegarde incrémentielle ultérieure.
+
+
+
+ a| 
+ENHANCED_DAR_ENABLED
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Indique si la fonctionnalité DAR améliorée est activée. La fonctionnalité DAR améliorée prend en charge les fichiers de DAR et DAR avec les flux NT. Elle permet d'améliorer les performances.
+
+La DAR améliorée pendant la restauration n'est possible que si les conditions suivantes sont remplies :
+
+* ONTAP prend en charge les applications de DAR optimisées.
+* L'historique des fichiers est activé (HIST=y) pendant la sauvegarde.
+* Le `ndmpd.offset_map.enable` l'option est définie sur `on`.
+* LA variable ENHANCED_DAR_ENABLED est définie sur `Y` pendant la restauration.
+
+
+
+
+ a| 
+EXCLURE
+ a| 
+`pattern_string`
+ a| 
+`none`
+ a| 
+Spécifie les fichiers ou les répertoires qui sont exclus lors de la sauvegarde des données.
+
+La liste d'exclusion est une liste séparée par des virgules de noms de fichier ou de répertoire. Si le nom d'un fichier ou d'un répertoire correspond à l'un des noms de la liste, il est exclu de la sauvegarde.
+
+Les règles suivantes s'appliquent lors de la spécification de noms dans la liste d'exclusion :
+
+* Le nom exact du fichier ou répertoire doit être utilisé.
+* L'astérisque (*), caractère générique, doit être le premier ou le dernier caractère de la chaîne.
++
+Chaque chaîne peut comporter jusqu'à deux astérisques.
+
+* Une virgule dans un fichier ou un nom de répertoire doit être précédée d'une barre oblique inverse.
+* La liste d'exclusion peut contenir jusqu'à 32 noms.
+
+
+[NOTE]
+====
+Les fichiers ou les répertoires spécifiés à exclure pour la sauvegarde ne sont pas exclus si vous définissez NON_QUOTA_TREE sur `Y` simultanément.
+
+====
+
+
+ a| 
+EXTRAIRE
+ a| 
+`Y`, `N`, ou `E`
+ a| 
+`N`
+ a| 
+Indique que les sous-arborescences d'un ensemble de données sauvegardées doivent être restaurées.
+
+L'application de sauvegarde spécifie les noms des sous-arborescences à extraire. Si un fichier spécifié correspond à un répertoire dont le contenu a été sauvegardé, le répertoire est extrait de façon récursive.
+
+Pour renommer un fichier, un répertoire ou un qtree pendant la restauration sans utiliser DAR, vous devez définir la variable d'environnement D'EXTRACTION sur `E`.
+
+
+
+ a| 
+EXTRAIRE_ACL
+ a| 
+`Y` ou `N`
+ a| 
+`Y`
+ a| 
+Spécifie que les listes de contrôle d'accès du fichier sauvegardé sont restaurées lors d'une opération de restauration.
+
+La valeur par défaut est de restaurer les listes de contrôle d’accès lors de la restauration des données, à l’exception de DDARS (DIRECT=y).
+
+
+
+ a| 
+DE FORCE
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Détermine si l'opération de restauration doit vérifier l'espace du volume et la disponibilité des inode sur le volume de destination.
+
+Réglage de cette variable sur `Y` provoque l'opération de restauration pour ignorer les vérifications de l'espace volume et de la disponibilité d'inode sur le chemin de destination.
+
+Si un espace volume suffisant ou des inodes ne sont pas disponibles sur le volume de destination, l'opération de restauration récupère autant de données que l'espace du volume de destination et la disponibilité d'inodes. L'opération de restauration s'arrête lorsque l'espace de volume ou les inodes ne sont pas disponibles.
+
+
+
+ a| 
+HIST
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Indique que les informations de l'historique des fichiers sont envoyées à l'application de sauvegarde.
+
+La plupart des applications de sauvegarde commerciales définissent la variable HIST sur `Y`. Si vous voulez augmenter la vitesse d'une opération de sauvegarde ou si vous voulez résoudre un problème avec la collecte de l'historique de fichiers, vous pouvez définir cette variable sur `N`.
+
+[NOTE]
+====
+Vous ne devez pas définir la variable HIST sur `Y` si l'application de sauvegarde ne prend pas en charge l'historique des fichiers.
+
+====
+
+
+ a| 
+IGNORE_CTIME
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Spécifie qu'un fichier n'est pas sauvegardé de façon incrémentielle si seule sa valeur de temps de restauration a changé depuis la sauvegarde incrémentielle précédente.
+
+Certaines applications, telles que les logiciels d'analyse antivirus, modifient la valeur de temps de lecture d'un fichier au sein de l'inode, même si le fichier ou ses attributs n'ont pas changé. Par conséquent, une sauvegarde incrémentielle peut sauvegarder des fichiers qui n'ont pas été modifiés. Le `IGNORE_CTIME` variable ne doit être spécifiée que si les sauvegardes incrémentielles prennent une quantité de temps ou d'espace inacceptable car la valeur de temps de ctime a été modifiée.
+
+[NOTE]
+====
+Le `NDMP dump` jeux de commandes `IGNORE_CTIME` à `false` par défaut. Réglage sur `true` peut entraîner la perte de données suivante :
+
+. Si `IGNORE_CTIME` est défini sur vrai avec un volume incrémentiel `ndmpcopy`, cela entraîne la suppression des fichiers, qui sont déplacés sur les qtrees sur la source.
+. Si `IGNORE_CTIME` défini sur true lors du vidage incrémentiel au niveau du volume, ce dernier entraîne la suppression de fichiers, qui sont déplacés via des qtrees sur la source lors de la restauration incrémentielle.
+
+
+Pour éviter ce problème, `IGNORE_CTIME` doit être défini sur false au niveau du volume `NDMP dumps` ou `ndmpcopy`.
+
+====
+
+
+ a| 
+IGNORE_QTREES
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Spécifie que l'opération de restauration ne restaure pas les informations qtree à partir de qtrees sauvegardés.
+
+
+
+ a| 
+NIVEAU
+ a| 
+`0`-`31`
+ a| 
+`0`
+ a| 
+Spécifie le niveau de sauvegarde.
+
+Le niveau 0 copie l'ensemble du jeu de données. Les niveaux de sauvegarde incrémentielle, spécifiés par les valeurs supérieures à 0, copient tous les fichiers (nouveaux ou modifiés) depuis la dernière sauvegarde incrémentielle. Par exemple, un niveau 1 sauvegarde les fichiers nouveaux ou modifiés depuis la sauvegarde de niveau 0, un niveau 2 sauvegarde les fichiers nouveaux ou modifiés depuis la sauvegarde de niveau 1, etc.
+
+
+
+ a| 
+LISTE
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Répertorie les noms de fichiers sauvegardés et les numéros d'inode sans restaurer les données.
+
+
+
+ a| 
+LISTE_QTREE
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Le répertorie les qtrees sauvegardés sans réellement restaurer les données.
+
+
+
+ a| 
+NOMS_DE_SOUS-ARBRE_MULTIPLES
+ a| 
+`string`
+ a| 
+`none`
+ a| 
+Indique que la sauvegarde est une sauvegarde à plusieurs sous-arborescences.
+
+Plusieurs sous-arborescences sont spécifiées dans la chaîne, qui est une liste de noms de sous-arborescences séparées par une nouvelle ligne et comportant des valeurs NULL. Les sous-arbres sont spécifiés par des noms de chemin par rapport à leur répertoire racine commun, qui doivent être spécifiés comme dernier élément de la liste.
+
+Si vous utilisez cette variable, vous devez également utiliser la variable DMP_NAME.
+
+
+
+ a| 
+NDMP_UNICODE_ FH
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Indique qu'un nom Unicode est inclus en plus du nom NFS du fichier dans les informations de l'historique des fichiers.
+
+Cette option n'est pas utilisée par la plupart des applications de sauvegarde et ne doit pas être définie sauf si l'application de sauvegarde est conçue pour recevoir ces noms de fichiers supplémentaires. La variable HIST doit également être définie.
+
+
+
+ a| 
+NO_ACL
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Spécifie que les listes de contrôle d'accès ne doivent pas être copiées lors de la sauvegarde des données.
+
+
+
+ a| 
+NON_QUOTA_TREE
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Spécifie que les fichiers et les répertoires des qtrees doivent être ignorés lors de la sauvegarde des données.
+
+Lorsqu'il est réglé sur `Y`, Les éléments dans les qtrees du jeu de données spécifié par la variable DE SYSTÈME DE FICHIERS ne sont pas sauvegardés. Cette variable n'a un effet que si la variable FILESYSTEM spécifie un volume entier. La variable NON_QUOTA_TREE fonctionne uniquement sur une sauvegarde de niveau 0 et ne fonctionne pas si LA variable MULTI_SUBTREE_NAMES est spécifiée.
+
+[NOTE]
+====
+Les fichiers ou les répertoires spécifiés à exclure pour la sauvegarde ne sont pas exclus si vous définissez NON_QUOTA_TREE sur `Y` simultanément.
+
+====
+
+
+ a| 
+NON WRITE
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Spécifie que l'opération de restauration ne doit pas écrire de données sur le disque.
+
+Cette variable est utilisée pour le débogage.
+
+
+
+ a| 
+RÉCURSIF
+ a| 
+`Y` ou `N`
+ a| 
+`Y`
+ a| 
+Indique que les entrées de répertoire lors d'une restauration DAR sont développées.
+
+Les variables d'environnement DIRECTES et OPTIMISÉES_DAR_ENABLED doivent être activées (définies sur `Y`) également. Si la variable RÉCURSIVE est désactivée (définie sur `N`), seules les autorisations et listes de contrôle d’accès de tous les répertoires du chemin source d’origine sont restaurées à partir de la bande, et non du contenu des répertoires. Si la variable RÉCURSIVE est définie sur `N` Ou LA variable RECOVER_FULL_PATHS est définie sur `Y`, le chemin de récupération doit se terminer par le chemin d'origine.
+
+[NOTE]
+====
+Si la variable RÉCURSIVE est désactivée et si plusieurs chemins de récupération existent, tous les chemins de récupération doivent être contenus dans le plus long des chemins de récupération. Sinon, un message d'erreur s'affiche.
+
+====
+Par exemple, les chemins de restauration suivants sont valides car tous les chemins de reprise se trouvent dans `foo/dir1/deepdir/myfile`:
+
+* `/foo`
+* `/foo/dir`
+* `/foo/dir1/deepdir`
+* `/foo/dir1/deepdir/myfile`
+
+
+Les chemins de récupération suivants ne sont pas valides :
+
+* `/foo`
+* `/foo/dir`
+* `/foo/dir1/myfile`
+* `/foo/dir2`
+* `/foo/dir2/myfile`
+
+
+
+
+ a| 
+RECOVER_FULL_PATHS
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Indique que le chemin de récupération complet aura ses autorisations et listes de contrôle d'accès restaurées après le DAR.
+
+DIRECT et ENHANCED_DAR_ENABLED doivent être activés (défini sur `Y`) également. Si LE paramètre RECOVER_FULL_PATHS est défini sur `Y`, le chemin de récupération doit se terminer par le chemin d'origine. Si des répertoires existent déjà sur le volume de destination, leurs autorisations et listes de contrôle d'accès ne seront pas restaurées à partir d'une bande.
+
+
+
+ a| 
+MISE À JOUR
+ a| 
+`Y` ou `N`
+ a| 
+`Y`
+ a| 
+Met à jour les informations de métadonnées pour permettre une sauvegarde incrémentielle BASÉE SUR LE NIVEAU.
+
+|===
+
+
+== Variables d'environnement prises en charge par SMTape
+
+|===
+| Variable d'environnement | Valeurs valides | Valeur par défaut | Description 
+
+
+ a| 
+DATE_DE_BASE
+ a| 
+`DUMP_DATE`
+ a| 
+`-1`
+ a| 
+Spécifie la date de début des sauvegardes incrémentielles.
+
+ `BASE_DATE` est une représentation sous forme de chaîne des identificateurs d'instantané de référence. En utilisant la `BASE_DATE` chaîne, SMTape localise l'instantané de référence.
+
+ `BASE_DATE` n'est pas requis pour les sauvegardes de base. Pour une sauvegarde incrémentielle, la valeur de `DUMP_DATE` variable de la sauvegarde de base ou incrémentielle précédente est attribuée à `BASE_DATE` variable.
+
+L'application de sauvegarde affecte `DUMP_DATE` Valeur d'une copie de base SMTape précédente ou sauvegarde incrémentielle.
+
+
+
+ a| 
+DUMP_DATE
+ a| 
+`return_value`
+ a| 
+`none`
+ a| 
+À la fin d'une sauvegarde SMTape, DUMP_DATE contient un identificateur de chaîne qui identifie le snapshot utilisé pour cette sauvegarde. Cet instantané peut être utilisé comme instantané de référence pour une sauvegarde incrémentielle ultérieure.
+
+La valeur résultante de DUMP_DATE est utilisée comme valeur BASE_DATE pour les sauvegardes incrémentielles suivantes.
+
+
+
+ a| 
+SMTAPE_BACKUP_SET_ID
+ a| 
+`string`
+ a| 
+`none`
+ a| 
+Identifie la séquence des sauvegardes incrémentielles associées à la sauvegarde de base.
+
+L'ID du jeu de sauvegardes est un ID unique de 128 bits généré au cours d'une sauvegarde de base. L'application de sauvegarde attribue cet ID en tant qu'entrée au `SMTAPE_BACKUP_SET_ID` variable pendant une sauvegarde incrémentielle.
+
+
+
+ a| 
+SMTAPE_SNAPSHOT_NAME
+ a| 
+Tout snapshot valide disponible dans le volume
+ a| 
+`Invalid`
+ a| 
+Lorsque la variable SMTAPE_SNAPSHOT_NAME est définie sur un snapshot, ce dernier et ses anciens snapshots sont sauvegardés sur bande.
+
+Pour la sauvegarde incrémentielle, cette variable spécifie le snapshot incrémentiel. La variable BASE_DATE fournit le snapshot de référence.
+
+
+
+ a| 
+SMTAPE_DELETE_SNAPSHOT
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Pour un instantané créé automatiquement par SMTape, lorsque la variable SMTAPE_DELETE_SNAPSHOT est définie sur `Y`, puis une fois l'opération de sauvegarde terminée, SMTape supprime ce snapshot. Toutefois, un snapshot créé par l'application de sauvegarde ne sera pas supprimé.
+
+
+
+ a| 
+SMTAPE_BREAK_MIRROR
+ a| 
+`Y` ou `N`
+ a| 
+`N`
+ a| 
+Lorsque la variable SMTAPE_BREAK_MIRROR est définie sur `Y`, le volume de type `DP` est remplacé par un `RW` volume après une restauration réussie.
+
+|===

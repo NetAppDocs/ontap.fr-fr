@@ -14,7 +14,7 @@ summary: 'Utilisez la synchronisation active SnapMirror pour protéger les appli
 
 
 [role="lead"]
-Les exigences d'un environnement professionnel connecté à l'échelle mondiale exigent une restauration rapide des données des applications stratégiques sans aucune perte de données en cas de perturbation, par exemple une cyberattaque, une panne de courant ou une catastrophe naturelle. Ces exigences s'intensifient sur des domaines tels que les finances et le respect des obligations réglementaires telles que le Règlement général de l'Union européenne sur la protection des données (RGPD).
+Les exigences d’un environnement commercial connecté à l’échelle mondiale nécessitent une récupération rapide des données d’application critiques pour l’entreprise sans aucune perte de données en cas de perturbation telle qu’une cyberattaque, une panne de courant ou une catastrophe naturelle.  Ces exigences sont renforcées dans des domaines tels que la finance et ceux qui adhèrent à des mandats réglementaires tels que le Règlement général sur la protection des données (RGPD).
 
 Les utilisations de SnapMirror Active Sync sont les suivantes :
 
@@ -24,21 +24,25 @@ Dans un déploiement SnapMirror Active Sync, vous disposez d'un cluster principa
 .Déploiement des applications sans RTO ou avec basculement transparent des applications
 TAF repose sur un basculement de chemin logiciel basé sur MPIO de l'hôte pour garantir un accès au stockage sans interruption. Les deux copies LUN (par exemple, la copie primaire (L1P) et la copie miroir (L1S)) ont la même identité (numéro de série) et sont signalées comme accessibles en lecture et en écriture à l'hôte. Cependant, dans les configurations asymétriques, les lectures et les écritures sont traitées uniquement par le volume primaire. Les E/S envoyées à la copie miroir sont transmises par proxy à la copie primaire. Le chemin privilégié de l'hôte vers L1 est VS1:N1, basé sur l'état d'accès actif optimisé (A/O) de l'accès aux unités logiques asymétriques (ALUA). ONTAP Mediator est requis dans le cadre du déploiement, principalement pour effectuer un basculement (planifié ou non) en cas de panne de stockage sur le volume primaire.
 
+image:snapmirror-active-sync-alua-active-optimized.png["Chemins optimisés actifs ALUA de synchronisation active SnapMirror"]
+
 TAF fonctionne selon deux modes : basculement automatique et duplex. Avec le basculement automatique, les lectures et les écritures sont traitées uniquement par le volume principal. Par conséquent, les E/S envoyées à la copie miroir (qui ne peut pas traiter les écritures seule) sont transmises par proxy à la copie principale. Avec le duplex, les copies principale et secondaire peuvent traiter les E/S, ce qui élimine le besoin de proxy.
 
-Si vous utilisez NVMe pour l'accès à l'hôte avec ONTAP 9.17.1, seul le duplex de basculement automatisé est pris en charge.
+image:snapmirror-active-sync-automatedfailoverduplex-scenario.png["Scénario de basculement automatique duplex de synchronisation active SnapMirror"]
+
+Si vous utilisez NVMe pour l’accès à l’hôte avec ONTAP 9.17.1, seule la stratégie AutomatedFailoverDuplex est prise en charge.
 
 La synchronisation active SnapMirror utilise le protocole ALUA, qui permet à un logiciel de chemins d'accès multiples d'hôte d'application d'établir les chemins avec les priorités et la disponibilité d'accès pour la communication entre l'hôte d'application et la baie de stockage. Le protocole ALUA marque les chemins optimisés actifs vers les contrôleurs propriétaires de la LUN et d'autres comme chemins actifs non optimisés, utilisés uniquement en cas de défaillance du chemin principal.
 
-La synchronisation active SnapMirror avec le protocole NVMe utilise ANA, qui permet aux hôtes d'applications de découvrir les chemins optimisés et non optimisés vers les espaces de noms NVMe protégés. La cible NVMe ONTAP publie les états de chemin appropriés pour permettre aux hôtes d'applications d'utiliser le chemin optimal pour un espace de noms NVMe protégé.
+La synchronisation active de SnapMirror avec le protocole NVMe utilise l'accès asymétrique aux espaces de noms (ANA), qui permet aux hôtes d'application de découvrir des chemins optimisés et non optimisés vers les espaces de noms NVMe qui sont protégés. La cible NVMe ONTAP publie les états de chemin appropriés pour permettre aux hôtes d'applications d'utiliser le chemin optimal pour un espace de noms NVMe protégé.
 
 .Applications en cluster
-Les applications en cluster, notamment VMware Metro Storage Cluster, Oracle RAC et Windows Failover Clustering avec SQL, nécessitent un accès simultané afin que les VM puissent basculer vers un autre site sans impact sur les performances. La fonction actif-actif symétrique de SnapMirror sert les E/S localement avec la réplication bidirectionnelle afin de répondre aux exigences des applications en cluster. Depuis ONTAP 9.16.1, le mode actif-actif symétrique est pris en charge dans une configuration en clusters à quatre nœuds, puisqu'il s'étend de la limite en clusters à deux nœuds dans ONTAP 9.15.1.
+Les applications en cluster, notamment VMware Metro Storage Cluster, Oracle RAC et Windows Failover Clustering avec SQL, nécessitent un accès simultané pour que les machines virtuelles puissent être basculées vers un autre site sans aucune surcharge de performances. SnapMirror Active Sync symétrique actif/actif sert les E/S localement avec une réplication bidirectionnelle pour répondre aux exigences des applications en cluster.  À partir d' ONTAP 9.16.1, le mode actif/actif symétrique est pris en charge dans une configuration en clusters à quatre nœuds, s'étendant à partir de la limite de cluster à deux nœuds dans ONTAP 9.15.1.
 
 .Scénario d'incident
 Répliquez plusieurs volumes de manière synchrone pour une application entre des sites situés dans des sites dispersés géographiquement. En cas d'interruption du stockage primaire, vous pouvez basculer automatiquement vers la copie secondaire, assurant ainsi la continuité de l'activité pour les applications de niveau 1. Lorsque le site hébergeant le cluster principal rencontre un incident, le logiciel de chemins d'accès multiples hôte marque tous les chemins à travers le cluster comme descendant et utilise les chemins depuis le cluster secondaire. Il en résulte un basculement sans interruption activé par le médiateur ONTAP vers la copie miroir.
 
-.Basculement Windows
-La synchronisation active SnapMirror assure la flexibilité grâce à une granularité au niveau des applications et à un basculement automatique faciles à utiliser. La solution SnapMirror Active Sync utilise la réplication synchrone SnapMirror sur réseau IP pour répliquer des données à des vitesses élevées sur un réseau LAN ou WAN. Vous bénéficiez ainsi d'une haute disponibilité des données et d'une réplication rapide des données pour vos applications stratégiques, comme Oracle ou Microsoft SQL Server, dans des environnements physiques et virtuels.
+.Prise en charge étendue des applications
+La synchronisation active SnapMirror offre une flexibilité avec une granularité au niveau de l'application facile à utiliser et un basculement automatique.  La synchronisation active SnapMirror utilise la réplication synchrone SnapMirror éprouvée sur un réseau IP pour répliquer les données à grande vitesse sur LAN ou WAN, afin d'obtenir une haute disponibilité des données et une réplication rapide des données pour vos applications stratégiques telles qu'Oracle, Microsoft SQL Server, etc., dans des environnements virtuels et physiques.
 
-La synchronisation active SnapMirror assure le fonctionnement continu des services stratégiques, même en cas de défaillance complète du site, avec une mise au point automatique sur la copie secondaire. Aucune intervention manuelle ou aucun script supplémentaire n'est nécessaire pour déclencher ce basculement.
+La synchronisation active de SnapMirror permet aux services commerciaux critiques de continuer à fonctionner même en cas de panne complète du site, avec TAF sur la copie secondaire.  Aucune intervention manuelle ni script supplémentaire n'est requis pour déclencher ce basculement.

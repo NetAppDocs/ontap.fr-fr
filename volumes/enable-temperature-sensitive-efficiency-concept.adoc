@@ -4,22 +4,49 @@ sidebar: sidebar
 keywords: enable, temperature, sensitive, storage, efficiency, sequential packing 
 summary: 'Introduit dans ONTAP 9.8, l"efficacité du stockage sensible à la température est activée automatiquement sur certains volumes AFF ou manuellement sur des volumes existants.' 
 ---
-= Présentation de l'efficacité du stockage sensible à la température
+= En savoir plus sur l'efficacité du stockage sensible à la température ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-ONTAP offre des avantages en termes d'efficacité du stockage sensibles à la température en évaluant la fréquence d'accès aux données de votre volume et en mappant cette fréquence au niveau de compression appliqué à ces données. Pour les données inactives peu utilisées, les blocs de données plus volumineux sont compressés et pour les données actives, qui sont fréquemment utilisées et remplacées plus souvent, les blocs de données plus petits sont compressés, ce qui améliore l'efficacité du processus.
+ONTAP offre des avantages en termes d'efficacité de stockage sensible à la température (TSSE) en évaluant la fréquence d'accès aux données de votre volume et en mappant cette fréquence au degré de compression appliqué à ces données.  Pour les données froides auxquelles on accède rarement, des blocs de données plus volumineux sont compressés, et pour les données chaudes, auxquelles on accède fréquemment et qui sont écrasées plus souvent, des blocs de données plus petits sont compressés, ce qui rend le processus plus efficace.
 
-L'efficacité du stockage sensible à la température, introduite dans ONTAP 9.8, est automatiquement activée sur les volumes AFF nouvellement créés à provisionnement fin. Vous pouvez activer l'efficacité du stockage sensible à la température sur les volumes AFF existants et sur les volumes non-AFF DP à provisionnement fin.
+TSSE est introduit dans ONTAP 9.8 et est activé automatiquement sur les volumes AFF à provisionnement fin nouvellement créés.  Vous pouvez activer l'efficacité du stockage sensible à la température sur les volumes AFF existants et sur les volumes DP non AFF à provisionnement fin.
+
+L'efficacité du stockage sensible à la température n'est pas appliquée sur les plates-formes suivantes :
+
+[cols="2"]
+|===
+| Plateforme | Version ONTAP 
 
 
-NOTE: L'efficacité du stockage sensible à la température n'est pas appliquée aux plateformes AFF A70, AFF A90 et AFF A1K. La compression n'est pas basée sur les données actives ou inactives de ces plateformes. La compression commence donc sans attendre que les données deviennent inactives.
+ a| 
+* AFF A1K
+* AFF A90
+* AFF A70
+* FAS90
+* FAS70
+
+| 9.15.1 ou ultérieure 
+
+
+ a| 
+* AFF A50
+* AFF A30
+
+| 9.16.1 ou ultérieure 
+|===
+Ces plateformes utilisentlink:../concepts/builtin-storage-efficiency-concept.html["Efficacité du stockage du processeur ou du processeur de déchargement dédié"] .  La compression est effectuée à l'aide du processeur principal ou d'un processeur de déchargement dédié et n'est pas basée sur des données chaudes ou froides.
+
+
+NOTE: Au fil du temps, la quantité d’espace utilisée dans votre volume peut être plus prononcée avec TSSE par rapport à la compression adaptative 8K.  Ce comportement est attendu en raison des différences architecturales entre la compression adaptative TSSE et 8K.
 
 .Introduction des modes « par défaut » et « efficace »
 À partir de ONTAP 9.10.1, les modes d'efficacité du stockage _default_ et _Efficient_ au niveau du volume sont introduits uniquement pour les systèmes AFF. Les deux modes permettent de choisir entre la compression de fichiers (par défaut), qui est le mode par défaut lors de la création de nouveaux volumes AFF, ou l'efficacité du stockage sensible à la température (efficace), qui utilise la compression auto-adaptative pour réduire les économies de compression sur les données inactives rarement utilisées.
+
+Lors de la mise à niveau vers ONTAP 9.10.1 et versions ultérieures, un mode d'efficacité du stockage est attribué aux volumes existants, basé sur le type de compression actuellement activé sur les volumes. Au cours d'une mise à niveau, le mode par défaut est attribué aux volumes dont la compression est activée et le mode efficace est activé pour les volumes dont l'efficacité de stockage est sensible à la température. Si la compression n'est pas activée, le mode d'efficacité du stockage reste vide.
 
 Avec ONTAP 9.10.1, link:../volumes/set-efficiency-mode-task.html["l'efficacité du stockage sensible à la température doit être définie de manière explicite"] pour activer la compression auto-adaptative. Cependant, d'autres fonctionnalités d'efficacité du stockage telles que la compaction des données, la déduplication automatique, la déduplication à la volée, la déduplication à la volée entre volumes et la déduplication en arrière-plan entre volumes sont activées par défaut sur les plateformes AFF pour les modes par défaut et efficaces.
 
@@ -41,9 +68,3 @@ NOTE: Une fois que vous avez défini le mode d'efficacité du stockage sur effic
 
 .Amélioration de l'efficacité du stockage grâce à la compression séquentielle des blocs physiques contigus
 Depuis la version ONTAP 9.13.1, l'efficacité du stockage sensible à la température ajoute la compaction séquentielle des blocs physiques contigus afin d'améliorer encore l'efficacité du stockage. Sur les volumes dont l'efficacité du stockage sensible à la température est activée automatiquement, la compression séquentielle est activée lorsque vous mettez à niveau des systèmes vers ONTAP 9.13.1. Une fois la compression séquentielle activée, vous devez link:../volumes/run-efficiency-operations-manual-task.html["reconditionnement manuel des données existantes"].
-
-
-
-== Mise à niveau
-
-Lors de la mise à niveau vers ONTAP 9.10.1 et versions ultérieures, un mode d'efficacité du stockage est attribué aux volumes existants, basé sur le type de compression actuellement activé sur les volumes. Au cours d'une mise à niveau, le mode par défaut est attribué aux volumes dont la compression est activée et le mode efficace est activé pour les volumes dont l'efficacité de stockage est sensible à la température. Si la compression n'est pas activée, le mode d'efficacité du stockage reste vide.

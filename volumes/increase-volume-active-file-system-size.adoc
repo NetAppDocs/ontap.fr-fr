@@ -1,0 +1,89 @@
+---
+permalink: volumes/increase-volume-active-file-system-size.html 
+sidebar: sidebar 
+keywords: increase, active, file system, volume, cpu offload, compression offload, dedicated offload processor, storage efficiency, compression 
+summary: 'Si vous déplacez un volume d"une plate-forme qui ne prend pas en charge l"efficacité du stockage du processeur de déchargement dédié vers une plate-forme qui prend en charge l"efficacité du stockage de déchargement dédié, vous devez augmenter la taille du système de fichiers actif du volume avant de déplacer le volume pour éviter que le volume ne manque d"espace.' 
+---
+= Augmenter le système de fichiers actif d'un volume ONTAP avant de migrer à partir de la compression adaptative 8k
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les plates-formes qui prennent en charge la compression adaptative 8k économisent de l'espace au niveau du volume.  Les plates-formes AFF C-Series et les plates-formes prenant en charge la compression 32 K économisent de l'espace au niveau agrégé.  Lors de la migration d'un volume d'une compression adaptative 8 k vers une plate-forme AFF C-Series ou vers une plate-forme avec une compression 32 k, vous devez augmenter la taille du système de fichiers actif du volume en fonction des économies de compression 8 k.  Cela empêche le volume de manquer d'espace libre pendant le déplacement du volume.
+
+Les systèmes suivants prennent en charge la compression 32k :
+
+[cols="2"]
+|===
+| Plateforme | Version ONTAP 
+
+
+ a| 
+* AFF A1K
+* AFF A90
+* AFF A70
+* FAS90
+* FAS70
+
+| 9.15.1 ou ultérieure 
+
+
+ a| 
+* AFF A50
+* AFF A30
+
+| 9.16.1 ou ultérieure 
+|===
+En savoir plus sur link:../concepts/builtin-storage-efficiency-concept.html["Plateformes AFF et FAS prenant en charge la compression 32k"] .
+
+Voir lelink:https://hwu.netapp.com/["Hardware Universe"^] pour une liste complète des plates-formes AFF de la série C.
+
+.Description de la tâche
+Effectuez ces étapes si vous migrez vos données à l’aide d’une opération de déplacement de volume.  Si vous migrez vos données à l’aide d’une opération SnapMirror , vous n’avez pas besoin d’augmenter manuellement la taille du système de fichiers actif.  Les volumes de destination SnapMirror utilisent la taille automatique du volume par défaut et ne devraient donc pas manquer d'espace en raison des économies de compression réalisées au niveau de la couche d'agrégation plutôt qu'au niveau de la couche de volume.
+
+.Avant de commencer
+Si la création de rapports et l'application de l'espace logique ne sont pas activées sur votre volume, vous pouvez éventuellement l'activer en définissant le `-is-space-reporting-logical` et `-is-space-enforcement-logical` paramètres à *true*.  L'activation de ces paramètres avant le déplacement du volume peut vous aider à évaluer si votre volume est suffisamment grand pour prendre en charge la perte d'économies de compression au niveau de la couche de volume lorsque vous convertissez à partir d'une compression 8K.  Vous devez activer ces paramètres sur le volume.  Si vous activez ces paramètres au niveau SVM, ils s'appliquent uniquement aux volumes nouvellement créés.
+
+.Étapes
+. Vérifiez la taille actuelle du volume et la réserve d'instantanés :
++
+[source, cli]
+----
+volume show-space
+----
+. Vérifiez les économies d'espace de compression du volume :
++
+[source, cli]
+----
+volume show -vserver -volume -fields compression-space-saved
+----
+. Augmentez la taille du système de fichiers actif du volume du montant indiqué pour `compression-space-saved` plus la réserve d'instantanés.
++
+[source, cli]
+----
+volume size -vserver <vserver_name> -volume <volume_name> -new-size +<size>
+----
++
+.Exemple
+SI un volume est de 100 Go et dispose d'une réserve de snapshots de 20 % ; alors le système de fichiers actif est de 80 Go et la réserve de snapshots est de 20 Go.  Pour augmenter le système de fichiers actif de 20 Go, vous devez ajouter 25 Go à la taille globale du volume, soit 20 Go pour le système de fichiers actif et 5 Go (20 %) pour la réserve de snapshots.
+
++
+[listing]
+----
+volume size -vserver svm1 -volume volx -size +20GB
+----
+. Vérifiez que la taille du volume augmente :
++
+[source, cli]
+----
+volume show -vserver <vserver_name> -volume <volume_name> -fields size
+----
+
+
+.Résultat
+La taille du système de fichiers actif de votre volume a augmenté et vous êtes prêt à déplacer le volume.
+
+.Et la suite ?
+Effectuer unelink:move-volume-task.html["déplacement de volumes"] pour migrer vos données.

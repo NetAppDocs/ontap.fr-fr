@@ -11,15 +11,15 @@ summary: 'Suivez ces instructions pour garantir des performances optimales lors 
 
 
 [role="lead"]
-L'écriture différée de FlexCache implique de nombreuses interactions complexes entre l'origine et les caches. Pour des performances optimales, vous devez vous assurer que votre environnement respecte ces directives. Ces instructions sont basées sur la dernière version majeure de ONTAP (ONTAP 9.15.1) disponible au moment de la création du contenu.
+L'écriture différée FlexCache implique de nombreuses interactions complexes entre l'origine et les caches. Pour des performances optimales, assurez-vous que votre environnement respecte ces consignes. Ces directives sont basées sur la dernière version majeure ONTAP (ONTAP 9.17.1.) disponible au moment de la création du contenu.
 
 Il est recommandé de tester votre charge de travail de production dans un environnement de non-production. Cela est encore plus important si vous implémentez la réécriture FlexCache en dehors de ces instructions.
 
 Les directives suivantes sont testées en interne par NetApp. Il est *_fortement_* recommandé que vous restiez à l'intérieur d'eux. Si ce n'est pas le cas, un comportement inattendu pourrait se produire.
 
-* Des améliorations importantes ont été apportées à la réécriture FlexCache dans ONTAP 9.15.1P5. Il est recommandé d'exécuter la version recommandée après 9.15.1P5 sur les clusters d'origine et de cache.
+* Des améliorations significatives pour la fonction d'écriture différée de FlexCache ont été introduites dans ONTAP 9.17.1P1. Il est *_fortement_* conseillé d'exécuter la version recommandée actuelle après la version 9.17.1P1 sur les clusters d'origine et de cache. Si vous ne parvenez pas à exécuter la version 9.17.1, la dernière version P, la 9.16.1, est la version suivante recommandée. ONTAP 9.15.1 ne contient pas tous les correctifs et améliorations nécessaires pour la réécriture FlexCache et n'est pas recommandé pour les charges de travail de production.
 * Dans l'itération actuelle, les caches d'écriture différée FlexCache doivent être configurés avec un seul composant pour l'ensemble du volume FlexCache. Des FlexCaches multi-composants peuvent entraîner des suppressions indésirables des données du cache.
-* Des tests ont été réalisés pour des fichiers inférieurs à 100 Go et des temps d'aller-retour WAN entre le cache et l'origine n'excédant pas 100 ms. Toute charge de travail en dehors de ces limites peut entraîner des caractéristiques de performances inattendues.
+* Des tests ont été effectués pour des fichiers de moins de 100 Go et des temps d'aller-retour WAN entre le cache et l'origine ne dépassant pas 200 ms. Toute charge de travail dépassant ces limites pourrait entraîner des performances inattendues.
 * L'écriture dans les autres flux de données SMB entraîne la suppression du fichier principal du cache. Toutes les données corrompues du fichier principal doivent être vidées à l'origine avant que d'autres opérations puissent avoir lieu sur ce fichier. Le flux de données alternatif est également transmis à l'origine.
 * Le fait de renommer un fichier entraîne la suppression du fichier du cache. Toutes les données corrompues du fichier doivent être vidées à l'origine avant que d'autres opérations puissent avoir lieu sur ce fichier.
 * Pour le moment, les seuls attributs qui peuvent être modifiés ou définis sur un fichier du volume FlexCache avec écriture différée sont les suivants :
@@ -36,5 +36,7 @@ Tous les autres attributs modifiés ou définis sont transférés vers l'origine
 
 
 * Les snapshots pris à l'origine entraînent le rappel de toutes les données corrompues en attente de chaque cache activé pour l'écriture différée associé à ce volume d'origine. Ceci peut nécessiter plusieurs tentatives de l'opération si une activité de réécriture importante est en cours, car les suppressions de ces fichiers sales peuvent prendre un certain temps.
+* Les verrous opportunistes SMB (Oplocks) pour les écritures ne sont pas pris en charge sur les volumes FlexCache avec écriture différée activée.
 * L'origine doit rester pleine à moins de 80 %. Les volumes de cache ne disposent pas de délégations de verrouillage exclusives si au moins 20 % d'espace n'est pas disponible dans le volume d'origine. Dans ce cas, les appels vers un cache avec réinscription sont transférés vers l'origine. Cela permet d'éviter de manquer d'espace à l'origine, ce qui entraînerait la création de données corrompues orphelines dans un cache réinscriptible.
+* Les réseaux inter-clusters à faible bande passante et/ou présentant des pertes peuvent avoir un impact négatif significatif sur les performances d'écriture différée de FlexCache . Bien qu'il n'y ait pas d'exigence spécifique en matière de bande passante, celle-ci dépendant fortement de votre charge de travail, il est *_fortement_* recommandé de veiller à la santé de la liaison inter-cluster entre le(s) cache(s) et l'origine.
 

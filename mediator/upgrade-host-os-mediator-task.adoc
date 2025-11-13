@@ -14,17 +14,12 @@ summary: 'Dans le cadre du processus d"installation, vous mettez à niveau le sy
 Pour mettre à niveau le système d'exploitation hôte pour ONTAP Mediator vers une version ultérieure, vous devez d'abord désinstaller ONTAP Mediator.
 
 .Description de la tâche
-Lorsque vous mettez à niveau le système d'exploitation hôte pour ONTAP Mediator vers une version majeure ultérieure (par exemple, de 7.x à 8.x) à l'aide de l'outil de mise à niveau leapp, Vous devez désinstaller ONTAP Mediator car l'outil tente de détecter les nouvelles versions de tous les RPM installés dans les référentiels enregistrés avec le système.
+Avant de mettre à niveau le système d'exploitation hôte d' ONTAP Mediator avec l'outil leapp-upgrade, désinstallez ONTAP Mediator.  Cet outil vérifie la présence de nouvelles versions RPM dans les dépôts enregistrés.
 
-Comme un fichier .rpm a été installé dans le cadre du programme d'installation de ONTAP Mediator, il est inclus dans cette recherche. Cependant, comme ce fichier .rpm a été décompressé dans le cadre du programme d'installation et n'a pas été téléchargé à partir d'un référentiel enregistré, une mise à niveau est introuvable. Dans ce cas, l'outil de mise à niveau leapp désinstalle le package.
-
-Afin de préserver les fichiers journaux, qui serviront à trier les demandes d'assistance, vous devez les sauvegarder avant de mettre à niveau le système d'exploitation et les restaurer après la réinstallation du package ONTAP Mediator. Les clusters ONTAP qui y sont connectés devront être reconnectés après l'installation d'ONTAP Mediator.
-
-
-NOTE: Les étapes suivantes doivent être effectuées dans l'ordre. Immédiatement après la réinstallation d'ONTAP Mediator, arrêtez ontap_mediator, remplacez les fichiers journaux et redémarrez-le. Ceci permet de garantir la conservation des journaux.
+Le programme d'installation ONTAP Mediator installe un fichier .rpm, que l'outil leapp-upgrade inclut dans la recherche.  Comme le programme d'installation décompresse le fichier au lieu de le télécharger depuis un dépôt enregistré, l'outil ne peut pas trouver de mise à jour.  Vous devez utiliser l'outil leapp-upgrade pour désinstaller le paquet.
 
 .Étapes
-. Sauvegardez les fichiers journaux.
+. Sauvegardez les fichiers journaux :
 +
 ....
 [rootmediator-host ~]# tar -czf ontap_mediator_file_backup.tgz -C /opt/netapp/lib/ontap_mediator ./log ./ontap_mediator/server_config/ontap_mediator.user_config.yaml
@@ -40,7 +35,7 @@ NOTE: Les étapes suivantes doivent être effectuées dans l'ordre. Immédiateme
 ./ontap_mediator/server_config/ontap_mediator.user_config.yaml
 [rootmediator-host ~]#
 ....
-. Effectuez une mise à niveau avec l'outil de mise à niveau leapp.
+. Effectuez la mise à niveau avec l'outil leapp-upgrade :
 +
 ....
 [rootmediator-host ~]# leapp preupgrade --target 8.4
@@ -53,43 +48,45 @@ NAME="Red Hat Enterprise Linux"
 VERSION="8.4 (Ootpa)"
 [rootmediator-host ~]#
 ....
-. Réinstallez le médiateur ONTAP.
+. Réinstaller ONTAP Mediator :
 +
 
 NOTE: Effectuez le reste des étapes immédiatement après la réinstallation du médiateur ONTAP pour éviter la perte des fichiers journaux.
 
 +
 ....
-[rootmediator-host ~]# ontap-mediator-1.10/ontap-mediator-1.10
+[rootmediator-host ~]# ontap-mediator-1.11.0/ontap-mediator-1.11.0
 
 ONTAP Mediator: Self Extracting Installer
 
   ..<snip installation>..
 [rootmediator-host ~]#
 ....
-. Arrêtez ontap_mediator.
+. Arrêtez ontap_mediator :
 +
 ....
 [rootmediator-host ~]# systemctl stop ontap_mediator
 [rootmediator-host ~]#
 ....
-. Remplacez les fichiers journaux.
+. Remplacer les fichiers journaux :
 +
 ....
 [rootmediator-host ~]# tar -xf ontap_mediator_log_backup.tgz -C /opt/netapp/lib/ontap_mediator
 [rootmediator-host ~]#
 ....
-. Démarrer ontap_mediator.
+. Démarrer ontap_mediator :
 +
 ....
 [rootmediator-host ~]# systemctl start ontap_mediator
 [rootmediator-host ~]#
 ....
-. Reconnectez tous les clusters ONTAP au médiateur ONTAP mis à niveau
-+
-.Procédure pour MetroCluster sur IP
-[%collapsible]
+. Reconnectez tous les clusters ONTAP au médiateur ONTAP mis à niveau :
+
+
+[role="tabbed-block"]
 ====
+.MetroCluster sur IP
+--
 ....
 siteA::> metrocluster configuration-settings mediator show
 Mediator IP     Port    Node                    Configuration Connection
@@ -127,12 +124,10 @@ Mediator IP     Port    Node                    Configuration Connection
                         siteB-node2             true          true
 siteA::>
 ....
-====
-+
-.Procédure de synchronisation active SnapMirror
-[%collapsible]
-====
-Pour la synchronisation active SnapMirror, si vous avez installé votre certificat TLS en dehors du répertoire /opt/netapp, vous n'avez pas besoin de le réinstaller. Si vous utilisiez le certificat auto-signé généré par défaut ou si vous placez votre certificat personnalisé dans le répertoire /opt/netapp, vous devez le sauvegarder et le restaurer.
+--
+.Synchronisation active SnapMirror
+--
+Pour la synchronisation active de SnapMirror , vous n'avez pas besoin de réinstaller les certificats TLS stockés en dehors de /opt/netapp.  Sauvegardez et restaurez les certificats stockés dans /opt/netapp.
 
 ....
 peer1::> snapmirror mediator show
@@ -217,9 +212,8 @@ Mediator Address Peer Cluster     Connection Status Quorum Status
 peer1::>
 
 ....
+--
 ====
-
-
 .Informations associées
 * link:https://docs.netapp.com/us-en/ontap-cli/security-certificate-delete.html["suppression du certificat de sécurité"^]
 * link:https://docs.netapp.com/us-en/ontap-cli/security-certificate-install.html["installation du certificat de sécurité"^]

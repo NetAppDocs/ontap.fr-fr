@@ -11,7 +11,7 @@ summary: 'Vous pouvez utiliser un groupe de règles de QoS adaptative pour faire
 
 
 [role="lead"]
-Vous pouvez utiliser un groupe de règles _Adaptive QoS_ pour dimensionner automatiquement un plafond de débit ou une taille de sol en fonction du volume, tout en maintenant le rapport IOPS/To|GBs lorsque la taille du volume change. C'est un avantage significatif pour la gestion de centaines, voire de milliers de charges de travail dans un déploiement à grande échelle.
+Vous pouvez utiliser un groupe de stratégies _QoS adaptatif_ pour adapter automatiquement un plafond ou un plancher de débit à la taille du volume, en maintenant le ratio IOPS/TB/GB à mesure que la taille du volume change.  C’est un avantage considérable lorsque vous gérez des centaines, voire des milliers, de charges de travail dans un déploiement de grande envergure.
 
 .Avant de commencer
 * Vous devez exécuter ONTAP 9.3 ou une version ultérieure. Les groupes de règles de QoS adaptative sont disponibles à partir de la version ONTAP 9.3.
@@ -25,14 +25,14 @@ Les groupes de règles de QoS adaptative sont toujours non partagés : le plafon
 
 Le rapport entre les limites de débit et la taille de l'objet de stockage est déterminé par l'interaction des champs suivants :
 
-* `expected-iops` Correspond au nombre minimal d'IOPS prévu par To|Go alloué.
+* `expected-iops`représente le nombre minimal d'IOPS attendu par To/Go alloué.
 +
 [NOTE]
 ====
  `expected-iops` Est garanti uniquement sur les plateformes AFF. `expected-iops` La garantie FabricPool s'applique uniquement si la règle de Tiering est définie sur « aucun » et qu'aucun bloc n'est dans le cloud. `expected-iops` Est garanti pour les volumes qui ne font pas partie d'une relation synchrone SnapMirror.
 
 ====
-* `peak-iops` Est le nombre maximal d'IOPS possible par To alloué ou utilisé|Go.
+* `peak-iops`représente le nombre maximal d'IOPS possibles par To/Go alloué ou utilisé.
 * `expected-iops-allocation` indique si l'espace alloué (par défaut) ou utilisé est utilisé pour les iops attendues.
 +
 [NOTE]
@@ -47,6 +47,10 @@ Par exemple, si vous définissez `expected-iops` À 1,000 000 IOPS/To et la tail
 
 * `block-size` Spécifie la taille du bloc d'E/S de l'application. La valeur par défaut est 32 Ko. Les valeurs valides sont de 8 Ko, 16 Ko, 32 K, 64 Ko, N'IMPORTE QUEL. TOUTE signifie que la taille de bloc n'est pas appliquée.
 
+
+
+
+== Groupes de stratégies QoS adaptatives par défaut
 
 Trois groupes de règles de QoS adaptative par défaut sont disponibles, comme illustré dans le tableau ci-dessous. Vous pouvez appliquer ces « policy group » directement à un volume.
 
@@ -88,37 +92,59 @@ Trois groupes de règles de QoS adaptative par défaut sont disponibles, comme i
 75
 
 |===
-Vous ne pouvez pas affecter un objet de stockage à un groupe de règles si son objet contenant ou ses objets enfants appartiennent à un groupe de règles. Le tableau suivant répertorie les restrictions.
+
+
+== restrictions d'affectation de groupe de stratégies d'objets de stockage
+
+Dans certains cas, vous ne pouvez pas affecter un objet de stockage à un groupe de stratégies si son objet conteneur ou ses objets enfants appartiennent à un groupe de stratégies.
+
+À partir d' ONTAP 9.18.1, vous pouvez utiliser des politiques QoS imbriquées, qui permettent d'attribuer des groupes de politiques à la fois à l'objet conteneur, tel qu'une SVM, et à son objet enfant, tel qu'un volume.  Dans un environnement mutualisé, les politiques QoS imbriquées permettent aux administrateurs de subdiviser les limites QoS des SVM entre les volumes et les qtrees au sein du SVM, et de fournir la possibilité d'équilibrer les ressources de stockage entre les environnements informatiques tout en permettant la priorisation des charges de travail critiques.
+
+Les politiques QoS imbriquées sont prises en charge pour les paires d'objets suivantes :
+
+* SVM et volumes FlexVol ou FlexGroup contenus par le SVM.
+* Volumes FlexVol ou FlexGroup et qtrees à l'intérieur des volumes.
+
+
+Pour les politiques QoS imbriquées, la politique applicable la plus restrictive est utilisée.
+
+Le tableau suivant répertorie les restrictions.
 
 |===
-| Si vous attribuez... | Vous ne pouvez alors pas affecter... 
+| Si vous attribuez... | Vous ne pouvez alors pas affecter l'objet à un groupe de stratégies... 
 
 
  a| 
 SVM vers une « policy group »
  a| 
-Tout objet de stockage contenu par la SVM vers une « policy group »
+Tous les objets de stockage contenus par la SVM.
+
+
+NOTE: Si vous utilisez ONTAP 9.18.1, les volumes FlexVol et FlexGroup contenus par les SVM peuvent être affectés à un groupe de stratégies.
 
 
 
  a| 
 Volume vers une « policy group »
  a| 
-Le volume contenant un SVM ou toute LUN enfant vers un « policy group »
+Le SVM contenant le volume ou toute unité LUN enfant.
+
+
+NOTE: Si vous utilisez ONTAP 9.18.1 ou une version ultérieure, le SVM contenant le volume peut être affecté à un groupe de stratégies.  De plus, des qtrees peuvent être affectés à des volumes FlexVol ou FlexGroup .
 
 
 
  a| 
 LUN vers une « policy group »
  a| 
-La LUN contenant le volume ou le SVM à une « policy group »
+Le volume ou SVM contenant les LUN
 
 
 
  a| 
 Fichier dans une « policy group »
  a| 
-Fichier contenant le volume ou SVM vers une « policy group »
+Le volume ou le SVM contenant le fichier
 
 |===
 .Étapes

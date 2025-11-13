@@ -16,10 +16,17 @@ summary: 'La fonctionnalité de copie Snapshot de ONTAP S3 vous permet d"affiche
 
 
 [role="lead"]
-La fonctionnalité de copie Snapshot de ONTAP S3 vous permet d'afficher et de parcourir le contenu des snapshots S3 pour vos compartiments à partir de clients S3. En outre, vous pouvez restaurer un seul objet, un ensemble d'objets ou un compartiment complet sur un client S3 à partir d'un snapshot S3.
+À partir d' ONTAP 9.16.1, vous pouvez consulter et parcourir les données d'instantané S3 de vos compartiments à partir des clients S3.  À partir d' ONTAP 9.18.1, le compartiment de snapshot S3 est accessible nativement avec l'interface de ligne de commande ONTAP .  De plus, vous pouvez restaurer un seul objet, un ensemble d'objets ou un compartiment entier sur un client S3 à partir d'un instantané S3.
 
 .Avant de commencer
-Pour l'affichage, la navigation et la restauration des snapshots ONTAP S3 dans vos compartiments, les snapshots doivent avoir été créés et le compartiment de base S3 doit être accessible par l'intermédiaire du client de protocole S3.
+* Tous les nœuds du cluster doivent exécuter ONTAP 9.18.1 ou une version ultérieure avant que vous puissiez effectuer l'opération de restauration d'instantané de compartiment nativement dans l'interface de ligne de commande ONTAP .  À partir d' ONTAP 9.18,1, le navigateur S3 n'est plus nécessaire, mais les opérations sont toujours prises en charge.
+* Une seule opération de restauration d'instantané est autorisée à la fois sur un compartiment donné.
+
+
+.Description de la tâche
+À partir d' ONTAP 9.16.1, la fonctionnalité de snapshots ONTAP S3 fournit des fonctionnalités de snapshot de base pour les compartiments ONTAP S3, notamment la création et la suppression manuelles et planifiées de snapshots, les politiques de snapshots pour les compartiments S3 et la navigation dans les snapshots basée sur le client S3.
+
+À partir d' ONTAP 9.18.1, la prise en charge de la restauration native des instantanés ONTAP est ajoutée, offrant aux administrateurs ONTAP une fonctionnalité de restauration à un point précis dans le temps sans utiliser de navigateur S3.  Seule la version actuelle du compartiment est capturée dans l'instantané.  L'historique des versions n'est pas enregistré et ne sera pas restauré par l'opération de restauration d'instantané S3.
 
 
 
@@ -35,9 +42,9 @@ Vous pouvez afficher les détails des snapshots S3, les comparer et identifier l
 vserver object-store-server bucket snapshot show
 ----
 +
-Vous pouvez afficher les noms des snapshots, les machines virtuelles de stockage, les compartiments, l'heure de création et `instance-uuid` les snapshots S3 créés pour tous vos compartiments sur le cluster.
+Vous pouvez consulter les noms des instantanés, les machines virtuelles de stockage, les compartiments, les dates de création et les UUID d'instance des instantanés S3 créés pour tous vos compartiments sur le cluster.
 
-. Vous pouvez également indiquer un nom de compartiment pour afficher les noms, l'heure de création et `instance-uuid` tous les snapshots S3 créés pour ce compartiment spécifique.
+. Vous pouvez également spécifier un nom de compartiment pour afficher les noms, les dates de création et les UUID d'instance de tous les instantanés S3 créés pour ce compartiment spécifique.
 +
 [listing]
 ----
@@ -51,9 +58,9 @@ vserver object-store-server bucket snapshot show -vserver <svm_name> -bucket <bu
 
 En cas de défaillances ou de problèmes dans votre environnement, vous pouvez parcourir le contenu des snapshots du compartiment S3 pour identifier les erreurs. Vous pouvez également parcourir les snapshots S3 pour déterminer le contenu sans erreur à restaurer.
 
-Les snapshots S3 sont présentés sous forme de compartiments Snapshot aux clients S3. Le nom du compartiment de snapshot est formaté en `<base_bucket_name>-s3snap-<snapshot_name>`. Vous pouvez afficher tous les compartiments Snapshot d'une machine virtuelle de stockage à l'aide de l' `ListBuckets`opération d'API S3.
+Les instantanés S3 sont présentés aux clients S3 sous forme de compartiments d'instantanés.  Le nom du compartiment d'instantané est formaté comme suit : `<base_bucket_name>-s3snap-<snapshot_name>` .  Vous pouvez consulter tous les compartiments de snapshots dans une machine virtuelle de stockage à l'aide de `ListBuckets` Opération de l'API S3.
 
-Le compartiment Snapshot S3 hérite des règles d'accès du compartiment de base et ne prend en charge que les opérations en lecture seule. Si vous êtes autorisé à accéder au compartiment de base, vous pouvez également effectuer des opérations d'API S3 en lecture seule sur le compartiment de snapshot S3, telles que `HeadObject`, , `GetObject` `GetObjectTagging` , , `ListObjects`, `ListObjectVersions`, `GetObjectAcl` et `CopyObject`.
+Le compartiment de snapshot S3 hérite des politiques d'accès du compartiment de base et ne prend en charge que les opérations en lecture seule.  Les opérations de suppression et d'écriture sont interdites.  Si vous disposez des autorisations d'accès au compartiment de base, vous pouvez également effectuer des opérations d'API S3 en lecture seule sur le compartiment d'instantané S3, telles que : `HeadObject` , `GetObject` , `GetObjectTagging` , `ListObjects` , `ListObjectVersions` , `GetObjectAcl` , et `CopyObject` .
 
 
 NOTE:  `CopyObject`L'opération est prise en charge sur un compartiment de snapshot S3 uniquement s'il s'agit d'un snapshot du compartiment source, et non pas s'il s'agit de la destination de stockage du snapshot.
@@ -62,16 +69,39 @@ Pour plus d'informations sur ces opérations, voir link:../s3-config/ontap-s3-su
 
 
 
-== Restaurer du contenu à partir de copies Snapshot S3
+== Restaurez un compartiment à partir d'instantanés S3 à l'aide ONTAP.
 
-Vous pouvez effectuer une opération de restauration sur un client S3 pour restaurer un seul objet, un ensemble d'objets ou un compartiment complet en copiant le contenu d'un compartiment Snapshot vers le compartiment original ou un autre compartiment. Vous pouvez parcourir les instantanés pour déterminer le contenu de l'instantané à copier.
+À partir d' ONTAP 9.18.1, vous pouvez utiliser l'interface de ligne de commande ONTAP pour restaurer un compartiment entier à l'aide d'un instantané ONTAP S3.  Vous ne pouvez restaurer que la version du compartiment qui existait au moment de la création de l'instantané sélectionné.
 
-La commande permet de restaurer le compartiment complet, les objets associés à un préfixe ou un seul objet `aws s3 cp`.
+.Étapes
+. Identifiez l'instantané que vous souhaitez utiliser pour restaurer le compartiment :
++
+[listing]
+----
+vserver object-store-server bucket snapshot show
+----
+. Remettre le seau en place :
++
+[listing]
+----
+vserver object-store-server bucket snapshot restore start -vserver <storage VM name> -bucket <bucket name> -snapshot <snapshot name>
+----
+
+
+
+
+== Restaurez des données à partir d'instantanés de compartiment S3 à l'aide d'un client S3.
+
+En plus de la restauration d'un compartiment entier dans ONTAP, vous pouvez également restaurer un seul objet, un ensemble d'objets ou un compartiment entier à partir d'un instantané S3 à l'aide d'un client S3 comme S3cmd ou S3 Browser.
+
+link:index.html#snapshots-on-versioned-and-non-versioned-buckets["Apprenez-en davantage sur les instantanés versionnés et non versionnés."]
+
+Vous pouvez restaurer l'intégralité du bucket, les objets ayant un certain préfixe ou un seul objet à l'aide de la `aws s3 cp` commande.
 
 .Étapes
 . Créez un snapshot du compartiment S3 de base.
 +
-[listing]
+[source, cli]
 ----
 vserver object-store-server bucket snapshot create -vserver <svm_name> -bucket <base_bucket_name> -snapshot <snapshot_name>
 ----
@@ -79,19 +109,19 @@ vserver object-store-server bucket snapshot create -vserver <svm_name> -bucket <
 +
 ** Restaurer un compartiment complet. Utilisez le nom du compartiment de snapshot au format `<base_bucket_name>-s3snap-<snapshot_name>`.
 +
-[listing]
+[source, cli]
 ----
 aws --endpoint http://<IP> s3 cp s3://<snapshot-bucket-name> s3://<base-bucket>  --recursive
 ----
 ** Restaurer des objets dans un répertoire avec le préfixe `dir1`:
 +
-[listing]
+[source, cli]
 ----
 aws --endpoint http://<IP> s3 cp s3://<snapshot-bucket-name>/dir1 s3://<base_bucket_name>/dir1 --recursive
 ----
 ** Restaurer un seul objet nommé `web.py`:
 +
-[listing]
+[source, cli]
 ----
 aws --endpoint http://<IP> s3 cp s3:// <snapshot-bucket-name>/web.py s3://<base_bucket_name>/web.py
 ----

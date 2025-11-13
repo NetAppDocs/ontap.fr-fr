@@ -1,0 +1,99 @@
+---
+sidebar: sidebar 
+permalink: networking/configure-backend-encryption.html 
+keywords: cluster network, encryption, TLS, data-in-flight, backend network 
+summary: Configurer les paramètres de chiffrement du réseau du cluster 
+---
+= Configurer le chiffrement du réseau du cluster backend ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir d' ONTAP 9.18.1, vous pouvez configurer le chiffrement TLS (Transport Layer Security) pour les données en transit sur le réseau du cluster backend.  Ce chiffrement protège les données client stockées dans ONTAP lors de leur transmission entre les nœuds ONTAP du réseau du cluster dorsal.
+
+.Description de la tâche
+* Le chiffrement du réseau du cluster backend est désactivé par défaut.
+* Lorsque le chiffrement du réseau du cluster backend est activé, toutes les données client stockées dans ONTAP sont chiffrées lors de leur transmission entre les nœuds ONTAP sur le réseau du cluster backend.  Certains flux de trafic réseau du cluster, tels que les données du chemin de contrôle, ne sont pas chiffrés.
+* Par défaut, le chiffrement du réseau du cluster backend utilisera des certificats générés automatiquement pour chaque nœud du cluster.  Tu peux<<Gérer les certificats de chiffrement du réseau du cluster>> sur chaque nœud pour utiliser un certificat installé personnalisé.
+
+
+.Avant de commencer
+* Vous devez être administrateur ONTAP au niveau `admin` niveau de privilège permettant d'effectuer les tâches suivantes.
+* Tous les nœuds du cluster doivent exécuter ONTAP 9.18.1 ou une version ultérieure pour activer le chiffrement du réseau du cluster backend.
+
+
+
+
+== Activer ou désactiver le chiffrement pour la communication réseau du cluster
+
+.Étapes
+. Afficher l'état actuel du chiffrement du réseau du cluster :
++
+[source, cli]
+----
+security cluster-network show
+----
++
+Cette commande affiche l'état actuel du chiffrement du réseau du cluster :
+
++
+[source]
+----
+Cluster-1::*> security cluster-network show
+
+Enabled: true
+
+Mode: tls
+
+Status: READY
+----
+. Activer ou désactiver le chiffrement du réseau du cluster backend TLS :
++
+[source, cli]
+----
+security cluster-network modify -enabled <true|false>
+----
++
+Cette commande active ou désactive la communication chiffrée des données client en transit sur le réseau du cluster backend.
+
+
+
+
+
+== Gérer les certificats de chiffrement du réseau du cluster
+
+. Consultez les informations actuelles du certificat de chiffrement du réseau du cluster :
++
+[source, cli]
+----
+security cluster-network certificate show
+----
++
+Cette commande affiche les informations actuelles du certificat de chiffrement du réseau du cluster :
+
++
+[source]
+----
+security cluster-network certificate show
+Node                  Certificate Name                      CA
+--------------------- -----------------------------------   --------------
+node1                 -                                     Cluster-1_Root_CA
+node2                 -                                     Cluster-1_Root_CA
+node3                 google_issued_cert1                   Google_CA1
+node4                 google_issued_cert2                   Google_CA1
+----
++
+Le nom du certificat et de l'autorité de certification (CA) est affiché pour chaque nœud du cluster.
+
+. Modifier le certificat de chiffrement du réseau du cluster pour un nœud :
++
+[source, cli]
+----
+security cluster-network certificate modify -node <node_name> -name <certificate_name>
+----
++
+Cette commande modifie le certificat de chiffrement du réseau du cluster pour un nœud spécifique.  Le certificat doit être installé et signé par une autorité de certification installée avant l'exécution de cette commande.  Pour plus d'informations sur la gestion des certificats, veuillez consulterlink:../authentication/manage-certificates-sm-task.html["Gestion des certificats ONTAP avec System Manager"] .  Si `-name` Si aucun certificat n'est spécifié, le certificat par défaut généré automatiquement est utilisé.
+
+

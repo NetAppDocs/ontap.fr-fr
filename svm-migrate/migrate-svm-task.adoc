@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: svm, migrate, defaults, cutover, cleanup 
 summary: Une fois la migration SVM terminée, les clients sont automatiquement mis en service sur le cluster de destination et le SVM inutile est retiré du cluster source. La mise en service automatique et le nettoyage automatique des sources sont activés par défaut. Si nécessaire, vous pouvez désactiver la mise en service automatique des clients pour suspendre la migration avant la mise en service et désactiver le nettoyage automatique des SVM source. 
 ---
-= Migrer un SVM
+= Migrer une SVM ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -12,6 +12,9 @@ summary: Une fois la migration SVM terminée, les clients sont automatiquement m
 
 [role="lead"]
 Une fois la migration SVM terminée, les clients sont automatiquement mis en service sur le cluster de destination et le SVM inutile est retiré du cluster source. La mise en service automatique et le nettoyage automatique des sources sont activés par défaut. Si nécessaire, vous pouvez désactiver la mise en service automatique des clients pour suspendre la migration avant la mise en service et désactiver le nettoyage automatique des SVM source.
+
+.Description de la tâche
+Cette procédure s'applique aux systèmes FAS, AFF et ASA .  Si vous possédez un système ASA r2 (ASA A1K, ASA A90, ASA A70, ASA A50, ASA A30, ASA A20 ou ASA C30), suivez les instructions.link:https://docs.netapp.com/us-en/asa-r2/manage-data/migrate-svm.html["procédure à suivre"^] migrer une SVM. Les systèmes ASA r2 offrent une expérience ONTAP simplifiée spécifique aux clients SAN uniquement.
 
 * Vous pouvez utiliser le `-auto-cutover false` option permettant de suspendre la migration lors de la mise en service client automatique, puis d'effectuer la mise en service manuellement ultérieurement.
 +
@@ -25,23 +28,29 @@ xref:manual-source-removal-task.adoc[Supprimer manuellement le SVM source après
 
 
 
-== Migrer un SVM avec la mise en service automatique activée
+== Migration d'une machine virtuelle ONTAP avec basculement automatique activé
 
 Par défaut, les clients sont automatiquement mis en service sur le cluster de destination une fois la migration terminée et le SVM inutile est retiré du cluster source.
 
 .Étapes
 . Depuis le cluster destination, exécutez les contrôles préalables de migration :
 +
-`dest_cluster> vserver migrate start -vserver _SVM_name_ -source-cluster _cluster_name_ -check-only true`
-
+[source, cli]
+----
+vserver migrate start -vserver <SVM_name> -source-cluster <cluster_name> -check-only true`
+----
 . Depuis le cluster destination, démarrer la migration SVM :
 +
-`dest_cluster> vserver migrate start -vserver _SVM_name_ -source-cluster _cluster_name_`
-
+[source, cli]
+----
+vserver migrate start -vserver <SVM_name> -source-cluster <cluster_name>
+----
 . Vérifier l'état de la migration :
 +
-`dest_cluster> vserver migrate show`
-
+[source, cli]
+----
+vserver migrate show
+----
 +
 L'état affiche « migrate-Complete » lorsque la migration de SVM est terminée.
 
@@ -49,45 +58,58 @@ L'état affiche « migrate-Complete » lorsque la migration de SVM est terminée
 
 
 
-== Migrer un SVM avec la mise en service client automatique désactivée
+== Migrer une machine virtuelle ONTAP avec basculement automatique du client désactivé
 
 Vous pouvez utiliser l'option –auto-mise en service false pour suspendre la migration lors de la mise en service automatique du client, puis effectuer la mise en service manuellement ultérieurement. Voir xref:manual-client-cutover-task.adoc[Mise en service manuelle des clients après la migration de SVM].
 
 .Étapes
 . Depuis le cluster destination, exécutez les contrôles préalables de migration :
 +
-`dest_cluster> vserver migrate start -vserver _SVM_name_ -source-cluster _cluster_name_ -check-only true`
-
+[source, cli]
+----
+vserver migrate start -vserver <SVM_name> -source-cluster <cluster_name> -check-only true`
+----
 . Depuis le cluster destination, démarrer la migration SVM :
 +
-`dest_cluster> vserver migrate start -vserver _SVM_name_ -source-cluster _cluster_name_ -auto-cutover false`
-
+[source, cli]
+----
+vserver migrate start -vserver <SVM_name> -source-cluster <cluster_name> -auto-cutover false`
+----
 . Vérifier l'état de la migration :
 +
-`dest_cluster> vserver migrate show`
-L'état affiche « prêt à la mise en service » lorsque la migration des SVM termine les transferts de données asynchrones et est prête pour la mise en service.
+[source, cli]
+----
+vserver migrate show
+----
+
+
+L'état affiche « prêt pour la bascule » lorsque la migration SVM termine les transferts de données asynchrones et que le système est prêt pour l'opération de basculement.
 
 
 
-
-
-== Migrer un SVM avec le nettoyage source désactivé
+== Migrer une SVM ONTAP avec le nettoyage du code source désactivé
 
 Vous pouvez utiliser l'option faux privilèges -auto-source-cleanup pour désactiver la suppression du SVM source après la mise en service, puis déclencher le nettoyage source manuellement après la mise en service. Voir xref:manual-source-removal-task.adoc[Supprimer manuellement la SVM source].
 
 .Étapes
 . Depuis le cluster destination, exécutez les contrôles préalables de migration :
 +
-`dest_cluster*> vserver migrate start -vserver _SVM_name_ -source-cluster _cluster_name_ -check-only true`
-
+[source, cli]
+----
+vserver migrate start -vserver <SVM_name> -source-cluster <cluster_name> -check-only true`
+----
 . Depuis le cluster destination, démarrer la migration SVM :
 +
-`dest_cluster*> vserver migrate start -vserver _SVM_name_ -source-cluster _cluster_name_ -auto-source-cleanup false`
-
+[source, cli]
+----
+vserver migrate start -vserver <SVM_name> -source-cluster <cluster_name> -auto-source-cleanup false`
+----
 . Vérifier l'état de la migration :
 +
-`dest_cluster*> vserver migrate show`
-
+[source, cli]
+----
+vserver migrate show
+----
 +
 L'état affiche Ready-for-source-cleanup lorsque la mise en service de la migration des SVM est terminée, et est prêt à supprimer le SVM sur le cluster source.
 

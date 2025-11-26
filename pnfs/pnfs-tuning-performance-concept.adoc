@@ -1,0 +1,206 @@
+---
+permalink: pnfs/pnfs-tuning-performance-concept.html 
+sidebar: sidebar 
+keywords: tr-4063, pnfs, performance, tuning, best practices, considerations, flexgroup, metadata, nconnect, session trunking, kerberos, technical report 
+summary: 'Suivez les bonnes pratiques et les recommandations lors de l"utilisation de pNFS dans ONTAP pour des performances et une fiabilité optimales.' 
+---
+= meilleures pratiques d'optimisation et de performance de pNFS
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Lors de l'utilisation de pNFS dans ONTAP, tenez compte de ces considérations et bonnes pratiques pour obtenir les meilleurs résultats.
+
+
+
+== recommandations de type de volume
+
+pNFS dans ONTAP fonctionne avec les volumes FlexVol et les volumes FlexGroup , mais pour de meilleurs résultats globaux, utilisez les volumes FlexGroup .
+
+Les volumes FlexGroup fournissent :
+
+* Un point de montage unique pouvant couvrir plusieurs ressources matérielles au sein d'un cluster tout en permettant à pNFS de localiser le trafic de données
+* Capacités de stockage massives (jusqu'à 60 PB) et nombre élevé de fichiers (jusqu'à 200 milliards de fichiers)
+* Prise en charge des fichiers multiparties pour l'équilibrage de capacité et des gains de performance potentiels
+* Accès parallèle aux volumes et au matériel prenant en charge une seule charge de travail
+
+
+link:../flexgroup/index.html["Découvrez la gestion des volumes FlexGroup"]
+
+
+
+== Recommandations des clients
+
+Tous les clients NFS ne prennent pas en charge pNFS, mais la plupart des clients modernes le font. RHEL 6.4 et Fedora 17 ont été les premiers clients pNFS compatibles (vers 2014), il est donc raisonnable de supposer que les versions clientes publiées ces dernières années prennent pleinement en charge cette fonctionnalité. La position d'ONTAP concernant la prise en charge de NFS est la suivante : « Si le client prend en charge la fonctionnalité et est conforme à la RFC, et que nous prenons en charge la fonctionnalité, alors la combinaison est prise en charge. » Toutefois, il est recommandé de s'assurer que pNFS est pris en charge par le fournisseur du système d'exploitation client.
+
+
+
+== Mouvements de volume
+
+ONTAP offre la possibilité de déplacer des volumes sans interruption entre les nœuds ou les agrégats du même cluster afin d'assurer une flexibilité d'équilibre entre capacité et performance. Lorsqu'un déplacement de volume a lieu dans ONTAP, les mappages de périphériques pNFS sont automatiquement mis à jour pour informer les clients d'utiliser la nouvelle relation volume-interface si nécessaire.
+
+link:../volumes/move-volume-task.html["Apprenez-en davantage sur le déplacement d'un volume"]
+
+
+
+== migration de l'interface réseau
+
+ONTAP offre la possibilité de déplacer les interfaces réseau entre les nœuds d'un même cluster afin d'assurer un équilibre des performances et une flexibilité de maintenance. Comme pour les déplacements de volumes, lorsqu'une migration d'interface réseau a lieu dans ONTAP, les mappages de périphériques pNFS sont automatiquement mis à jour pour informer les clients d'utiliser la nouvelle relation volume-interface si nécessaire.
+
+Cependant, comme NFSv4.1 est un protocole avec état, une migration d'interface réseau peut perturber les clients qui utilisent activement le montage NFS. Il est recommandé d'effectuer les migrations d'interfaces réseau pendant une fenêtre de maintenance et d'informer les clients des perturbations potentielles du réseau.
+
+
+
+== Basculements/restitutions de stockage
+
+pNFS suit les mêmes considérations de basculement de stockage que NFSv4.1. Ces points sont traités en détail dans https://www.netapp.com/pdf.html?item=/media/10720-tr-4067.pdf["Rapport technique NetApp 4067 : Guide des meilleures pratiques et de mise en œuvre de NFS"^]En règle générale, toute opération de basculement/restitution de stockage impliquant pNFS doit être effectuée pendant une fenêtre de maintenance, des interruptions de stockage potentielles étant à prévoir en raison de l'état du protocole.
+
+
+
+== Charges de travail de métadonnées
+
+Les opérations sur les métadonnées sont de petite taille et peuvent être nombreuses en fonction de la charge de travail (Créez-vous un grand nombre de fichiers ? Exécutez-vous des commandes « find » ?) et le nombre total de fichiers. Par conséquent, les charges de travail impliquant un grand nombre d'appels de métadonnées peuvent solliciter fortement le processeur du serveur NFS et potentiellement créer un goulot d'étranglement sur une seule connexion. pNFS (et NFSv4.x en général) n'est pas adapté aux charges de travail exigeantes en termes de performances et nécessitant un grand nombre d'appels de métadonnées, car la gestion de l'état, les mécanismes de verrouillage et certaines fonctionnalités de sécurité de cette version du protocole peuvent impacter négativement l'utilisation du processeur et la latence. Ces types de charges de travail (comme les charges GETATTR ou SETATTR élevées) fonctionnent généralement mieux avec NFSv3.
+
+
+
+== Serveur de métadonnées
+
+Le serveur de métadonnées de pNFS est établi lors du montage initial d'une exportation NFS. Une fois le point de montage établi, il reste en place jusqu'à son remontage ou le déplacement de l'interface de données. C’est pourquoi il est recommandé de veiller à ce que plusieurs clients accédant au même volume le montent sur des nœuds et des interfaces de données différents au sein du SVM. Cette approche assure l'équilibrage de charge des serveurs de métadonnées entre les nœuds et les ressources du processeur tout en maximisant les interfaces réseau du cluster. Une façon d'y parvenir est de mettre en place une configuration DNS à répartition circulaire, qui est abordée dans https://www.netapp.com/pdf.html?item=/media/19370-tr-4523.pdf["Rapport technique NetApp 4523 : Équilibrage de charge DNS dans ONTAP"^].
+
+
+
+== Domaines d'identification NFSv4.x
+
+NFSv4.x offre des fonctionnalités de sécurité de multiples façons (traitées en détail dans https://www.netapp.com/pdf.html?item=/media/10720-tr-4067.pdf["Rapport technique NetApp 4067 : Guide des meilleures pratiques et de mise en œuvre de NFS"^]). Les domaines d'identification NFSv4.x constituent l'une de ces méthodes, où un client et un serveur doivent s'accorder sur les domaines d'identification lors de la tentative d'authentification des utilisateurs et des groupes dans une exportation NFS. L'un des effets secondaires d'une incohérence de domaine d'identification serait que l'utilisateur ou le groupe apparaisse comme un utilisateur anonymisé (essentiellement masqué) afin d'empêcher tout accès non autorisé. Avec NFSv4.x (et également pNFS), il est recommandé de s'assurer que les domaines d'identification NFSv4.x correspondent sur le client et le serveur.
+
+
+
+== nconnect
+
+Comme mentionné précédemment, nconnect dans ONTAP peut contribuer à améliorer les performances dans certaines charges de travail. Avec pNFS, il est important de comprendre que si nconnect peut améliorer les performances en augmentant considérablement le nombre total de connexions TCP au système de stockage, cela peut également créer des problèmes lorsque de nombreux clients utilisent l'option de montage en surchargeant les connexions TCP sur le stockage. L' Hardware Universe NetApp couvre les limites de connexion TCP par nœud.
+
+Lorsqu'un nœud atteint ses limites de connexions TCP, aucune nouvelle connexion TCP n'est autorisée tant que les connexions existantes ne sont pas libérées. Cela peut engendrer des complications dans des environnements susceptibles de subir des orages violents.
+
+Le tableau suivant montre comment pNFS avec nconnect peut dépasser les limites de connexion TCP :
+
+[cols="20,20,60"]
+|===
+| Nombre de clients | valeur nconnect | Nombre total de connexions TCP potentielles par montage et par nœud 
+
+
+| 1 | 4 | 4 
+
+
+| 100 | 4 | 400 
+
+
+| 1000 | 8 | 8000 
+
+
+| 10000 | 8 | 80000 
+
+
+| 10000 | 16 | 160000 ^1^ 
+|===
+^1^ Dépasse la plupart des limites de connexion TCP à nœud unique ONTAP
+
+
+
+== Agrégation de sessions NFSv4.1
+
+Le trunking de session dans ONTAP peut être utilisé pour augmenter le débit et la résilience du chemin vers les montages NFSv4.x. Lorsqu'il est utilisé avec pNFS, chaque nœud d'un cluster peut établir un trunk de session. Cependant, les liaisons de session nécessitent au moins deux interfaces par nœud, et pNFS nécessite au moins une interface par nœud pour fonctionner comme prévu. De plus, toutes les interfaces du SVM doivent être routables vers les clients NFS. Le trunking de session et pNFS ne fonctionnent pas correctement lorsqu'ils utilisent également nconnect. Considérez nconnect et le trunking de session comme des fonctionnalités mutuellement exclusives.
+
+link:../nfs-trunking/index.html["Découvrez le trunking NFS."]
+
+
+
+== connectivité de l'interface réseau
+
+Pour fonctionner correctement, pNFS nécessite une interface réseau routable sur chaque nœud d'un cluster. Si d'autres interfaces réseau non routables vers les clients NFS existent dans la même SVM que le serveur NFS hébergeant pNFS, ONTAP annoncera tout de même ces interfaces dans le mappage des périphériques aux clients. Lorsque le client NFS tente d'accéder à des données via les interfaces d'un sous-réseau différent, la connexion échoue et cela provoque une interruption de service. Il est recommandé, lors de l'utilisation de pNFS, de n'autoriser dans une SVM que les interfaces réseau accessibles par les clients.
+
+
+
+== NFSv4.0
+
+NFSv4.0 est une option qui peut être activée sur un serveur ONTAP NFS en parallèle de NFSv4.1. Cependant, pNFS ne fonctionne pas sur NFSv4.0. Si NFSv4.0 est activé sur le serveur NFS, les clients peuvent potentiellement monter sans le savoir cette version du protocole et ne pourront pas utiliser pNFS. Par conséquent, il est recommandé de désactiver explicitement NFSv4.0 lors de l'utilisation de pNFS. NFSv4.1 doit toujours être activé et peut fonctionner indépendamment de NFSv4.0.
+
+
+
+== Références NFSv4.1
+
+Les redirections NFSv4.1 localisent le chemin de montage du client vers l'interface réseau du nœud propriétaire du volume. pNFS localise le chemin des données, et le chemin de montage devient un serveur de métadonnées.
+
+Bien que les deux fonctionnalités puissent être utilisées ensemble, l'utilisation des références NFSv4.1 avec pNFS pourrait avoir pour effet indésirable d'empiler plusieurs serveurs de métadonnées sur le même nœud et de réduire la capacité à répartir les serveurs de métadonnées sur plusieurs nœuds du cluster. Si les serveurs de métadonnées ne sont pas répartis uniformément sur un cluster lors de l'utilisation de pNFS, le processeur d'un seul nœud peut être surchargé par les requêtes de métadonnées et créer un goulot d'étranglement en termes de performances.
+
+Par conséquent, il est recommandé d'éviter d'utiliser les références NFSv4.1 lors de l'utilisation de pNFS. Il est plutôt conseillé de répartir les points de montage sur plusieurs interfaces réseau et nœuds du cluster.
+
+link:../nfs-admin/enable-disable-nfsv4-referrals-task.html["Découvrez comment activer ou désactiver les redirections NFSv4"]
+
+
+
+== NFS Kerberos
+
+Avec NFS Kerberos, il est possible de chiffrer l'authentification avec krb5 et de chiffrer davantage les paquets de données avec krb5i et krb5p. Cette fonctionnalité est activée pour chaque interface réseau dans une SVM et est décrite en détail dans https://www.netapp.com/pdf.html?item=/media/19384-tr-4616.pdf["Rapport technique NetApp 4616 : NFS Kerberos dans ONTAP avec Microsoft Active Directory"^].
+
+Étant donné que pNFS peut rediriger le trafic de données entre les nœuds et les interfaces réseau du SVM, NFS Kerberos doit être activé et fonctionnel sur chaque interface réseau du SVM. Si une interface réseau du SVM n'est pas activée pour Kerberos, pNFS ne pourra pas fonctionner correctement lors de la tentative d'accès aux volumes de données sur ces interfaces.
+
+Par exemple, lors de l'exécution d'un test de lecture utilisant la commande dd parallèle sur une SVM compatible pNFS avec deux interfaces réseau (dont une seule activée pour Kerberos), les fichiers situés sur l'interface Kerberos activée ont fonctionné correctement, tandis que les fichiers sur le nœud avec l'interface sans Kerberos activé n'ont jamais pu terminer leur lecture. Lorsque Kerberos a été activé sur les deux interfaces, tous les fichiers ont pu fonctionner comme prévu.
+
+NFS Kerberos peut être utilisé avec pNFS à condition que NFS Kerberos soit activé sur toutes les interfaces réseau du SVM. N'oubliez pas que NFS Kerberos peut entraîner une perte de performance due au chiffrement/déchiffrement des paquets. Il est donc recommandé de tester minutieusement pNFS avec NFS Kerberos sur vos charges de travail afin de garantir que toute baisse de performance n'ait pas un impact excessif sur celles-ci.
+
+Vous trouverez ci-dessous un exemple de performances de lecture parallèle lors de l'utilisation de krb5 (authentification) et krb5p (chiffrement de bout en bout) avec pNFS sur un client RHEL 9.5. Le Krb5p a enregistré une dégradation de performance de 70 % lors de ce test.
+
+[cols="20,40,40"]
+|===
+| Saveur Kerberos | Mo/s | Temps d'achèvement 
+
+
+| krb5  a| 
+* File1-243
+* File2-243
+* File3-238
+* File4-238
+
+ a| 
+* File1-43
+* File2-43,1
+* File3-44
+* File4-44,1
+
+
+
+
+| krb5p  a| 
+* File1-72,9
+* File2-72,8
+* File3-71,4
+* File4-71,2
+
+ a| 
+* File1-143,9
+* File2-144,1
+* File3-146,9
+* File4-147,3
+
+
+|===
+link:../nfs-config/kerberos-nfs-strong-security-concept.html["Découvrez comment Kerberos et NFS renforcent la sécurité."]
+
+
+
+== NFSv4.2
+
+NFSv4.2 a été ajouté à ONTAP 9.8 et est la dernière version NFSv4.x disponible (RFC-7862). NFSv4.2 ne dispose pas d'une option explicite pour l'activer/la désactiver. Il est en revanche activé/désactivé en même temps que NFSv4.1. (`-4.1 enabled`). Si un client prend en charge NFSv4.2, il négociera la version NFS la plus récente prise en charge lors de la commande de montage, sauf indication contraire. `minorversion=2` option de montage.
+
+NFSv4.2 dans ONTAP prend en charge les fonctionnalités suivantes :
+
+* Étiquettes de sécurité (étiquettes MAC)
+* Attributs étendus
+* Opérations sur fichiers épars (FALLOCATE)
+
+
+pNFS a été introduit avec NFSv4.1, mais est également pris en charge par NFSv4.2, ainsi que par ses fonctionnalités associées.
+
+link:../nfs-admin/ontap-support-nfsv42-concept.html["En savoir plus sur la prise en charge ONTAP pour NFSv4.2"]

@@ -54,7 +54,37 @@ C1_cluster 			  1-80-000011           Unavailable    ok
 .Solution
 Forcer un basculement pour activer les E/S depuis le site B, puis établir une relation RTO nul entre le site B et le site A. Procédez comme suit pour effectuer un basculement forcé sur le site B.
 
-. Annulez le mappage de toutes les LUN appartenant au groupe de cohérence à partir du site B.
+. Supprimez le mappage de tous les LUN appartenant au groupe de cohérence du site B. Cette opération échouera ; vous devez donc d’abord modifier l’igroup pour supprimer le SVM homologue de réplication, puis supprimer le mappage LUN.
+
+
+Exemple :
+
+[listing]
+----
+C1_cluster::> lun mapping show
+Vserver    Path                                      Igroup   LUN ID  Protocol
+---------- ----------------------------------------  -------  ------  --------
+vs0        /vol/cg1_lun/lun_1                        igroup1       0  mixed
+vs0        /vol/cg1_lun/lun_2                        igroup1       1  mixed
+2 entries were displayed.
+
+C1_cluster::> lun mapping delete -path /vol/cg1_lun/lun_5 -igroup igroup1
+Error: command failed: The peer cluster is unreachable and a SnapMirror
+       Mediator is not configured. The configuration is locked for replicated
+       objects in this Vserver peer relationship on both clusters. The only
+       supported configuration change is to manually disable replication on
+       both sides of the relationship, after which configuration changes are
+       supported.
+C1_cluster::> igroup modify -igroup igroup1 -replication-peer -
+
+C1_cluster::> lun mapping delete -path /vol/cg1_lun/lun_1 -igroup igroup1
+
+C1_cluster::> lun mapping show
+Vserver    Path                                      Igroup   LUN ID  Protocol
+---------- ----------------------------------------  -------  ------  --------
+vs0        /vol/cg1_lun/lun_2                        igroup1       1  mixed
+1 entries were displayed.
+----
 . Supprimez la relation de groupe de cohérence SnapMirror à l'aide de l'option force.
 . Entrez la commande SnapMirror break (`snapmirror break -destination_path _svm_:_volume_`) Sur les volumes constitutifs du groupe de cohérence pour convertir les volumes de DP en RW, afin d'activer les E/S à partir du site B.
 +

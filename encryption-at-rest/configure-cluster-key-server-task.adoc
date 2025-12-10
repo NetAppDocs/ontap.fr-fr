@@ -14,19 +14,18 @@ summary: Activez une prise en charge supplémentaire des serveurs de gestion ext
 
 
 [role="lead"]
-À partir de ONTAP 9.11.1, vous pouvez configurer la connectivité aux serveurs de gestion externe des clés en cluster sur une SVM. Avec des serveurs de clés en cluster, vous pouvez désigner des serveurs de clés principaux et secondaires sur une SVM. Lors de l'enregistrement des clés, ONTAP essaie d'abord d'accéder à un serveur de clés principal avant de tenter d'accéder aux serveurs secondaires de manière séquentielle jusqu'à ce que l'opération s'effectue correctement, ce qui évite la duplication des clés.
+À partir d' ONTAP 9.11.1, vous pouvez configurer la connectivité aux serveurs de gestion de clés externes en cluster sur une SVM.  Avec les serveurs de clés en cluster, vous pouvez désigner des serveurs de clés primaires et secondaires sur une SVM.  Lors de l'enregistrement ou de la récupération de clés, ONTAP tente d'abord d'accéder au serveur de clés principal avant de tenter successivement d'accéder aux serveurs secondaires jusqu'à ce que l'opération se termine avec succès.
 
-Les serveurs de clés externes peuvent être utilisés pour les clés NSE, NVE, NAE et SED. Un SVM peut prendre en charge jusqu'à quatre principaux serveurs KMIP externes. Chaque serveur principal peut prendre en charge jusqu'à trois serveurs de clés secondaires.
+Vous pouvez utiliser des serveurs de clés externes pour les clés NetApp Storage Encryption (NSE), NetApp Volume Encryption (NVE) et NetApp Aggregate Encryption (NAE).  Un SVM peut prendre en charge jusqu'à quatre serveurs KMIP externes principaux.  Chaque serveur principal peut prendre en charge jusqu'à trois serveurs de clés secondaires.
 
-
-
-== Avant de commencer
-
-* link:install-ssl-certificates-hardware-task.html["La gestion des clés KMIP doit être activée pour le SVM"].
+.Description de la tâche
 * Ce processus prend uniquement en charge les serveurs de clés qui utilisent KMIP. Pour obtenir la liste des serveurs de clés pris en charge, reportez-vous à la link:http://mysupport.netapp.com/matrix/["Matrice d'interopérabilité NetApp"^].
+
+
+.Avant de commencer
+* link:install-ssl-certificates-hardware-task.html["La gestion des clés KMIP doit être activée pour le SVM"].
 * Tous les nœuds du cluster doivent exécuter ONTAP 9.11.1 ou une version ultérieure.
-* L'ordre des serveurs répertorie les arguments dans `-secondary-key-servers` Paramètre correspond à l'ordre d'accès des serveurs de gestion externe des clés (KMIP).
-* Pour en savoir plus sur les commandes décrites dans cette procédurelink:https://docs.netapp.com/us-en/ontap-cli/["Référence de commande ONTAP"^], reportez-vous à la .
+* L'ordre des serveurs listés dans le `-secondary-key-servers` Ce paramètre reflète l'ordre d'accès des serveurs de gestion de clés externes (KMIP).
 
 
 
@@ -39,21 +38,59 @@ La procédure de configuration varie selon que vous avez configuré ou non un se
 ====
 .Ajout de serveurs de clés primaires et secondaires à un SVM
 --
-. Vérifier qu'aucune gestion des clés n'a été activée pour le cluster :
-`security key-manager external show -vserver _svm_name_`
-Si le SVM possède déjà le maximum de quatre serveurs de clés principaux activés, vous devez supprimer l'un des serveurs de clés principaux existants avant d'en ajouter un nouveau.
-. Activez le gestionnaire de clés principal :
-`security key-manager external enable -vserver _svm_name_ -key-servers _server_ip_ -client-cert _client_cert_name_ -server-ca-certs _server_ca_cert_names_`
-. Modifiez le serveur de clé primaire pour ajouter des serveurs de clé secondaires. Le `-secondary-key-servers` Ce paramètre accepte une liste de trois serveurs clés maximum, séparés par des virgules. N'indiquez pas de numéro de port pour les serveurs de clés secondaires.
-`security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
+.Étapes
+. Vérifiez qu'aucune gestion de clés n'a été activée pour le cluster (SVM d'administration) :
++
+`security key-manager external show -vserver <svm_name>`
+
++
+Si le SVM a déjà le maximum de quatre serveurs de clés primaires activés, vous devez supprimer l'un des serveurs de clés primaires existants avant d'en ajouter un nouveau.
+
+. Activez le gestionnaire de clés primaires :
++
+`security key-manager external enable -vserver <svm_name> -key-servers <primary_key_server_ip> -client-cert <client_cert_name> -server-ca-certs <server_ca_cert_names>`
+
++
+** Si vous ne spécifiez pas de port dans le `-key-servers` Ce paramètre indique que le port par défaut 5696 est utilisé.
++
+
+NOTE: Si vous exécutez le `security key-manager external enable` Pour exécuter la commande relative à la SVM d'administration dans une configuration MetroCluster , vous devez la réaliser sur les deux clusters.  Si vous exécutez la commande pour une SVM de données individuelle, vous n'avez pas besoin de l'exécuter sur les deux clusters.  NetApp recommande fortement d'utiliser les mêmes serveurs clés sur les deux clusters.
+
+
+
+. Modifiez le serveur de clé primaire pour ajouter des serveurs de clé secondaires. Le `-secondary-key-servers` Ce paramètre accepte une liste de trois serveurs clés maximum, séparés par des virgules :
++
+`security key-manager external modify-server -vserver <svm_name> -key-servers <primary_key_server> -secondary-key-servers <list_of_key_servers>`
+
++
+** N'incluez pas de numéro de port pour les serveurs de clés secondaires dans le `-secondary-key-servers` paramètre.  Il utilise le même numéro de port que le serveur de clé primaire.
++
+
+NOTE: Si vous exécutez le `security key-manager external` Pour exécuter la commande relative à la SVM d'administration dans une configuration MetroCluster , vous devez la réaliser sur les deux clusters.  Si vous exécutez la commande pour une SVM de données individuelle, vous n'avez pas besoin de l'exécuter sur les deux clusters.  NetApp recommande fortement d'utiliser les mêmes serveurs clés sur les deux clusters.
+
+
+
 
 
 --
 .Ajoutez des serveurs de clés secondaires à un serveur de clés principal existant
 --
-. Modifiez le serveur de clé primaire pour ajouter des serveurs de clé secondaires. Le `-secondary-key-servers` Ce paramètre accepte une liste de trois serveurs clés maximum, séparés par des virgules. N'indiquez pas de numéro de port pour les serveurs de clés secondaires.
-`security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_` Pour plus d'informations sur les serveurs de clés secondaires, consultez <<mod-secondary>>.
+.Étapes
+. Modifiez le serveur de clé primaire pour ajouter des serveurs de clé secondaires. Le `-secondary-key-servers` Ce paramètre accepte une liste de trois serveurs clés maximum, séparés par des virgules :
++
+`security key-manager external modify-server -vserver <svm_name> -key-servers <primary_key_server> -secondary-key-servers <list_of_key_servers>`
 
++
+** N'incluez pas de numéro de port pour les serveurs de clés secondaires dans le `-secondary-key-servers` paramètre.  Il utilise le même numéro de port que les serveurs de clés primaires.
++
+
+NOTE: Si vous exécutez le `security key-manager external modify-server` Pour exécuter la commande relative à la SVM d'administration dans une configuration MetroCluster , vous devez la réaliser sur les deux clusters.  Si vous exécutez la commande pour une SVM de données individuelle, vous n'avez pas besoin de l'exécuter sur les deux clusters.  NetApp recommande fortement d'utiliser les mêmes serveurs clés sur les deux clusters.
+
+
+
+
+
+Pour plus d'informations sur les serveurs de clés secondaires, consultez <<mod-secondary>>.
 
 --
 ====
@@ -61,24 +98,64 @@ Si le SVM possède déjà le maximum de quatre serveurs de clés principaux acti
 
 == Modifier les serveurs de clés en cluster
 
-Vous pouvez modifier les clusters de serveurs de clés externes en modifiant l'état (principal ou secondaire) de serveurs de clés spécifiques, en ajoutant et en supprimant des serveurs de clés secondaires ou en modifiant l'ordre d'accès des serveurs de clés secondaires.
-
-
-
-=== Conversion des serveurs de clés principaux et secondaires
-
-Pour convertir un serveur de clés principal en serveur de clés secondaire, vous devez d'abord le supprimer de la SVM avec le `security key-manager external remove-servers` commande.
-
-Pour convertir un serveur de clés secondaire en serveur de clés principal, vous devez d'abord supprimer le serveur de clés secondaire de son serveur de clés principal existant. Voir <<mod-secondary>>. Si vous convertissez un serveur de clés secondaire en serveur principal lors de la suppression d'une clé existante, toute tentative d'ajout d'un nouveau serveur avant la suppression et la conversion peut entraîner la duplication des clés.
+Vous pouvez modifier les serveurs de clés externes en cluster en ajoutant et en supprimant des serveurs de clés secondaires, en modifiant l'ordre d'accès des serveurs de clés secondaires ou en modifiant la désignation (primaire ou secondaire) de certains serveurs de clés.  Si vous modifiez des serveurs de clés externes en cluster dans une configuration MetroCluster , NetApp recommande fortement d'utiliser les mêmes serveurs de clés sur les deux clusters.
 
 
 
 === Modifier les serveurs de clés secondaires
 
-Les serveurs de clés secondaires sont gérés avec le `-secondary-key-servers` paramètre du `security key-manager external modify-server` commande. Le `-secondary-key-servers` Ce paramètre accepte une liste séparée par des virgules. L'ordre spécifié des serveurs de clés secondaires dans la liste détermine la séquence d'accès pour ces serveurs. L'ordre d'accès peut être modifié en exécutant la commande `security key-manager external modify-server` avec les serveurs de clés secondaires saisis dans un ordre différent. N'indiquez pas de numéro de port pour les serveurs de clés secondaires.
+Utilisez le paramètre `-secondary-key-servers` de la commande  `security key-manager external modify-server` pour gérer les serveurs de clés secondaires. Le `-secondary-key-servers` Ce paramètre accepte une liste séparée par des virgules. L'ordre spécifié des serveurs de clés secondaires dans la liste détermine la séquence d'accès pour ces serveurs. Vous pouvez modifier l’ordre d’accès en exécutant la commande  `security key-manager external modify-server`  avec les serveurs de clés secondaires saisis dans un ordre différent. N'indiquez pas de numéro de port pour les serveurs de clés secondaires.
 
-Pour supprimer un serveur de clés secondaire, le `-secondary-key-servers` les arguments doivent inclure les serveurs clés que vous voulez conserver lors de l'omission de celui à supprimer. Pour supprimer tous les serveurs de clés secondaires, utilisez l'argument `-`, indiquant aucun.
 
+NOTE: Si vous exécutez le `security key-manager external modify-server` Pour exécuter la commande relative à la SVM d'administration dans une configuration MetroCluster , vous devez la réaliser sur les deux clusters.  Si vous exécutez la commande pour une SVM de données individuelle, vous n'avez pas besoin de l'exécuter sur les deux clusters.
+
+Pour supprimer un serveur de clés secondaire, incluez les serveurs de clés que vous souhaitez conserver dans le `-secondary-key-servers` paramétrez et omettez celui que vous souhaitez supprimer.  Pour supprimer tous les serveurs de clés secondaires, utilisez l'argument `-` , signifiant aucun.
+
+
+
+=== Conversion des serveurs de clés principaux et secondaires
+
+Vous pouvez utiliser les étapes suivantes pour modifier la désignation (primaire ou secondaire) de certains serveurs clés.
+
+[role="tabbed-block"]
+====
+.Convertir un serveur de clé primaire en serveur de clé secondaire
+--
+.Étapes
+. Supprimez le serveur de clé primaire du SVM :
++
+`security key-manager external remove-servers`
+
++
+
+NOTE: Si vous exécutez le `security key-manager external remove-servers` Pour exécuter la commande relative à la SVM d'administration dans une configuration MetroCluster , vous devez la réaliser sur les deux clusters.  Si vous exécutez la commande pour une SVM de données individuelle, vous n'avez pas besoin de l'exécuter sur les deux clusters.
+
+. Effectuez le<<Créer un serveur de clés mis en cluster>> procédure utilisant l'ancien serveur de clé primaire comme serveur de clé secondaire.
+
+
+--
+.Convertir un serveur de clés secondaires en serveur de clés primaires
+--
+.Étapes
+. Supprimez le serveur de clé secondaire de son serveur de clé primaire existant :
++
+`security key-manager external modify-server -secondary-key-servers`
+
++
+[NOTE]
+====
+** Si vous exécutez le `security key-manager external modify-server -secondary-key-servers` Pour exécuter la commande relative à la SVM d'administration dans une configuration MetroCluster , vous devez la réaliser sur les deux clusters.  Si vous exécutez la commande pour une SVM de données individuelle, vous n'avez pas besoin de l'exécuter sur les deux clusters.
+** Si vous convertissez un serveur de clés secondaire en serveur de clés primaire tout en supprimant un serveur de clés existant, toute tentative d'ajout d'un nouveau serveur de clés avant la fin de la suppression et de la conversion peut entraîner la duplication des clés.
+
+
+====
+. Effectuez le<<Créer un serveur de clés mis en cluster>> procédure utilisant l'ancien serveur de clés secondaires comme serveur de clés primaires du nouveau serveur de clés en cluster.
+
+
+Se référer à<<mod-secondary>> pour plus d'informations.
+
+--
+====
 .Informations associées
-* link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+key-manager+external["gestionnaire de clés de sécurité externe"^]
+* Apprenez-en davantage sur `security key-manager external` dans lelink:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+key-manager+external["Référence de commande ONTAP"^]
 

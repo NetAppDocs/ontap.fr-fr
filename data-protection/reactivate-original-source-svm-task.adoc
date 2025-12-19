@@ -14,9 +14,13 @@ summary: 'Cette relation permet de rétablir la relation initiale de protection 
 Cette relation permet de rétablir la relation initiale de protection des données entre les SVM source et destination lorsque vous n'avez plus besoin de transmettre des données depuis la destination. La procédure est en grande partie identique à la procédure de réplication de volume, à exception près. On doit arrêter le SVM de destination avant de réactiver la SVM source.
 
 .Avant de commencer
-Si vous avez augmenté la taille du volume de destination tout en y servant des données, avant de réactiver le volume source, vous devez augmenter manuellement la taille automatique maximale sur le volume source d'origine afin de garantir une croissance suffisante.
+* Si vous avez augmenté la taille du volume de destination tout en y servant des données, avant de réactiver le volume source, vous devez augmenter manuellement la taille automatique maximale sur le volume source d'origine afin de garantir une croissance suffisante.
+
 
 link:destination-volume-grows-automatically-concept.html["Lorsqu'un volume de destination augmente automatiquement"]
+
+
+WARNING: L'administrateur du cluster doit suspendre les écritures provenant du client avant de réactiver la SVM source d'origine afin d'éviter toute perte de données.
 
 .Description de la tâche
 Depuis la version ONTAP 9.11.1, vous pouvez réduire le temps de resynchronisation pendant une répétition de reprise d'activité à l'aide  `-quick-resync true`de l'option de l'interface de ligne de  `snapmirror resync`commande de la commande tout en effectuant une resynchronisation inverse d'une relation de SVM DR. Une resynchronisation rapide permet de réduire le temps nécessaire au retour à la production en contournant les opérations de reconstruction et de restauration des entrepôts de données. Pour en savoir plus, `snapmirror resync` consultez le link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-resync.html["Référence de commande ONTAP"^].
@@ -40,21 +44,8 @@ Lorsque vous utilisez System Manager pour réactiver la VM de stockage source, S
 
 
 .Étapes
-Vous pouvez effectuer cette tâche depuis System Manager ou l'interface de ligne de commandes de ONTAP.
+Vous devez effectuer cette tâche à l'aide de l'interface de ligne de commande ONTAP .
 
-[role="tabbed-block"]
-====
---
-.System Manager
-. Dans le cluster de destination, cliquez sur *protection > relations*, puis localisez la relation de protection souhaitée.
-. Passez le curseur sur le nom de la relation source, cliquez sur image:icon_kabob.gif["Icône des options de menu"], puis sélectionnez *réactiver la VM de stockage source*.
-. Dans la fenêtre *réactiver la VM de stockage source*, cliquez sur *réactiver*.
-. Sous *Relationship*, surveillez la progression de la réactivation de la source en visualisant *Transfer Status* pour la relation de protection. Une fois la réactivation terminée, l'état de la relation doit revenir à « miroir ».
-
-
---
-.CLI
---
 . Depuis le SVM source d'origine ou le cluster source d'origine, créez une relation SVM DR inverse en utilisant les mêmes paramètres de configuration, de politique et de préservation de l'identité que la relation SVM DR d'origine :
 +
 [source, cli]
@@ -263,13 +254,14 @@ cluster_dst::> snapmirror release -source-path svm_backup: -destination-path svm
 ----
 
 
-.Une fois que vous avez terminé
-Utilisez le `snapmirror show` Commande permettant de vérifier que la relation SnapMirror a été créée.
-
+.Et la suite
+* Utilisez le `snapmirror show` Commande permettant de vérifier que la relation SnapMirror a été créée.
++
 Pour en savoir plus, `snapmirror show` consultez le link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-show.html["Référence de commande ONTAP"^].
 
---
-====
+* Reprenez les opérations d'écriture de votre client vers la SVM source d'origine.
+
+
 .Informations associées
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-create.html["création snapmirror"^]
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-delete.html["suppression de snapmirror"^]

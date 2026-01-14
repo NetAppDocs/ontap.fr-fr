@@ -130,6 +130,7 @@ Avant de lancer une migration d'un SVM, vous devez réunir les conditions préal
 * Tous les nœuds du cluster de destination exécutent la même version ONTAP .
 * La version ONTAP du cluster de destination est identique ou au plus deux versions majeures plus récentes que celle du cluster source.
 * Les clusters source et de destination prennent en charge le même sous-réseau IP pour l'accès aux données LIF.
+* Les clusters source et de destination doivent tous deux disposer d'au moins une interface ayant accès à tous les réseaux de la SVM en cours de migration, sinon la vérification préalable de la migration échouera.
 * Le SVM source contient moins de xref:Maximum supported volumes per SVM[nombre maximal de volumes de données pris en charge pour la version].
 * L'espace disponible à destination est suffisant pour le placement des volumes.
 * Le gestionnaire de clés intégré ou la gestion de clés externe est configuré au niveau du cluster sur la destination si le SVM source possède des volumes chiffrés.
@@ -190,7 +191,26 @@ Pour plus d'informations sur l'interopérabilité de la version ONTAP entre une 
 | Fonction | Version d'abord prise en charge | Commentaires 
 
 
+| Journaux d'audit (NFS et SMB) | ONTAP 9.13.1  a| 
+[NOTE]
+====
+Pour la migration SVM sur site avec audit activé, vous devez désactiver l'audit sur le SVM source, puis effectuer la migration.
+
+====
+Avant la migration des SVM :
+
+* link:../nas-audit/enable-disable-auditing-svms-task.html["Le journal d'audit doit être activé sur le cluster de destination."].
+* link:../nas-audit/commands-modify-auditing-config-reference.html?q=audit+log+destination+path["Le chemin de destination du journal d'audit depuis la SVM source doit être créé sur le cluster destination"].
+
+
+
+
 | Protection autonome contre les ransomwares | ONTAP 9.12.1 |  
+
+
+| Instances cloud | Non pris en charge  a| 
+La migration des SVM depuis ou vers des instances sur site vers le cloud n'est pas prise en charge.
+
 
 
 | Cloud Volumes ONTAP | Non pris en charge |  
@@ -262,20 +282,6 @@ Voir le <<Prérequis,prérequis>> pour migrer un SVM dans une configuration Metr
 | NVE (NetApp Volume Encryption) | ONTAP 9.10.1 | Les volumes NVE sont migrés en tant que volumes NVE sur la destination. 
 
 
-| Journaux d'audit NFS et SMB | ONTAP 9.13.1  a| 
-[NOTE]
-====
-Pour la migration SVM sur site avec audit activé, vous devez désactiver l'audit sur le SVM source, puis effectuer la migration.
-
-====
-Avant la migration des SVM :
-
-* link:../nas-audit/enable-disable-auditing-svms-task.html["La redirection du journal d'audit doit être activée sur le cluster de destination"].
-* link:../nas-audit/commands-modify-auditing-config-reference.html?q=audit+log+destination+path["Le chemin de destination du journal d'audit depuis la SVM source doit être créé sur le cluster destination"].
-
-
-
-
 | NFS v3, NFS v4.1 et NFS v4.2 | ONTAP 9.10.1 |  
 
 
@@ -291,6 +297,9 @@ Avant la migration des SVM :
 | Gestionnaire de clés intégré OKM (Onboard Key Manager) avec le mode critères communs activé sur le cluster source | Non pris en charge |  
 
 
+| ONTAP Select | Non pris en charge | La migration des SVM vers ou depuis les instances ONTAP Select n'est pas prise en charge. 
+
+
 | Qtrees | ONTAP 9.14.1 |  
 
 
@@ -300,7 +309,7 @@ Avant la migration des SVM :
 | S3 | Non pris en charge |  
 
 
-| Protocole SMB | ONTAP 9.12.1  a| 
+| Protocole SMB | ONTAP 9.12.1 Cependant, le protocole SMB1 n'est pas pris en charge.  a| 
 Les migrations SMB sont perturbatrices et nécessitent une actualisation du client après la migration.
 
 
@@ -429,3 +438,10 @@ Le tableau suivant indique les opérations de volume prises en charge au sein du
 
 | Restaurer le fichier à partir du snapshot | Autorisé | Autorisé | Non pris en charge 
 |===
+
+
+== Informations post-migration
+
+* Après la migration, les politiques de snapshots locaux ont l'extension -MIG, ce qui peut perturber certaines automatisations. Vous devriez rechercher cette extension et renommer les politiques si nécessaire.
+* Les volumes SnapMirror de destination du coffre-fort migré doivent effectuer une resynchronisation pour réactiver la protection. La resynchronisation du coffre-fort est nécessaire car la migration crée une nouvelle base de référence entre les SVM de migration, plus récente que la précédente base de référence du coffre-fort. Une resynchronisation réactive le coffre-fort, ce qui supprimera également toutes les données plus récentes que la version de référence actuelle du coffre-fort, en particulier l'instantané généré lors de la migration.
+

@@ -2,23 +2,26 @@
 permalink: performance-admin/set-throughput-floor-qos-task.html 
 sidebar: sidebar 
 keywords: setting, throughput, floor, qos 
-summary: 'Vous pouvez utiliser le champ min-débit d"un groupe de règles pour définir un étage de débit pour les workloads d"objets de stockage (QoS min). Vous pouvez appliquer le groupe de règles lors de la création ou de la modification de l"objet de stockage. Depuis la version ONTAP 9.8, vous pouvez spécifier le seuil de débit en IOPS ou Mbit/s, ou IOPS et Mbit/s.' 
+summary: 'Un seuil de qualité de service (QoS) ou un plancher de débit garantit que le débit d"une charge de travail ne descend pas en dessous d"un nombre minimal d"IOPS ou de MBps, ou d"IOPS et de MBps, indépendamment des charges de travail concurrentes. Définissez un plancher de débit pour garantir que les charges de travail critiques sont prioritaires et répondent aux exigences minimales de performance.' 
 ---
-= Définissez un seuil de débit avec la QoS dans ONTAP
+= Définissez un débit minimal avec les groupes de stratégies QoS ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Vous pouvez utiliser le `min-throughput` Champ permettant à un groupe de règles de définir un étage de débit pour les workloads d'objets de stockage (QoS min). Vous pouvez appliquer le groupe de règles lors de la création ou de la modification de l'objet de stockage. Depuis la version ONTAP 9.8, vous pouvez spécifier le seuil de débit en IOPS ou Mbit/s, ou IOPS et Mbit/s.
+Un seuil de qualité de service (QoS) ou un plancher de débit garantit que le débit d'une charge de travail ne descend pas en dessous d'un nombre minimal d'IOPS ou de MBps, ou d'IOPS et de MBps, indépendamment des charges de travail concurrentes. Définissez un plancher de débit pour garantir que les charges de travail critiques sont prioritaires et répondent aux exigences minimales de performance.
+
+Vous pouvez utiliser le champ  `min-throughput` d’un groupe de stratégies pour définir un débit minimal pour les charges de travail des objets de stockage (QoS Min). Vous pouvez appliquer le groupe de stratégies lors de la création ou de la modification de l’objet de stockage.
 
 .Avant de commencer
 * Pour créer une « policy group » il faut être un administrateur de cluster.
-* À partir de ONTAP 9.13.1, vous pouvez appliquer des planchers de débit au niveau du SVM en utilisant un xref:adaptive-policy-template-task.html[modèle de groupe de règles adaptatif]. Vous ne pouvez pas définir de modèle de « policy group » adaptatif sur une SVM disposant d'une « policy group » QoS.
 
 
 .Description de la tâche
+* À partir de ONTAP 9.13.1, vous pouvez appliquer des planchers de débit au niveau du SVM en utilisant un xref:adaptive-policy-template-task.html[modèle de groupe de règles adaptatif]. Vous ne pouvez pas définir de modèle de « policy group » adaptatif sur une SVM disposant d'une « policy group » QoS.
+* À partir de ONTAP 9.8, vous pouvez spécifier le débit minimal en IOPS ou MBps, ou IOPS et MBps.
 * Depuis ONTAP 9.4, vous pouvez utiliser un groupe de règles QoS _non-partagé_ pour spécifier que le niveau de débit défini soit appliqué individuellement à chaque charge de travail membre. C'est la seule condition dans laquelle un groupe de règles pour un étage de débit peut être appliqué à plusieurs charges de travail.
 +
 Réglez `-is-shared=false` pour le `qos policy-group create` commande permettant de spécifier une « policy group » non partagée.
@@ -33,14 +36,15 @@ Réglez `-is-shared=false` pour le `qos policy-group create` commande permettant
 . Vérifier que la capacité de performance sur le nœud ou l'agrégat est appropriée, comme décrit dans link:identify-remaining-performance-capacity-task.html["Identification de la capacité de performance restante"].
 . Création d'une « policy group » :
 +
-`qos policy-group create -policy group _policy_group_ -vserver _SVM_ -min-throughput _qos_target_ -is-shared true|false`
-
+[source, cli]
+----
+qos policy-group create -policy-group <policy_group> -vserver <SVM> -min-throughput <qos_target> -is-shared <true|false>
+----
 +
 Pour en savoir plus, `qos policy-group create` consultez le link:https://docs.netapp.com/us-en/ontap-cli/qos-policy-group-create.html["Référence de commande ONTAP"^].
 
-. Vous pouvez utiliser `qos policy-group modify` la commande pour ajuster les étages de débit.
 +
-La commande suivante crée la « policy group » partagée `pg-vs2` avec un débit minimal de 1,000 000 IOPS :
+L'exemple suivant crée le groupe de stratégies partagées `pg-vs2` avec un débit minimal de 1 000 IOPS :
 
 +
 [listing]
@@ -48,7 +52,7 @@ La commande suivante crée la « policy group » partagée `pg-vs2` avec un déb
 cluster1::> qos policy-group create -policy group pg-vs2 -vserver vs2 -min-throughput 1000iops -is-shared true
 ----
 +
-La commande suivante crée le « policy group » non partagé `pg-vs4` sans limite de débit :
+L'exemple suivant crée le groupe de stratégies non partagé `pg-vs4` sans limite de débit :
 
 +
 [listing]
@@ -56,27 +60,31 @@ La commande suivante crée le « policy group » non partagé `pg-vs4` sans limi
 cluster1::> qos policy-group create -policy group pg-vs4 -vserver vs4 -is-shared false
 ----
 +
-Pour en savoir plus, `qos policy-group modify` consultez le link:https://docs.netapp.com/us-en/ontap-cli/qos-policy-group-modify.html["Référence de commande ONTAP"^].
+Vous pouvez utiliser la commande  `qos policy-group modify` pour ajuster les seuils de débit. En savoir plus sur  `qos policy-group modify` dans la link:https://docs.netapp.com/us-en/ontap-cli/qos-policy-group-modify.html["Référence de commande ONTAP"^].
 
 . Appliquer une « policy group » à un volume ou une LUN :
 +
-`_storage_object_ create -vserver _SVM_ -qos-policy-group _policy_group_`Vous pouvez utiliser le `_storage_object_modify` commande pour appliquer un groupe de politiques différent à l'objet de stockage.
+[source, cli]
+----
+vserver create -vserver <SVM> -qos-policy-group <policy_group>
+----
++
+Vous pouvez utiliser la commande  `vserver modify` pour appliquer un groupe de stratégies différent à l'objet de stockage.
 
 +
-La commande suivante applique la « policy group » `pg-app2` au volume `app2`:
+L'exemple suivant applique le groupe de stratégies `pg-app2` au volume `app2` :
 
 +
 [listing]
 ----
 cluster1::> volume create -vserver vs2 -volume app2 -aggregate aggr1 -qos-policy-group pg-app2
 ----
-+
-Pour en savoir plus sur les commandes décrites dans cette procédurelink:https://docs.netapp.com/us-en/ontap-cli/["Référence de commande ONTAP"^], reportez-vous à la .
-
 . Surveillance des performances des groupes de règles :
 +
-`qos statistics performance show`
-
+[source, cli]
+----
+qos statistics performance show
+----
 +
 [NOTE]
 ====
@@ -84,7 +92,7 @@ Contrôle des performances depuis le cluster. N'utilisez pas d'outil sur l'hôte
 
 ====
 +
-La commande suivante affiche les performances de « policy group » :
+L'exemple suivant montre les performances d'un groupe de politiques :
 
 +
 [listing]
@@ -102,8 +110,10 @@ Pour en savoir plus, `qos statistics performance show` consultez le link:https:/
 
 . Contrôle de la performance des charges de travail :
 +
-`qos statistics workload performance show`
-
+[source, cli]
+----
+qos statistics workload performance show
+----
 +
 [NOTE]
 ====
@@ -111,7 +121,7 @@ Contrôle des performances depuis le cluster. N'utilisez pas d'outil sur l'hôte
 
 ====
 +
-La commande suivante indique les performances des workloads :
+L'exemple suivant montre les performances de la charge de travail :
 
 +
 [listing]
@@ -128,10 +138,6 @@ _Scan_Backgro..   5688       20            0KB/s        0ms
 +
 Pour en savoir plus, `qos statistics workload performance show` consultez le link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-performance-show.html["Référence de commande ONTAP"^].
 
-+
-[NOTE]
-====
+
+
 Vous pouvez utiliser `qos statistics workload latency show` la commande pour afficher les statistiques détaillées de latence des charges de travail QoS. Pour en savoir plus, `qos statistics workload latency show` consultez le link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-latency-show.html["Référence de commande ONTAP"^].
-
-====
-

@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: path failover 
 summary: 'La gestion du basculement de chemin dans les topologies NAS et SAN est deux différences importantes dans la façon dont ONTAP gère ce basculement. Une LIF NAS migre automatiquement vers un autre port réseau après une panne de liaison. Une LIF SAN ne migre pas (sauf si vous la déplacez manuellement après la panne). La technologie de chemins d"accès multiples sur l"hôte achemine le trafic vers une autre LIF - sur le même SVM, mais vers un autre port réseau.' 
 ---
-= Présentation du basculement de chemin
+= Découvrez la gestion du basculement des chemins ONTAP
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
@@ -12,3 +12,50 @@ summary: 'La gestion du basculement de chemin dans les topologies NAS et SAN est
 
 [role="lead"]
 La gestion du basculement de chemin dans les topologies NAS et SAN est deux différences importantes dans la façon dont ONTAP gère ce basculement. Une LIF NAS migre automatiquement vers un autre port réseau après une panne de liaison. Une LIF SAN ne migre pas (sauf si vous la déplacez manuellement après la panne). La technologie de chemins d'accès multiples sur l'hôte transfère le trafic vers une autre LIF--sur le même SVM, mais vers un autre port réseau.
+
+
+
+== Basculement de chemin NAS
+
+Une LIF NAS migre automatiquement vers un port réseau survivant après une panne de liaison sur son port actuel. Le port vers lequel la LIF migre doit être membre de la _failover group_ pour la LIF. La _failover group policy_ permet de rétrécir les cibles de basculement pour une LIF de données vers les ports sur le nœud qui possède les données et son partenaire de haute disponibilité.
+
+Pour des raisons de commodité administrative, ONTAP crée un groupe de basculement pour chaque _broadcast domain_ dans l'architecture réseau. Les domaines de diffusion regroupent des ports appartenant au même réseau de couche 2. Si vous utilisez des VLAN, par exemple, pour isoler le trafic par département (ingénierie, marketing, finance, etc.), chaque VLAN définit un domaine de diffusion distinct. Le groupe de basculement associé au domaine de diffusion est automatiquement mis à jour chaque fois que vous ajoutez ou supprimez un port de broadcast domain.
+
+Il est presque toujours bon d'utiliser un domaine de diffusion pour définir un groupe de basculement pour s'assurer que le groupe de basculement reste à jour. Cependant, il peut arriver que vous souhaitiez définir un groupe de basculement qui n'est pas associé à un domaine de diffusion. Par exemple, vous pouvez vouloir que les LIFs échouent uniquement en cas de ports d'un sous-ensemble des ports définis dans le broadcast domain.
+
+image:nas-lif-migration.gif["Diagramme de migration LIF après une défaillance de liaison sur un port."]
+
+|===
+
+
+ a| 
+*_sous-réseaux_*
+
+A _subnet_ réserve un bloc d'adresses IP dans un domaine de diffusion. Ces adresses appartiennent au même réseau de couche 3 et sont allouées aux ports du broadcast domain lorsque vous créez une LIF. Il est généralement plus facile et moins sujette aux erreurs pour spécifier un nom de sous-réseau lorsque vous définissez une adresse LIF qu'il ne doit spécifier une adresse IP et un masque réseau.
+
+|===
+
+
+== Basculement de chemin SAN
+
+Un hôte SAN utilise le protocole ALUA (Asymmetric Logical Unit Access) et MPIO (chemins d'accès E/S multiples) pour rediriger le trafic vers un LIF survivant après une défaillance de liaison. Les chemins prédéfinis déterminent les voies possibles vers la LUN desservie par la SVM.
+
+Dans un environnement SAN, les hôtes sont considérés comme des _initiateurs_ des requêtes vers des LUN _Targets._ MPIO active plusieurs chemins d'accès des initiateurs aux cibles. ALUA identifie les chemins les plus directs, appelés « chemins optimisés »._
+
+Vous configurez généralement plusieurs chemins optimisés vers les LIF sur le nœud propriétaire de la LUN, ainsi que plusieurs chemins non optimisés vers ceux-ci sur son partenaire haute disponibilité. Si un port tombe en panne sur le nœud propriétaire, l'hôte achemine le trafic vers les ports survivants. Si tous les ports échouent, l'hôte achemine le trafic sur les chemins non optimisés.
+
+Par défaut, ONTAP Selective LUN Map (SLM) limite le nombre de chemins d'accès de l'hôte à une LUN. Une LUN nouvellement créée est accessible uniquement via des chemins vers le nœud qui possède la LUN ou son partenaire de haute disponibilité. Vous pouvez également limiter l'accès à une LUN en configurant des LIFs dans un _port set_ pour l'initiateur.
+
+image:san-host-rerouting.gif["exemple de basculement de chemin san"]
+
+|===
+
+
+ a| 
+*_déplacement de volumes dans des environnements SAN_*
+
+Par défaut, ONTAP _Selective LUN Map (SLM)_ limite le nombre de chemins d'accès à une LUN à partir d'un hôte SAN. Une LUN nouvellement créée n'est accessible qu'via des chemins vers le nœud qui possède la LUN ou son partenaire de haute disponibilité, le _node_ reporting pour la LUN.
+
+En effet, lorsque vous déplacez un volume vers un nœud d'une autre paire haute disponibilité, vous devez ajouter des nœuds de reporting pour la paire haute disponibilité de destination au mappage de LUN. Vous pouvez ensuite spécifier les nouveaux chemins dans la configuration de MPIO. Une fois le déplacement de volume terminé, vous pouvez supprimer des nœuds de reporting de la paire haute disponibilité source du mappage.
+
+|===

@@ -32,8 +32,12 @@ Vous arrêtez ou redémarrez un nœud dans un cluster à deux nœuds sans passer
 
 
 .Étapes
-. Vérifiez que les deux nœuds fonctionnent correctement :
-`cluster show`
+. Vérifiez que les deux nœuds sont en bon état :
++
+[source, cli]
+----
+cluster show
+----
 +
 Pour les deux nœuds, `true` s'affiche dans le `Health` colonne.
 
@@ -49,15 +53,23 @@ node2        true     true
 +
 Pour en savoir plus, `cluster show` consultez le link:https://docs.netapp.com/us-en/ontap-cli/cluster-show.html["Référence de commande ONTAP"^].
 
-. Migrer toutes les LIFs du nœud qui vont s'arrêter ou redémarrer vers le nœud partenaire :
-`network interface migrate-all -node _node_name_`
+. Migrez toutes les LIF du nœud que vous allez arrêter ou redémarrer vers le nœud partenaire :
++
+[source, cli]
+----
+network interface migrate-all -node <node_name>
+----
 +
 Pour en savoir plus, `network interface migrate-all` consultez le link:https://docs.netapp.com/us-en/ontap-cli/network-interface-migrate-all.html["Référence de commande ONTAP"^].
 
-. Si vous arrêtez ou redémarrez le nœud, vous voulez garder les agrégats en ligne lorsque le nœud n'est pas en panne, puis les transférer vers le nœud partenaire ; sinon, passez à l'étape suivante.
+. Si le nœud comporte des agrégats que vous allez arrêter ou redémarrer et que vous souhaitez maintenir en ligne lorsque le nœud est hors service, déplacez-les vers le nœud partenaire.
 +
-.. Afficher les agrégats du nœud vous arrêtez ou redémarrez :
-`storage aggregates show -node _node_name_`
+.. Afficher les agrégats sur le nœud que vous allez arrêter ou redémarrer :
++
+[source, cli]
+----
+storage aggregates show -node <node_name>
+----
 +
 Par exemple, le nœud 1 est le nœud qui sera arrêté ou redémarré :
 
@@ -80,7 +92,11 @@ test2_aggr  2.18TB    2.18TB    0% online       7 node1    raid_dp,
 4 entries were displayed.
 ----
 .. Déplacez les agrégats vers le nœud partenaire :
-`storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
++
+[source, cli]
+----
+storage aggregate relocation start -node <node_name> -destination <node_name> -aggregate-list <aggregate_name>
+----
 +
 Par exemple, les agrégats aggr1, aggr2 et test2_aggr sont déplacés du nœud 1 vers le nœud 2 :
 
@@ -89,39 +105,106 @@ Par exemple, les agrégats aggr1, aggr2 et test2_aggr sont déplacés du nœud 1
 
 
 
-. Désactivation du cluster HA :
-`cluster ha modify -configured false`
+. Désactiver la haute disponibilité du cluster :
 +
-La sortie de retour confirme que la HA est désactivée : `Notice: HA is disabled`
+[source, cli]
+----
+cluster ha modify -configured false
+----
++
+Lorsque la haute disponibilité du cluster est désactivée, epsilon est automatiquement déplacé vers le nœud 1. La sortie de retour confirme que la haute disponibilité est désactivée : `Notice: HA is disabled`
 
 +
 
 NOTE: Cette opération ne désactive pas le basculement du stockage.
 
-. Arrêtez ou redémarrez et inhiber le basculement du nœud cible, en utilisant la commande appropriée :
+. Si le nœud à arrêter ou à redémarrer est le nœud 1, déplacez epsilon vers le nœud 2 :
 +
-** `system node halt -node _node_name_ -inhibit-takeover true`
-** `system node reboot -node _node_name_ -inhibit-takeover true`
+.. Définissez le niveau de privilège sur avancé :
++
+[source, cli]
+----
+set -privilege advanced
+----
+.. Vérifiez que le nœud 2 est sain et éligible pour epsilon:
++
+[source, cli]
+----
+cluster show
+----
+.. Supprimez epsilon du nœud 1 :
++
+[source, cli]
+----
+cluster modify -node <node1_name> -epsilon false
+----
+.. Attribuez epsilon au nœud 2 :
++
+[source, cli]
+----
+cluster modify -node <node2_name> -epsilon true
+----
+.. Vérifiez que epsilon se trouve sur le nœud 2:
++
+[source, cli]
+----
+cluster show
+----
+
+
+. Arrêtez ou redémarrez et empêchez la prise de contrôle du nœud cible :
++
+[cols="1h,1h"]
+|===
+
+
+ a| 
+Arrêtez le nœud sans initier de prise de contrôle :
+ a| 
+[source, cli]
+----
+system node halt -node _node_name_ -inhibit-takeover true
+----
+
+
+ a| 
+Redémarrez le nœud sans lancer de prise de contrôle :
+ a| 
+[source, cli]
+----
+system node reboot -node _node_name_ -inhibit-takeover true
+----
+|===
 +
 
 NOTE: Dans le résultat de la commande, un avertissement s'affiche vous demandant si vous souhaitez continuer, entrez `y`.
 
-
-
-. Vérifiez que le nœud qui est toujours en ligne est en état de santé (alors que le partenaire n'est pas en panne) :
-`cluster show`
+. Vérifiez que le nœud qui reste en ligne est en bon état (pendant que le partenaire est hors service) :
++
+[source, cli]
+----
+cluster show
+----
 +
 Pour le nœud en ligne, `true` s'affiche dans le `Health` colonne.
 
 +
 
-NOTE: Dans le résultat de la commande, un avertissement s'affiche indiquant que le cluster HA n'est pas configuré. Vous pouvez ignorer l'avertissement pour le moment.
+NOTE: Dans le résultat de la commande, vous verrez un avertissement indiquant que le cluster HA n'est pas configuré. Vous pouvez ignorer l'avertissement.
 
 . Exécutez les actions qui vous permettent d'arrêter ou de redémarrer le nœud.
-. Démarrage du nœud de mise hors ligne à partir de l'invite DU CHARGEUR :
-`boot_ontap`
-. Vérifiez que les deux nœuds fonctionnent correctement :
-`cluster show`
+. Démarrez le nœud hors ligne à partir de l'invite LOADER :
++
+[source, cli]
+----
+boot_ontap
+----
+. Vérifiez que les deux nœuds sont en bon état :
++
+[source, cli]
+----
+cluster show
+----
 +
 Pour les deux nœuds, `true` s'affiche dans le `Health` colonne.
 
@@ -129,23 +212,43 @@ Pour les deux nœuds, `true` s'affiche dans le `Health` colonne.
 
 NOTE: Dans le résultat de la commande, un avertissement s'affiche indiquant que le cluster HA n'est pas configuré. Vous pouvez ignorer l'avertissement pour le moment.
 
-. Réactiver la haute disponibilité du cluster :
-`cluster ha modify -configured true`
-. Si vous avez précédemment transféré des agrégats vers le nœud partenaire, déplacez-les vers le nœud de rattachement ; sinon, passez à l'étape suivante :
-`storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
+. Réactivez la haute disponibilité du cluster :
++
+[source, cli]
+----
+cluster ha modify -configured true
+----
+. Si, plus tôt dans cette procédure, vous avez déplacé des agrégats vers le nœud partenaire, replacez-les sur leur nœud d'origine.
++
+[source, cli]
+----
+storage aggregate relocation start -node <node_name> -destination <node_name> -aggregate-list <aggregate_name>
+----
 +
 Par exemple, les agrégats aggr1, aggr2 et test2_aggr sont déplacés du nœud node2 vers le nœud node1 :
 `storage aggregate relocation start -node _node2_ -destination _node1_ -aggregate-list _aggr1_,_aggr2_,_test2_aggr_`
 
 . Rerestaurez les LIF sur leurs home ports :
 +
-.. Affichez les LIF qui ne sont pas à la maison :
-`network interface show -is-home false`
+.. Afficher les LIF qui ne sont pas à domicile :
++
+[source, cli]
+----
+network interface show -is-home false
+----
 +
 Pour en savoir plus, `network interface show` consultez le link:https://docs.netapp.com/us-en/ontap-cli/network-interface-show.html["Référence de commande ONTAP"^].
 
 .. Si certaines LIF ne se trouvent pas chez soi et n'ont pas été migrées depuis le nœud défaillant, vérifiez qu'il est sûr de les déplacer avant le rétablissement.
-.. Si vous êtes sûr de le faire, rerestaurez toutes les LIF à la maison.  `network interface revert *` + en savoir plus sur `network interface revert` dans le link:https://docs.netapp.com/us-en/ontap-cli/network-interface-revert.html["Référence de commande ONTAP"^].
+.. Si cela ne présente aucun danger, ramenez tous les LIF à leur emplacement d'origine.
++
+[source, cli]
+----
+ network interface revert *
+----
++
+Pour en savoir plus, `network interface revert` consultez le link:https://docs.netapp.com/us-en/ontap-cli/network-interface-revert.html["Référence de commande ONTAP"^].
+
 
 
 

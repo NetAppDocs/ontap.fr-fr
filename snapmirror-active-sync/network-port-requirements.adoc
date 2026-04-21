@@ -1,0 +1,63 @@
+---
+sidebar: sidebar 
+permalink: snapmirror-active-sync/network-port-requirements.html 
+keywords: SM-BC, SMBC, SM-AS, restrictions, firewall, network ports, snapmirror active sync 
+summary: Exigences relatives aux ports réseau de synchronisation active ONTAP SnapMirror 
+---
+= Exigences relatives aux ports réseau
+:allow-uri-read: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+SnapMirror active sync replication nécessite plusieurs ports réseau.
+
+Par exemple, chaque nœud participant à la réplication doit surveiller l'état de ses nœuds partenaires, contrôler l'activité de réplication et les données elles-mêmes doivent être répliquées. De plus, le ONTAP Mediator ou ONTAP Cloud Mediator doit communiquer avec tous les nœuds afin de fournir des services de quorum et d'assister lors du basculement. Chacune de ces fonctions a des exigences différentes en matière de points de terminaison et de ports.
+
+Dans la plupart des cas, la réplication synchrone active SnapMirror s'effectue sur un réseau interne sans restriction de port ni de destination. Si le trafic IP est limité par des pare-feu, des routeurs, la topologie du réseau ou d'autres mécanismes, les exigences de connectivité suivantes doivent être vérifiées.
+
+
+
+== Communication entre les nœuds via des liens intercluster/pairs
+
+|===
+| Port | Source | Direction | Destination | Objectif 
+
+
+| 3260/tcp | LIF intercluster | les deux | LIF intercluster | Consensus LUN 
+
+
+ a| 
+11104/tcp + 11105/tcp
+| LIF intercluster | les deux | LIF intercluster  a| 
+Communication inter-clusters
+
+SnapMirror transfert de données
+
+
+
+| 443/tcp (HTTPS) | LIF intercluster | les deux | LIF intercluster | Gestion inter-clusters 
+
+
+| 10000/tcp  a| 
+LIF de gestion de cluster + LIF de gestion de nœud
+| les deux | facultatif | Communication avec Active IQ Unified Manager 
+|===
+
+
+== Communication entre le médiateur et les nœuds du cluster
+
+|===
+| Port | Source | Direction | Destination | Objectif 
+
+
+| 22/tcp (SSH) | Hôte(s) de gestion | Entrant | Médiateur de ONTAP | Gestion du médiateur ONTAP 
+
+
+| 31784/tcp (HTTPS) | LIF de gestion de cluster | Entrant | Serveur web du médiateur ONTAP | API REST 
+
+
+| 31784/tcp | LIFs de gestion de nœud | Entrant | Serveur web du médiateur ONTAP | Service de quorum 
+|===

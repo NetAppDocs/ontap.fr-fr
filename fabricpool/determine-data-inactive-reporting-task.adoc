@@ -2,7 +2,7 @@
 permalink: fabricpool/determine-data-inactive-reporting-task.html 
 sidebar: sidebar 
 keywords: determining, how, much, data, volume, inactive, using, data reporting, fabricpool 
-summary: 'Une vu la quantité de données inactives d"un volume, vous permet d"utiliser correctement les tiers de stockage. Les informations contenues dans le reporting de données inactives vous aident à décider de l"agrégat à utiliser pour FabricPool, qu"il s"agisse de déplacer un volume vers ou hors FabricPool, ou de modifier la règle de Tiering d"un volume.' 
+summary: 'Le rapport sur les données inactives (IDR) est un excellent outil pour déterminer la quantité de données inactives (froides) qui peuvent être hiérarchisées à partir d"un niveau local.' 
 ---
 = Analysez les données ONTAP inactives à l'aide du reporting de données inactives
 :allow-uri-read: 
@@ -11,26 +11,47 @@ summary: 'Une vu la quantité de données inactives d"un volume, vous permet d"u
 
 
 [role="lead"]
-Une vu la quantité de données inactives d'un volume, vous permet d'utiliser correctement les tiers de stockage. Les informations contenues dans le reporting de données inactives vous aident à décider de l'agrégat à utiliser pour FabricPool, qu'il s'agisse de déplacer un volume vers ou hors FabricPool, ou de modifier la règle de Tiering d'un volume.
+Le rapport sur les données inactives (IDR) est un excellent outil pour déterminer la quantité de données inactives (froides) qui peuvent être hiérarchisées à partir d'un niveau local.
+
+Par défaut, IDR utilise une période de refroidissement de 31 jours pour déterminer quelles données sont considérées comme inactives. La quantité de données froides hiérarchisées dépend des politiques de hiérarchisation définies sur les volumes. Dans les versions antérieures à ONTAP 9.8, IDR utilisait une période de refroidissement fixe de 31 jours.
 
 .Avant de commencer
-Vous devez exécuter ONTAP 9.4 ou version ultérieure pour utiliser la fonctionnalité de reporting des données inactives.
+**ONTAP 9.4**
+
+* L'IDR est activé par défaut sur tous les agrégats FabricPool.
+* L'IDR peut être activé sur des agrégats SSD non-FabricPool.
+
+
+**ONTAP 9.6**
+
+* L'IDR est activé par défaut sur tous les agrégats SSD non-FabricPool.
+* L'IDR peut être activé sur des agrégats HDD non-FabricPool.
+
+
+**ONTAP 9.8**
+
+* La période de refroidissement IDR peut être ajustée à l'aide du paramètre volume-tiering-minimum-cooling-days.
+
 
 .Description de la tâche
-* Le reporting de données inactives n'est pas pris en charge sur certains agrégats.
-+
-Lorsque FabricPool ne peut pas être activé, vous ne pouvez pas activer le reporting des données inactives, y compris les instances suivantes :
+* IDR signale les données inactives susceptibles d'être hiérarchisées, et non les données inactives déjà hiérarchisées. Si FabricPool a été activé et que des données inactives ont été hiérarchisées, elles ne seront plus signalées par IDR.
 
+
+[NOTE]
+====
+Bien que l'IDR soit activée par défaut sur tous les agrégats SSD (ONTAP 9.6 et versions ultérieures), si la charge de travail d'un client requiert 90 % des ressources système, l'IDR est automatiquement désactivée, réinitialisant le nombre de jours de refroidissement à zéro. Si cela se produit, l'IDR ne se réactive pas automatiquement.
+
+Pour éviter que le processus automatisé n'arrête IDR afin de libérer des ressources pour d'autres charges de travail, activez manuellement -is-inactive-data-reporting-enabled sur true.
+
+====
+* Signalement des données inactives lorsque FabricPool ne peut pas être activé, notamment dans les cas suivants :
 +
 ** Agrégats racine
+** Les agrégats contenant des volumes utilisant une garantie d'espace autre que none. (Les volumes à provisionnement épais ne sont pas pris en charge.)
 ** Agrégats MetroCluster exécutant des versions ONTAP antérieures à 9.7
 ** Flash Pool (agrégats hybrides ou agrégats SnapLock)
 
 
-* Le reporting sur les données inactives est activé par défaut sur les agrégats sur lesquels la compression adaptative est activée pour tous les volumes.
-* Le reporting sur les données inactives est activé par défaut sur tous les agrégats SSD dans ONTAP 9.6.
-* Le reporting des données inactives est activé par défaut sur les agrégats FabricPool dans les environnements ONTAP 9.4 et ONTAP 9.5.
-* Vous pouvez activer le reporting des données inactives sur des agrégats non FabricPool à l'aide de l'interface de ligne de commande ONTAP, y compris les agrégats HDD, à partir de ONTAP 9.6.
 
 
 

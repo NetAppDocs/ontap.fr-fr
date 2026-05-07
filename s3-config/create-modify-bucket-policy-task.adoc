@@ -23,6 +23,8 @@ Vous pouvez ajouter de nouvelles instructions pour les nouveaux utilisateurs et 
 
 Des autorisations d'utilisateur et de groupe peuvent être accordées lors de la création du compartiment ou lors de la création de ce dernier. Vous pouvez également modifier la capacité des compartiments et l'affectation des groupes de règles de QoS.
 
+À partir d'ONTAP 9.19.1, vous pouvez utiliser des conditions pour imposer des écritures conditionnelles lors du chargement d'objets et des suppressions conditionnelles lors de la suppression d'objets. Les écritures et suppressions conditionnelles offrent un moyen d'éviter les écrasements ou les suppressions accidentelles d'objets.
+
 Depuis ONTAP 9.9.1, si vous prévoyez de prendre en charge la fonctionnalité de balisage d'objets du client AWS avec le serveur ONTAP S3, les actions sont les suivantes `GetObjectTagging`, `PutObjectTagging`, et `DeleteObjectTagging` doivent être autorisées à l'aide des règles de compartiment ou de groupe.
 
 La procédure à suivre dépend de l'interface que vous utilisez--System Manager ou de l'interface de ligne de commandes :
@@ -116,6 +118,12 @@ L'exemple suivant crée une instruction de stratégie de compartiment de serveur
 [listing]
 ----
 cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal group/group1 -resource bucket1/* -sid "fullAccessForGroup1"
+----
+À partir d'ONTAP 9.19.1, vous pouvez utiliser des conditions pour imposer des écritures conditionnelles lors du chargement d'objets et des suppressions conditionnelles lors de la suppression d'objets. L'exemple suivant crée une condition de stratégie de compartiment pour imposer des écritures conditionnelles pour le compartiment bucket1 :
+
+[listing]
+----
+cluster::> vserver object-store-server bucket policy-statement-condition create -vserver vs0 -bucket buck1 -index 1 -operator Null -s3-if-match true
 ----
 Depuis ONTAP 9.14.1, vous pouvez spécifier des variables pour une règle de compartiment. L'exemple suivant crée une instruction de stratégie de compartiment de serveur pour la VM de stockage `svm1` et `bucket1`, et spécifie `${aws:username}` comme variable pour une ressource de stratégie. Lorsque la stratégie est évaluée, la variable de stratégie est remplacée par le nom d'utilisateur du contexte de demande et l'action de stratégie peut être exécutée comme configuré pour cet utilisateur. Par exemple, lorsque l'instruction de règle suivante est évaluée, `${aws:username}` Est remplacé par l'utilisateur effectuant l'opération S3. Si un utilisateur `user1` exécute l'opération, à laquelle l'utilisateur a accès `bucket1` comme `bucket1/user1/*`.
 

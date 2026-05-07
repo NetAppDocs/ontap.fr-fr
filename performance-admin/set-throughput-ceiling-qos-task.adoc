@@ -13,14 +13,40 @@ summary: 'Un plafond de QoS ou de débit garantit que le débit d"une charge de 
 [role="lead"]
 Un plafond ou une limite de qualité de service (QoS) garantit que le débit d'une charge de travail ne dépasse pas un nombre maximal d'IOPS ou de Mo/s, ou un nombre maximal d'IOPS et de Mo/s indépendamment des charges de travail concurrentes. Définissez un plafond de débit pour éviter que les charges de travail moins critiques ne consomment des ressources de performance excessives et ne dégradent les performances des charges de travail plus critiques.
 
-Vous pouvez utiliser le `max-throughput` Champ permettant à un groupe de règles de définir une limite de débit pour les workloads d'objets de stockage (QoS max). Vous pouvez appliquer le groupe de règles lors de la création ou de la modification de l'objet de stockage.
+Vous pouvez spécifier le plafond de débit lors de la création d'un groupe de stratégies QoS ou attendre de surveiller vos charges de travail pour le spécifier.
+
+link:guarantee-throughput-qos-task.html["Apprenez-en davantage sur les plafonds de débit"].
 
 .Avant de commencer
-* Vous devez être administrateur du cluster pour créer un groupe de stratégies et appliquer un groupe de stratégies à une SVM.
+* Vous devez être administrateur du cluster pour créer un groupe de stratégies et l'appliquer à une SVM.
 
 
 .Description de la tâche
-* Depuis ONTAP 9.4, vous pouvez utiliser un groupe de règles QoS _non-partagé_ pour spécifier que le plafond de débit défini s'applique à chaque charge de travail membre individuellement. Sinon, le groupe de règles est _Shared:_ le débit total des charges de travail affectées au groupe de règles ne peut pas dépasser le plafond spécifié.
+* Les groupes de stratégies QoS adaptatifs et non adaptatifs sont activés automatiquement pour augmenter temporairement le plafond de débit d’une charge de travail de 50 % pendant une seconde afin de répondre par défaut aux demandes ponctuelles de performances accrues. À partir d’ONTAP 9.19.1, vous pouvez modifier ces paramètres par défaut. Dans ONTAP 9.18.1 et les versions antérieures, ces paramètres ne peuvent pas être modifiés.
++
+Utilisez les options suivantes pour modifier les paramètres par défaut :
+
++
+[cols="3"]
+|===
+| Option | Description | Paramètre par défaut 
+
+
+ a| 
+`burst-percent`
+| Augmentation du débit en pourcentage | 50% 
+
+
+ a| 
+`burst duration`
+| Durée de l'augmentation du débit en secondes | 1 seconde 
+
+
+ a| 
+`burst-iops`
+| Nombre maximal d'IOPS au-dessus du plafond de débit pour la durée de rafale spécifiée | 0 
+|===
+* Vous pouvez utiliser un groupe de stratégies QoS _non partagé_ pour spécifier que le plafond de débit défini s'applique individuellement à chaque charge de travail membre. Sinon, le groupe de stratégies est _partagé_ : le débit total des charges de travail qui lui sont affectées ne peut pas dépasser le plafond spécifié.
 +
 Réglez `-is-shared=false` pour le `qos policy-group create` commande permettant de spécifier une « policy group » non partagée.
 
@@ -82,9 +108,6 @@ Pour en savoir plus, `qos policy-group modify` consultez le link:https://docs.ne
 ----
 vserver create -vserver <SVM> -qos-policy-group <policy_group>
 ----
-+
-Vous pouvez utiliser la commande  `vserver modify` pour appliquer un groupe de stratégies différent à l'objet de stockage.
-
 +
 L'exemple suivant applique le groupe de stratégies `pg-vs1` à la SVM `vs1` :
 
@@ -163,9 +186,40 @@ _USERSPACE_APPS     14       55        10.92KB/s   236.00us
 _Scan_Backgro..   5688       20            0KB/s        0ms
 ----
 +
+Voici un exemple de sortie pour une charge de travail avec max-throughput défini à 2000 IOPS et burst-percent défini à 25 pour une durée de rafale de 5 secondes.
+
++
+[listing]
+----
+cluster1::> qos statistics workload performance show -workload test_vol_nfs_pct25-wid54260
+
+Workload	                ID	    IOPS
+--------------------------- -----   ----
+test_vol_nfs_pct25-wid54260	54260	2564
+-total-	-	                        3704
+test_vol_nfs_pct25-wid54260	54260	2527
+-total-	-	                        3105
+test_vol_nfs_pct25-wid54260	54260	2550
+-total-	-	                        3445
+test_vol_nfs_pct25-wid54260	54260	2476
+-total-	-	                        3460
+test_vol_nfs_pct25-wid54260	54260	2479
+-total-	-	                        3511
+test_vol_nfs_pct25-wid54260	54260	1996
+-total-	-	                        2197
+test_vol_nfs_pct25-wid54260	54260	2068
+-total-	-	                        2057
+test_vol_nfs_pct25-wid54260	54260	2087
+-total-	-	                        3119
+
+----
++
 Pour en savoir plus, `qos statistics workload performance show` consultez le link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-performance-show.html["Référence de commande ONTAP"^].
 
 +
-Vous pouvez utiliser `qos statistics workload latency show` la commande pour afficher les statistiques détaillées de latence des charges de travail QoS. Pour en savoir plus, `qos statistics workload latency show` consultez le link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-latency-show.html["Référence de commande ONTAP"^].
+Vous pouvez utiliser la commande  `qos statistics workload latency show` pour afficher des statistiques de latence détaillées pour les charges de travail QoS.
+
++
+En savoir plus sur  `qos statistics workload latency show` dans la link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-latency-show.html["Référence de commande ONTAP"^].
 
 

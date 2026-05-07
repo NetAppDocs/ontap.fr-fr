@@ -1,0 +1,110 @@
+---
+sidebar: sidebar 
+permalink: networking/configure-tls-offload.html 
+keywords: TLS offload, TLS, performance 
+summary: Configurer les paramètres de déchargement TLS 
+---
+= Configurer le déchargement matériel TLS ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir d'ONTAP 9.19.1, vous pouvez configurer le déchargement TLS pour améliorer les performances après l'établissement de la liaison TLS en exploitant les ressources des cartes Ethernet compatibles. Cette fonctionnalité décharge le chiffrement et le déchiffrement, réduisant ainsi la charge du processeur et améliorant les performances.
+
+.Description de la tâche
+* Le déchargement TLS est désactivé par défaut.
+* Seules les suites de chiffrement AES-GCM (TLSv1.2/TLSv1.3, 128/256 bits) sont déchargées.
+* La phase d'établissement de liaison TLS n'est pas déportée. Seule la phase de traitement des données post-établissement de liaison l'est.
+* La migration de l'interface logique réseau (LIF) vers des ports non compatibles avec le déchargement entraîne un repli logiciel automatique.
++
+Pour les connexions TLS déportées, les opérations cryptographiques TLS contournent généralement le logiciel et sont gérées par une carte réseau compatible avec le déchargement. Si la LIF associée à cette connexion migre vers un port réseau sans capacité de déchargement TLS, les opérations cryptographiques reviennent au logiciel et sont gérées par le noyau du système.
+
+* Les interfaces de gestion (HTTPS, API REST) ne sont pas affectées par ce paramètre.
+* Le paramètre de déchargement matériel TLS est appliqué à l'ensemble du cluster.
+
+
+Le déchargement matériel TLS nécessite une carte réseau compatible. Les cartes réseau suivantes sont prises en charge :
+
+* CX7 10/25 GbE à 4 ports
+* 2 ports CX6-Dx 40/100 GbE
+* 2 ports CX7 40/100 GbE
+* 2 ports CX7 40/100/200
+
+
+Les cartes CX7 10/25 GbE à 4 ports, CX6-Dx 40/100 GbE à 2 ports et CX7 40/100 GbE à 2 ports sont prises en charge sur les plateformes AFF suivantes :
+
+* AFF A20
+* AFF A30
+* AFF A50
+* AFF C30
+* AFF C60
+
+
+Les cartes 4 ports 2 ports CX6-Dx 40/100 GbE, 2 ports CX7 40/100 GbE et 2 ports CX7 40/100/200 GbE sont prises en charge sur les plateformes AFF et FAS suivantes :
+
+* AFF A70-90
+* AFF C80
+* FAS70
+* FAS90
+* AFF A1K
+
+
+.Avant de commencer
+* Vous devez être administrateur ONTAP au niveau `admin` niveau de privilège permettant d'effectuer les tâches suivantes.
+* Tous les nœuds doivent exécuter ONTAP 9.19.1 ou une version ultérieure.
+
+
+
+
+== Activer ou désactiver le déchargement TLS
+
+.Étapes
+. Consultez l'état actuel du déchargement TLS :
++
+[source, cli]
+----
+security config show
+----
++
+Cette commande affiche le paramètre de déchargement TLS à l'échelle du cluster :
+
++
+[listing]
+----
+cluster1::*> security config show
+Cluster    Supported Offload
+FIPS Mode  Protocols Enabled Supported Cipher Suites
+---------- --------- ------- --------------------------------------------------
+false      TLSv1.3,  false   TLS_RSA_WITH_AES_128_CCM,
+           TLSv1.2           TLS_RSA_WITH_AES_128_CCM_8,
+                             TLS_RSA_WITH_AES_128_GCM_SHA256,
+                             TLS_RSA_WITH_AES_128_CBC_SHA,
+                             TLS_RSA_WITH_AES_128_CBC_SHA256,
+                             TLS_RSA_WITH_AES_256_CCM,
+[...]
+----
+. Activer ou désactiver le déchargement TLS :
++
+[source, cli]
+----
+security config modify -is-offload-enabled {true|false}
+----
++
+Cette commande active ou désactive le déchargement matériel pour la phase de données TLS sur les nouvelles connexions. Les connexions existantes créées avant l'activation de la fonctionnalité de déchargement TLS ne bénéficient pas du déchargement tant qu'elles ne sont pas supprimées et recréées.
+
++
+Lors de l'activation du déchargement TLS, l'interface doit être spécifiée :
+
++
+[source, cli]
+----
+security config modify -is-offload-enabled true -interface SSL
+----
+
+
+.Informations associées
+* link:https://docs.netapp.com/us-en/ontap-cli/security-config-show.html["security config show"^]
+* link:https://docs.netapp.com/us-en/ontap-cli/security-config-modify.html["security config modify"^]
+

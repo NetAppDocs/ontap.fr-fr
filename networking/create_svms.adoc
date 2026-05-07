@@ -14,7 +14,7 @@ summary: Créez une SVM pour diffuser des données aux clients.
 
 
 [role="lead"]
-Vous devez créer un SVM afin de fournir des données aux clients.
+Une machine virtuelle de stockage (SVM) est une entité logique qui abstrait les ressources physiques. Une SVM fournit des données aux clients et aux hôtes à partir d'un ou plusieurs volumes via une ou plusieurs interfaces logiques réseau (LIF). Vous devez créer une SVM pour fournir des données aux clients.
 
 .Avant de commencer
 * Vous devez être un administrateur de cluster pour effectuer cette tâche.
@@ -22,6 +22,10 @@ Vous devez créer un SVM afin de fournir des données aux clients.
 +
 Si vous prévoyez d'implémenter une solution Hyper-V ou SQL Server over SMB sur ce SVM, vous devez utiliser le style de sécurité NTFS pour le volume root. Au moment de leur création, les volumes contenant des fichiers Hyper-V ou des fichiers de base de données SQL doivent être définis sur la sécurité NTFS. En définissant le style de sécurité du volume racine sur NTFS, vous assurez que vous ne créez pas de volumes de données UNIX ou de type sécurité mixte par inadvertance.
 
+
+
+.Description de la tâche
+* À partir d'ONTAP 9.19.1, les systèmes AFF prennent en charge le multipathing actif-actif avec basculement automatique des LIF au niveau de la SVM dans les environnements SAN. Vous devez activer le multipathing actif-actif sur les systèmes AFF lors de la création de la VM de stockage.
 * À partir de ONTAP 9.13.1, vous pouvez définir une capacité maximale pour une machine virtuelle de stockage. Vous pouvez également configurer des alertes lorsque la SVM approche un niveau de capacité seuil. Pour plus d'informations, voir xref:../volumes/manage-svm-capacity.html[Gestion de la capacité des SVM].
 
 
@@ -32,273 +36,131 @@ Si vous prévoyez d'implémenter une solution Hyper-V ou SQL Server over SMB sur
 Vous pouvez utiliser System Manager pour créer une machine virtuelle de stockage.
 
 .Étapes
-. Sélectionnez *machines virtuelles de stockage*.
-. Cliquez image:icon_add.gif["Ajouter une icône"] pour créer une VM de stockage.
+. Dans le Gestionnaire système, sélectionnez *Storage VMs*.
+. Sélectionnez image:icon_add.gif["Ajouter une icône"] pour créer une machine virtuelle de stockage.
 . Nommez la VM de stockage.
-. Sélectionnez le protocole d'accès :
+. Sélectionnez le protocole d'accès que vous souhaitez activer pour la SVM et remplissez les champs obligatoires de configuration.
 +
-** SMB/CIFS, NFS
-** ISCSI
-** FC
-** NVMe
+Les champs à remplir varient en fonction du protocole d'accès sélectionné.
+
 +
-... Si vous sélectionnez *Activer SMB/CIFS*, effectuez la configuration suivante :
-
-
-
-
-
-
+[cols="1,1"]
 |===
+| Protocole d'accès | Champs de configuration 
 
 
-| Champ ou case à cocher | Description 
+| SMB/CIFS  a| 
+** Nom de l'administrateur
+** Mot de passe
+** Nom du serveur
+** Domaine Active Directory
+** Unité organisationnelle
++
+La valeur par défaut de l'unité organisationnelle au sein du domaine Active Directory associé au serveur CIFS est « CN=Computers ». Cela peut être modifié.
 
+** Cryptage des données tout en accédant aux partages de la machine virtuelle de stockage
++
+Chiffre les données à l'aide de SMB 3.0 pour empêcher l'accès non autorisé aux fichiers sur les partages dans la machine virtuelle de stockage SMB/CIFS.
 
- a| 
-Nom de l'administrateur
- a| 
-Préciser le nom d'utilisateur administrateur pour la VM de stockage SMB/CIFS.
-
-
-
- a| 
-Mot de passe
- a| 
-Préciser le mot de passe administrateur pour la VM de stockage SMB/CIFS.
-
-
-
- a| 
-Nom du serveur
- a| 
-Spécifier le nom du serveur pour la VM de stockage SMB/CIFS
-
-
-
- a| 
-Domaine Active Directory
- a| 
-Spécifiez le domaine Active Directory pour fournir l'authentification utilisateur pour la machine virtuelle de stockage SMB/CIFS.
-
-
-
- a| 
-Unité organisationnelle
- a| 
-Spécifiez l'unité organisationnelle dans le domaine Active Directory associé au serveur SMB/CIFS. « CN=calculateurs » est la valeur par défaut, qui peut être modifiée.
-
-
-
- a| 
-Cryptage des données tout en accédant aux partages de la machine virtuelle de stockage
- a| 
-Cochez cette case pour chiffrer les données à l'aide de SMB 3.0 pour empêcher tout accès non autorisé aux fichiers sur les partages de la machine virtuelle de stockage SMB/CIFS.
-
-
-
- a| 
-Domaines
- a| 
-Ajoutez, supprimez ou réorganisez les domaines répertoriés pour la machine virtuelle de stockage SMB/CIFS.
-
-
-
- a| 
-Serveurs de noms
- a| 
-Ajoutez, supprimez ou réorganisez les serveurs de noms pour la machine virtuelle de stockage SMB/CIFS.
-
-
-
- a| 
-Langue par défaut
- a| 
+** Domaines
+** Serveurs de noms
+** Langue par défaut
++
 Spécifie le paramètre de codage de langue par défaut pour la VM de stockage et ses volumes. Utilisez l'interface de ligne de commandes pour modifier les paramètres des volumes individuels d'une machine virtuelle de stockage.
 
-
-
- a| 
-Interface réseau
- a| 
-Pour chaque interface réseau configurée pour la machine virtuelle de stockage, sélectionnez un sous-réseau existant (s'il existe au moins un sous-réseau) ou spécifiez *sans sous-réseau* et renseignez les champs *adresse IP* et *masque de sous-réseau*.
-Si utile, cochez la case *utiliser le même masque de sous-réseau et la même passerelle pour toutes les interfaces* suivantes.
-Vous pouvez permettre au système de sélectionner automatiquement le port d'accueil ou de sélectionner manuellement celui que vous souhaitez utiliser dans la liste.
-
-
-
- a| 
-Gérer le compte d'administrateur
- a| 
-Cochez cette case pour gérer le compte d'administrateur de la machine virtuelle de stockage. Lorsque cette option est sélectionnée, spécifiez le nom d'utilisateur, le mot de passe, confirmez le mot de passe et indiquez si vous souhaitez ajouter une interface réseau pour la gestion des machines virtuelles de stockage.
-
-|===
-. Si vous sélectionnez *Activer NFS*, effectuez la configuration suivante :
-
-
-|===
-
-
-| Champ ou case à cocher | Description 
-
-
- a| 
-Cochez la case Autoriser l'accès client NFS
- a| 
-Cochez cette case si tous les volumes créés sur la VM de stockage NFS doivent utiliser le chemin du volume racine «/ » pour monter et parcourir. Ajoutez des règles à la stratégie d'export « default » pour permettre un parcours de montage ininterrompu.
-
-
-
- a| 
-Règles
- a| 
-Cliquez image:icon_add.gif["Ajouter une icône"] pour créer des règles.
-
-* Spécification client : spécifiez les noms d'hôte, les adresses IP, les groupes réseau ou les domaines.
-* Protocoles d'accès : sélectionnez une combinaison des options suivantes :
+** Interface réseau
 +
-** SMB/CIFS
-** FlexCache
-** NFS
+Pour chaque interface réseau que vous configurez pour la machine virtuelle de stockage, sélectionnez un sous-réseau existant (s'il en existe au moins un) ou spécifiez *Sans sous-réseau* et remplissez les champs *Adresse IP* et *Masque de sous-réseau*.
+
+
+
+
+
+| NFS  a| 
+** Autoriser l'accès client NFS
 +
-*** NFSv3
-*** NFSv4
+Sélectionnez cette option si vous souhaitez que tous les volumes créés sur la machine virtuelle de stockage NFS utilisent le chemin de volume racine « / » pour le montage et la navigation.
 
-
-
-
-* Détails d'accès : pour chaque type d'utilisateur, spécifiez le niveau d'accès, soit en lecture seule, en lecture/écriture ou superutilisateur. Les types d'utilisateur sont les suivants :
 +
-** Tout
-** Tous (en tant qu'utilisateur anonyme)
-** UNIX
-** Kerberos 5
-** Kerberos 5i
-** Kerberos 5p
-** NTLM
+Ajoutez des règles à la règle d'export « default » pour permettre un parcours de montage ininterrompu.
+
+** Règles
++
+Sélectionnez image:icon_add.gif["Ajouter une icône"] pour créer des règles et spécifiez les informations suivantes pour chaque règle :
+
++
+*** Spécifications du client
++
+Spécifiez les noms d'hôtes, les adresses IP, les netgroups ou les domaines.
+
+*** Protocoles d'accès
++
+Vous pouvez sélectionner une ou plusieurs des options disponibles.
 
 
 
+** Détails d'accès
++
+Spécifiez le niveau d'accès comme lecture seule, lecture/écriture ou superutilisateur pour chaque type d'utilisateur.
 
-Enregistrez la règle.
-
-
-
- a| 
-Langue par défaut
- a| 
+** Langue par défaut
++
 Spécifie le paramètre de codage de langue par défaut pour la VM de stockage et ses volumes. Utilisez l'interface de ligne de commandes pour modifier les paramètres des volumes individuels d'une machine virtuelle de stockage.
 
-
-
- a| 
-Interface réseau
- a| 
-Pour chaque interface réseau configurée pour la machine virtuelle de stockage, sélectionnez un sous-réseau existant (s'il existe au moins un sous-réseau) ou spécifiez *sans sous-réseau* et renseignez les champs *adresse IP* et *masque de sous-réseau*.
-Si utile, cochez la case *utiliser le même masque de sous-réseau et la même passerelle pour toutes les interfaces* suivantes.
-Vous pouvez permettre au système de sélectionner automatiquement le port d'accueil ou de sélectionner manuellement celui que vous souhaitez utiliser dans la liste.
+** Interface réseau
++
+Pour chaque interface réseau que vous configurez pour la machine virtuelle de stockage, sélectionnez un sous-réseau existant (s'il en existe au moins un) ou spécifiez *Sans sous-réseau* et remplissez les champs *Adresse IP* et *Masque de sous-réseau*.
 
 
 
- a| 
-Gérer le compte d'administrateur
- a| 
-Cochez cette case pour gérer le compte d'administrateur de la machine virtuelle de stockage. Lorsque cette option est sélectionnée, spécifiez le nom d'utilisateur, le mot de passe, confirmez le mot de passe et indiquez si vous souhaitez ajouter une interface réseau pour la gestion des machines virtuelles de stockage.
-
-|===
-. Si vous sélectionnez *Activer iSCSI*, effectuez la configuration suivante :
 
 
-|===
+| iSCSI ou NVMe/TCP  a| 
+** Interface réseau
++
+Pour chaque interface réseau que vous configurez pour la machine virtuelle de stockage, sélectionnez un sous-réseau existant (s'il en existe au moins un) ou spécifiez *Sans sous-réseau* et remplissez les champs *Adresse IP* et *Masque de sous-réseau*.
 
+** Multipathing actif-actif symétrique
++
+Cette option est disponible dans ONTAP 9.19.1 et versions ultérieures sur les systèmes AFF et ASA. Elle active le multipathing actif-actif pour tous les protocoles SAN. Une fois sélectionnée, cette option ne pourra plus être modifiée.
 
-| Champ ou case à cocher | Description 
++
+Si vous souhaitez que les chemins réseau basculent automatiquement vers le partenaire HA en cas de défaillance d'un nœud, procédez comme suit :
 
-
- a| 
-Interface réseau
- a| 
-Pour chaque interface réseau configurée pour la machine virtuelle de stockage, sélectionnez un sous-réseau existant (s'il existe au moins un sous-réseau) ou spécifiez *sans sous-réseau* et renseignez les champs *adresse IP* et *masque de sous-réseau*.
-Si utile, cochez la case *utiliser le même masque de sous-réseau et la même passerelle pour toutes les interfaces* suivantes.
-Vous pouvez permettre au système de sélectionner automatiquement le port d'accueil ou de sélectionner manuellement celui que vous souhaitez utiliser dans la liste.
++
+*** Pour les systèmes AFF, sélectionnez *Activer le multipathing actif-actif symétrique*.
+*** Pour les systèmes ASA, sélectionnez *Activer pour les protocoles SCSI et NVMe*.
 
 
 
- a| 
-Gérer le compte d'administrateur
- a| 
-Cochez cette case pour gérer le compte d'administrateur de la machine virtuelle de stockage. Lorsque cette option est sélectionnée, spécifiez le nom d'utilisateur, le mot de passe, confirmez le mot de passe et indiquez si vous souhaitez ajouter une interface réseau pour la gestion des machines virtuelles de stockage.
 
-|===
-. Si vous sélectionnez *Activer FC*, effectuez la configuration suivante :
+
+
+| FC ou NVMe/FC  a| 
+** Configurez les ports FC
 
 
 |===
+. Si vous souhaitez gérer le compte administrateur de la machine virtuelle de stockage, sélectionnez *Gérer le compte administrateur*
++
+Une fois cette option sélectionnée, spécifiez le mot de passe du compte *vsadmin* et indiquez si vous souhaitez ajouter une interface réseau pour la gestion du stockage VM.
+
++
+À partir d'ONTAP 9.19.1, les administrateurs SVM peuvent gérer et surveiller leurs SVM à l'aide du nouveau tableau de bord SVM. Utilisez l'adresse IP de gestion SVM et les identifiants *vsadmin* pour accéder au tableau de bord SVM.
+
++
+Lorsque cette option est sélectionnée, vous pouvez spécifier le mot de passe du compte *vsadmin* et sélectionner la case à cocher *Ajouter une interface réseau pour la gestion de la machine virtuelle de stockage*.
+
++
+Spécifiez les éléments suivants pour l'interface réseau de gestion SVM :
+
++
+** Nœud
+** Adresse IP
+** Masque de sous-réseau
 
 
-| Champ ou case à cocher | Description 
-
-
- a| 
-Configurez les ports FC
- a| 
-Sélectionnez les interfaces réseau sur les nœuds que vous souhaitez inclure dans la VM de stockage. Deux interfaces réseau par nœud sont recommandées.
-
-
-
- a| 
-Gérer le compte d'administrateur
- a| 
-Cochez cette case pour gérer le compte d'administrateur de la machine virtuelle de stockage. Lorsque cette option est sélectionnée, spécifiez le nom d'utilisateur, le mot de passe, confirmez le mot de passe et indiquez si vous souhaitez ajouter une interface réseau pour la gestion des machines virtuelles de stockage.
-
-|===
-. Si vous sélectionnez *Activer NVMe/FC*, effectuez la configuration suivante :
-
-
-|===
-
-
-| Champ ou case à cocher | Description 
-
-
- a| 
-Configurez les ports FC
- a| 
-Sélectionnez les interfaces réseau sur les nœuds que vous souhaitez inclure dans la VM de stockage. Deux interfaces réseau par nœud sont recommandées.
-
-
-
- a| 
-Gérer le compte d'administrateur
- a| 
-Cochez cette case pour gérer le compte d'administrateur de la machine virtuelle de stockage. Lorsque cette option est sélectionnée, spécifiez le nom d'utilisateur, le mot de passe, confirmez le mot de passe et indiquez si vous souhaitez ajouter une interface réseau pour la gestion des machines virtuelles de stockage.
-
-|===
-. Si vous sélectionnez *Activer NVMe/TCP*, effectuez la configuration suivante :
-
-
-|===
-
-
-| Champ ou case à cocher | Description 
-
-
- a| 
-Interface réseau
- a| 
-Pour chaque interface réseau configurée pour la machine virtuelle de stockage, sélectionnez un sous-réseau existant (s'il existe au moins un sous-réseau) ou spécifiez *sans sous-réseau* et renseignez les champs *adresse IP* et *masque de sous-réseau*.
-Si utile, cochez la case *utiliser le même masque de sous-réseau et la même passerelle pour toutes les interfaces* suivantes.
-Vous pouvez permettre au système de sélectionner automatiquement le port d'accueil ou de sélectionner manuellement celui que vous souhaitez utiliser dans la liste.
-
-
-
- a| 
-Gérer le compte d'administrateur
- a| 
-Cochez cette case pour gérer le compte d'administrateur de la machine virtuelle de stockage. Lorsque cette option est sélectionnée, spécifiez le nom d'utilisateur, le mot de passe, confirmez le mot de passe et indiquez si vous souhaitez ajouter une interface réseau pour la gestion des machines virtuelles de stockage.
-
-|===
-. Enregistrez les modifications.
+. Sélectionnez *Enregistrer*.
 
 
 --
@@ -309,8 +171,10 @@ Pour créer un sous-réseau, utilisez l'interface de ligne de commandes de ONTAP
 .Étapes
 . Déterminer les agrégats candidats à l'ajout du volume root du SVM.
 +
-`storage aggregate show -has-mroot false`
-
+[source, cli]
+----
+storage aggregate show -has-mroot false
+----
 +
 Vous devez choisir un agrégat qui dispose d'au moins 1 Go d'espace libre pour contenir le volume root. Si vous prévoyez de configurer l'audit NAS sur le SVM, vous devez disposer d'au moins 3 Go d'espace libre supplémentaire sur l'agrégat racine, l'espace supplémentaire étant utilisé pour créer le volume d'activation de l'audit lorsque l'audit est activé.
 
@@ -321,20 +185,28 @@ NOTE: Si l'audit NAS est déjà activé sur un SVM existant, le volume interméd
 . Noter le nom de l'agrégat sur lequel vous souhaitez créer le volume root du SVM.
 . Si vous prévoyez de spécifier une langue lors de la création du SVM et ne connaissez pas la valeur à utiliser, identifier et enregistrer la valeur du langage que vous souhaitez spécifier :
 +
-`vserver create -language ?`
-
+[source, cli]
+----
+vserver create -language ?
+----
 . Si vous prévoyez de spécifier une snapshot policy lors de la création de la SVM et ne connaissez pas le nom de la politique, lister les policies disponibles et identifier et enregistrer le nom de la snapshot policy à utiliser :
 +
-`volume snapshot policy show -vserver _vserver_name_`
-
+[source, cli]
+----
+volume snapshot policy show -vserver _vserver_name_
+----
 . Si vous prévoyez de spécifier une politique de quotas lors de la création de la SVM et ne connaissez pas le nom de la politique, lister les policies disponibles et identifier et enregistrer le nom de la politique de quotas que vous souhaitez utiliser :
 +
-`volume quota policy show -vserver _vserver_name_`
-
+[source, cli]
+----
+volume quota policy show -vserver _vserver_name_
+----
 . Création d'un SVM :
 +
-`vserver create -vserver _vserver_name_ -aggregate _aggregate_name_ ‑rootvolume _root_volume_name_ -rootvolume-security-style {unix|ntfs|mixed} [-ipspace _IPspace_name_] [-language <language>] [-snapshot-policy _snapshot_policy_name_] [-quota-policy _quota_policy_name_] [-comment _comment_]`
-
+[source, cli]
+----
+vserver create -vserver _vserver_name_ -aggregate _aggregate_name_ ‑rootvolume _root_volume_name_ -rootvolume-security-style {unix|ntfs|mixed} [-ipspace _IPspace_name_] [-language <language>] [-snapshot-policy _snapshot_policy_name_] [-quota-policy _quota_policy_name_] [-comment _comment_]
+----
 +
 ....
 vserver create -vserver vs1 -aggregate aggr3 -rootvolume vs1_root ‑rootvolume-security-style ntfs -ipspace ipspace1 -language en_US.UTF-8
@@ -344,9 +216,15 @@ vserver create -vserver vs1 -aggregate aggr3 -rootvolume vs1_root ‑rootvolume-
 
 . Vérifier que la configuration des SVM est correcte.
 +
-`vserver show -vserver vs1`
-
+[source, cli]
+----
+vserver show -vserver vs1
+----
 +
+Dans cet exemple, la commande crée le SVM nommé « vs1 » dans l'IPspace « ipspace1 ». Le volume racine est nommé « vs1_root » et est créé sur aggr3 avec le style de sécurité NTFS.
+
+
+
 ....
 Vserver: vs1
 Vserver Type: data
@@ -373,11 +251,6 @@ Config Lock: false
 IPspace Name: ipspace1
 Is Vserver Protected: false
 ....
-+
-Dans cet exemple, la commande crée le SVM nommé « vs1 » dans l'IPspace « ipspace1 ». Le volume racine est nommé « vs1_root » et est créé sur aggr3 avec le style de sécurité NTFS.
-
-
-
 --
 ====
 

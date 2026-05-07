@@ -1,0 +1,106 @@
+---
+permalink: san-config/configure-fc-ports-direct-attachment.html 
+sidebar: sidebar 
+keywords:  
+summary:  
+---
+= Configurer les ports FC d'ONTAP pour la connexion directe aux hôtes FC et FC-NVMe
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir d'ONTAP 9.19.1, un commutateur FC n'est pas requis pour établir des connexions entre les hôtes FC et FC-NVMe et le stockage ONTAP. Les hôtes peuvent être connectés directement aux ports d'adaptateur FC sur les systèmes AFF, ASA, ASA r2 et FAS. Cette capacité de connexion directe peut s'avérer particulièrement précieuse sur les sites distants et dans les environnements hybrides où la simplicité est essentielle. Vous devez mettre le port FC hors ligne et modifier sa topologie avant qu'il puisse être connecté directement à un hôte.
+
+Les ports FC utilisés dans les configurations de connexion directe présentent les restrictions suivantes :
+
+* Le port ne peut être attribué qu'à une seule machine virtuelle de stockage (SVM).
+* Une seule interface réseau (LIF) peut être attribuée au port après sa configuration pour la connexion directe.
+* Le port peut prendre en charge le protocole FC ou le protocole FC-NVMe, mais pas les deux.
+
+
+.Avant de commencer
+Vous devez être un administrateur de cluster.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Dans le Gestionnaire système, sélectionnez *Réseau > Ports FC*.
+. Sélectionnez image:icon_kabob.gif["icône de sélection"] à côté du port que vous souhaitez configurer pour une connexion directe, puis sélectionnez *Modifier la topologie*.
+. Sous *Topologie*, sélectionnez *Direct* puis sélectionnez *Je souhaite modifier la topologie et mettre le port hors ligne*.
+. Sélectionnez *Enregistrer.*
+. Connectez le câble du port cible directement à l'initiateur hôte.
+. Si vous disposez d'un système ASA r2, suivez link:https://docs.netapp.com/us-en/asa-r2/administer/manage-client-vm-access.html#create-a-lif-network-interface["cette procédure System Manager"^] pour créer un LIF. Si vous disposez d'un système AFF, ASA ou FAS, suivez ces étapes pour créer un LIF :
++
+.. Sélectionnez *Réseau > Interfaces* puis sélectionnez image:icon_add.gif["ajouter une icône"].
+.. Sélectionnez le protocole FC ou NVMe/FC.
+.. Nommez le LIF ou acceptez le nom généré par ONTAP.
+.. Si au moins un sous-réseau est configuré, vous pouvez sélectionner un sous-réseau pour la LIF.
+.. Si vous ne sélectionnez pas de sous-réseau, vous pouvez spécifier l'adresse IP et le masque de sous-réseau pour le domaine de diffusion.
+.. Sélectionnez le port d'attache dans le domaine de diffusion.
++
+Le contrôle du port d'attache s'affiche en fonction du domaine de diffusion ou de la sélection du sous-réseau
+
+.. Sélectionnez *Enregistrer*.
++
+Le port est automatiquement mis en ligne lors de la création de la LIF.
+
+
+
+
+
+.Et la suite ?
+Dans le Gestionnaire système, sélectionnez *Réseau > Ports FC* puis vérifiez que la *Topologie* est affichée comme *Direct*.
+
+--
+.CLI
+--
+. Consultez l'état administratif et opérationnel de l'interface LIF utilisée pour le port adaptateur :
++
+[source, cli]
+----
+network interface show -vserver <SVM_name>
+----
+. Mettez l'adaptateur hors ligne :
++
+[source, cli]
+----
+network fcp adapter modify -node <node_name> -adapter <adapter_port> -status-admin down
+----
+. Retirez tous les LIF du port adaptateur :
++
+[source, cli]
+----
+network interface delete -vserver <SVM_name> -lif <lif_name>,<lif_name>
+----
+. Modifiez la topologie du port de l'adaptateur en direct :
++
+[source, cli]
+----
+network fcp adapter modify -node <node_name> -adapter <adapter_port> -topology direct
+----
+. Connectez le câble du port cible directement à l'initiateur hôte.
+. Créer une interface LIF unique :
++
+[source, cli]
+----
+network interface create -vserver <SVM_name> -lif <lif_name> -data protocol fcp|fcp-nvme -home-node <node_name> -home-port <port_name>
+----
++
+Le port est automatiquement activé après la création de la LIF.
+
+. Vérifiez que le port est configuré pour la connexion directe :
++
+[source, cli]
+----
+network fcp adapter show -fields topologies-supported
+----
++
+La topologie doit être affichée comme directe.
+
+
+
+--
+====

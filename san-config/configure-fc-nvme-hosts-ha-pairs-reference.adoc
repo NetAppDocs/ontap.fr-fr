@@ -2,7 +2,7 @@
 permalink: san-config/configure-fc-nvme-hosts-ha-pairs-reference.html 
 sidebar: sidebar 
 keywords: ways to, configure, fc, fc-nvme, san hosts with ha pairs 
-summary: Vous pouvez configurer des hôtes SAN FC et FC-NVMe pour la connexion à des paires HA via une ou plusieurs fabrics. Vous ne pouvez pas connecter directement des hôtes SAN FC ou FC-NVMe à des paires haute disponibilité sans utiliser de commutateur. 
+summary: 'Vous pouvez configurer des hôtes SAN FC et FC-NVMe pour qu"ils se connectent à des paires haute disponibilité via un ou plusieurs fabrics ou, selon votre version de ONTAP, vous pouvez connecter directement des hôtes SAN FC ou FC-NVMe à des paires haute disponibilité sans utiliser de commutateur.' 
 ---
 = Configurez les fabrics FC ou FC-NVMe avec les systèmes ONTAP
 :allow-uri-read: 
@@ -11,17 +11,21 @@ summary: Vous pouvez configurer des hôtes SAN FC et FC-NVMe pour la connexion �
 
 
 [role="lead"]
-Il est recommandé de configurer vos hôtes SAN FC et FC-NVMe à l'aide de paires haute disponibilité et d'un minimum de deux commutateurs.  Cela assure la redondance aux couches de la structure et du système de stockage pour prendre en charge la tolérance aux pannes et la continuité de l'activité. Vous ne pouvez pas connecter directement des hôtes SAN FC ou FC-NVMe à des paires haute disponibilité sans utiliser de commutateur.
+Pour les technologies FC et FC/NVMe, la topologie réseau entre la solution de stockage et les hôtes est appelée fabric. Pour créer une redondance, qui vous protège contre la perte d'accès aux données, il est recommandé de configurer votre SAN avec des paires haute disponibilité utilisant deux commutateurs ou plus dans une configuration multi-fabric. Les configurations à fabric unique, qui n'utilisent qu'un seul commutateur entre les hôtes et le stockage, ne sont pas entièrement redondantes.
 
-Les tissus en cascade, à maillage partiel, à maillage complet, à la périphérie du cœur et au directeur sont tous des méthodes standard de connexion des commutateurs FC à un tissu, et toutes sont prises en charge.  L'utilisation de structures de commutateurs FC hétérogènes n'est pas prise en charge, sauf dans le cas de commutateurs lame intégrés.  Des exceptions spécifiques sont répertoriées sur le link:https://imt.netapp.com/matrix/["Matrice d'interopérabilité"^].  Une structure peut comprendre un ou plusieurs commutateurs et les contrôleurs de stockage peuvent être connectés à plusieurs commutateurs.
+À partir d'ONTAP 9.19.1, vous pouvez également connecter directement des hôtes SAN FC ou FC-NVMe à des paires haute disponibilité sans passer par un commutateur. Les configurations de connexion directe sont particulièrement intéressantes sur les sites distants et dans les environnements hybrides où la simplicité est essentielle.
 
-Plusieurs hôtes, qui utilisent différents systèmes d'exploitation, tels que Windows, Linux ou UNIX, peuvent accéder aux contrôleurs de stockage en même temps.  Les hôtes nécessitent l'installation et la configuration d'une solution de chemins d'accès multiples prise en charge. Les systèmes d'exploitation et les solutions de chemins d'accès multiples pris en charge peuvent être vérifiés à l'aide de l'outil Interoperability Matrix Tool.
+Les architectures en cascade, maillée partielle, maillée complète, cœur-périphérie et directeur sont toutes des méthodes standard de connexion des commutateurs FC à une infrastructure, et elles sont toutes prises en charge. L'utilisation d'infrastructures de commutateurs FC hétérogènes n'est pas prise en charge, sauf dans le cas des commutateurs lames intégrés. Des exceptions spécifiques sont listées sur le link:https://imt.netapp.com/matrix/["Matrice d'interopérabilité"^]. Une infrastructure peut être composée d'un ou plusieurs commutateurs, et les contrôleurs de stockage peuvent être connectés à plusieurs commutateurs.
+
+Plusieurs hôtes, utilisant différents systèmes d'exploitation tels que Windows, Linux ou UNIX, peuvent accéder simultanément aux contrôleurs de stockage. Les hôtes doivent disposer d'une solution de chemins multiples prise en charge, installée et configurée. Les systèmes d'exploitation et les solutions de chemins multiples pris en charge peuvent être vérifiés sur l'Interoperability Matrix Tool.
 
 
 
 == Les configurations FC et FC-NVMe de Multifabric
 
-Dans les configurations de paires haute disponibilité multistructures, il existe au moins deux commutateurs qui connectent les paires haute disponibilité à un ou plusieurs hôtes. Pour plus de simplicité, la figure suivante de paire haute disponibilité multistructure ne présente que deux fabrics, mais vous pouvez avoir au moins deux fabrics dans n'importe quelle configuration multistructure.
+Il est recommandé de configurer vos hôtes SAN FC et FC-NVMe à l'aide de paires haute disponibilité et d'au moins deux commutateurs. [EH5.1][FD5.2][EH5.3] Ceci assure la redondance au niveau du fabric et du système de stockage afin de garantir la tolérance aux pannes et un fonctionnement sans interruption.
+
+Dans une configuration de paire haute disponibilité multifabric, deux commutateurs ou plus connectent la paire haute disponibilité à un ou plusieurs hôtes. Chaque commutateur crée un fabric distinct constitué des chemins entre les hôtes et la paire haute disponibilité qui transitent par le commutateur. L'ajout d'un commutateur crée un fabric supplémentaire. Une configuration multifabric peut inclure deux commutateurs ou plus et leurs fabrics respectifs. Par souci de simplicité, la figure suivante ne représente que deux commutateurs, qui correspondent à deux fabrics distincts.
 
 Les numéros de port cible FC (0C, 0d, 1a, 1b) dans les illustrations sont des exemples. Les numéros de port réels varient selon le modèle de votre nœud de stockage et si vous utilisez des adaptateurs d'extension.
 
@@ -31,7 +35,7 @@ image:scrn_en_drw_fc-32xx-multi-HA.png["Diagramme de paire haute disponibilité 
 
 == Les configurations FC et FC-NVMe à structure unique
 
-Dans les configurations de paires haute disponibilité à structure unique, une structure relie les deux contrôleurs de la paire haute disponibilité à un ou plusieurs hôtes. Comme les hôtes et les contrôleurs sont connectés via un commutateur unique, les configurations de paires haute disponibilité à structure unique ne sont pas entièrement redondantes.
+Dans les configurations de paires haute disponibilité à structure unique, un commutateur connecte la paire haute disponibilité à un ou plusieurs hôtes. Le commutateur unique crée une structure unique regroupant tous les chemins entre les hôtes et la paire haute disponibilité. En l'absence de redondance, une panne de commutateur peut entraîner une interruption de service.
 
 Les numéros de port FC cible (0a, 0C) dans les illustrations sont des exemples. Les numéros de port réels varient selon le modèle de votre nœud de stockage et si vous utilisez des adaptateurs d'extension.
 
@@ -39,12 +43,16 @@ Toutes les plateformes qui prennent en charge les configurations FC prennent en 
 
 image:scrn_en_drw_fc-62xx-single-HA.png["Schéma d'une paire haute disponibilité à commutateur unique"]
 
-[NOTE]
-====
-link:../system-admin/single-node-clusters.html["Configurations à un seul nœud"] ne sont pas recommandées, car elles n'offrent pas la redondance nécessaire à la prise en charge de la tolérance aux pannes et de la continuité de l'activité.
 
-====
+
+== Configurations FC et FC-NVMe à connexion directe
+
+À partir d'ONTAP 9.19.1, les configurations FC et FC-NVMe à connexion directe sont disponibles pour AFF, ASA, ASA r2 et les systèmes FAS. Dans une configuration à connexion directe, un ou plusieurs hôtes sont connectés directement à vos paires HA sans la présence d'un commutateur. Cette configuration peut être particulièrement précieuse sur les sites distants et dans les environnements hybrides où la simplicité est essentielle.
+
+image:scrn_en_drw_fc-302020-direct-sing-on.png["Configuration de connexion directe"]
+
 .Informations associées
+* link:configure-fc-ports-direct-attachment.html["Configurer les ports FC d'ONTAP pour la connexion directe aux hôtes FC et FC-NVMe"].
 * Découvrez comment link:../san-admin/selective-lun-map-concept.html#determine-whether-slm-is-enabled-on-a-lun-map["Mappage de LUN sélectif (SLM)"] limiter les chemins utilisés pour accéder aux LUN appartenant à une paire haute disponibilité.
 * Découvrez link:../san-admin/manage-lifs-all-san-protocols-concept.html["LIF SAN"].
 

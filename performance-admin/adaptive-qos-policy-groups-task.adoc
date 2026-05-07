@@ -14,7 +14,6 @@ summary: 'Vous pouvez utiliser un groupe de règles QoS adaptatives pour ajuster
 Vous pouvez utiliser un groupe de stratégies _QoS adaptatif_ pour adapter automatiquement un plafond ou un plancher de débit à la taille du volume, en maintenant le ratio IOPS/TB/GB à mesure que la taille du volume change.  C’est un avantage considérable lorsque vous gérez des centaines, voire des milliers, de charges de travail dans un déploiement de grande envergure.
 
 .Avant de commencer
-* Vous devez exécuter ONTAP 9.3 ou une version ultérieure.
 * Pour créer une « policy group » il faut être un administrateur de cluster.
 * L'objet de stockage que vous souhaitez ajouter au groupe de stratégies doit être membre d'un groupe de stratégies non adaptatif
 +
@@ -25,25 +24,44 @@ Un objet de stockage peut être membre d'un groupe de politiques adaptatives ou 
 
 
 .Description de la tâche
-Les groupes de règles de QoS adaptative sont toujours non partagés : le plafond ou l'étage de débit défini s'applique à chaque charge de travail membre individuellement.
-
-Le rapport entre les limites de débit et la taille de l'objet de stockage est déterminé par l'interaction des champs suivants :
-
-* `expected-iops`représente le nombre minimal d'IOPS attendu par To/Go alloué.
+* Les groupes de règles de QoS adaptative sont toujours non partagés : le plafond ou l'étage de débit défini s'applique à chaque charge de travail membre individuellement.
+* Les groupes de stratégies QoS adaptatifs et non adaptatifs sont activés automatiquement pour augmenter temporairement le plafond de débit d’une charge de travail de 50 % pendant une seconde afin de répondre par défaut aux demandes ponctuelles de performances accrues. À partir d’ONTAP 9.19.1, vous pouvez modifier ces paramètres par défaut. Dans ONTAP 9.18.1 et les versions antérieures, ces paramètres ne peuvent pas être modifiés.
 +
-[NOTE]
-====
- `expected-iops` est garantie sur les plateformes AFF uniquement pour les volumes qui ne sont pas dans une relation SnapMirror synchrone. `expected-iops` est garantie pour FabricPool uniquement si la politique de hiérarchisation est définie sur « none » et qu'aucun bloc n'est dans le cloud.
+Utilisez les options suivantes pour modifier les paramètres par défaut :
 
-====
-* `peak-iops`représente le nombre maximal d'IOPS possibles par To/Go alloué ou utilisé.
-* `expected-iops-allocation`spécifie si l’espace alloué (par défaut) ou l’espace utilisé est utilisé pour expected-iops. `expected-iops-allocation is available beginning with ONTAP 9.5.`
-* `peak-iops-allocation` indique si l'espace alloué ou l'espace utilisé (par défaut) est utilisé pour `peak-iops`.
-*  `absolute-min-iops` Correspond au nombre minimal d'IOPS absolu. Vous pouvez utiliser ce champ avec de très petits objets de stockage. Elle remplace les deux `peak-iops` et/ou `expected-iops` quand `absolute-min-iops` est supérieur au calcul `expected-iops`.
++
+[cols="3"]
+|===
+| Option | Description | Paramètre par défaut 
+
+
+ a| 
+`burst-percent`
+| Augmentation du débit en pourcentage | 50% 
+
+
+ a| 
+`burst duration`
+| Durée de l'augmentation du débit en secondes | 1 seconde 
+
+
+ a| 
+`burst-iops`
+| Nombre maximal d'IOPS au-dessus du plafond de débit pour la durée de rafale spécifiée | 0 
+|===
+* Le rapport entre les limites de débit et la taille de l'objet de stockage est déterminé par l'interaction des champs suivants :
++
+** `expected-iops`représente le nombre minimal d'IOPS attendu par To/Go alloué.
+** `peak-iops`représente le nombre maximal d'IOPS possibles par To/Go alloué ou utilisé.
+** `expected-iops-allocation`indique si l’espace alloué (par défaut) ou l’espace utilisé est utilisé pour expected-iops.
+** `peak-iops-allocation` indique si l'espace alloué ou l'espace utilisé (par défaut) est utilisé pour `peak-iops`.
+**  `absolute-min-iops` Correspond au nombre minimal d'IOPS absolu. Vous pouvez utiliser ce champ avec de très petits objets de stockage. Elle remplace les deux `peak-iops` et/ou `expected-iops` quand `absolute-min-iops` est supérieur au calcul `expected-iops`.
 +
 Par exemple, si vous définissez `expected-iops` À 1,000 000 IOPS/To et la taille du volume est inférieure à 1 Go, le calcul est effectué `expected-iops` Il s'agit d'une IOP fractionnaires. Le calculé `peak-iops` sera une fraction encore plus petite. Vous pouvez éviter cela en définissant le paramètre `absolute-min-iops` à une valeur réaliste.
 
-* `block-size` Spécifie la taille du bloc d'E/S de l'application. La valeur par défaut est 32 Ko. Les valeurs valides sont de 8 Ko, 16 Ko, 32 K, 64 Ko, N'IMPORTE QUEL. TOUTE signifie que la taille de bloc n'est pas appliquée.
+** `block-size` Spécifie la taille du bloc d'E/S de l'application. La valeur par défaut est 32 Ko. Les valeurs valides sont de 8 Ko, 16 Ko, 32 K, 64 Ko, N'IMPORTE QUEL. TOUTE signifie que la taille de bloc n'est pas appliquée.
+
+
 
 
 .Étapes
@@ -51,7 +69,7 @@ Par exemple, si vous définissez `expected-iops` À 1,000 000 IOPS/To et la tail
 +
 [source, cli]
 ----
-qos adaptive-policy-group create -policy group _policy_group_ -vserver _SVM_ -expected-iops _number_of_iops_/TB|GB -peak-iops _number_of_iops_/TB|GB -expected-iops-allocation-space|used-space -peak-iops-allocation allocated-space|used-space -absolute-min-iops _number_of_iops_ -block-size 8K|16K|32K|64K|ANY
+qos adaptive-policy-group create -policy group <policy_group> -vserver <SVM> -expected-iops <number_of_iops>/TB|GB -peak-iops <number_of_iops>/TB|GB -expected-iops-allocation-space|used-space -peak-iops-allocation allocated-space|used-space -absolute-min-iops <number_of_iops> -block-size 8K|16K|32K|64K|ANY
 ----
 +
 Pour en savoir plus, `qos adaptive-policy-group create` consultez le link:https://docs.netapp.com/us-en/ontap-cli/qos-adaptive-policy-group-create.html["Référence de commande ONTAP"^].
@@ -74,7 +92,7 @@ cluster1::> qos adaptive-policy-group create -policy group adpg-app1 -vserver vs
 +
 [source, cli]
 ----
-volume create -vserver SVM -volume _volume_ -aggregate _aggregate_ -size _number_of_ TB|GB -qos-adaptive-policy-group _policy_group_
+volume create -vserver SVM -volume <volume_name> -aggregate <aggregate> -size <number_of_ TB|GB> -qos-adaptive-policy-group<_policy_group>
 ----
 +
 Pour en savoir plus, `volume create` consultez le link:https://docs.netapp.com/us-en/ontap-cli/volume-create.html["Référence de commande ONTAP"^].

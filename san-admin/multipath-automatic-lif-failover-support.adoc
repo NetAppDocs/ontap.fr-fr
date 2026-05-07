@@ -1,0 +1,233 @@
+---
+sidebar: sidebar 
+permalink: san-admin/multipath-automatic-lif-failover-support.html 
+keywords: netapp, ontap, san, multipath, automatic lif failover, supported configurations, active-active, local-active, active-active-scsi-only, multipathing, 
+summary: Vous pouvez mettre à jour la version de ONTAP sur votre cluster sans interruption. 
+---
+= Découvrez la prise en charge du multipath SAN et du basculement automatique LIF pour les systèmes ONTAP
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Dans les configurations multipath, plusieurs chemins réseau sont configurés entre votre hôte et votre système de stockage afin que, si un chemin devient indisponible, les E/S puissent être redirigées vers un chemin alternatif pour éviter toute interruption de service. Le basculement automatique des interfaces logiques (LIF) permet à une interface logique (LIF) de migrer automatiquement vers un autre port si son port d'attache devient défaillant ou en cas de basculement du stockage. Le multipathing avec basculement automatique des LIF redirige de manière transparente les E/S vers le chemin disponible le plus optimisé sans nécessiter de transition de chemin de basculement.
+
+
+
+== Configurations multipath prises en charge par SAN
+
+Les configurations multipath suivantes sont prises en charge pour les environnements SAN.
+
+local-actif:: Les chemins d'accès sur le nœud propriétaire du LUN ou de l'espace de noms sont actifs et optimisés. Les chemins d'accès sur la paire haute disponibilité sont actifs mais non optimisés.
+actif-actif:: Tous les chemins de la paire haute disponibilité possédant le LUN ou l'espace de noms sont actifs et optimisés.
+actif-actif-scsi-uniquement:: Les chemins d'accès sur le nœud propriétaire du LUN ou de l'espace de noms sont actifs et optimisés. Les chemins d'accès sur le partenaire de la paire haute disponibilité peuvent être actifs et optimisés ou actifs et non optimisés selon le protocole SAN. La configuration active-active-scsi-only est prise en charge uniquement sur les systèmes ASA.
+
+
+La prise en charge des configurations multipath SAN varie en fonction de votre système de stockage et de la version d'ONTAP.
+
+[cols="1,1,1,1"]
+|===
+| Système | Version ONTAP | Configurations multipath prises en charge | Configuration multipath par défaut 
+
+
+| FAS | 9.0 et versions ultérieures | local-actif | local-actif 
+
+
+.2+| AFF | 9.19.1 et versions ultérieures  a| 
+* actif-actif
+* local-actif
+
+| local-actif 
+
+
+| 9.18.1 et versions antérieures | local-actif | local-actif 
+
+
+.2+| ASA | 9.19.1 et versions ultérieures  a| 
+* actif-actif
+* actif-actif-scsi-uniquement
+
+| actif-actif 
+
+
+| 9.18.1 et versions antérieures  a| 
+* actif-actif
+* actif-actif-scsi-uniquement
+
+| actif-actif-scsi-uniquement 
+
+
+| ASA r2 | 9.16.1 et versions ultérieures | actif-actif | actif-actif 
+|===
+
+
+== Comportement de basculement LIF par défaut selon la configuration
+
+Selon la configuration multipath, les chemins entre l'hôte et le système de stockage sont soit actifs-optimisés, soit actifs-non optimisés. Lorsqu'un basculement du stockage se produit avec des chemins actifs-optimisés, l'hôte n'a pas besoin d'attendre la transition ALUA ou ANA des chemins de basculement pour reprendre les E/S. Pour les chemins actifs-non optimisés, ALUA ou ANA doivent transférer les E/S des chemins défaillants vers le partenaire de la paire haute disponibilité avant que les E/S puissent reprendre. En savoir plus sur link:../san-config/host-support-multipathing-concept.html["ALUA et ANA"].
+
+[cols="1,1,1,1,1"]
+|===
+| Configuration multipath | Protocole | Politique de basculement LIF par défaut | Chemins de nœud propriétaires | Voies des partenaires HA 
+
+
+| local-actif  a| 
+* ISCSI
+* NVMe/TCP
+* NVMe/FC
+
+| local uniquement | actif optimisé | actif-non-optimisé 
+
+
+.2+| actif-actif  a| 
+* ISCSI
+* NVMe/TCP
+
+| sfo-partner-only | actif optimisé | actif optimisé 
+
+
+ a| 
+* FCP
+* NVMe/FC
+
+| Les ports persistants N/A sont utilisés pour le basculement | actif optimisé | actif optimisé 
+
+
+.4+| active-active-scsi-only (Disponible uniquement sur les plateformes ASA) | ISCSI | sfo-partner-only | actif optimisé | actif optimisé 
+
+
+| NVMe/TCP | local uniquement | actif optimisé | actif-non-optimisé 
+
+
+| FC | Les ports persistants N/A sont utilisés pour le basculement | actif optimisé | actif optimisé 
+
+
+| NVMe/FC | Les ports persistants N/A sont utilisés pour le basculement | actif optimisé | actif-non-optimisé 
+|===
+
+
+== Prise en charge du basculement automatique LIF
+
+Le basculement automatique des LIF est pris en charge avec les configurations multipath actives-actives utilisant les protocoles iSCSI et NVMe/TCP, ainsi qu'avec les configurations multipath actives-actives-scsi-only utilisant le protocole iSCSI. Les LIF sont configurées pour utiliser par défaut la stratégie de basculement « sfo-partner-only » créée par le système. La stratégie par défaut « sfo-partner-only » peut être modifiée.
+
+Le basculement automatique des interfaces logiques (LIF) n'est pas pris en charge avec les configurations multipath locales actives. La stratégie par défaut locale uniquement ne peut pas être modifiée.
+
+Les configurations multipath actives-actives utilisant le protocole FC ou NVMe-FC exploitent les ports persistants pour la bascule. Les ports persistants sont pris en charge à partir d'ONTAP 9.8 et n'utilisent pas de stratégies de basculement. En savoir plus sur link:../san-config/asa-support-limitations.html["prise en charge des ports persistants"].
+
+La prise en charge du basculement automatique LIF dépend de votre système de stockage, de votre version ONTAP et du protocole SAN.
+
+[cols="1,1,1,1"]
+|===
+| Système | Version ONTAP | Protocole SAN | Prise en charge du basculement LIF 
+
+
+| FAS | 9.0 et versions ultérieures | Tout | Non pris en charge 
+
+
+.4+| AFF .3+| 9.19.1 et versions ultérieures | ISCSI | Basculement automatique LIF avec configuration multipathing actif-actif ou actif-actif-scsi uniquement 
+
+
+| NVMe/TCP | Basculement automatique LIF avec configuration multipathing actif-actif 
+
+
+ a| 
+* FC
+* NVMe/FC
+
+| Basculement avec ports persistants 
+
+
+| 9.18.1 et versions antérieures | Tout | Non pris en charge 
+
+
+.9+| ASA .3+| 9.19.1 et versions ultérieures | ISCSI | Basculement automatique LIF avec configuration multipathing actif-actif ou actif-actif-scsi uniquement 
+
+
+| NVMe/TCP | Basculement automatique LIF avec configuration multipathing actif-actif 
+
+
+ a| 
+* FC
+* NVMe/FC
+
+| Basculement avec ports persistants 
+
+
+.3+| 9.11.1 à 9.18.1 | ISCSI | Basculement automatique LIF 
+
+
+| FC | Basculement avec ports persistants 
+
+
+ a| 
+* NVMe/FC
+* NVMe/TCP
+
+| Non pris en charge 
+
+
+.2+| 9.8 à 9.10.1 | FC | Basculement avec ports persistants 
+
+
+ a| 
+* ISCSI
+* NVMe/FC
+* NVMe/TCP
+
+| Non pris en charge 
+
+
+| 9.7 | Tout | Non pris en charge 
+
+
+.2+| ASA r2 .2+| 9.19.1 et versions ultérieures  a| 
+* ISCSI
+* NVMe/TCP
+
+| Basculement automatique LIF avec configuration multipathing actif-actif 
+
+
+ a| 
+* FC
+* NVMe/FC
+
+| Basculement avec ports persistants 
+|===
+
+
+== Limitations de configuration du multipathing
+
+Il existe des limitations de configuration de chemin multiple SAN pour les machines virtuelles de stockage (SVM) dans une relation de synchronisation active SnapMirror et pour les configurations MetroCluster.
+
+* *SnapMirror Active Sync*
++
+Si vos SVM sont dans une relation de synchronisation active SnapMirror, la configuration multipath de la SVM source et de la SVM de destination doit être identique. Des configurations multipath différentes pour la SVM source et la SVM de destination ne sont pas prises en charge.
+
+* *Configurations MetroCluster*
++
+Le type de système de stockage doit être identique sur les sites principal et secondaire.
+
+
+
+
+
+== Multipathing actif-actif sur les systèmes AFF
+
+À partir d'ONTAP 9.19.1, les systèmes AFF prennent en charge le multipathing actif-actif avec basculement automatique des LIF au niveau SVM dans les environnements SAN. Cela réduit le temps de basculement, permettant aux clients SAN d'exécuter des charges de travail critiques sur les systèmes AFF avec la même résilience de chemin non disruptive et le même équilibrage de charge auparavant disponibles uniquement sur les systèmes ASA. La prise en charge du multipathing actif-actif et du basculement automatique des LIF sur vos systèmes AFF vous permet de consolider les domaines de gestion, d'optimiser votre encombrement de stockage, de tirer parti de vos investissements NAS existants et de standardiser sur un seul système de stockage pour tous vos besoins en protocoles, tout en respectant des SLA stricts de disponibilité et de performance.
+
+Sur les systèmes AFF, vous pouvez configurer le multipathing actif-actif uniquement lors de la création d'une nouvelle SVM dans ONTAP 9.19.1 et versions ultérieures. Une SVM ne peut pas être convertie d'une configuration locale-active à une configuration active-active.
+
+Vous pouvez déplacer des LUN et des espaces de noms existants de SVMs configurées pour le multipathing local-actif vers des SVMs configurées pour le multipathing actif-actif. Si vous déplacez une LUN ou un espace de noms vers une nouvelle SVM, vous devez réassocier votre hôte à la nouvelle SVM avant de commencer à fournir des données.
+
+
+NOTE: Si votre cluster exécute ONTAP 9.19.1 ou une version ultérieure et comprend à la fois des systèmes FAS et AFF, vous devez utiliser la configuration multipath local-active pour tous les systèmes. L'utilisation d'une configuration local-active pour les systèmes FAS et d'une configuration active-active pour les systèmes AFF dans le même cluster n'est pas recommandée.
+
+.Informations associées
+* En savoir plus sur link:asa-iscsi-lif-fo-task.html:["Basculement automatique de LIF iSCSI sur les systèmes ASA"].
+* En savoir plus sur link:https://docs.netapp.com/us-en/asa-r2/administer/manage-client-vm-access.html#create-a-lif-network-interface["Basculement automatique de LIF iSCSI sur les systèmes ASA r2"^].
+

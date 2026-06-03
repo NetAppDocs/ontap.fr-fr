@@ -11,14 +11,94 @@ summary: Vous pouvez personnaliser un partage SMB existant en ajoutant ou en sup
 
 
 [role="lead"]
-Vous pouvez personnaliser un partage SMB existant en ajoutant ou en supprimant des propriétés de partage. Cela peut être utile si vous voulez modifier la configuration du partage pour répondre aux exigences changeantes de votre environnement.
+Vous pouvez personnaliser un partage SMB existant en ajoutant ou en supprimant des propriétés de partage.
+
+Les propriétés de partage disponibles sont les suivantes :
+
+[cols="2,4"]
+|===
+| Propriétés du partage | Description 
+
+
+ a| 
+`oplocks`
+ a| 
+Cette propriété indique que le partage utilise des verrous opportunistes, également appelés mise en cache côté client.
+
+
+
+ a| 
+`browsable`
+ a| 
+Cette propriété permet aux clients Windows de parcourir le partage.
+
+
+
+ a| 
+`showsnapshot`
+ a| 
+Cette propriété indique que les instantanés peuvent être affichés et parcourus par les clients.
+
+
+
+ a| 
+`changenotify`
+ a| 
+Cette propriété indique que le partage prend en charge les demandes de notification des modifications. Pour les partages sur un SVM, il s'agit d'une propriété initiale par défaut.
+
+
+
+ a| 
+`attributecache`
+ a| 
+Cette propriété permet la mise en cache des attributs de fichier sur le partage SMB afin d'accélérer l'accès aux attributs. La valeur par défaut est de désactiver la mise en cache des attributs. Cette propriété ne doit être activée que si des clients se connectent à des partages sur SMB 1.0. Cette propriété de partage n'est pas applicable si les clients se connectent à des partages via SMB 2.x ou SMB 3.0.
+
+
+
+ a| 
+`continuously-available`
+ a| 
+Cette propriété permet aux clients SMB qui la prennent en charge d'ouvrir des fichiers de façon persistante. Les fichiers ouverts de cette façon sont protégés contre les événements perturbateurs, tels que le basculement et le rétablissement.
+
+
+
+ a| 
+`branchcache`
+ a| 
+Cette propriété spécifie que le partage permet aux clients de demander des hachages de BranchCache sur les fichiers de ce partage. Cette option n'est utile que si vous spécifiez « par partage » en mode de fonctionnement dans la configuration de BranchCache CIFS.
+
+
+
+ a| 
+`access-based-enumeration`
+ a| 
+Cette propriété spécifie que _accès basé sur Enumeration_ (ABE) est activé sur ce partage. Les dossiers partagés filtrés PAR ABE sont visibles par un utilisateur en fonction des droits d'accès de cet utilisateur, empêchant l'affichage des dossiers ou d'autres ressources partagées que l'utilisateur ne dispose pas des droits d'accès.
+
+
+
+ a| 
+`namespace-caching`
+ a| 
+Cette propriété spécifie que les clients SMB qui se connectent à ce partage peuvent mettre en cache les résultats d'énumération de répertoire renvoyés par les serveurs CIFS, ce qui peut fournir de meilleures performances. Par défaut, les clients SMB 1 ne mettent pas en cache les résultats d'énumération des répertoires. Étant donné que les clients SMB 2 et SMB 3 mettent en cache les résultats d'énumération de répertoires par défaut, la spécification de cette propriété de partage n'offre des avantages en termes de performances que pour les connexions clients SMB 1.
+
+
+
+ a| 
+`encrypt-data`
+ a| 
+Cette propriété spécifie que le chiffrement SMB doit être utilisé lors de l'accès à ce partage. Les clients SMB qui ne prennent pas en charge le chiffrement lors de l'accès aux données SMB ne pourront pas accéder à ce partage.
+
+|===
+
+
+== Ajouter des propriétés de partage aux partages SMB ONTAP existants
+
+Vous pouvez personnaliser un partage SMB existant en ajoutant des propriétés de partage. Cela peut s'avérer utile si vous souhaitez modifier la configuration du partage pour répondre à l'évolution des besoins de votre environnement.
 
 .Avant de commencer
 Le partage dont vous souhaitez modifier les propriétés doit exister.
 
 .Description de la tâche
-Instructions pour l'ajout de propriétés de partage :
-
 * Vous pouvez ajouter une ou plusieurs propriétés de partage à l'aide d'une liste délimitée par des virgules.
 * Toutes les propriétés de partage que vous avez précédemment spécifiées restent en vigueur.
 +
@@ -31,36 +111,22 @@ Vous pouvez utiliser le `vserver cifs share properties remove` commande permetta
 
 
 
-Consignes de suppression des propriétés de partage :
-
-* Vous pouvez supprimer une ou plusieurs propriétés de partage à l'aide d'une liste délimitée par des virgules.
-* Toutes les propriétés de partage que vous avez précédemment spécifiées mais que vous ne les supprimez pas restent en vigueur.
-
-
 .Étapes
-. Saisissez la commande appropriée :
+. Ajouter des propriétés de partage :
 +
-|===
-| Les fonctions que vous recherchez... | Entrez la commande... 
+[source, cli]
+----
+vserver cifs share properties add -vserver <SVM_name> -share-name <share_name> -share-properties <properties>,...
+----
+. Vérifiez les paramètres de partage :
++
+[source, cli]
+----
+vserver cifs share show -vserver vserver_name -share-name share_name
+----
 
 
- a| 
-Ajouter des propriétés de partage
- a| 
-`+vserver cifs share properties add -vserver _vserver_name_ -share-name _share_name_ -share-properties _properties_,...+`
-
-
-
- a| 
-Supprimer les propriétés de partage
- a| 
-`+vserver cifs share properties remove -vserver _vserver_name_ -share-name _share_name_ -share-properties _properties_,...+`
-
-|===
-. Vérifiez les paramètres de propriété de partage : `vserver cifs share show -vserver vserver_name -share-name share_name`
-
-
-.Exemples
+.Exemple
 La commande suivante ajoute la `showsnapshot` Partagez la propriété avec une part nommée « `khare1' » sur la SVM vs1 :
 
 [listing]
@@ -75,6 +141,33 @@ vs1        share1  /share1   oplocks      -          Everyone / Full Control
                              changenotify
                              showsnapshot
 ----
+
+
+== Supprimer les propriétés de partage sur les partages ONTAP SMB existants
+
+Vous pouvez personnaliser un partage SMB existant en supprimant des propriétés de partage. Cela peut être utile si vous souhaitez modifier la configuration du partage pour répondre à l'évolution des exigences de votre environnement.
+
+.Description de la tâche
+* Vous pouvez supprimer une ou plusieurs propriétés de partage à l'aide d'une liste délimitée par des virgules.
+* Toutes les propriétés de partage que vous avez précédemment spécifiées mais que vous ne les supprimez pas restent en vigueur.
+
+
+.Étapes
+. Supprimer les propriétés du partage :
++
+[source, cli]
+----
+vserver cifs share properties remove -vserver <SVM_name> -share-name <share_name> -share-properties <properties>,...
+----
+. Vérifiez les paramètres de partage :
++
+[source, cli]
+----
+vserver cifs share show -vserver <SVM_name> -share-name <share_name>
+----
+
+
+.Exemple
 La commande suivante supprime le `browsable` Partagez des biens d'une part nommée « `sune2` » sur la SVM vs1 :
 
 [listing]

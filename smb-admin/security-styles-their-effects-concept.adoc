@@ -17,37 +17,44 @@ Il est important de comprendre que les styles de sécurité ne déterminent pas 
 
 Par exemple, si un volume utilise le style de sécurité UNIX, les clients SMB peuvent toujours accéder aux données (à condition qu'ils s'authentifient et autorisent correctement) en raison de la nature multiprotocole de ONTAP. Toutefois, ONTAP utilise des autorisations UNIX que seuls les clients UNIX peuvent modifier à l'aide d'outils natifs.
 
-[cols="5*"]
+[cols="5"]
 |===
 | Style de sécurité | Clients pouvant modifier des autorisations | Autorisations que les clients peuvent utiliser | Un style de sécurité efficace | Clients pouvant accéder aux fichiers 
 
 
-.2+| UNIX .2+| NFS | Bits de mode NFSv3 .2+| UNIX .9+| NFS et SMB 
+| UNIX | NFS  a| 
+* Bits de mode NFSv3
+* Listes de contrôle d'accès NFSv4.x
+
+| UNIX | NFS et SMB 
 
 
-| Listes de contrôle d'accès NFSv4.x 
+| NTFS | PME | ALC NTFS | NTFS | NFS et SMB 
 
 
-| NTFS | PME | ALC NTFS | NTFS 
+| Mixte | NFS ou SMB  a| 
+* Bits de mode NFSv3
+* Listes de contrôle d'accès NFSv4.x
+* ALC NTFS
+
+ a| 
+* UNIX (pour les bits de mode NFSv3 et les ACL NFSv4.x)
+* NTFS (pour les ACL NTFS)
+
+| NFS et SMB 
 
 
-.3+| Mixte .3+| NFS ou SMB | Bits de mode NFSv3 .2+| UNIX 
+| Unifiée
+(Pour Infinite volumes uniquement, dans ONTAP 9.4 et les versions antérieures.) | NFS ou SMB  a| 
+* Bits de mode NFSv3
+* ACL NFSv4.1
+* ALC NTFS
 
+ a| 
+* UNIX (pour les bits de mode NFSv3 et les ACL NFSv4.1)
+* NTFS (pour les ACL NTFS)
 
-| ACL.NFSv4 
-
-
-| ALC NTFS | NTFS 
-
-
-.3+| Unifiée
-(Pour Infinite volumes uniquement, dans ONTAP 9.4 et les versions antérieures.) .3+| NFS ou SMB | Bits de mode NFSv3 .2+| UNIX 
-
-
-| ACL NFSv4.1 
-
-
-| ALC NTFS | NTFS 
+| NFS et SMB 
 |===
 Les volumes FlexVol prennent en charge les styles de sécurité UNIX, NTFS et mixte. Lorsque le style de sécurité est mixte ou unifié, les autorisations effectives dépendent du type de client qui a modifié les autorisations pour la dernière fois, car les utilisateurs définissent le style de sécurité sur une base individuelle. Si le dernier client ayant modifié des autorisations était un client NFSv3, les autorisations sont des bits en mode UNIX NFSv3. Si le dernier client était un client NFSv4, les autorisations sont définies comme listes de contrôle d'accès NFSv4. Si le dernier client était un client SMB, les autorisations sont des listes de contrôle d'accès Windows NTFS.
 
@@ -62,4 +69,55 @@ ONTAP définit au départ certaines autorisations de fichier par défaut. Par d�
 ====
 .Informations associées
 * link:https://docs.netapp.com/us-en/ontap-cli/["Référence de commande ONTAP"^]
+
+
+
+NOTE: Les styles de sécurité peuvent être définis sur les volumes FlexVol (racine ou données) et les qtrees. Les styles de sécurité peuvent être définis manuellement lors de la création, hérités automatiquement ou modifiés ultérieurement. == Décidez quels styles de sécurité SMB utiliser sur les SVM ONTAP
+
+Pour vous aider à choisir le style de sécurité à utiliser sur un volume, vous devez tenir compte de deux facteurs. Le facteur principal est le type d'administrateur qui gère le système de fichiers. Le facteur secondaire désigne le type d'utilisateur ou de service qui accède aux données du volume.
+
+Lorsque vous configurez le style de sécurité sur un volume, vous devez tenir compte des besoins de votre environnement pour vous assurer que vous sélectionnez le meilleur style de sécurité et éviter les problèmes liés à la gestion des autorisations. Vous pouvez décider des considérations suivantes :
+
+[cols="2,4"]
+|===
+| Style de sécurité | Choisissez si... 
+
+
+ a| 
+UNIX
+ a| 
+* Le système de fichiers est géré par un administrateur UNIX.
+* La plupart des utilisateurs sont des clients NFS.
+* Une application accédant aux données utilise un utilisateur UNIX comme compte de service.
+
+
+
+
+ a| 
+NTFS
+ a| 
+* Le système de fichiers est géré par un administrateur Windows.
+* La majorité des utilisateurs sont des clients SMB.
+* Une application accédant aux données utilise un utilisateur Windows comme compte de service.
+
+
+
+
+ a| 
+Mixte
+ a| 
+Le système de fichiers est géré à la fois par les administrateurs et utilisateurs d'UNIX et de Windows, et il se compose de clients NFS et SMB.
+
+|===
+
+
+== En savoir plus sur l'héritage de style de sécurité SMB de ONTAP
+
+Si vous ne spécifiez pas le style de sécurité lors de la création d'un nouveau volume FlexVol ou d'un qtree, il hérite de son style de sécurité de différentes manières.
+
+Les styles de sécurité sont hérités de la manière suivante :
+
+* Un volume FlexVol hérite du style de sécurité du volume root de son SVM contenant.
+* Un qtree hérite du style de sécurité de son volume FlexVol.
+* Un fichier ou un répertoire hérite du style de sécurité de son volume FlexVol ou qtree.
 

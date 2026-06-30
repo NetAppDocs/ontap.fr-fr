@@ -4,61 +4,84 @@ sidebar: sidebar
 keywords: understanding, fabricpool, tiering, policies, types, modify, volume, clone, cloud migration 
 summary: Les règles de Tiering de FabricPool vous permettent de déplacer efficacement les données entre les tiers à mesure que les données sont actives ou inactives. Le respect des règles de hiérarchisation vous permet de choisir la règle la plus adaptée à vos besoins en matière de gestion du stockage. 
 ---
-= Déplacez efficacement les données selon les règles ONTAP FabricPool
+= FabricPool volume politiques de hiérarchisation
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Les règles de Tiering de FabricPool vous permettent de déplacer efficacement les données entre les tiers à mesure que les données sont actives ou inactives. Le respect des règles de hiérarchisation vous permet de choisir la règle la plus adaptée à vos besoins en matière de gestion du stockage.
-
-
-
-== Types de règles de Tiering FabricPool
-
-Les règles de Tiering FabricPool déterminent quand ou si les blocs de données utilisateur d'un volume d'FabricPool sont déplacés vers le Tier cloud, en fonction de la « température » du volume « actif » ou froid (inactif). Le volume « température » augmente lorsqu'il est fréquemment utilisé et diminue lorsqu'il n'est pas utilisé. Certaines règles de Tiering ont associé une période de refroidissement minimale de Tiering, qui définit le temps pendant lequel les données utilisateur d'un volume FabricPool doivent rester inactives pour que les données soient considérées comme « inactives » et déplacées vers le Tier cloud.
-
-Une fois qu'un bloc a été identifié comme froid, il est marqué comme éligible pour être hiérarchisé.  Une analyse quotidienne de la hiérarchisation en arrière-plan recherche les blocs inactifs. Lorsque suffisamment de blocs de 4 Ko provenant du même volume ont été collectés, ils sont concaténés dans un objet de 4 Mo et déplacés au niveau cloud en fonction de la règle de Tiering des volumes.
+FabricPool Les politiques de hiérarchisation des volumes déterminent quelles données d'un volume sont éligibles à la hiérarchisation, et le paramètre de nombre minimum de jours de refroidissement pour la hiérarchisation détermine quand les données sont considérées comme inactives et éligibles à la hiérarchisation.
 
 [NOTE]
 ====
-Données dans des volumes utilisant `all` la règle de tiering est immédiatement marquée comme inactives et commence le tiering vers le tier cloud dès que possible. Inutile d'attendre l'exécution de l'analyse de Tiering quotidienne.
+Les listes de contrôle d'accès (ACL), les structures de répertoires et les métadonnées ne sont jamais hiérarchisées et restent toujours sur le niveau local.
 
 ====
+Une analyse quotidienne en arrière-plan recherche les blocs inactifs. Lorsque suffisamment de blocs de 4 Ko provenant du même volume ont été collectés, ils sont concaténés en un objet de 4 Mo et déplacés vers le niveau cloud conformément à la politique de hiérarchisation des volumes.
+
+Comprendre le fonctionnement des politiques de hiérarchisation vous aidera à choisir la politique la mieux adaptée à vos besoins en matière de gestion du stockage.
+
+
+
+== Options de politique de hiérarchisation des volumes
+
+Par défaut, les volumes utilisent la stratégie de hiérarchisation de volumes « Aucun ». L'exception concerne les volumes FlexVol nouvellement créés sur les agrégats FabricPool, qui utilisent la stratégie de hiérarchisation de volumes « Instantané uniquement ».
+
 Vous pouvez utiliser `volume object-store tiering show` la commande pour afficher l'état de la hiérarchisation d'un volume FabricPool. Pour en savoir plus, `volume object-store tiering show` consultez le link:https://docs.netapp.com/us-en/ontap-cli//volume-object-store-tiering-show.html["Référence de commande ONTAP"^].
 
 La règle de Tiering FabricPool est spécifiée au niveau du volume. Quatre options sont disponibles :
 
-* La `snapshot-only` règle de Tiering (par défaut) déplace les blocs de données utilisateur des snapshots de volume qui ne sont pas associés au système de fichiers actif vers le Tier cloud.
-+
-La période de refroidissement minimum par niveaux est de 2 jours. Vous pouvez modifier le paramètre par défaut de la période de refroidissement minimum par niveaux avec l' `-tiering-minimum-cooling-days` paramètre au niveau de privilège avancé de l' `volume create` et `volume modify` commandes. Les valeurs valides sont comprises entre 2 et 183 jours avec ONTAP 9.8 et version ultérieure. Si vous utilisez une version de ONTAP antérieure à 9.8, les valeurs valides sont comprises entre 2 et 63 jours.
 
-* La `auto` règle de Tiering, prise en charge uniquement dans ONTAP 9.4 et versions ultérieures, déplace les blocs de données inactives dans les copies Snapshot et le système de fichiers actif vers le Tier cloud.
-+
-La période de refroidissement minimale du Tiering par défaut est de 31 jours et s'applique à l'ensemble du volume, à la fois pour le système de fichiers actif et pour les snapshots.
 
-+
+=== Instantané uniquement
+
+La  `snapshot-only`politique de hiérarchisation transfère vers un autre niveau les données d’instantané qui ne sont plus associées au système de fichier actif. Par défaut, il faut deux jours d’inactivité avant qu’un instantané soit éligible au transfert vers un autre niveau. La plupart des plannings de protection des données sont horaires ou quotidiens et lisent les données localement avant leur transfert vers un autre niveau.
+
+Vous pouvez modifier la valeur par défaut de la période minimale de refroidissement pour la hiérarchisation avec le paramètre  `-tiering-minimum-cooling-days` au niveau de privilège avancé des commandes  `volume create` et  `volume modify`. Les valeurs valides sont de 2 à 183 jours avec ONTAP 9.8 et versions ultérieures. Si vous utilisez une version d'ONTAP antérieure à 9.8, les valeurs valides sont de 2 à 63 jours.
+
+Lors de la lecture, les blocs froids associés aux copies instantanées restent froids et ne sont pas réécrits sur le niveau local.
+
+
+
+=== Automatique
+
+La `auto` politique de hiérarchisation place toutes les données froides du volume — à la fois les instantanés et le système de fichier actif — dans le niveau cloud. La période de refroidissement minimale par défaut est de 31 jours et s'applique à l'ensemble du volume, pour le système de fichier actif comme pour les instantanés.
+
 Vous pouvez modifier le paramètre par défaut de la période de refroidissement minimum par niveaux avec l' `-tiering-minimum-cooling-days` paramètre au niveau de privilège avancé de l' `volume create` et `volume modify` commandes. Les valeurs valides sont de 2 à 183 jours.
 
-* La `all` règle de Tiering, prise en charge uniquement avec ONTAP 9.6 et versions ultérieures, déplace tous les blocs de données utilisateur du système de fichiers actif et des snapshots vers le Tier cloud. Elle remplace la `backup` règle de Tiering.
-+
-Le `all` la règle de tiering des volumes ne doit pas être utilisée sur les volumes en lecture/écriture présentant un trafic client normal.
+Lorsqu'ils sont lus de manière aléatoire, les blocs froids d'un volume dont la politique de hiérarchisation est définie sur Auto sont rendus chauds et réécrits dans le niveau local.
 
-+
+Lors d'une lecture séquentielle, les blocs froids d'un volume dont la stratégie de hiérarchisation est définie sur « Auto » restent froids et demeurent sur le niveau cloud. Ils ne sont pas réécrits sur le niveau local.
+
+
+
+=== Tout
+
+La `all` politique de hiérarchisation marque immédiatement toutes les données du volume comme inactives et commence à les transférer vers le niveau cloud dès que possible. Il n'est pas nécessaire d'attendre 48 heures pour que les nouveaux blocs d'un volume utilisant la `all` politique de hiérarchisation deviennent inactifs.
+
 La période de refroidissement minimale du Tiering ne s'applique pas, car les données sont déplacées vers le Tier cloud dès l'exécution de l'analyse du Tiering. Vous ne pouvez pas modifier ce paramètre.
 
-* Le `none` la règle de tiering conserve les données d'un volume dans le tier de performance et ne les déplace pas à froid vers le tier cloud.
-+
+Lorsqu'un volume dont la politique de hiérarchisation est définie sur « Tous » contient des blocs froids lus, ces blocs restent froids et demeurent sur le niveau cloud. Ils ne sont pas réécrits sur le niveau local.
+
+[NOTE]
+====
+Le `all` la règle de tiering des volumes ne doit pas être utilisée sur les volumes en lecture/écriture présentant un trafic client normal.
+
+Le stockage objet n'est pas transactionnel comme le stockage fichier ou le stockage bloc. Modifier des fichiers stockés sous forme d'objets dans des volumes utilisant la stratégie de hiérarchisation « Tous » peut entraîner la création de nouveaux objets, la fragmentation des objets existants, une baisse des performances de lecture et une augmentation des inefficacités de stockage.
+
+====
+
+
+=== Aucune
+
+La  `none`politique de hiérarchisation maintient les données d'un volume dans le niveau de performance et ne hiérarchise pas les données.
+
 Définition de la règle de hiérarchisation sur `none` empêche le nouveau tiering. Les données de volume qui ont déjà été déplacées vers le Tier cloud restent dans le Tier cloud jusqu'à ce qu'elles deviennent actives, et sont automatiquement déplacées vers le Tier local.
 
-+
 Le Tiering n'applique pas la période de refroidissement minimale, car les données ne sont jamais déplacées vers le Tier cloud et vous ne pouvez pas modifier le paramètre.
 
-+
 En cas de blocs inactifs dans un volume dont la règle de Tiering est définie sur `none` ils sont lus, ils sont brûlants et écrits sur le niveau local.
-
-
 
 Le `volume show` la sortie de la commande affiche la politique de tiering d'un volume. Un volume qui n'a encore jamais été utilisé avec FabricPool présente la `none` règle de hiérarchisation dans la sortie.
 
@@ -67,7 +90,7 @@ NOTE: Dans une relation SVM DR, les volumes source et de destination n'ont pas b
 
 
 
-== Que se passe-t-il lorsque vous modifiez la règle de Tiering d'un volume dans FabricPool
+== Que se passe-t-il lorsque vous modifiez une politique de hiérarchisation des volumes
 
 Vous pouvez modifier la règle de hiérarchisation d'un volume en effectuant une `volume modify` fonctionnement. Vous devez savoir en quoi la modification de la règle de Tiering peut affecter le temps nécessaire aux données inactives et déplacées vers le Tier cloud.
 

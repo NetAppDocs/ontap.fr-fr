@@ -21,3 +21,99 @@ Lorsque vous appliquez un quota à un qtree, le résultat est similaire à une p
 La taille du quota ne garantit aucune quantité spécifique d'espace disponible. La taille du quota peut être supérieure à la quantité d'espace libre disponible pour le qtree. Vous pouvez utiliser le `volume quota report` commande permettant de déterminer la quantité réelle d'espace disponible dans le qtree.
 
 Pour en savoir plus, `volume quota report` consultez le link:https://docs.netapp.com/us-en/ontap-cli/volume-quota-report.html["Référence de commande ONTAP"^].
+
+
+
+== Découvrez comment les quotas d'utilisateurs et de groupes ONTAP fonctionnent avec les qtrees
+
+Les quotas d'arborescence limitent la taille globale du qtree. Pour éviter que des utilisateurs ou groupes individuels ne consomment l'intégralité du qtree, vous spécifiez un quota d'utilisateur ou de groupe pour ce qtree.
+
+.Exemple de quota d'utilisateur dans un qtree
+[%collapsible]
+====
+Supposons que vous ayez les règles de quota suivantes :
+
+[listing]
+----
+cluster1::> volume quota policy rule show -vserver vs0 -volume vol1
+
+Vserver: vs0               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   ""        ""      off          50MB        -       -        -       45MB
+user   jsmith    ""      off          80MB        -       -        -       75MB
+----
+Vous remarquez qu'un certain utilisateur, kjones, occupe trop d'espace dans un qtree critique, proj1, qui réside dans vol1. Vous pouvez restreindre l'espace de cet utilisateur en ajoutant la règle de quota suivante :
+
+[listing]
+----
+cluster1::> volume quota policy rule create -vserver vs0 -volume vol1 -policy-name default -type user -target "kjones" -qtree "proj1" -disk-limit 20m -threshold 15m
+
+cluster1::> volume quota policy rule show -vserver vs0 -volume vol1
+
+Vserver: vs0               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   ""        ""      off          50MB        -       -        -       45MB
+user   jsmith    ""      off          80MB        -       -        -       75MB
+user   kjones    proj1   off          20MB        -       -        -       15MB
+----
+====
+
+
+== Découvrez comment les quotas d'arborescence par défaut sur un volume FlexVol ONTAP créent des quotas d'arborescence dérivés
+
+Lorsque vous créez un quota Tree par défaut sur un volume FlexVol, les quotas d'arborescence dérivés correspondants sont automatiquement créés pour chaque qtree de ce volume.
+
+Ces quotas d'arborescence dérivés ont les mêmes limites que le quota d'arborescence par défaut. S'il n'existe pas de quotas supplémentaires, les limites ont les effets suivants :
+
+* Les utilisateurs peuvent utiliser autant d'espace dans un qtree qu'ils sont alloués à l'intégralité du volume (à condition qu'ils n'aient pas dépassé la limite du volume en utilisant l'espace à la racine ou à un autre qtree).
+* Chaque qtree peut être davantage de capacité à consommer la totalité du volume.
+
+
+L'existence d'un quota Tree par défaut sur un volume continue d'affecter tous les nouveaux qtrees qui sont ajoutés au volume. Chaque fois qu'un qtree est créé, un quota Tree dérivé est également créé.
+
+Comme tous les quotas dérivés, les quotas d'arborescence dérivés affichent les comportements suivants :
+
+* Sont créés uniquement si la cible ne dispose pas déjà d'un quota explicite.
+* Apparaissent dans les rapports de quotas mais n'apparaissent pas lorsque vous affichez les règles de quota avec la `volume quota policy rule show` commande. Pour en savoir plus, `volume quota policy rule show` consultez le link:https://docs.netapp.com/us-en/ontap-cli/volume-quota-policy-rule-show.html["Référence de commande ONTAP"^].
+
+
+.Exemple de quotas d'arborescence dérivés
+[%collapsible]
+====
+Vous disposez d'un volume avec trois qtrees (proj1, proj2 et proj3), et le seul quota Tree est un quota explicite sur le qtree proj1 qui limite sa taille de disque à 10 Go. Si vous créez un quota d'arborescence par défaut sur le volume et que vous réinitialisez les quotas sur le volume, le rapport quota contient maintenant quatre quotas d'arborescence :
+
+[listing]
+----
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol1     proj1     tree    1           0B   10GB       1       -   proj1
+vol1               tree    *           0B   20GB       0       -   *
+vol1     proj2     tree    2           0B   20GB       1       -   proj2
+vol1     proj3     tree    3           0B   20GB       1       -   proj3
+...
+----
+La première ligne montre le quota explicite d'origine sur le qtree proj1. Ce quota reste inchangé.
+
+La seconde ligne affiche le nouveau quota Tree par défaut sur le volume. L'astérisque (*) quota Specyfier indique qu'il s'agit d'un quota par défaut. Ce quota est le résultat de la règle de quotas que vous avez créée.
+
+Les deux dernières lignes montrent de nouveaux quotas d'arborescence dérivés pour les qtrees proj2 et proj3. ONTAP a automatiquement créé ces quotas en raison du quota Tree par défaut sur le volume. Ces quotas d'arborescence dérivés ont la même limite de disque de 20 Go que le quota d'arborescence par défaut sur le volume. ONTAP n'a pas créé de quota Tree dérivé pour le qtree proj1 car le qtree proj1 disposait déjà d'un quota explicite.
+
+====
+
+
+== Découvrez comment les quotas utilisateur par défaut sur un volume FlexVol ONTAP affectent les quotas pour les qtrees
+
+Lorsqu'un quota utilisateur par défaut est défini pour un volume FlexVol, un quota utilisateur par défaut est automatiquement créé pour chaque qtree contenu par ce volume pour lequel un quota Tree explicite ou dérivé existe.
+
+Si un quota utilisateur par défaut sur le qtree existe déjà, il reste inchangé lorsque le quota utilisateur par défaut sur le volume est créé.
+
+Les quotas d'utilisateur par défaut créés automatiquement sur les qtrees ont les mêmes limites que le quota d'utilisateur par défaut que vous créez pour le volume.
+
+Un quota utilisateur explicite pour des remplacements de qtree (remplace les limites appliquées par) le quota utilisateur par défaut créé automatiquement, de la même manière qu'il remplace un quota utilisateur par défaut sur ce qtree créé par un administrateur.

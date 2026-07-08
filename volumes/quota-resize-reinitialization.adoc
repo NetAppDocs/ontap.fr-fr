@@ -1,0 +1,99 @@
+---
+permalink: volumes/quota-resize-reinitialization.html 
+sidebar: sidebar 
+keywords: when to, use, resizing 
+summary: 'Le redimensionnement des quotas est plus rapide que l"initialisation des quotas, mais il présente des restrictions.' 
+---
+= Découvrez le redimensionnement et la réinitialisation des quotas ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Redimensionner un quota est plus rapide que la réinitialisation ; cependant, si vous apportez certaines modifications à vos quotas, vous devez effectuer une réinitialisation complète des quotas
+
+
+
+== Redimensionnement des quotas ONTAP
+
+Vous pouvez redimensionner les quotas lors des types de modifications suivants apportés aux règles de quotas :
+
+* Modifier un quota existant.
++
+Par exemple, la modification des limites d'un quota existant.
+
+* Ajout d'un quota pour une cible de quota pour laquelle il existe un quota par défaut ou un quota de suivi par défaut.
+* Suppression d'un quota pour lequel une entrée de quota par défaut ou de quota de suivi par défaut est spécifiée.
+* Combinaison de quotas d'utilisateurs distincts dans un quota multi-utilisateurs.
+
+
+[NOTE]
+====
+Après avoir apporté de nombreuses modifications de quotas, vous devez procéder à une réinitialisation complète pour vous assurer que toutes les modifications prennent effet.
+
+====
+[NOTE]
+====
+Si vous tentez de redimensionner ou non la totalité de vos modifications des quotas peut être incorporée à l'aide d'une opération de redimensionnement, ONTAP émet un avertissement. Vous pouvez déterminer dans le rapport de quotas si votre système de stockage effectue le suivi de l'utilisation de disques pour un utilisateur, un groupe ou un qtree spécifique. Si vous voyez un quota dans le rapport sur les quotas, cela signifie que le système de stockage suit l'espace disque et le nombre de fichiers appartenant à la cible de quota.
+
+====
+.Exemples de modifications de quotas pouvant être appliquées par redimensionnement
+Certaines modifications de la règle de quotas peuvent être effectuées efficacement par le redimensionnement. Prenez en compte les quotas suivants :
+
+[listing]
+----
+
+#Quota Target type             disk  files thold sdisk sfile
+#------------ ----             ----  ----- ----- ----- -----
+*             user@/vol/vol2    50M   15K
+*             group@/vol/vol2  750M   85K
+*             tree@/vol/vol2      -     -
+jdoe          user@/vol/vol2/  100M   75K
+kbuck         user@/vol/vol2/  100M   75K
+----
+Supposons que vous apportez les modifications suivantes :
+
+* Augmentez le nombre de fichiers pour la cible utilisateur par défaut.
+* Ajoutez un nouveau quota d'utilisateur pour un nouvel utilisateur, boris, qui a besoin de plus de limite de disque que le quota d'utilisateur par défaut.
+* Supprimez l'entrée de quota explicite de l'utilisateur kbuck ; le nouvel utilisateur n'a désormais besoin que des limites de quota par défaut.
+
+
+Ces modifications entraînent les quotas suivants :
+
+[listing]
+----
+
+#Quota Target type             disk  files thold sdisk sfile
+#------------ ----             ----  ----- ----- ----- -----
+*             user@/vol/vol2    50M   25K
+*             group@/vol/vol2  750M   85K
+*             tree@/vol/vol2      -     -
+jdoe          user@/vol/vol2/  100M   75K
+boris         user@/vol/vol2/  100M   75K
+----
+Le redimensionnement active toutes ces modifications ; une réinitialisation complète du quota n'est pas nécessaire.
+
+
+
+== Réinitialisation des quotas ONTAP
+
+Bien que le redimensionnement des quotas soit plus rapide, vous devez procéder à une réinitialisation complète des quotas si vous apportez certaines modifications de petite ou de grande taille à vos quotas.
+
+Une réinitialisation complète du quota est nécessaire dans les cas suivants :
+
+* Vous créez un quota pour une cible qui n'avait pas auparavant de quota (ni un quota explicite, ni un quota dérivé d'un quota par défaut).
+* Vous modifiez le style de sécurité d'un qtree d'UNIX vers ou de NTFS.
+* Vous modifiez le style de sécurité d'un qtree : mélange ou NTFS à UNIX.
+* Vous supprimez des utilisateurs d'une cible de quota avec plusieurs utilisateurs ou ajoutez des utilisateurs à une cible qui possède déjà plusieurs utilisateurs.
+* Vous apportez d'importantes modifications à vos quotas.
+
+
+.Exemple de modifications de quotas qui nécessitent l'initialisation
+Supposons que vous disposez d'un volume qui contient trois qtrees et que les seuls quotas du volume sont trois quotas hiérarchiques explicites. Vous décidez d'effectuer les modifications suivantes :
+
+* Ajouter un nouveau qtree et créer un nouveau quota Tree pour celui-ci.
+* Ajoutez un quota utilisateur par défaut pour le volume.
+
+
+Ces deux modifications nécessitent une initialisation complète du quota. Le redimensionnement ne rend pas efficaces les quotas.

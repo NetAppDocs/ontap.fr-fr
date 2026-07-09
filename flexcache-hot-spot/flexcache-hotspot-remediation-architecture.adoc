@@ -15,28 +15,33 @@ Pour remédier aux problèmes de détection des problèmes, explorez les causes 
 
 
 
+[[understanding-the-bottleneck]]
 == La compréhension du goulot d'étranglement
 
 Voici <<Figure-1,image>>un scénario typique de détection de points d'accès à un seul fichier. Le volume est une FlexGroup avec un seul composant par nœud, et le fichier réside sur le nœud 1.
 
 Si vous distribuez toutes les connexions réseau des clients NAS sur différents nœuds du cluster, vous continuez à former un goulot d'étranglement sur le processeur qui gère l'affinité de volume où réside le fichier actif. Vous introduisez également le trafic réseau du cluster (trafic est-ouest) aux appels provenant de clients connectés à des nœuds autres que ceux où réside le fichier. La surcharge du trafic dans le nord-ouest est généralement faible, mais pour les workloads de calcul haute performance, tout petit compte.
 
+[[Figure-1]]
 .Figure 1 : scénario de point d'accès à un seul fichier FlexGroup
 image:flexcache-hotspot-hdfa-flexgroup.png["Figure 1 : scénario de point d'accès à un seul fichier FlexGroup"]
 
 
 
+[[why-an-auto-provisioned-flexcache-isnt-the-answer]]
 == Pourquoi un FlexCache à provisionnement automatique n'est-il pas suffisant
 
 Pour remédier à la détection des points d'accès, éliminez le goulot d'étranglement du processeur et, de préférence, le trafic est-ouest aussi. FlexCache peut vous aider s'il est correctement configuré.
 
 Dans l'exemple suivant, FlexCache est provisionné automatiquement avec System Manager, NetApp Console ou les arguments CLI par défaut. <<Figure-1,Figure 1>> et<<Figure-2,figure 2>> Au premier abord, ils semblent identiques : tous deux sont des conteneurs NAS à quatre nœuds et à constituant unique.  La seule différence est que le conteneur NAS de la figure 1 est un FlexGroup et que le conteneur NAS de la figure 2 est un FlexCache.  Chaque figure présente le même goulot d'étranglement : le processeur du nœud 1 pour l'accès au fichier chaud par affinité de volume et le trafic est-ouest contribuant à la latence.  Un FlexCache provisionné automatiquement n’a pas éliminé le goulot d’étranglement.
 
+[[Figure-2]]
 .Figure 2 : scénario FlexCache auto-provisionné
 image:flexcache-hotspot-hdfa-1x4x1.png["Figure 2 : scénario FlexCache auto-provisionné"]
 
 
 
+[[anatomy-of-a-flexcache]]
 == Anatomie d'un FlexCache
 
 Pour concevoir efficacement une solution FlexCache pour la correction des hotspots, vous devez comprendre quelques détails techniques sur FlexCache.
@@ -51,6 +56,7 @@ La solution est un ensemble de FlexCaches haute densité.
 
 
 
+[[anatomy-of-a-high-density-flexcache]]
 == Anatomie d'un FlexCache haute densité
 
 Un FlexCache haute densité (HDF) aura des composants sur un nombre de nœuds aussi faible que les besoins en capacité pour les données en cache le permettent. L'objectif est de placer votre cache sur un seul nœud. Si les besoins en capacité rendent cela impossible, les composants ne peuvent se trouvent que sur quelques nœuds.

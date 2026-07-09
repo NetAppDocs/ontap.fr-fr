@@ -15,12 +15,14 @@ Les concepts suivants décrivent en détail le fonctionnement de l'écriture dif
 
 
 
+[[delegations]]
 == Délégations
 
 Les délégations de verrouillage et les délégations de données permettent à FlexCache de conserver des caches d'écriture différée et d'écriture immédiate, cohérents et à jour. L'origine orchestre les deux délégations.
 
 
 
+[[lock-delegations]]
 === Verrouiller les délégations
 
 Une délégation de verrouillage est une autorité de verrouillage au niveau du protocole que l'origine accorde à chaque fichier à un cache pour émettre des verrous de protocole aux clients selon les besoins. Ceux-ci incluent xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[Délégations de verrous exclusives (XLD)] et xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[Délégations de verrous partagés (SLD)].
@@ -47,6 +49,7 @@ NOTE: Il y a une limite de 170 XLD par composant d'origine.
 
 
 
+[[data-delegations]]
 === Délégations de données
 
 Une délégation de données est une garantie par fichier donnée à un cache par l'origine que les données mises en cache pour ce fichier sont à jour. Tant que le cache dispose d'une délégation de données pour un fichier, il peut transmettre les données en cache pour ce fichier au client sans avoir à contacter l'origine. Si le cache n'a pas de délégation de données pour le fichier, il doit contacter l'origine pour recevoir les données demandées par le client.
@@ -57,6 +60,7 @@ Les lectures effectuées sur un cache avec écriture différée fonctionnent gé
 
 
 
+[[tracking-dirty-data]]
 == Suivi des données corrompues
 
 L'écriture différée du cache à l'origine se produit de manière asynchrone. Cela signifie que les données corrompues ne sont pas immédiatement réécrites à l'origine. ONTAP utilise un système d'enregistrement des données corrompues pour assurer le suivi des données corrompues par fichier. Chaque enregistrement de données corrompues (DDR) représente environ 20 Mo de données corrompues pour un fichier particulier. Lorsqu'un fichier est en cours d'écriture, ONTAP commence à vider les données corrompues une fois que deux DDRs ont été remplis et que le troisième DDR est en cours d'écriture. Il en résulte qu'environ 40 Mo de données corrompues restent dans un cache pendant les écritures. Pour les protocoles avec état (NFSv4.x, SMB), les 40 Mo de données restantes seront retransmis à l'origine lorsque le fichier est fermé. Pour les protocoles sans état (NFSv3), les 40 Mo de données sont réappliqués lorsque l'accès au fichier est demandé dans un autre cache ou lorsque le fichier est inactif pendant deux minutes ou plus, jusqu'à cinq minutes maximum. Pour plus d'informations sur le vidage des données corrompues déclenché par un temporisateur ou déclenché par un espace, reportez-vous à la section <<Épurateurs de cache>>.
@@ -78,6 +82,7 @@ Outre les DDRs et les épurateurs, certaines opérations NAS front-end déclench
 
 
 
+[[disconnected-mode]]
 == Mode déconnecté
 
 Lorsqu'un XLD pour un fichier est conservé dans un cache d'écriture et que ce cache est déconnecté de l'origine, les lectures pour ce fichier sont toujours autorisées sur les autres caches et à l'origine. Ce comportement est différent lorsqu'un XLD est conservé par un cache activé pour l'écriture différée. Dans ce cas, si le cache est déconnecté, les lectures dans le fichier se suspendent partout. Cela permet d'assurer une cohérence de 100 %, le maintien de la monnaie et de la cohérence. Les lectures sont autorisées en mode d'écriture immédiate car l'origine est garantie que toutes les données disponibles ont été acquittées en écriture sur le client. En mode écriture différée pendant une déconnexion, l'origine ne peut pas garantir que toutes les données écrites et reconnues par le cache activé pour l'écriture différée ont été transmises à l'origine avant la déconnexion.
@@ -89,6 +94,7 @@ WARNING: La révocation manuelle du XLD entraîne la perte de toutes les donnée
 
 
 
+[[cache-scrubbers]]
 == Épurateurs de cache
 
 Des épurateurs dans ONTAP s'exécutent en réponse à des événements spécifiques, tels qu'une temporisation arrivant à expiration ou un dépassement des seuils d'espace. Les épurateurs prennent un verrou exclusif sur le fichier en cours de nettoyage, gelant efficacement les E/S dans ce fichier jusqu'à la fin du nettoyage.
@@ -104,18 +110,23 @@ Les épurateurs comprennent :
 
 
 
+[[sequence-diagrams]]
 == Diagrammes de séquence
 
 Ces diagrammes de séquence décrivent la différence entre les accusés de réception d'écriture et les modes de réécriture.
 
 
 
+[[write-around-sequence-diagram]]
+[[write-around]]
 === Ecrivez
 
 image:flexcache-write-around-sequence-diagram.png["Diagramme de séquence d'écriture FlexCache"]
 
 
 
+[[write-back-sequence-diagram]]
+[[write-back]]
 === Réécriture
 
 image:flexcache-write-back-sequence-diagram.png["Schéma de séquence FlexCache-Write-back"]

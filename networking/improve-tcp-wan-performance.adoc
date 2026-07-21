@@ -1,0 +1,50 @@
+---
+sidebar: sidebar 
+permalink: networking/improve-tcp-wan-performance.html 
+keywords: tcp, wan, performance, tcp wan performance, prr, proportional rate reduction, rack, recent acknowledgment, tlp, tail loss probe, loss recovery, lossy network, high latency, congestion window, retransmission, duplicate ack, out of order packets, ipspace, tcp stack, network ipspace modify, network ipspace show, lif, nfs, smb, iscsi, nvme tcp, s3, snapmirror, flexcache, intercluster network, ontap 9.19.1 
+summary: 'ONTAP améliore les performances de transfert de données TCP sur les liaisons WAN sujettes aux pertes et à une latence élevée en intégrant deux fonctions de récupération des pertes, PRR et RACK, dans la pile TCP d"ONTAP.' 
+---
+= Améliorez les performances TCP WAN d'ONTAP grâce à PRR et RACK
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir d'ONTAP 9.19.1, ONTAP améliore les performances de transfert de données TCP sur les liaisons WAN à latence élevée et sujettes aux pertes en intégrant deux fonctionnalités de récupération des pertes, PRR et RACK, dans la pile TCP d'ONTAP. PRR convient à tous les réseaux et est activé par défaut. RACK convient aux réseaux congestionnés avec des débits d'environ 25 Gigabits/seconde et est désactivé par défaut.
+
+* *Réduction proportionnelle du débit (PRR) :* Envoie les données de récupération à un débit qui correspond étroitement à la fenêtre de congestion réduite pendant la récupération des pertes, évitant à la fois la sous-utilisation et les rafales de retransmission excessives.
+* *Accusé de réception récent (RACK)* : utilise une détection temporelle, plutôt que le comptage traditionnel des accusés de réception dupliqués, pour identifier plus rapidement et précisément les paquets perdus, même lorsqu'ils arrivent dans le désordre. RACK inclut Tail Loss Probe (TLP), qui accélère les communications transactionnelles, même lorsqu'un des derniers paquets critiques d'un RPC spécifique est perdu et que de nouvelles données ne deviennent disponibles qu'une fois la requête précédente terminée. Cela permet un traitement plus rapide des requêtes et réduit les retransmissions inutiles sur les liaisons réseau complexes telles que WLAN (WiFi), WAN, VPN Internet et les tunnels Cloud.
+
+
+PRR et RACK sont indépendants du protocole utilisé et améliorent l'accès NFS, SMB, iSCSI, NVMe/TCP et S3 ainsi que les performances des fonctionnalités ONTAP qui utilisent le réseau intercluster, notamment SnapMirror et FlexCache® sur les connexions WAN. Ces fonctionnalités sont prises en charge sur tous les systèmes de stockage NetApp.
+
+
+NOTE: L'activation de RACK est recommandée uniquement pour les réseaux congestionnés avec des débits de liaison d'environ 25 Gigabits/seconde. Dans des environnements réseau non congestionnés avec des débits de liaison de 25 Gigabits/seconde ou plus, RACK peut ne pas offrir le même débit que la pile standard.
+
+.Étapes
+PRR est activé par défaut. RACK est désactivé par défaut. Si votre environnement est compatible avec RACK, vous pouvez l'activer en suivant les étapes ci-dessous.
+
+. Activez la fonctionnalité de pile TCP RACK pour l'espace IP :
++
+[source, cli]
+----
+network ipspace modify -ipspace <ipspace_name> -tcp-stack rack
+----
++
+
+NOTE: Cette modification ne concerne que les nouvelles connexions. Pour utiliser RACK sur les connexions existantes à l’IPspace, migrez l’interface LIF entre les nœuds ou désactivez-la puis réactivez-la momentanément.
+
+. Confirmez que la modification a été apportée à l'IPspace :
++
+[source, cli]
+----
+network ipspace show -fields tcp-stack
+----
+
+
+.Informations associées
+link:migrate_a_lif.html["Migrer un LIF"]

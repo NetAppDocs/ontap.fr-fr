@@ -2,9 +2,9 @@
 sidebar: sidebar 
 permalink: snapmirror-active-sync/create-common-snapshot-task.html 
 keywords: SM-BC, SMBC, common Snapshot copy, manual Snapshot copy create, snapmirror active sync 
-summary: Outre les opérations de snapshot planifiées régulièrement, vous pouvez créer manuellement un snapshot commun entre les volumes du groupe de cohérence SnapMirror principal et les volumes du groupe de cohérence SnapMirror secondaire. 
+summary: En plus des opérations de snapshot planifiées régulièrement, vous pouvez créer manuellement un snapshot commun entre les volumes du groupe de cohérence SnapMirror principal et les volumes du groupe de cohérence SnapMirror secondaire ou au niveau SVM pour les configurations NAS. 
 ---
-= Créer un instantané commun entre les groupes de cohérence ONTAP
+= Créer un instantané commun entre les groupes de cohérence ONTAP ou les SVM NAS
 :hardbreaks:
 :allow-uri-read: 
 :nofooter: 
@@ -14,26 +14,59 @@ summary: Outre les opérations de snapshot planifiées régulièrement, vous pou
 
 
 [role="lead"]
-Outre les opérations de snapshot planifiées régulièrement, vous pouvez créer manuellement une liaison link:../concepts/snapshot-copies-concept.html["snapshot"] entre les volumes du groupe de cohérence SnapMirror principal et les volumes du groupe de cohérence SnapMirror secondaire.
+En plus des opérations de snapshot planifiées régulièrement, vous pouvez créer manuellement un link:../concepts/snapshot-copies-concept.html["snapshot"] commun entre les volumes du groupe de cohérence SnapMirror principal et les volumes du groupe de cohérence SnapMirror secondaire dans une configuration SAN ou au niveau SVM pour les configurations NAS.
 
 .Description de la tâche
-L'intervalle de création de snapshot planifié est de 12 heures.
+L'intervalle de création des instantanés planifiés est de 12 heures pour la politique Automated Failover et de 3 heures pour la politique Automated Failover Duplex.
 
 .Avant de commencer
 * La relation de groupe SnapMirror doit être en mode synchrone.
 
 
 .Étapes
-. Créer un snapshot commun :
-+
-`destination::>snapmirror update -destination-path vs1_dst:/cg/cg_dst`
+Vous pouvez créer un instantané commun à l'aide de System Manager ou de l'interface de ligne de commande ONTAP.
 
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Depuis le cluster de destination, accédez à *Protection > Réplication*.
+. Localisez la source de la relation, sélectionnez image:icon_kabob.gif["Icône des options de menu"] et choisissez *Mettre à jour*.
+. Choisissez *Conformément à la politique* ou *Sélectionner l'instantané* pour choisir un instantané existant.
+. Sélectionnez *Mettre à jour*.
+
+
+--
+.CLI
+--
+. À partir du site de destination, créez un instantané commun :
++
+`snapmirror update -destination-path <destination path>`
+
++
+Exemple de configuration SAN :
+
++
+[listing]
+----
+destination::>snapmirror update -destination-path vs1_dst:/cg/cg_dst
+----
++
+Exemple de configuration NAS :
+
++
+[listing]
+----
+snapmirror update -destination-path vs_b:
+----
 . Surveiller la progression de la mise à jour :
 +
 `destination::>snapmirror show -fields newest-snapshot`
 
 
 
+--
+====
 .Informations associées
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-show.html["spectacle snapmirror"^]
 

@@ -21,6 +21,7 @@ Lors de la planification de votre déploiement de synchronisation active SnapMir
 [[hardware]]
 == Sous-jacent
 
+.Prise en charge SAN
 Le tableau suivant présente les configurations de cluster NetApp prises en charge.
 
 [cols="25,25,25,25"]
@@ -35,10 +36,10 @@ AFF
  a| 
 A-Series, C-Series
  a| 
-Basculement automatique duplex (Symmetric Active/Active), basculement automatique (Asymmetric Active/Passive)
+Basculement automatique duplex (actif/actif asymétrique), basculement automatique (actif/passif asymétrique)
  a| 
 * 2 (ONTAP 9.9.1 ou version ultérieure)
-* 4 (ONTAP 9.16.1 avec configurations symétriques actives/actives)
+* 4 (ONTAP 9.16.1 avec configurations actives/actives symétriques)
 
 
 
@@ -48,10 +49,10 @@ ASA
  a| 
 A-Series, C-Series
  a| 
-Basculement automatique duplex (Symmetric Active/Active), basculement automatique (Asymmetric Active/Passive)
+Basculement automatique duplex (symétrique actif/actif), basculement automatique (asymétrique actif/passif)
  a| 
 * 2 (ONTAP 9.9.1 ou version ultérieure
-* 4 (ONTAP 9.16.1 avec configurations symétriques actives/actives)
+* 4 (ONTAP 9.16.1 avec configurations actives/actives symétriques)
 
 
 
@@ -61,13 +62,43 @@ ASA r2
  a| 
 Tout
  a| 
-Basculement automatique en duplex (actif symétrique/actif)
+Duplex à basculement automatique (symétrique actif/actif)
  a| 
 * 2 (ONTAP 9.17.1 ou version antérieure)
 * 4 (ONTAP 9.18.1 ou version ultérieure)
 
 
 |===
+.Prise en charge NAS
+Le tableau suivant présente les configurations de cluster NetApp prises en charge.
+
+[cols="25,25,25,25"]
+|===
+| Type de cluster | Modèles pris en charge | Fonctionnalités prises en charge | Nombre maximal de nœuds de cluster pris en charge 
+
+
+ a| 
+AFF
+ a| 
+A-Series, C-Series
+ a| 
+Actif/passif asymétrique (basculement automatique)
+ a| 
+2 (ONTAP 9.19.1 ou version ultérieure)
+
+
+
+ a| 
+AFX
+ a| 
+Tout
+ a| 
+Actif/passif asymétrique (basculement automatique)
+ a| 
+4 (ONTAP 9.19.1 ou version ultérieure)
+
+|===
+.Réplication multiplateforme
 Le tableau ci-dessous présente la fonctionnalité de réplication entre types de cluster.
 
 [cols="33,33,33"]
@@ -83,6 +114,15 @@ Série A AFF
 AFF série C.
  a| 
 Oui.
+
+
+
+ a| 
+AFF
+ a| 
+AFX
+ a| 
+Non
 
 
 
@@ -111,15 +151,6 @@ ASA r2
  a| 
 Non
 
-
-
- a| 
-ASA r2
- a| 
-ASA r2
- a| 
-Oui.
-
 |===
 
 
@@ -136,6 +167,21 @@ Oui.
 
 
 | Version du médiateur ONTAP | Versions Linux prises en charge 
+
+
+ a| 
+1.12.1
+ a| 
+* Red Hat Enterprise Linux
++
+** Compatible : 10.1 et 9.7 ^1^
+** Recommandé : 10.2, 10.0, 9.8, 9.6, 9.4 et 8.10
+
+
+* Rocky Linux 10.2, 9.8 et 8.10
+* Oracle Linux 10.1 et 9.7
+
+
 
 
  a| 
@@ -320,7 +366,7 @@ NOTE: Si vos systèmes de stockage ONTAP ont été achetés avant juin 2019, con
 [[supported-protocols]]
 == Protocoles pris en charge
 
-SnapMirror Active Sync prend en charge les protocoles SAN.
+SnapMirror active sync prend en charge les protocoles SAN suivants.
 
 * Les protocoles FC et iSCSI sont pris en charge à partir d' ONTAP 9.9.1.
 * Le protocole NVMe est pris en charge avec les charges de travail VMware à partir d' ONTAP 9.17.1.
@@ -339,6 +385,23 @@ Il est impossible d'étendre ou de réduire un groupe de cohérence sans interru
 
 
 
+À partir d'ONTAP 9.19.1, SnapMirror active sync prend en charge les protocoles NAS suivants.
+
+* NFSv3 et versions ultérieures
++
+Le basculement sans interruption est pris en charge pour NFSv3 et versions ultérieures.
+
+* PME
++
+** Le basculement sans interruption est pris en charge pour les partages CA SMB 3.
+** Le basculement disruptif (mais avec un RPO nul maintenu) est pris en charge pour les partages SMB2 et SMB3 non-CA.
+** Le protocole SMB1 n'est pas pris en charge.
+
+
+
+
+Pour permettre un basculement sans interruption, les clusters NAS nécessitent une configuration identique d'adresse IP et de protocole sur le cluster principal et le cluster secondaire. Parce que les SVM peuvent être configurées avec la même adresse IP et les mêmes protocoles, SnapMirror active sync prend en charge les configurations NAS au niveau des SVM ; cependant, la SVM secondaire reste inactive (non exécutée) car les LIF doivent rester hors service jusqu'à ce qu'un basculement se produise afin d'éviter un conflit d'adresse IP avec la SVM principale.
+
 
 
 [[ipspace]]
@@ -346,12 +409,14 @@ Il est impossible d'étendre ou de réduire un groupe de cohérence sans interru
 
 L'espace IP par défaut est requis par SnapMirror Active Sync pour les relations entre homologues de cluster. Les espaces IP personnalisés ne sont pas pris en charge.
 
+Avec la synchronisation active SnapMirror pour NAS, les SVM primaires et secondaires peuvent se trouver dans des IPspaces différents.
+
 
 
 [[ntfs-security-style]]
 == Style de sécurité NTFS
 
-La sécurité NTFS est *non* prise en charge sur les volumes SnapMirror actif sync.
+Le style de sécurité NTFS n’est *pas* pris en charge sur les volumes SnapMirror active sync pour SAN. Le style de sécurité NTFS est pris en charge avec SnapMirror active sync pour NAS.
 
 
 
@@ -370,7 +435,7 @@ La sécurité NTFS est *non* prise en charge sur les volumes SnapMirror actif sy
 [[other-prerequisites]]
 == Autres conditions préalables
 
-* Dans les versions antérieures à ONTAP 9.15.1, les relations de synchronisation active SnapMirror ne sont pas prises en charge sur les volumes de destination en lecture-écriture (volumes convertis en lecture-écriture à partir de DP dans une architecture active-passive asymétrique). Avant de pouvoir utiliser un volume en lecture-écriture, vous devez le convertir en volume DP en créant une relation SnapMirror au niveau du volume (asynchrone ou synchrone), puis en supprimant la relation. Pour plus de détails, voir link:convert-active-sync-task.html["Convertir une relation SnapMirror existante en synchronisation active SnapMirror"].
+* Dans les versions antérieures à ONTAP 9.15.1, les relations SnapMirror active sync ne sont pas prises en charge sur les volumes de destination en lecture-écriture (volumes convertis en lecture-écriture à partir de DP dans une configuration active-passive asymétrique). Avant de pouvoir utiliser un volume en lecture-écriture, vous devez le convertir en volume DP en créant une relation SnapMirror au niveau du volume (asynchrone ou synchrone), puis en supprimant cette relation. Pour plus de détails, consultez link:convert-active-sync-task.html["Convertir une relation SnapMirror existante en synchronisation active SnapMirror"].
 * Les machines virtuelles de stockage utilisant SnapMirror Active Sync ne peuvent pas être jointes à Active Directory en tant qu’ordinateur client.
 
 

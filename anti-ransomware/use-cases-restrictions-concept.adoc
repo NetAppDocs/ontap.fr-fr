@@ -135,12 +135,9 @@ ARP fonctionne en parallèle des relations de protection des données SnapMirror
 
 * ARP/AI est pris en charge sur les volumes _primaires_ dans les relations synchrones SnapMirror pour NAS et SAN sur les systèmes FAS, AFF A-series, AFF C-series et AFX.
 * ARP/AI est pris en charge sur les volumes _primaires_ dans les relations SAN de synchronisation active SnapMirror sur les systèmes AFF série A, AFF série C et ASA r2.
-* L'analyse ARP/AI s'exécute uniquement sur le volume principal actif en lecture-écriture dans les relations SAN synchrones SnapMirror et de synchronisation active SnapMirror, où ARP crée des instantanés uniquement primaires et effectue une détection de ransomware basée sur l'apprentissage automatique.
-* L'état de configuration ARP et les instantanés ARP ne sont pas répliqués sur le volume secondaire dans le cadre de la synchronisation synchrone SnapMirror ou de la synchronisation active SnapMirror dans ONTAP 9.19.1.
+* L'analyse ARP/AI s'exécute sur le volume actif en lecture-écriture dans les relations SAN SnapMirror synchrones et SnapMirror active sync. ARP crée des instantanés sur le volume principal et effectue une détection des ransomwares basée sur l'apprentissage automatique.
+* Les instantanés ARP ne sont pas répliqués sur le volume secondaire dans les relations SnapMirror synchrones ou SnapMirror active sync. Vous devez link:enable-task.html["Réactiver ARP"] sur le volume de récupération après le basculement.
 
-
-
-NOTE: Comme chaque opération d'écriture est enregistrée sur les deux volumes dans une relation de miroir synchrone, l'activation d'ARP sur le seul volume principal suffit à détecter les anomalies. Les métadonnées internes générées par l'analyse ARP sur le volume principal sont également répliquées sur le volume secondaire. Par conséquent, si ARP est activé sur le volume secondaire après un basculement, les métadonnées requises seront déjà présentes sur le volume secondaire.
 
 Si un volume source SnapMirror asynchrone est compatible ARP, le volume de destination SnapMirror acquiert automatiquement l'état de configuration ARP (comme  `dry-run` ou  `enabled`), les données d'apprentissage ARP et l'instantané créé par ARP du volume source. Aucune activation explicite n'est requise.
 
@@ -186,10 +183,9 @@ NOTE: À partir d' ONTAP 9.13.1 jusqu'à ONTAP 9.17.1, les volumes FlexGroup son
 * Les volumes hors ligne
 * Volumes SnapLock
 * SnapMirror active sync dans ONTAP 9.18.1 et versions antérieures
-
-
 * SnapMirror synchrone dans ONTAP 9.18.1 et versions antérieures
 * SnapMirror asynchrone (dans ONTAP 9.10.1 et 9.11.1). SnapMirror asynchrone est pris en charge à partir d' ONTAP 9.12.1. <<snapmirror>> .
+* Configurations en cascade à partir d'un volume de destination SnapMirror synchrone
 * Volumes restreints
 * Volumes root des VM de stockage
 * Volumes des machines virtuelles de stockage arrêtées
@@ -279,13 +275,6 @@ Lors de la mise à niveau de clusters ONTAP utilisant déjà ARP, vous devez êt
 === Activation par défaut d'ARP après la mise à niveau vers ONTAP 9.18.1
 
 À partir d'ONTAP 9.18.1, l'activation par défaut d'ARP/AI est disponible pour les systèmes AFF séries A et C, ASA et ASA r2. Après une mise à niveau, ARP/AI est automatiquement activé sur tous les nouveaux volumes après un délai de grâce de 12 heures. Vous devez link:index.html#manual-default-enablement["activer ARP manuellement"] sur les volumes existants.
-
-
-
-[[snapmirror-relationships-after-upgrading-to-ontap-9-19-1]]
-=== SnapMirror relationships après la mise à niveau vers ONTAP 9.19.1
-
-Si vous activez ARP sur des volumes faisant partie de relations de synchronisation SnapMirror synchrones ou de synchronisation active SnapMirror après la mise à niveau, la relation passe brièvement à un état désynchronisé. Cet état est temporaire et la relation devrait se resynchroniser automatiquement sans intervention.
 
 
 

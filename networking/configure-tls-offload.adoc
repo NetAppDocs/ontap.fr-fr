@@ -19,48 +19,81 @@ summary: Configurer les paramètres de déchargement TLS
 * La phase d'établissement de liaison TLS n'est pas déportée. Seule la phase de traitement des données post-établissement de liaison l'est.
 * La migration de l'interface logique réseau (LIF) vers des ports non compatibles avec le déchargement entraîne un repli logiciel automatique.
 +
-Pour les connexions TLS déportées, les opérations cryptographiques TLS contournent généralement le logiciel et sont gérées par une carte réseau compatible avec le déchargement. Si la LIF associée à cette connexion migre vers un port réseau sans capacité de déchargement TLS, les opérations cryptographiques reviennent au logiciel et sont gérées par le noyau du système.
+Pour les connexions TLS déportées, les opérations cryptographiques TLS contournent généralement le logiciel et sont gérées par une carte réseau compatible avec le déchargement. Si l'interface réseau logique (LIF) associée à cette connexion migre vers un port réseau sans capacité de déchargement TLS, les opérations cryptographiques reviennent au logiciel et sont gérées par le noyau du système.
 
 * Les interfaces de gestion (HTTPS, API REST) ne sont pas affectées par ce paramètre.
 * Le paramètre de déchargement matériel TLS est appliqué à l'ensemble du cluster.
 
 
 .Cartes réseau et plateformes prises en charge
-Le déchargement matériel TLS nécessite une carte réseau compatible. Les cartes réseau suivantes sont prises en charge :
+Le déchargement matériel TLS nécessite une carte réseau compatible. Le tableau suivant répertorie les cartes réseau compatibles par plateforme.
 
+[cols="1,2,3a"]
+|===
+| Famille de plateformes | Plateformes | Cartes réseau prises en charge 
+
+
+| AFF et FAS | AFF A20, AFF A30, AFF A50, AFF C30, AFF C60, FAS50  a| 
 * CX7 10/25 GbE à 4 ports
-* 2 ports CX6-Dx 40/100 GbE
+* 2 ports CX6-DX 40/100 GbE
 * 2 ports CX7 40/100 GbE
-* 2 ports CX7 40/100/200
 
 
-Les cartes CX7 10/25 GbE à 4 ports, CX6-Dx 40/100 GbE à 2 ports et CX7 40/100 GbE à 2 ports sont prises en charge sur les plateformes AFF suivantes :
-
-* AFF A20
-* AFF A30
-* AFF A50
-* AFF C30
-* AFF C60
 
 
-Les cartes 4 ports 2 ports CX6-Dx 40/100 GbE, 2 ports CX7 40/100 GbE et 2 ports CX7 40/100/200 GbE sont prises en charge sur les plateformes AFF et FAS suivantes :
-
-* AFF A70-90
-* AFF C80
-* FAS70
-* FAS90
-* AFF A1K
+| AFF et FAS | AFF A70, AFF A90, AFF C80, FAS70, FAS90, AFF A1K  a| 
+* 2 ports CX6-DX 40/100 GbE
+* 2 ports CX7 40/100 GbE
+* 2 ports CX7 40/100/200/400 GbE
 
 
+
+
+| ASA | ASA A20, ASA A30, ASA A50, ASA C30  a| 
+* CX7 10/25 GbE à 4 ports
+* 2 ports CX6-DX 40/100 GbE
+* 2 ports CX7 40/100 GbE
+
+
+
+
+| ASA | ASA A70, ASA A90, ASA A1K  a| 
+* 2 ports CX6-DX 40/100 GbE
+* 2 ports CX7 40/100 GbE
+* 2 ports CX7 40/100/200/400 GbE
+
+
+
+
+| AFX | AFX 1K  a| 
+* 2 ports CX6-DX 40/100 GbE
+* 2 ports CX7 40/100 GbE
+* 2 ports CX7 40/100/200/400 GbE
+
+
+
+
+| AFX | AFX 2K  a| 
+* 2 ports CX7 40/100/200/400 GbE
+
+
+|===
 .Types de trafic pris en charge
 Le déchargement matériel TLS prend en charge les types de trafic suivants :
 
+* NFS
 * NVMe/TCP
 * Chiffrement de la mise en cluster
 * FabricPool
 * S3
 * NFS
 
+
+
+NOTE: Sur les systèmes ASA, le déchargement matériel TLS s'applique uniquement au trafic NVMe/TCP. NFS sur TLS, FabricPool et S3 ne sont pas pris en charge sur les plateformes ASA.
+
+
+NOTE: Sur les plateformes AFX, le déchargement matériel TLS prend en charge les types de trafic frontaux NFS et S3. NVMe/TCP n'est pas pris en charge sur les plateformes AFX, car AFX ne prend pas en charge les protocoles SAN/bloc.
 
 .Avant de commencer
 * Vous devez être administrateur ONTAP au niveau `admin` niveau de privilège permettant d'effectuer les tâches suivantes.
@@ -101,19 +134,11 @@ false      TLSv1.3,  false   TLS_RSA_WITH_AES_128_CCM,
 +
 [source, cli]
 ----
-security config modify -is-offload-enabled {true|false}
+security config modify * -is-offload-enabled {true|false}
 ----
 +
 Cette commande active ou désactive le déchargement matériel pour la phase de données TLS sur les nouvelles connexions. Les connexions existantes créées avant l'activation de la fonctionnalité de déchargement TLS ne bénéficient pas du déchargement tant qu'elles ne sont pas supprimées et recréées.
 
-+
-Lors de l'activation du déchargement TLS, l'interface doit être spécifiée :
-
-+
-[source, cli]
-----
-security config modify -is-offload-enabled true -interface SSL
-----
 
 
 .Informations associées

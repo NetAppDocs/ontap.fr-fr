@@ -33,6 +33,11 @@ NOTE: Une dégradation des performances peut se produire si les ressources LIF d
 .Description de la tâche
 L'équilibrage de charge est activé pour les serveurs ONTAP S3 dans ONTAP 9.8 et versions ultérieures. Lorsque le nom d'hôte du serveur résout plusieurs adresses IP, ONTAP établit des connexions client avec toutes les adresses IP renvoyées (jusqu'à 16 adresses IP maximum). Les adresses IP sont récupérées dans une méthode de séquence périodique lors de l'établissement des connexions.
 
+
+
+[[set-up-the-ontap-s3-cloud-tier-for-fabricpool]]
+== Configurez le niveau cloud ONTAP S3 pour FabricPool
+
 .Étapes
 Vous pouvez configurer ONTAP S3 en tant que Tier cloud pour FabricPool avec ONTAP System Manager ou l'interface de ligne de commande ONTAP.
 
@@ -103,6 +108,41 @@ Le `storage aggregate object-store config modify` vous permet de modifier le `ON
 
 --
 ====
+
+
+[[change-the-ontap-s3-fqdn-for-fabricpool-tiering]]
+== Modifiez le FQDN ONTAP S3 pour la hiérarchisation FabricPool
+
+Lorsque vous devez apporter des modifications à votre réseau, notamment des mises à jour de noms de domaine complets (FQDN), vous devez modifier le FQDN ONTAP S3 utilisé pour le tiering FabricPool afin d’éviter les interruptions de réseau.
+
+.Étapes
+. Désactivez la vérification des certificats pour le niveau FabricPool :
++
+`storage aggregate object-store config modify -object-store-name <object store> -is-certificate-validation-enabled false`
+
+. Modifiez le FQDN du serveur ONTAP S3 :
++
+`vserver object-store-server modify -vserver <vserver> -object-store-server <new fqdn>`
+
+. (Facultatif) Si la validation du certificat est nécessaire et que le nom d'hôte a été modifié, link:../s3-config/create-install-ca-certificate-svm-task.html["renouveler le certificat"].
+. Mettez à jour le niveau FabricPool avec le nouveau nom de domaine complet (FQDN) :
++
+`storage aggregate object-store config modify -object-store-name <object_store_name> -server <new fqdn>`
+
+. Vérifiez que tous les magasins d'objets, ainsi que leurs miroirs le cas échéant, sont disponibles dans le niveau FabricPool :
++
+`storage aggregate object-store show -fields object-store-availability,mirror-type,is-mirror-degraded`
+
++
+Pour plus d'informations, consultez link:https://docs.netapp.com/us-en/ontap-cli/storage-aggregate-object-store-show.html#description["agrégat de stockage objet-magasin afficher"^].
+
+. Répétez ces étapes sur tous les autres magasins d’objets.
+. Si vous avez renouvelé les certificats sur le serveur ONTAP S3 et les certificats sur le niveau FabricPool, réactivez la vérification des certificats :
++
+`storage aggregate object-store config modify -object-store-name <object store> -is-certificate-validation-enabled true`
+
+
+
 [[create-lif]]
 .Informations associées
 * link:../smb-config/create-lif-task.html["Créez la LIF pour SMB"]

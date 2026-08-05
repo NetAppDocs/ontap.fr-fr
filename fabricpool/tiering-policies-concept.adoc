@@ -204,17 +204,17 @@ Lors du clonage de volumes, tenez compte des bonnes pratiques suivantes :
 
 
 
-[[how-tiering-policies-work-with-cloud-migration]]
-== Fonctionnement des règles de Tiering avec la migration vers le cloud
+[[how-cloud-retrieval-policies-work-with-tiering-policies]]
+== Comment les politiques de récupération cloud fonctionnent avec les politiques de hiérarchisation
 
-La récupération des données dans le cloud FabricPool est contrôlée par des règles de Tiering qui déterminent la récupération des données depuis le Tier cloud vers le Tier de performance selon le modèle de lecture. Les modèles de lecture peuvent être séquentiels ou aléatoires.
+La récupération des données cloud FabricPool est contrôlée par des politiques de récupération qui déterminent quand les données sont réécrites sur le niveau local. Les schémas de lecture peuvent être séquentiels ou aléatoires.
 
-Le tableau ci-dessous répertorie les politiques de Tiering ainsi que les règles de récupération des données cloud pour chaque règle.
+Le tableau suivant répertorie les politiques de hiérarchisation des volumes et le comportement de récupération par défaut pour chaque politique.
 
 |===
 
 
-| Règle de hiérarchisation | Comportement de récupération 
+| Règle de hiérarchisation | Comportement de récupération par défaut 
 
 
  a| 
@@ -257,30 +257,44 @@ Le tableau suivant répertorie les politiques de récupération du cloud prises 
  a| 
 valeur par défaut
  a| 
-La règle de Tiering décide des données à récupérer et ne modifie pas la récupération des données cloud par « deDefault »,`" `cloud-retrieval-policy`. Cette règle correspond à la valeur par défaut de tout volume, quel que soit le type d'agrégat hébergé.
+Lors de la lecture de blocs froids dans un volume, ils utilisent le comportement par défaut de la stratégie de hiérarchisation de leur volume. Cette stratégie est la valeur par défaut pour tout volume, quel que soit le type d’agrégat hébergé.
 
 
 
  a| 
 en lecture
  a| 
-Toutes les données client lues sont extraites du Tier cloud au Tier de performance.
+Lorsque des blocs froids dans un volume avec une politique de récupération cloud définie sur « On-Read » sont lus, de manière aléatoire ou séquentielle, ils sont rendus chauds et écrits sur le niveau local.
+
+Les applications utilisant des lectures séquentielles déclenchent des écritures différées sur le niveau local en configurant la stratégie de récupération des volumes cloud sur « On-Read ». Ceci peut s'avérer avantageux pour les applications nécessitant des performances du niveau local pour des données précédemment froides qui sont maintenant lues par des charges de travail actives.
 
 
 
  a| 
 jamais
  a| 
-Aucune donnée client n'est tirée du Tier cloud vers le Tier de performance
+Lorsque des blocs froids d'un volume dont la politique de récupération dans le cloud est définie sur « Jamais » sont lus, ils restent froids et demeurent sur le niveau cloud. Ils ne sont pas réécrits sur le niveau local.
+
+Définir la politique de récupération du cloud sur « Jamais » est similaire à la politique de tiering « All » en ce sens que les données ne sont pas autorisées à retourner au niveau local, mais diffère de la politique de tiering « All » en ce qu'elle continue d'utiliser le paramètre tiering-minimum-cooling-days du volume au lieu d'être transférée dès que possible.
+
+Par exemple, un volume utilisant la configuration par défaut de la stratégie de hiérarchisation automatique ne marquerait pas les données comme inactives avant 31 jours d'inactivité. Après 31 jours, les données inactives seraient hiérarchisées vers le stockage objet et ne reviendraient pas lors de la lecture, car la stratégie de récupération cloud du volume avait été définie sur « Never ».
 
 
 
  a| 
 promouvoir
  a| 
-* Pour la règle de Tiering « aucune », toutes les données cloud sont transférées du Tier cloud vers le Tier de performance
-* Pour la règle de Tiering « napshot-only », les données AFS sont extraites.
+* Pour la politique de hiérarchisation « none », toutes les données hiérarchisées sont réécrites dans la couche locale.
+* Pour la politique de hiérarchisation « snapshot-only », les données hiérarchisées, non instantanées, sont réécrites dans la couche locale.
 
 
 |===
-Pour en savoir plus sur les commandes décrites dans cette procédurelink:https://docs.netapp.com/us-en/ontap-cli/["Référence de commande ONTAP"^], reportez-vous à la .
+.Exemple de modification de la politique de récupération cloud
+L'exemple suivant modifie la politique de hiérarchisation du volume en  `none` et la politique de récupération en  `promote` :
+
+[listing]
+----
+set -privilege advanced
+
+volume modify -vserver vs1 -volume myvol -tiering-policy none -cloud-retrieval-policy promote
+----

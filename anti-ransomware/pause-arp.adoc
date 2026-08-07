@@ -1,0 +1,98 @@
+---
+sidebar: sidebar 
+permalink: anti-ransomware/pause-arp.html 
+keywords: ARP, arpai, ARP AI, pause, resume, autonomous ransomware protection, workload event, MAV, multi-admin verification 
+summary: 'Suspendez et reprenez temporairement l"analyse ARP ou ARP/AI lors d"événements de charge de travail inhabituels prévus.' 
+---
+= Suspendez la protection ONTAP ARP ou ARP/AI pour exclure les événements de charge de travail de l'analyse
+:hardbreaks:
+:toclevels: 1
+:allow-uri-read: 
+:toclevels: 1
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+Si vous prévoyez des événements de charge de travail inhabituels, vous pouvez suspendre temporairement et reprendre l'analyse de la protection autonome contre les ransomwares (ARP et ARP/AI) à tout moment.
+
+À partir d'ONTAP 9.13.1, vous pouvez activer la vérification multi-administrateur (MAV) afin que deux administrateurs utilisateurs authentifiés ou plus soient requis pour suspendre ARP ou ARP/AI.
+
+link:../multi-admin-verify/enable-disable-task.html["En savoir plus sur le MAV"].
+
+.Description de la tâche
+Pendant une pause ARP ou ARP/AI, ONTAP n'enregistre pas les événements ou les actions pour les nouvelles écritures ; cependant, l'analyse des journaux antérieurs se poursuit en arrière-plan.
+
+
+NOTE: N’utilisez pas la fonction de désactivation ARP ou ARP/AI pour suspendre l’analyse. Cela désactive la protection sur le volume et toutes les informations existantes concernant le comportement de la charge de travail apprise sont perdues. Pour ARP (ONTAP 9.10.1 à 9.15.1), un redémarrage de la période d’apprentissage serait nécessaire. Pour ARP/AI (ONTAP 9.16.1 et versions ultérieures), toutes les données accumulées sur le comportement de la charge de travail sont perdues. Pour les volumes SAN, la période d’évaluation recommence depuis le début.
+
+.Étapes
+Vous pouvez utiliser System Manager ou l'interface de ligne de commande ONTAP pour suspendre ARP ou ARP/AI.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Sélectionnez *Stockage > Volumes* puis sélectionnez le volume où vous souhaitez suspendre ARP ou ARP/AI.
+. Dans l'onglet *Sécurité* de la vue d'ensemble des volumes, sélectionnez *Suspendre l'anti-ransomware* dans la case *Anti-ransomware*.
++
+
+NOTE: À partir d'ONTAP 9.13.1, si vous utilisez MAV pour protéger les paramètres ARP ou ARP/AI, l'opération de pause vous invite à obtenir l'approbation d'un ou plusieurs administrateurs supplémentaires. link:../multi-admin-verify/request-operation-task.html["L'approbation doit être reçue de tous les administrateurs"] associés au groupe d'approbation MAV, faute de quoi l'opération échouera.
+
+. Pour reprendre la surveillance, sélectionnez *Reprendre l'anti-ransomware*.
+
+
+--
+.CLI
+--
+. Mettre en pause ARP ou ARP/AI sur un volume :
++
+[source, cli]
+----
+security anti-ransomware volume pause -vserver <svm_name> -volume <vol_name>
+----
+. Pour reprendre le traitement, utilisez `resume` commande :
++
+[source, cli]
+----
+security anti-ransomware volume resume -vserver <svm_name> -volume <vol_name>
+----
++
+Pour en savoir plus, `security anti-ransomware volume` consultez le link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+anti-ransomware+volume+["Référence de commande ONTAP"^].
+
+. Si vous utilisez MAV pour protéger les paramètres ARP ou ARP/AI, l'opération de pause vous invite à obtenir l'approbation d'un ou plusieurs administrateurs supplémentaires. L'approbation de tous les administrateurs associés au groupe d'approbation MAV doit être reçue, sinon l'opération échouera.
++
+Si vous utilisez MAV et qu'une opération de pause attendue nécessite des approbations supplémentaires, chaque approbateur de groupe MAV effectue les opérations suivantes :
+
++
+.. Afficher la demande :
++
+[source, cli]
+----
+security multi-admin-verify request show
+----
+.. Approuver la demande :
++
+[source, cli]
+----
+security multi-admin-verify request approve -index[<number returned from show request>]
+----
++
+Si vous utilisez MAV et que vous êtes un approbateur de groupe MAV, vous pouvez rejeter une demande d'opération de pause :
+
++
+[source, cli]
+----
+security multi-admin-verify request veto -index[<number returned from show request>]
+----
++
+Pour en savoir plus, `security multi-admin-verify request` consultez le link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+multi-admin-verify+request["Référence de commande ONTAP"^].
+
+
+
+
+
+--
+====

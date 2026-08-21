@@ -1,0 +1,68 @@
+---
+permalink: update/pre-stage-system-firmware.html 
+sidebar: sidebar 
+keywords: ontap, upgrade, andu, bios, loader, firmware, pre-stage, single reboot, slipstream, system firmware, boot media, cluster image update 
+summary: 'À partir d"ONTAP 9.17.1, vous pouvez préinstaller un firmware BIOS ou LOADER plus récent sur vos nœuds avant une mise à niveau d"ONTAP afin que les deux mises à jour soient effectuées en un seul cycle de redémarrage.' 
+---
+= Préconfigurer le micrologiciel du système avant une mise à niveau du logiciel ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir d'ONTAP 9.17.1, si une version plus récente du BIOS ou du firmware LOADER est déjà présente sur le périphérique de démarrage d'un nœud avant que vous n’effectuiez une mise à niveau automatisée non perturbatrice (ANDU), le processus de mise à niveau conserve la version la plus récente du firmware au lieu de l'écraser avec celle intégrée à l'image ONTAP. Cela permet à la fois la mise à niveau du logiciel ONTAP et la mise à jour du firmware de s'effectuer en un seul cycle de redémarrage.
+
+Dans ONTAP 9.16.1 et les versions antérieures, une ANDU installe toujours le BIOS et le firmware LOADER inclus dans l'image ONTAP cible, quelle que soit la version du firmware déjà présente sur le périphérique de démarrage. Si une image de service BIOS ou LOADER plus récente a été téléchargée séparément, un cycle distinct de prise de contrôle et de restitution est nécessaire après la mise à niveau d'ONTAP pour activer le nouveau firmware.
+
+À partir de ONTAP 9.17.1, ONTAP compare les versions du BIOS et du firmware LOADER présentes sur le périphérique de démarrage de chaque nœud avec celles incluses dans l'image ONTAP cible. Si le périphérique de démarrage contient déjà une version plus récente que celle incluse, le firmware inclus n'est pas installé. Le firmware existant plus récent est conservé. Si la version incluse est identique ou plus récente que celle présente sur le périphérique de démarrage, le firmware inclus est installé.
+
+Après le redémarrage du nœud dans le cadre du flux de travail ANDU normal, le firmware du périphérique de démarrage est activé afin que la mise à niveau ONTAP et la mise à jour du firmware soient effectuées en un seul redémarrage.
+
+.Avant de commencer
+* Tous les nœuds du cluster doivent exécuter ONTAP 9.17.1 ou une version ultérieure.
+* Vous devez avoir téléchargé l'image de service BIOS ou LOADER la plus récente depuis le link:https://mysupport.netapp.com/site/downloads/firmware/system-firmware-diagnostics["Site de support NetApp"^].
++
+Vous devez posséder un niveau de privilèges avancé pour télécharger le firmware sur le périphérique de démarrage d'un nœud.
+
+
+
+.Étapes
+. Définissez le niveau de privilège sur avancé :
++
+[source, cli]
+----
+set -privilege advanced
+----
+. Téléchargez la nouvelle image de service sur le périphérique de démarrage de chaque nœud :
++
+[source, cli]
+----
+system node firmware download -node <node_name> -package
+----
++
+Répétez cette étape pour chaque nœud du cluster qui doit recevoir le nouveau firmware.
+
+. Retour aux privilèges d'administrateur :
++
+[source, cli]
+----
+set -privilege admin
+----
+. Vérifiez la version du firmware actuellement présente sur le périphérique de démarrage de chaque nœud :
++
+[source, cli]
+----
+system node firmware bootmedia show
+----
++
+La version du firmware préconfigurée doit être supérieure à celle intégrée dans votre image ONTAP cible.
+
+
+
+.Et la suite ?
+* Une fois que vous avez préconfiguré votre firmware, vous êtes prêt à link:../upgrade/automated-upgrade-task.html["effectuer une mise à niveau automatisée d'ONTAP"].
++
+Lors de la mise à niveau, ONTAP détecte que le périphérique de démarrage contient déjà un BIOS et un firmware LOADER plus récents et les conserve. Le firmware fourni n'est pas installé sur les nœuds disposant déjà d'une version supérieure.
+
+

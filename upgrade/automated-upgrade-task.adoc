@@ -16,21 +16,25 @@ summary: Vous pouvez mettre à jour la version de ONTAP sur votre cluster sans i
 
 
 [role="lead"]
-Lorsque vous effectuez une mise à niveau automatisée, ONTAP installe automatiquement l'image ONTAP cible sur chaque nœud, vérifie que le cluster peut être mis à niveau correctement, puis exécute un ou plusieurs xref:concept_upgrade_methods.html[mise à niveau par lot ou déploiement] en arrière-plan basé sur le nombre de nœuds dans le cluster.
+Lors d'une mise à niveau automatisée non perturbatrice (ANDU), ONTAP installe automatiquement l’image ONTAP cible sur chaque nœud, vérifie que le cluster peut être mis à niveau avec succès, puis exécute soit une xref:concept_upgrade_methods.html[mise à niveau par lot ou déploiement] en arrière-plan en fonction du nombre de nœuds dans le cluster.
 
 Si votre configuration le prend en charge, vous devez utiliser System Manager pour effectuer une mise à niveau automatisée.  Si votre configuration ne prend pas en charge la mise à niveau automatisée à l'aide de System Manager, vous pouvez utiliser l'interface de ligne de commandes ONTAP pour effectuer une mise à niveau automatisée.
 
 
-NOTE: Si vous effectuez une mise à niveau vers ONTAP 9.15.1 ou une version ultérieure via NetApp, suivez les instructionslink:https://docs.netapp.com/us-en/console-software-updates/get-started/software-updates.html["procédure de mise à niveau dans la documentation de la console NetApp"^] .
+NOTE: Si vous effectuez une mise à niveau vers ONTAP 9.15.1 ou une version ultérieure via la console NetApp , suivez les instructionslink:https://docs.netapp.com/us-en/console-software-updates/get-started/software-updates.html["procédure de mise à niveau dans la documentation de la console NetApp"^] .
 
 
-IMPORTANT: La modification du paramètre de l' `storage failover modify-auto-giveback`option de commande avant le début d'une mise à niveau automatique sans interruption n'a aucun impact sur le processus de mise à niveau. Le processus ANDU ignore toute valeur prédéfinie à cette option lors du basculement/retour requis pour la mise à jour. Par exemple, le réglage `-autogiveback` sur false avant le début ANDU n'interrompt pas la mise à jour automatique avant le rétablissement. Pour en savoir plus, `storage failover modify-auto-giveback` consultez le link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=storage+failover+modify-auto-giveback["Référence de commande ONTAP"^].
+IMPORTANT: Modifier le paramètre de l’ `storage failover modify-auto-giveback`option de commande avant le début d’une ANDU n’a aucun impact sur le processus de mise à niveau. Le processus ANDU ignore toute valeur prédéfinie pour cette option lors de la prise de contrôle/restitution requise pour la mise à jour. Par exemple, définir  `-autogiveback`sur false avant de commencer l’ANDU n’interrompt pas la mise à niveau automatique avant la restitution. En savoir plus sur  `storage failover modify-auto-giveback`dans la link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=storage+failover+modify-auto-giveback["Référence de commande ONTAP"^].
 
 .Avant de commencer
 * Vous devriez link:prepare.html["préparez votre mise à niveau"].
 * Vous devriez link:download-software-image.html["Téléchargez l'image du logiciel ONTAP"] Pour votre version cible de ONTAP.
 +
 Si vous exécutez un link:../upgrade/concept_upgrade_paths.html#types-of-upgrade-paths["mise à niveau directe à plusieurs sauts"], vous devez télécharger les deux images ONTAP requises pour votre link:../upgrade/concept_upgrade_paths.html#supported-upgrade-paths["chemin de mise à niveau"].
+
+* Facultativement, link:../update/pre-stage-system-firmware.html["préchargez le micrologiciel système pour une mise à niveau avec un seul redémarrage"].
++
+À partir d'ONTAP 9.17.1, si une version plus récente du BIOS ou du firmware LOADER est déjà présente sur le périphérique de démarrage d'un nœud avant que vous n'effectuiez une mise à niveau ANDU, le processus de mise à niveau conserve le firmware plus récent au lieu de l'écraser avec la version intégrée à l'image ONTAP. Cela permet à la fois la mise à niveau du logiciel ONTAP et la mise à jour du firmware de s'effectuer en un seul cycle de redémarrage.
 
 * Pour chaque paire haute disponibilité, chaque nœud doit avoir un ou plusieurs ports sur le même broadcast domain.
 +
@@ -373,6 +377,9 @@ metrocluster show
 
 --
 ====
+.Et la suite ?
+Si vous avez préconfiguré votre firmware, utilisez la commande  `system node firmware bootmedia show` pour vérifier que la version de firmware prévue est active sur chaque nœud.
+
 
 
 [[resume-ontap-software-upgrade-after-an-error-in-the-automated-upgrade-process]]

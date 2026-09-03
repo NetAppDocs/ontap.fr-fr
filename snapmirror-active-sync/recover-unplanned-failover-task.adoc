@@ -2,7 +2,7 @@
 sidebar: sidebar 
 permalink: snapmirror-active-sync/recover-unplanned-failover-task.html 
 keywords: fan-out, snapmirror active sync, unplanned failover 
-summary: 'Une opération automatique de basculement non planifié (AUFO) se produit lorsque le cluster principal est en panne ou isolé.  Dans ce cas, le cluster secondaire est converti au cluster principal et commence à servir les clients.' 
+summary: 'Une opération de basculement automatique non planifié (AUFO) se produit lorsque le cluster principal est hors service ou isolé. SnapMirror active sync détecte ces pannes et déclenche un basculement automatique non planifié vers le cluster secondaire. Le cluster secondaire est converti en cluster principal et commence à servir les clients.' 
 ---
 = Récupérer après des opérations de basculement automatiques non planifiées du cluster ONTAP
 :hardbreaks:
@@ -14,7 +14,7 @@ summary: 'Une opération automatique de basculement non planifié (AUFO) se prod
 
 
 [role="lead"]
-Un basculement automatique non planifié (AUFO) se produit lorsque le cluster principal est hors service ou isolé. Le médiateur ONTAP détecte lorsqu'un basculement se produit et exécute un basculement automatique non planifié vers le cluster secondaire.  Cette opération ne peut être effectuée qu'avec l'assistance du médiateur ONTAP . Ce dernier devient alors le cluster principal et commence à servir les clients. Cette opération est effectuée uniquement avec l’assistance du médiateur ONTAP.
+Une opération de basculement automatique non planifié (AUFO) se produit lorsque le cluster principal est hors service ou isolé. SnapMirror active sync détecte de telles pannes et initie un basculement automatique non planifié vers le cluster secondaire. Le cluster secondaire est converti en cluster principal (le cluster privilégié) et commence à servir les clients. Notez que la détection des pannes et le traitement du basculement ne peuvent être effectués qu’avec l’assistance de l’ONTAP Mediator.
 
 
 NOTE: Après un basculement automatique non planifié, il est important de réanalyser les chemins d'accès de l'hôte afin d'éviter toute perte de chemins d'E/S.
@@ -24,7 +24,7 @@ NOTE: Après un basculement automatique non planifié, il est important de réan
 [[reestablish-the-protection-relationship-after-an-unplanned-failover]]
 == Rétablir la relation de protection après un basculement non planifié
 
-Vous pouvez rétablir la relation de protection à l'aide de System Manager ou de l'interface de ligne de commandes ONTAP.
+Une fois le cluster principal d'origine, par exemple Cluster A, rétabli, SnapMirror active sync rétablit automatiquement la protection dans le sens inverse. Si vous souhaitez restaurer l'état initial, en faisant de Cluster A le cluster principal préféré, vous pouvez effectuer un basculement manuel en lançant une opération de basculement planifiée à l'aide de System Manager ou de l'interface de ligne de commande ONTAP.
 
 [role="tabbed-block"]
 ====
@@ -35,7 +35,7 @@ Vous pouvez rétablir la relation de protection à l'aide de System Manager ou d
 IMPORTANT: D'ONTAP 9.8 à ONTAP 9.14.1, la synchronisation active SnapMirror est appelée SnapMirror Business Continuity (SM-BC).
 
 . Accédez à *Protection > Relations* et attendez que l'état de la relation indique « InSync ».
-. Pour reprendre les opérations sur le cluster source d'origine, cliquez sur image:icon_kabob.gif["Icône des options de menu"] et sélectionnez *basculement*.
+. Pour effectuer un retour en arrière et reprendre les opérations sur le cluster source d'origine, cliquez image:icon_kabob.gif["Icône des options de menu"] et sélectionnez *Basculement*.
 
 
 --
@@ -57,6 +57,25 @@ Primary Data Cluster: cluster-2
 Last Progress Update: -
        Failover Type: unplanned
   Error Reason codes: -
+....
+Vous pouvez surveiller l'état de la relation de protection inverse à l'aide de la commande  `snapmirror show` sur le cluster principal d'origine.
+
+Par exemple :
+
+....
+ClusterA::> snapmirror show
+                                                                               Progress
+Source             Destination  Mirror        Relationship   Total             Last
+Path         Type  Path         State         Status         Progress  Healthy Updated
+-----------  ----  ------------ -------       -------------- --------- ------- --------
+vs3:/cg/dcg3 XDP   vs1:/cg/scg3 Snapmirrored  InSync          -         true    -
+....
+Vous pouvez effectuer un retour au cluster principal d'origine à l'aide de la commande  `snapmirror failover start`.
+
+Par exemple :
+
+....
+ClusterA::> snapmirror failover start -destination-path vs1:/cg/scg3
 ....
 Reportez-vous à la link:https://docs.netapp.com/us-en/ontap-ems-9131/smbc-aufo-events.html["Référence EMS"^] pour en savoir plus sur les messages d'événement et sur les actions correctives à mener.
 

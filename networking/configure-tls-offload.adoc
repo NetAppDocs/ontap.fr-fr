@@ -11,7 +11,9 @@ summary: Configurer les paramètres de déchargement TLS
 
 
 [role="lead"]
-À partir d'ONTAP 9.19.1, vous pouvez configurer le déchargement TLS pour améliorer les performances après l'établissement de la liaison TLS en exploitant les ressources des cartes Ethernet compatibles. Cette fonctionnalité décharge le chiffrement et le déchiffrement, réduisant ainsi la charge du processeur et améliorant les performances.
+À partir d'ONTAP 9.19.1, vous pouvez configurer le déchargement TLS pour améliorer les performances après l'établissement de la liaison TLS en utilisant les ressources des cartes Ethernet compatibles. Cette fonctionnalité décharge le chiffrement et le déchiffrement, réduisant ainsi la charge du processeur et améliorant les performances.
+
+Vous pouvez activer le déchargement TLS uniquement pour le trafic utilisant KTLS. Ce paramètre ne s'applique pas à l'ensemble du trafic activé pour TLS. Le trafic de gestion, tel que le trafic HTTPS et le trafic API REST, n'est pas concerné par ce paramètre. Le trafic HA n'est pas pris en charge.
 
 .Description de la tâche
 * Le déchargement TLS est désactivé par défaut.
@@ -22,7 +24,8 @@ summary: Configurer les paramètres de déchargement TLS
 Pour les connexions TLS déportées, les opérations cryptographiques TLS contournent généralement le logiciel et sont gérées par une carte réseau compatible avec le déchargement. Si l'interface réseau logique (LIF) associée à cette connexion migre vers un port réseau sans capacité de déchargement TLS, les opérations cryptographiques reviennent au logiciel et sont gérées par le noyau du système.
 
 * Les interfaces de gestion (HTTPS, API REST) ne sont pas affectées par ce paramètre.
-* Le paramètre de déchargement matériel TLS est appliqué à l'ensemble du cluster.
+* Le déchargement matériel TLS est un paramètre global du cluster.
+* Le trafic HA n'est pas pris en charge pour le déchargement matériel TLS.
 
 
 .Cartes réseau et plateformes prises en charge
@@ -79,20 +82,44 @@ Le déchargement matériel TLS nécessite une carte réseau compatible. Le table
 
 |===
 .Types de trafic pris en charge
-Le déchargement matériel TLS prend en charge les types de trafic suivants :
+Le tableau suivant indique si le déchargement matériel TLS est pris en charge pour chaque type de trafic.
 
-* NVMe/TCP
-* Chiffrement de la mise en cluster
-* FabricPool
-* S3
-* NFS
+[cols="1,1,2"]
+|===
+| Type de trafic | Pris en charge | Remarques 
 
 
+| NVMe/TCP | Oui. | Pris en charge sur les plateformes et les cartes réseau qui prennent en charge le déchargement TLS. 
+
+
+| Chiffrement de la mise en cluster | Oui. | Pris en charge pour le trafic réseau du cluster. Cela n'inclut pas le trafic HA. 
+
+
+| FabricPool | Oui. | Pris en charge sur les plateformes et les cartes réseau qui prennent en charge le déchargement TLS. 
+
+
+| S3 | Oui. | Pris en charge sur les plateformes et les cartes réseau qui prennent en charge le déchargement TLS. 
+
+
+| NFS sur TLS | Oui, à partir de ONTAP 9.19.1 | Pris en charge pour le trafic ONTAP NFS sur TLS lorsque KTLS est utilisé. 
+
+
+| KMIP | Non | Non pris en charge. 
+
+
+| System Manager | Non | Les interfaces de gestion ne sont pas affectées par ce paramètre. 
+
+
+| API REST | Non | Les interfaces de gestion ne sont pas affectées par ce paramètre. 
+
+
+| trafic HA | Non | Le déchargement matériel TLS ne s'applique pas au trafic HA. 
+|===
 
 NOTE: Sur les systèmes ASA, le déchargement matériel TLS s'applique uniquement au trafic NVMe/TCP. NFS sur TLS, FabricPool et S3 ne sont pas pris en charge sur les plateformes ASA.
 
 
-NOTE: Sur les plateformes AFX, le déchargement matériel TLS prend en charge les types de trafic frontaux NFS et S3. NVMe/TCP n'est pas pris en charge sur les plateformes AFX, car AFX ne prend pas en charge les protocoles SAN/bloc.
+NOTE: Sur les plateformes AFX, le déchargement matériel TLS prend en charge les types de trafic NFS over TLS et S3 front-end. NVMe/TCP n'est pas pris en charge sur les plateformes AFX, car AFX ne prend pas en charge les protocoles SAN/bloc.
 
 .Avant de commencer
 * Vous devez être administrateur ONTAP au niveau `admin` niveau de privilège permettant d'effectuer les tâches suivantes.

@@ -23,16 +23,20 @@ Le chiffrement SMB sur la SVM est contrôlé par deux paramètres :
 * Propriété de partage SMB qui configure le paramètre de chiffrement SMB partage par partage
 
 
-Vous pouvez décider s'il faut un chiffrement pour accéder à toutes les données de la SVM ou bien demander un chiffrement SMB pour accéder aux données uniquement dans les partages sélectionnés. Les paramètres des SVM prévalent sur les paramètres de niveau partage.
+Vous pouvez décider d'exiger le chiffrement pour accéder à toutes les données sur la SVM ou d'exiger le chiffrement SMB pour accéder aux données uniquement dans certains partages. La `encrypt-data` propriété de partage exige le chiffrement SMB pour accéder à un partage. À partir de ONTAP 9.11.1, la `allow-unencrypted-access` propriété de partage permet aux clients SMB2 d'accéder à un partage sans chiffrement, tandis que les clients SMB3 continuent d'utiliser le chiffrement lorsque `encrypt-data` est activé.
+
+Les paramètres au niveau de la SVM prévalent sur les paramètres au niveau du partage.
 
 La configuration de cryptage SMB efficace dépend de la combinaison des deux paramètres. Elle est décrite dans le tableau suivant :
 
 |===
-| Chiffrement SMB du serveur SMB activé | Le paramètre partage des données de chiffrement est activé | Comportement de cryptage côté serveur 
+| Chiffrement SMB du serveur SMB activé | Le paramètre partage des données de chiffrement est activé | Le paramètre d’accès non chiffré au partage est activé | Comportement de cryptage côté serveur 
 
 
  a| 
 Vrai
+ a| 
+Faux
  a| 
 Faux
  a| 
@@ -45,6 +49,8 @@ Vrai
  a| 
 Vrai
  a| 
+Faux
+ a| 
 Le chiffrement au niveau du serveur est activé pour tous les partages de la SVM indépendamment du chiffrement au niveau du partage. Avec cette configuration, le chiffrement s'effectue pour toute la session SMB.
 
 
@@ -54,10 +60,14 @@ Faux
  a| 
 Vrai
  a| 
-Le chiffrement au niveau du partage est activé pour les partages spécifiques. Avec cette configuration, le chiffrement se produit à partir de l'arborescence à connecter.
+Faux
+ a| 
+Le chiffrement au niveau du partage est activé pour les partages concernés. Les clients SMB3 utilisent le chiffrement, mais les clients SMB2 peuvent accéder au partage sans chiffrement, car la propriété `allow-unencrypted-access` est activée.
 
 
 
+ a| 
+Faux
  a| 
 Faux
  a| 
@@ -65,7 +75,24 @@ Faux
  a| 
 Aucun chiffrement n'est activé.
 
+
+
+ a| 
+Faux
+ a| 
+Faux
+ a| 
+Vrai
+ a| 
+Aucun chiffrement n'est activé. La `allow-unencrypted-access` propriété est sans effet sauf si `encrypt-data` est activé.
+
 |===
 Les clients SMB qui ne prennent pas en charge le chiffrement ne peuvent pas se connecter à un serveur SMB ou à un partage qui nécessite un chiffrement.
 
 Les modifications apportées aux paramètres de cryptage prennent effet pour les nouvelles connexions. Les connexions existantes ne sont pas affectées.
+
+
+NOTE: Cette `allow-unencrypted-access` propriété est prise en charge à partir d'ONTAP 9.11.1.
+
+
+NOTE: Le chiffrement SMB au niveau de la SVM remplace les paramètres au niveau du partage.

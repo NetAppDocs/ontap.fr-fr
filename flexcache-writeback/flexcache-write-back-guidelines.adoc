@@ -18,7 +18,7 @@ Il est recommandé de tester votre charge de travail de production dans un envir
 Les directives suivantes sont testées en interne par NetApp. Il est *_fortement_* recommandé que vous restiez à l'intérieur d'eux. Si ce n'est pas le cas, un comportement inattendu pourrait se produire.
 
 * Des améliorations significatives pour la fonction d'écriture différée de FlexCache ont été introduites dans ONTAP 9.17.1P1. Il est *_fortement_* conseillé d'exécuter la version recommandée actuelle après la version 9.17.1P1 sur les clusters d'origine et de cache. Si vous ne parvenez pas à exécuter la version 9.17.1, la dernière version P, la 9.16.1, est la version suivante recommandée. ONTAP 9.15.1 ne contient pas tous les correctifs et améliorations nécessaires pour la réécriture FlexCache et n'est pas recommandé pour les charges de travail de production.
-* Dans l'itération actuelle, les caches d'écriture différée FlexCache doivent être configurés avec un seul composant pour l'ensemble du volume FlexCache. Des FlexCaches multi-composants peuvent entraîner des suppressions indésirables des données du cache.
+* Les caches d'écriture différée FlexCache à plusieurs constituants sont pris en charge avec ONTAP 9.19.1 GA, 9.18.1P2, 9.17.1P3, 9.16.1P10 et les versions P ultérieures de chaque famille de versions respective. Pour les versions antérieures d'ONTAP, vous devez utiliser un seul constituant pour l'ensemble du volume FlexCache. Les FlexCaches à plusieurs constituants sur les versions antérieures peuvent entraîner des évictions indésirables de données du cache.
 * Des tests ont été effectués pour des fichiers de moins de 100 Go et des temps d'aller-retour WAN entre le cache et l'origine ne dépassant pas 200 ms. Toute charge de travail dépassant ces limites pourrait entraîner des performances inattendues.
 * L'écriture dans les autres flux de données SMB entraîne la suppression du fichier principal du cache. Toutes les données corrompues du fichier principal doivent être vidées à l'origine avant que d'autres opérations puissent avoir lieu sur ce fichier. Le flux de données alternatif est également transmis à l'origine.
 * Le fait de renommer un fichier entraîne la suppression du fichier du cache. Toutes les données corrompues du fichier doivent être vidées à l'origine avant que d'autres opérations puissent avoir lieu sur ce fichier.
@@ -37,6 +37,32 @@ Tous les autres attributs modifiés ou définis sont transférés vers l'origine
 
 * Les snapshots pris à l'origine entraînent le rappel de toutes les données corrompues en attente de chaque cache activé pour l'écriture différée associé à ce volume d'origine. Ceci peut nécessiter plusieurs tentatives de l'opération si une activité de réécriture importante est en cours, car les suppressions de ces fichiers sales peuvent prendre un certain temps.
 * Les verrous opportunistes SMB (Oplocks) pour les écritures ne sont pas pris en charge sur les volumes FlexCache avec écriture différée activée.
-* Les caches à écriture différée basculent automatiquement en mode d'écriture alternative lorsque l'espace libre du volume d'origine atteint 20 % ou moins. Ceci permet d'éviter une saturation de l'espace à l'origine, ce qui entraînerait l'abandon de données modifiées dans un cache à écriture différée. Cependant, si le volume d'origine est surdimensionné, c'est-à-dire que sa taille logique provisionnée est supérieure à l'espace libre de l'agrégat, le pourcentage d'espace libre affiché peut déclencher ce seuil plus tôt que prévu. Le seuil de 20 % est évalué à la fois par rapport à l'espace libre affiché du volume d'origine et à la capacité physique disponible de l'agrégat.
-* Les réseaux inter-clusters à faible bande passante et/ou présentant des pertes peuvent avoir un impact négatif significatif sur les performances d'écriture différée de FlexCache . Bien qu'il n'y ait pas d'exigence spécifique en matière de bande passante, celle-ci dépendant fortement de votre charge de travail, il est *_fortement_* recommandé de veiller à la santé de la liaison inter-cluster entre le(s) cache(s) et l'origine.
+* Les caches en écriture différée basculent automatiquement en mode write-around lorsque l'espace libre du volume d'origine tombe à 20 % ou moins. Cela permet d'éviter un manque d'espace à l'origine, ce qui laisserait des données modifiées orphelines dans un cache avec écriture différée. Si le volume d'origine est surprovisionné, sa taille logique provisionnée est supérieure à l'espace libre dans l'agrégat. Le seuil de 20 % est évalué par rapport à l'espace disponible du volume d'origine et à la capacité physique disponible de l'agrégat. `percent-used` et  `capacity` peuvent toujours afficher 0 % lorsque l'espace disponible est déjà inférieur à ce seuil.
++
+L'exemple suivant illustre un volume source surprovisionné. Presque aucune donnée n'est écrite, mais l'agrégat ne peut pas prendre en charge la taille logique totale :
+
++
+[source, cli]
+----
+ORIGIN::> vol show -volume origin_volume -fields percent-used,available,size
+vserver             volume           size    available percent-used
+------------------- ---------------- ------- --------- ------------
+origin_svm          origin_volume    19.70TB 1.33TB    0%
+----
++
+Notez que  `percent-used` est de 0 %, mais l'espace disponible est de 1,33 To sur 19,70 To, soit 1,33 / 19,70, ou environ 7 % disponibles. Ce chiffre est déjà inférieur au seuil de 20 %, de sorte que les caches en écriture différée pour cette origine passent en mode write-around.
+
++
+[source, cli]
+----
+ORIGIN::> df -h origin_volume
+Filesystem               total       used      avail   capacity  Mounted on       Vserver
+/vol/origin_volume/      18TB        515MB     1363GB         0%    ---           origin_svm
+
+2 entries were displayed.
+----
++
+Notez que  `capacity` est également à 0 %, et que seulement 515 Mo sont utilisés. L’espace disponible est de 1 363 Go sur 18 To, soit environ 7 % du système de fichiers. Les colonnes de pourcentage indiquent la faible quantité de données stockées. Elles n’indiquent pas quelle part de la taille du volume l’agrégat peut réellement fournir.
+
+* Une bande passante faible et/ou des réseaux interclusters sujets à des pertes de paquets peuvent avoir un impact négatif significatif sur les performances d'écriture différée de FlexCache®. Bien qu'il n'y ait pas d'exigence de bande passante spécifique, car cela dépend fortement de votre charge de travail, il est *_fortement_* recommandé de vous assurer du bon état de fonctionnement de la liaison intercluster entre le ou les caches et l'origine. Si votre réseau est sujet aux pertes de paquets et que vous utilisez ONTAP 9.19.1 ou une version ultérieure, envisagez d'utiliser link:../networking/improve-tcp-wan-performance.html["TCP RACK"] pour améliorer les performances.
 

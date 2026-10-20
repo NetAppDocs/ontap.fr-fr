@@ -4,80 +4,22 @@ sidebar: sidebar
 keywords: ontap mediator, install requirements, mediator requirements 
 summary: Le Mediator ONTAP offre plusieurs fonctions pour les fonctionnalités ONTAP. 
 ---
-= En savoir plus sur ONTAP Mediator
+= Découvrez ONTAP Mediator pour MetroCluster IP et SnapMirror active sync
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-Cette documentation concerne la version sur site d' ONTAP Mediator. Pour plus d'informations sur ONTAP Cloud Mediator, disponible à partir d' ONTAP 9.17.1, consultez le link:../snapmirror-active-sync/index.html["Documentation de la synchronisation active de SnapMirror"] .
+ONTAP Mediator prend en charge la synchronisation active SnapMirror et MetroCluster IP en fournissant un stockage persistant et isolé pour les métadonnées de haute disponibilité (HA), une fonctionnalité de requête synchrone de l'état des nœuds pour faciliter la détermination du quorum, et en servant de proxy ping pour la réactivité du contrôleur.
 
-ONTAP Mediator fournit plusieurs fonctions pour les fonctionnalités ONTAP :
+ONTAP Mediator s'exécute sur un hôte Linux dans un troisième domaine de défaillance, distinct de vos clusters ONTAP, où il fournit un stockage persistant et isolé pour les métadonnées HA. ONTAP utilise ce stockage, ainsi que les fonctions de requête d'état des nœuds et de proxy de ping de Mediator, pour surveiller les relations de synchronisation active SnapMirror et les configurations IP MetroCluster.
 
-* Magasin persistant et cloisonné pour les métadonnées haute disponibilité.
-* Sert de proxy ping pour la vivacité du contrôleur.
-* Fournit une fonctionnalité de requête d'intégrité de nœud synchrone pour aider à déterminer le quorum.
-
-
-ONTAP Mediator fournit deux services systemctl supplémentaires :
-
-* *`ontap_mediator.service`*
-+
-Maintient le serveur REST API pour la gestion des relations ONTAP.
-
-* *`mediator-scst.service`*
-+
-Contrôle le démarrage et l'arrêt du module iSCSI (SCST).
+* ONTAP Mediator utilise la LIF de gestion des nœuds et la LIF de gestion de cluster pour communiquer avec chaque cluster via plusieurs chemins redondants. Cela permet à ONTAP de distinguer une défaillance complète du site d'une défaillance unique de liaison InterSwitch (ISL).
+* En mode de synchronisation active SnapMirror, si un cluster perd la connexion à la fois avec son homologue et avec ONTAP Mediator, ONTAP considère l’homologue comme inaccessible et peut basculer automatiquement vers la copie survivante.
+* Dans les configurations IP MetroCluster, ONTAP Mediator facilite un basculement automatique non planifié assisté par médiateur (MAUSO) en stockant des informations d'état sur les nœuds MetroCluster et en aidant à déterminer la marche à suivre appropriée en cas de panne.
 
 
+Pour installer ou mettre à niveau la version locale d'ONTAP Mediator, reportez-vous à link:https://docs.netapp.com/us-en/ontap-mediator/index.html["Documentation du médiateur ONTAP"^]
 
-
-
-[[tools-provided-for-the-system-administrator]]
-== Outils fournis à l'administrateur système
-
-Outils fournis à l'administrateur système :
-
-* *`/usr/local/bin/mediator_change_password`*
-+
-Définit un nouveau mot de passe d'API lorsque le nom d'utilisateur et le mot de passe d'API actuels sont fournis.
-
-* *`/usr/local/bin/mediator_change_user`*
-+
-Définit un nouveau nom d'utilisateur d'API lorsque le nom d'utilisateur et le mot de passe d'API actuels sont fournis.
-
-* *`/usr/local/bin/mediator_generate_support_bundle`*
-+
-Génère un fichier tgz local contenant toutes les informations de support utiles qui sont nécessaires à la communication avec le support client NetApp.  Cela inclut la configuration de l'application, les journaux et certaines informations système.  Les bundles sont générés sur le disque local et peuvent être transférés manuellement, si nécessaire.  Emplacement de stockage : /opt/netapp/data/support_bundles/
-
-* *`/usr/local/bin/uninstall_ontap_mediator`*
-+
-Supprime le progiciel ONTAP Mediator et le module du noyau SCST. Cela inclut la configuration, les journaux et les données de boîte aux lettres.
-
-* *`/usr/local/bin/mediator_unlock_user`*
-+
-Libère un verrouillage sur le compte utilisateur de l'API si la limite de tentatives d'authentification a été atteinte. Cette fonction est utilisée pour empêcher la dérivation de mot de passe par force brute. Il invite l'utilisateur à entrer le nom d'utilisateur et le mot de passe corrects.
-
-* *`/usr/local/bin/mediator_add_user`*
-+
-(Support uniquement) utilisé pour ajouter l'utilisateur de l'API lors de l'installation.
-
-
-
-
-
-[[scst-and-kernel-updates]]
-== Mises à jour SCST et du noyau
-
-ONTAP Mediator utilise SCST pour fournir iSCSI pour la communication dans les configurations IP MetroCluster. Le package SCST est un module noyau qui est compilé lors de l'installation. Vous pourriez avoir besoin de réinstaller SCST après des mises à jour du noyau. Vous pouvez également désinstaller ONTAP Mediator, puis réinstaller et reconfigurer la relation ONTAP. Consultez link:https://scst.sourceforge.net/["SCST : un sous-système cible SCSI générique pour Linux"^] pour en savoir plus sur SCST.
-
-
-NOTE: Vous devez coordonner toute mise à jour du noyau du système d'exploitation du serveur avec une fenêtre de maintenance dans ONTAP.
-
-
-
-[[support-for-https-and-iscsi]]
-== Prise en charge de HTTPS et iSCSI
-
-À partir de ONTAP 9.19.1 et ONTAP Mediator 1.12, vous pouvez configurer un ONTAP Mediator qui utilise HTTPS ou iSCSI pour surveiller une configuration IP MetroCluster. Vous pouvez choisir d’installer ONTAP Mediator avec la prise en charge à la fois d’iSCSI et de HTTPS, ou uniquement de HTTPS. Si ONTAP Mediator est installé avec la prise en charge de HTTPS uniquement, le package SCST n’est pas installé. Consultez link:index.html#https-iscsi-installation["Options d'installation HTTPS et iSCSI pour ONTAP Mediator"] pour plus d’informations.
+Pour plus d'informations sur ONTAP Cloud Mediator, disponible à partir d'ONTAP 9.17.1, reportez-vous à link:../snapmirror-active-sync/index.html["Documentation de la synchronisation active de SnapMirror"].

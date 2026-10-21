@@ -1,0 +1,92 @@
+---
+permalink: san-config/fc-config-best-practices.html 
+sidebar: sidebar 
+keywords: fc, fabric, configuration, best, practices, san 
+summary: Pour obtenir des performances optimales, vous devez tenir compte de certaines des meilleures pratiques lors de la configuration du commutateur FC. 
+---
+= Découvrez les meilleures pratiques pour configurer les fabrics FC avec les systèmes ONTAP
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Le respect des bonnes pratiques de configuration du réseau FC améliore les performances, la fiabilité et la stabilité de l'hôte et de la cible lors des modifications du réseau.
+
+.Bonnes pratiques recommandées pour la configuration de la fabric FC
+* *Zonage à initiateur unique / cible unique (SI/ST)*
++
+Le zonage SI/ST réduit les pics de latence lors des modifications de la fabric, élimine les interférences, limite les notifications de changement d'état enregistré (RSCN), simplifie le dépannage et maintient le nombre de chemins dans les limites de l'hôte.
+
++
+** Impact sur l'hôte : le zonage SI/ST garantit un comportement MPIO prévisible, une découverte plus rapide et moins d'événements All Path Down (APD)/Permanent Device Loss (PDL).
+** Impact cible : le zonage SI/ST garantit moins d’événements de connexion/déconnexion et des sessions FC stables.
+
+
+* *Zonage basé sur les WWPN utilisant les WWPN des LIF cibles (et non les ports physiques)*
++
+Le zonage basé sur le WWPN permet la mobilité des LIF, le basculement/la restitution, des opérations sans interruption sans nouveau zonage et empêche les réinitialisations de chemin pendant la maintenance.
+
++
+** Impact sur l'hôte : le zonage basé sur WWPN garantit l'absence de perte de chemin lors des déplacements de LIF ou du basculement du contrôleur.
+** Impact sur la cible : le zonage basé sur le WWPN garantit qu’ONTAP peut déplacer les LIF cibles de manière transparente.
+
+
+* *NPIV activé sur tous les commutateurs FC*
++
+Tous les commutateurs connectés à la fabric doivent prendre en charge NPIV et avoir NPIV activé. ONTAP utilise la virtualisation d’ID N_Port (NPIV) pour présenter des cibles FC. Sans cela, les LIF cibles ne peuvent pas se connecter correctement.
+
++
+** Impact sur l'hôte : NPIV empêche les interruptions intermittentes de chemin et les périphériques manquants.
+** Impact sur la cible : NPIV assure la visibilité des LIF cibles et des connexions FC stables.
+
+
+* *Deux fabrics indépendants et totalement isolés*
++
+Une double fabric indépendante se compose de deux commutateurs physiques, de deux alimentations et de deux câblages distincts. Fabric A et Fabric B ne sont jamais connectées l’une à l’autre. Chacune conserve son propre serveur de noms FC, ses ensembles de zones et ses ID de domaine. Comme les fabrics sont totalement isolées, il n’existe aucun point de défaillance unique. Une maintenance sans interruption peut être effectuée sur une fabric pendant que l’autre continue de fonctionner.
+
++
+** Impact sur l’hôte : deux fabrics indépendants prennent en charge des E/S continues pendant les mises à niveau du micrologiciel de fabric ou les pannes.
+** Impact sur la cible : deux fabrics indépendants maintiennent un accès redondant à la cible en cas de problèmes de switch.
+
+
+* *Vitesses fixes des ports FC (éviter la négociation automatique)*
++
+L'auto-négociation peut retarder les reconstructions de fabric, provoquer des inadéquations de vitesse et entraîner des retards de reconvergence et des instabilités de liaison.
+
++
+** Impact sur l’hôte : les vitesses fixes des ports FC entraînent des interruptions de service plus courtes lors des réinitialisations de liaison.
+** Impact ciblé : Des vitesses fixes pour les ports FC permettent une remise en service plus rapide des ports après des événements liés aux nœuds ou aux commutateurs.
+
+
+* *Respect strict des configurations validées dans l’outil NetApp Interoperability Matrix Tool (IMT) (HBA, pilote, firmware, commutateur)*
++
+Le strict respect des configurations validées dans le https://mysupport.netapp.com/matrix["NetApp IMT"^] permet de maintenir la latence et le débit attendus.
+
++
+** Impact sur l'hôte : L'utilisation de configurations validées par IMT permet d'éviter les erreurs d'E/S et les délais d'attente inexpliqués.
+** Impact ciblé : L’utilisation de configurations validées par l’IMT permet d’éviter les incompatibilités au niveau du protocole.
+
+
+* *Surveillance proactive des compteurs d'erreurs FC (CRC, perte de synchronisation, RECV_ERROR)*
++
+Les erreurs de fabric se manifestent souvent par une latence côté hôte ou des erreurs d'E/S avant que les compteurs de stockage ONTAP ne les détectent. La surveillance proactive du nombre d'erreurs FC permet d'éviter une augmentation durable de la latence.
+
++
+** Impact sur l'hôte : la surveillance proactive permet une détection précoce et empêche les nouvelles tentatives d'E/S de l'hôte et les blocages d'applications.
+** Impact cible : la surveillance proactive évite d’attribuer à tort les problèmes de fabric à des problèmes de stockage.
+
+
+* *Évitez la surcharge des liaisons inter-commutateurs (ISL) pour le trafic SAN*
++
+Les ISL encombrées provoquent une pénurie de crédits et un comportement de drainage lent.
+
++
+** Impact sur l'hôte : éviter le surabonnement de l'ISL réduit les temps d'attente et la mise en file d'attente des E/S de l'hôte.
+** Impact cible : éviter la sursouscription ISL empêche la contre-pression vers les ports FC ONTAP.
+
+
+
+
+.Informations associées
+https://www.netapp.com/pdf.html?item=/media/10680-tr4080.pdf["Rapport technique de NetApp 4080 : meilleures pratiques pour le SAN moderne"^].

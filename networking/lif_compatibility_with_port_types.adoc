@@ -13,10 +13,12 @@ summary: Les LIF peuvent présenter des caractéristiques différentes pour pren
 
 
 [role="lead"]
-Les LIF peuvent présenter des caractéristiques différentes pour prendre en charge différents types de ports.
+Les LIFs peuvent présenter différentes caractéristiques afin de prendre en charge différents types de ports. Les LIFs peuvent être hébergées sur un port physique ou logique dans un IPspace. Chaque port est associé à un seul IPspace.
 
 
 NOTE: Lorsque les LIF intercluster et de gestion sont configurées dans le même sous-réseau, le trafic de gestion peut être bloqué par un pare-feu externe et les connexions AutoSupport et NTP peuvent tomber en panne. Vous pouvez restaurer le système en exécutant le `network interface modify -vserver _vserver name_ -lif _intercluster LIF_ -status-admin up|down` Commande pour basculer le LIF intercluster. Cependant, vous devez définir la LIF intercluster et la LIF de gestion dans différents sous-réseaux pour éviter ce problème.
+
+Le tableau suivant récapitule les types de LIF, leurs types de ports compatibles et leur comportement en cas de basculement ou de migration.
 
 [cols="30,70"]
 |===
@@ -25,32 +27,68 @@ NOTE: Lorsque les LIF intercluster et de gestion sont configurées dans le même
 | LIF | Description 
 
 
-| LIF de données | LIF associée à un SVM (Storage Virtual machine) et servant à la communication avec les clients.
-Vous pouvez avoir plusieurs LIFs data sur un port. Ces interfaces peuvent migrer ou basculer sur l'ensemble du cluster. Vous pouvez modifier une LIF de données afin de servir de LIF de gestion SVM en modifiant sa politique de pare-feu en gestion.
+| LIF Cluster  a| 
+Une interface LIF utilisée pour transporter le trafic intracluster entre les nœuds d'un cluster.
 
-Les sessions établies aux serveurs NIS, LDAP, Active Directory, WINS, et DNS utilisent les LIFs data. 
-
-
-| LIF Cluster | Une LIF utilisée pour acheminer le trafic intracluster entre les nœuds d'un cluster. Les LIFs cluster doivent toujours être créées sur les ports de type cluster.
-
-Les LIFs de cluster peuvent basculer entre les ports de cluster sur le même nœud, mais elles ne peuvent pas être migrées ou basculer vers un nœud distant. Lorsqu'un nouveau nœud rejoint un cluster, les adresses IP sont générées automatiquement. Toutefois, si vous souhaitez attribuer manuellement des adresses IP aux LIF de cluster, vous devez vous assurer que les nouvelles adresses IP se trouvent dans la même plage de sous-réseau que les LIF de cluster existantes. 
+* Les LIF de cluster doivent toujours être créées sur les ports du cluster.
+* Les LIF de cluster peuvent basculer entre les ports de cluster sur le même nœud, mais elles ne peuvent pas être migrées ni basculer vers un nœud distant. Lorsqu'un nouveau nœud rejoint un cluster, des adresses IP sont générées automatiquement. Toutefois, si vous souhaitez attribuer manuellement des adresses IP aux LIF de cluster, vous devez vous assurer que les nouvelles adresses IP se trouvent dans la même plage de sous-réseau que les LIF de cluster existantes.
 
 
-| LIF Cluster-management | LIF qui offre une interface de gestion unique pour l'ensemble du cluster.
-
-Une LIF de cluster management peut basculer vers n'importe quel nœud du cluster. Il ne peut pas basculer vers le cluster ou les ports intercluster 
 
 
-| FRV InterCluster | LIF utilisée pour la communication, la sauvegarde et la réplication entre clusters. Vous devez créer une LIF intercluster sur chaque node du cluster avant qu'une relation de peering de cluster ne puisse être établie.
+| LIF Cluster-management  a| 
+Une LIF qui fournit une interface de gestion unique pour l’ensemble du cluster.
 
-Ces LIFs peuvent uniquement basculer sur les ports du même nœud. Ils ne peuvent pas être migrés ni basculés vers un autre nœud du cluster. 
-
-
-| FRV de gestion des nœuds | Une LIF qui fournit une adresse IP dédiée pour gérer un nœud particulier dans un cluster. Les LIFs de node-management sont créées au moment de la création ou de l'arrivée du cluster. Ces LIFs sont utilisées pour la maintenance du système, par exemple lorsqu'un nœud devient inaccessible depuis le cluster. 
+* Une interface logique de gestion de cluster peut basculer vers n'importe quel nœud du cluster. Elle ne peut pas basculer vers les ports du cluster ou d'intercluster.
 
 
-| LIF VIP | Une LIF VIP est toute LIF de données créée sur un port VIP. Pour en savoir plus, voir link:../networking/configure_virtual_ip_vip_lifs.html["Configuration des LIF IP virtuelles (VIP"]. 
+
+
+| LIF de données  a| 
+Une LIF associée à une machine virtuelle de stockage (SVM) et utilisée pour communiquer avec les clients.
+
+* Chaque SVM est associée à un IPspace spécifique. Les SVM de données se trouvent souvent dans l’IPspace « Default », mais ce n’est pas systématique.
+* Vous pouvez héberger plusieurs LIF de données sur un port. Ces LIF de données peuvent migrer ou basculer dans l'ensemble du cluster. Vous pouvez modifier une LIF de données pour qu'elle serve de LIF de gestion SVM en modifiant sa politique de pare-feu sur mgmt.
+* Les sessions établies avec les serveurs NIS, LDAP, Active Directory, WINS et DNS utilisent des LIF de données.
+
+
+
+
+| FRV InterCluster  a| 
+Une LIF utilisée pour la communication inter-clusters, la sauvegarde et la réplication.
+
+* Vous devez créer une LIF d'intercluster sur chaque nœud du cluster avant de pouvoir établir une relation de peering de cluster. Ces LIF ne peuvent basculer que vers des ports du même nœud. Elles ne peuvent pas être migrées ni basculées vers un autre nœud du cluster.
+
+
+
+
+| FRV de gestion des nœuds  a| 
+Une LIF qui fournit une adresse IP dédiée à la gestion d'un nœud particulier dans un cluster.
+
+* Les LIF de gestion des nœuds sont créées lors de la création ou de l’intégration au cluster. Ces LIF servent à la maintenance du système, par exemple lorsqu’un nœud devient inaccessible au sein du cluster.
+
+
+
+
+| LIF de gestion SVM  a| 
+Une LIF qui fournit une connectivité d’administration à une SVM, permettant les opérations de gestion (souvent via le port 443) ainsi que les services de gestion associés pour cette SVM.
+
+* Chaque SVM est associé à un IPspace spécifique.
+* L'interface LIF peut migrer ou basculer vers un autre nœud ou port en fonction de la politique de basculement.
+* Vous pouvez configurer plusieurs LIF de gestion de SVM sur un port.
+* Une LIF de gestion de SVM est utile lorsque vous hébergez dans un environnement mutualisé.
+
+
+
+
+| LIF VIP  a| 
+Une LIF IP virtuelle (VIP) est une LIF de données créée sur un port VIP.
+
+Pour en savoir plus, consultez link:../networking/configure_virtual_ip_vip_lifs.html["Configuration des LIF IP virtuelles (VIP"].
+
 |===
 .Informations associées
+* link:./configure_network_ports_cluster_administrators_only_overview.html["En savoir plus sur la configuration des ports réseau ONTAP"]
 * link:https://docs.netapp.com/us-en/ontap-cli/network-interface-modify.html["modification de l'interface réseau"^]
+* link:./configure_ipspaces_cluster_administrators_only_overview.html["En savoir plus sur la configuration ONTAP IPspace"]
 

@@ -1,0 +1,68 @@
+---
+permalink: s3-config/delete-recover-bucket-with-data-task.html 
+sidebar: sidebar 
+keywords: s3, bucket, system manager, cli, delete, restore, recover 
+summary: 'À partir d"ONTAP 9.20.1, vous pouvez planifier des opérations de suppression de compartiment sur les serveurs de stockage d"objets pour supprimer les compartiments sans les vider au préalable.' 
+---
+= Supprimer un compartiment S3 ONTAP contenant des objets
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir d'ONTAP 9.20.1, vous pouvez planifier des opérations de suppression de buckets sur les serveurs de stockage d'objets afin de supprimer des buckets sans d'abord les vider. Pour ce faire, vous utilisez une fenêtre de récupération configurable basée sur la rétention, qui permet de récupérer des buckets avant l'expiration de la période de rétention.
+
+La possibilité de supprimer des buckets non vides contribue à simplifier la mise hors service des buckets en évitant un nettoyage manuel objet par objet avant qu’un bucket puisse être supprimé, réduit l’arriéré d’expiration et permet de réutiliser la capacité plus rapidement.
+
+.Avant de commencer
+* Vous devez être administrateur du cluster ou administrateur SVM.
+* Vous devez avoir le niveau de privilège avancé.
+
+
+
+
+[[delete-a-bucket-that-contains-objects]]
+== Supprimer un compartiment contenant des objets
+
+Vous pouvez programmer la suppression d'un bucket sans le vider au préalable en définissant un intervalle de rétention. Par défaut, cet intervalle est de 12 heures.
+
+.Étapes
+Vous pouvez effectuer cette tâche depuis System Manager ou l'interface de ligne de commandes de ONTAP.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Accédez à *Stockage > Compartiments* et localisez le compartiment que vous souhaitez supprimer.
+. Cliquez à côté du nom du compartiment et sélectionnez *Delete*.
+. Si le bucket n'est pas vide, dans la fenêtre *Delete Bucket*, sélectionnez l'option permettant de supprimer les données et de vider le bucket, puis sélectionnez *Delete*.
+
+
+--
+.CLI
+--
+. Spécifiez l'intervalle de rétention après lequel le bucket sera définitivement supprimé :
++
+`object-store-server create -vserver <SVM name> -bucket-delete-retention-hours <integer>`
+
+. Lancez la planification de suppression des buckets:
++
+`object-store-server bucket delete -bucket <bucket name> -delete-objects tru`e
+
+
+
+--
+====
+
+
+[[recover-a-deleted-bucket]]
+== Récupérer un bucket supprimé
+
+Si un compartiment est supprimé accidentellement, vous pouvez le récupérer à l'aide de l'interface de ligne de commande ONTAP pendant la période de rétention que vous avez spécifiée.
+
+. Récupérez un bucket supprimé en saisissant la commande suivante :
++
+`object-store-server bucket recover-deleted-bucket -bucket <bucket name>`
+
+

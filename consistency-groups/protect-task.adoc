@@ -14,18 +14,34 @@ summary: 'Utilisez des groupes de cohérence pour protéger les données à l"ai
 [role="lead"]
 Les groupes de cohérence offrent une protection locale et à distance simple à gérer pour les applications SAN, NAS et NVMe couvrant plusieurs volumes.
 
-La création d'un groupe de cohérence n'active pas automatiquement la protection. Les règles de protection peuvent être définies au moment de la création ou après la création du groupe de cohérence. Vous pouvez protéger les groupes de cohérence à l'aide des éléments suivants :
+La création d'un groupe de cohérence n'active pas automatiquement la protection. Les politiques de protection peuvent être définies au moment de la création ou après la création de votre groupe de cohérence.
 
-* Snapshots locaux
-* Synchronisation active SnapMirror (appelée SnapMirror Business Continuity dans les versions de ONTAP d'avant 9.15.1)
-* xref:index.html#mcc[MetroCluster (début 9.11.1)]
-* SnapMirror asynchrone (début 9.13.1)
-* Reprise d'activité asynchrone d'un SVM (début 9.14.1)
+Le type de protection des données disponible pour les groupes de cohérence varie en fonction de votre version d'ONTAP.
+
+[cols="2"]
+|===
+| Disponible à partir d'ONTAP... | Protection des données pour les groupes de cohérence 
 
 
+| 9.20.1 | SnapLock pour SnapVault à partir de volumes non-SnapLock 
+
+
+| 9.14.1 | Reprise d'activité de SVM 
+
+
+| 9.13.1 | Réplication asynchrone SnapMirror 
+
+
+| 9.11.1 | Les groupes de cohérence offrent <<two-phase,création de copies snapshot de groupe de cohérence en deux phases>>cette fonctionnalité. L'opération d'instantané en deux phases effectue une vérification préalable, garantissant que l'instantané est capturé avec succès. 
+
+
+| 9.10.1  a| 
+* Règles relatives aux snapshots
+* Synchronisation active SnapMirror
+
+
+|===
 Si vous utilisez des groupes de cohérence imbriqués, vous pouvez définir différentes règles de protection pour les groupes de cohérence parent et enfant.
-
-À partir de ONTAP 9.11.1, les groupes de cohérence proposent <<two-phase,création de copies snapshot de groupe de cohérence en deux phases>>. L'opération d'instantané en deux phases exécute une pré-vérification, en s'assurant que l'instantané est correctement capturé.
 
 La restauration peut être effectuée pour un groupe de cohérence entier, un seul groupe de cohérence dans une configuration hiérarchique ou pour des volumes individuels dans un groupe de cohérence. Pour restaurer le système, sélectionnez le groupe de cohérence à partir duquel vous souhaitez effectuer la restauration, sélectionnez le type de snapshot, puis identifiez le snapshot sur lequel baser la restauration. Pour plus d'informations sur ce processus, reportez-vous à link:../task_dp_restore_from_vault.html["Restaurez un volume à partir d'un snapshot antérieur"]la section .
 
@@ -201,7 +217,14 @@ For more information about the ONTAP REST API, see link:https://docs.netapp.com/
 [[set-remote-protection-for-a-consistency-group]]
 == Définissez la protection à distance pour un groupe de cohérence
 
-Les groupes de cohérence offrent une protection à distance via la synchronisation active SnapMirror et, à partir de ONTAP 9.13.1, la réplication asynchrone SnapMirror.
+Selon votre version d’ONTAP, les groupes de cohérence offrent une protection à distance via la synchronisation active SnapMirror, SnapMirror asynchrone et SnapLock pour les relations SnapVault.
+
+À partir d’ONTAP 9.20.1, la protection SnapLock pour SnapVault est disponible. À partir d’ONTAP 9.13.1, la protection asynchrone SnapMirror est disponible.
+
+.Avant de commencer
+* Vous devez link:../peering/create-cluster-relationship-93-later-task.html["créez une relation entre clusters"].
+* Vous devez link:../peering/create-intercluster-svm-peer-relationship-93-later-task.html["créer une relation de pair entre SVM intercluster"].
+
 
 
 
@@ -247,6 +270,12 @@ Pour répliquer des snapshots granulaires par volume, vous devez exécuter ONTAP
 Lorsque vous resynchronisez la relation SnapMirror avec des copies Snapshot granulaires de volumes, vous pouvez conserver les copies Snapshot granulaires de volumes avec `-preserve` l'indicateur. Les snapshots granulaires de volume plus récents que les snapshots de groupe de cohérence sont préservés. S'il n'y a pas de snapshot de groupe de cohérence, aucun snapshot granulaire de volume ne peut être transféré lors de l'opération de resynchronisation.
 
 .Avant de commencer
+* À partir de ONTAP 9.20.1, vous pouvez configurer la réplication back-end SnapMirror sur les fabrics FC existants. Si vous souhaitez utiliser le fabric FC pour la réplication, vous devez link:..//data-protection/configure-backend-fc-replication.html["Configurez votre système pour la réplication FC du backend"]. Vous devez également :
++
+** Sélectionnez FC comme protocole de transport lors de la création de votre relation SnapMirror asynchrone pour effectuer la réplication sur votre infrastructure FC. La réplication back-end utilise le protocole IP par défaut.
+** Utilisez une stratégie de protection asynchrone prise en charge. link:../data-protection/default-protection-policies-concept.html["Découvrez quelles stratégies de protection des données asynchrones par défaut sont prises en charge pour la réplication FC back-end"].
+
+
 * La protection asynchrone SnapMirror n'est disponible que pour un seul groupe de cohérence. Elle n'est pas prise en charge pour les groupes de cohérence hiérarchiques. Pour convertir un groupe de cohérence hiérarchique en un seul groupe de cohérence, reportez-vous à la section xref:modify-geometry-task.html[modifier l'architecture d'un groupe de cohérence].
 * Les étiquettes de règles doivent correspondre dans le cluster source et dans le cluster destination.
 * Vous pouvez interrompre l'activité xref:modify-task.html#add-volumes-to-a-consistency-group[ajouter des volumes à un groupe de cohérence] Avec une relation asynchrone SnapMirror active. Toute autre modification apportée à un groupe de cohérence exige que vous rompez la relation SnapMirror, modifiez le groupe de cohérence, puis rétablissez et resynchronisez la relation.
@@ -275,6 +304,109 @@ NOTE: La planification minimale prise en charge (objectif de point de récupéra
 . Le groupe de cohérence doit être initialisé et synchronisé. Vérifiez que la synchronisation s'est bien terminée en retournant au menu *groupe de cohérence*. L'état *SnapMirror (Remote)* s'affiche `Protected` en regard de image:../media/icon_shield.png["Icône de bouclier"].
 
 
+
+
+[[configure-snaplock-for-snapvault-replication-from-a-non-snaplock-source]]
+=== Configurer SnapLock pour la réplication SnapVault à partir d’une source non-SnapLock
+
+À partir de ONTAP 9.20.1, vous pouvez répliquer un groupe de cohérence à partir d’un volume source non-SnapLock vers un volume de destination SnapLock pour SnapVault. Les snapshots protégés par SnapLock pour SnapVault sur la destination ne peuvent pas être supprimés accidentellement ou de manière malveillante.
+
+.Avant de commencer
+* Vous devriez link:../system-admin/manage-license-task.html["Vérifiez qu'une licence SnapLock est installée"]. Si aucune licence SnapLock n'est installée sur le nœud, vous devez link:..//system-admin/install-license-task.html["installez-le"]. Cette licence est incluse avec link:..//system-admin/manage-licenses-concept.html["ONTAP One"].
+* Le link:..//snaplock/initialize-complianceclock-task.html["L'horloge de conformité doit être initialisée"] sur les deux nœuds du cluster.
+* Vous pouvez configurer le back-end SnapLock pour la réplication SnapVault sur les structures FC existantes. Si vous souhaitez utiliser la structure FC pour la réplication, vous devez link:..//data-protection/configure-backend-fc-replication.html["Configurez votre système pour la réplication FC du backend"]. Vous devez également :
++
+** Sélectionnez FC comme protocole de transport lors de la création de votre relation SnapLock pour SnapVault afin de répliquer sur votre structure FC. La réplication back-end utilise par défaut le protocole IP.
+** Utilisez la stratégie de protection asynchrone MirrorAndVault..
+
+
+
+
+.Étapes
+Utilisez System Manager ou la CLI pour configurer votre relation de réplication SnapLock pour SnapVault
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Activez SnapLock pour SnapVault dans System Manager en sélectionnant une stratégie de réplication _vault_, puis en choisissant de verrouiller les instantanés de destination.
+
+. Dans System Manager, sélectionnez *Protection > Groupes de cohérence*.
+. Sélectionnez un groupe de cohérence, puis sélectionnez *Protect*.
++
+System Manager remplit automatiquement les informations côté source.
+
+. Sélectionnez le cluster de destination et la VM de stockage.
+. Sélectionnez une stratégie de protection.
++
+Vous devez sélectionner une stratégie de réplication _vault_ configurée avec des règles de rétention. Dans ONTAP 9.20.1 et les versions ultérieures, pour utiliser la réplication FC back-end, vous devez sélectionner la stratégie _MirrorAndVault_.
+
+. Sélectionnez *Verrouiller les groupes de cohérence de destination*.
+. Assurez-vous que l'option *Initialiser la relation* est sélectionnée.
+. Sélectionnez *Enregistrer*.
+
+
+--
+.CLI
+--
+. Créez un volume de destination SnapLock pour le groupe de cohérence source :
++
+[source, cli]
+----
+volume create -vserver <dst_svm> -volume <dst_vol> -aggregate <aggr> -size <size> -type DP -snaplock-type enterprise
+----
+. Créer une stratégie de coffre-fort SnapMirror :
++
+[source, cli]
+----
+snapmirror policy create -vserver <dst_svm> -policy <policy_name> -type vault
+----
+. Ajouter des règles de conservation à la politique :
++
+[source, cli]
+----
+snapmirror policy add-rule -vserver <dst_svm> -policy <policy_name> -snapmirror-label daily -keep <retention_length> -retention-period <retention_period>
+----
++
+Dans l'exemple suivant, la période de conservation est fixée à 1 an :
+
++
+`snapmirror policy add-rule -vserver svm1 -policy vault -snapmirror-label monthly -keep 12 -retention-period "1 years"`
+
++
+Dans l'exemple suivant, la période de conservation est fixée à 30 jours:
+
++
+`snapmirror policy add-rule -vserver svm1 -policy vault -snapmirror-label daily -keep 30 -retention-period "30 days"`
+
+. Créer la relation SnapLock pour SnapVault:
++
+[source, cli]
+----
+snapmirror create -source-path <src_svm>:/cg/<src_cg> -destination-path <dst_svm>:/cg/<dst_cg> -policy <policy_name>
+----
+. Initialisez la relation :
++
+[source, cli]
+----
+snapmirror initialize -destination-path <dst_svm>:<dst_vol>
+----
+. Vérifiez que la relation est établie :
++
+[source, cli]
+----
+snapmirror show -destination-path <dst_svm>:<dst_vol> -fields policy,status,state
+----
+. Vérifiez que les instantanés sont verrouillés sur la destination :
++
+[source, cli]
+----
+volume snapshot show -vserver <dst_svm> -volume <dst_vol> -fields snapshot,snaplock-expiry-time,is-snaplock-expiry-locked
+----
+
+
+--
+====
 
 
 [[configure-svm-disaster-recovery]]

@@ -2,7 +2,7 @@
 sidebar: sidebar 
 permalink: task_nas_provide_client_access_with_name_services.html 
 keywords: netapp, ontap, name services, client access, LDAP, NIS, authenticate NAS client, look up 
-summary: 'Authentifier les clients NAS à l"aide de LDAP ou NIS' 
+summary: 'Vous pouvez configurer une machine virtuelle de stockage pour utiliser le service de noms LDAP ou NIS. Cela permet à ONTAP de rechercher des informations, notamment sur l"hôte, l"utilisateur, le groupe ou le netgroup, utilisées pour authentifier les clients NAS.' 
 ---
 = Fournir un accès client avec des services de noms à l'aide d'ONTAP System Manager
 :hardbreaks:
@@ -16,14 +16,98 @@ summary: 'Authentifier les clients NAS à l"aide de LDAP ou NIS'
 
 
 [role="lead"]
-Activez ONTAP pour rechercher des informations sur l'hôte, l'utilisateur, le groupe ou le groupe réseau à l'aide de LDAP ou NIS pour authentifier les clients NAS.
+Vous pouvez configurer une machine virtuelle de stockage pour utiliser le service de noms LDAP ou NIS. Cela permet à ONTAP de rechercher des informations, notamment sur l'hôte, l'utilisateur, le groupe ou le netgroup, utilisées pour authentifier les clients NAS.
 
-Cette procédure crée ou modifie des configurations LDAP ou NIS sur une VM de stockage existante activée pour link:task_nas_enable_linux_nfs.html["NFS"] ou link:task_nas_enable_windows_smb.html["PME"].
 
-Pour les configurations LDAP, vous devez disposer des détails de configuration LDAP requis dans votre environnement et vous devez utiliser un schéma LDAP ONTAP par défaut.
+
+[[prepare-to-configure-an-svm-name-service]]
+== Préparez-vous à configurer un service de noms de SVM
+
+Avant de configurer un service de noms, vous devez choisir entre LDAP et NIS. De plus, vous devez rassembler les informations relatives à votre infrastructure d'identité, notamment les adresses ou noms d'hôte des serveurs, le domaine ou la base de recherche, ainsi que les exigences d'authentification ou de chiffrement, telles que les certificats TLS. Préparer et vérifier ces informations à l'avance contribue à garantir une configuration fluide et à éviter toute interruption de l'accès des clients.
+
+
+TIP: Étant donné que NIS ne possède pas certaines des fonctionnalités de sécurité et d'évolutivité de LDAP, NetApp recommande d'utiliser LDAP chaque fois que possible, en particulier pour les déploiements NFSv4 et ultérieurs.
+
+Vous devez également déterminer quelles bases de données de service de noms, telles que passwd, group ou netgroup, chaque service prendra en charge, ainsi que l'ordre dans lequel ONTAP doit les rechercher par rapport aux fichiers locaux. Si vous prévoyez de desservir à la fois des clients NFS et SMB à partir de la même machine virtuelle de stockage, assurez-vous que votre environnement LDAP ou NIS est configuré de manière cohérente afin d'éviter les conflits de mappage des identifiants entre les protocoles.
+
+
+
+[[lightweight-directory-access-protocol]]
+=== Protocole léger d'accès aux annuaires
+
+Le protocole LDAP (Lightweight Directory Access Protocol) est un protocole ouvert et indépendant des fournisseurs permettant d'accéder à des informations d'annuaire distribuées, telles que les comptes utilisateurs, les groupes et d'autres données d'identité, sur un réseau, et d'en assurer la maintenance. Les annuaires LDAP sont couramment utilisés pour centraliser la gestion des utilisateurs et des groupes sur de nombreux systèmes, et Microsoft Active Directory est une implémentation largement déployée qui fonctionne également comme serveur LDAP. ONTAP peut utiliser LDAP comme source de services de noms pour rechercher les informations d'identité UNIX des clients NFS (UID, GID et appartenances à des groupes) et pour prendre en charge le mappage des utilisateurs ainsi que d'autres recherches d'identité pour les clients SMB. L'utilisation de LDAP pour les services de noms offre une sécurité et une évolutivité supérieures à celles des seuls fichiers locaux, en particulier dans les environnements utilisant NFSv4 ou une version ultérieure.
+
+Avant ONTAP 9.20.1, l'accès cohérent aux UID/GID via NFS et SMB nécessitait la configuration et la maintenance manuelles d'attributs explicites `uidNumber/gidNumber` pour chaque utilisateur et groupe dans Active Directory--un processus fastidieux, sujet aux erreurs et difficile à synchroniser dans les environnements vastes ou multidomaines. ONTAP 9.20.1 introduit _la prise en charge native de SSSD avec conversion automatique des SID en ID UNIX_ pour les clients NAS, une fonctionnalité qui utilise un algorithme déterministe et compatible avec SSSD pour dériver les UID/GID POSIX à partir des SID Windows et inverser le processus afin de retrouver le SID d'origine. Elle peut être activée sur le client LDAP d'une SVM lorsque Active Directory est la source d'identité, ce qui permet à ONTAP de calculer dynamiquement des identités UNIX cohérentes et réversibles sans stocker d'attributs POSIX dans Active Directory.
+
+
+
+[[network-information-service]]
+=== Service d'information réseau
+
+NIS (Network Information Service) est un protocole d'annuaire client-serveur permettant de partager des informations de configuration, telles que les comptes d'utilisateurs, les groupes, les noms d'hôtes et les groupes réseau, entre les systèmes UNIX et Linux d'un réseau. NIS centralise l'administration en maintenant un ensemble de tables de correspondance que les clients interrogent au lieu de s'appuyer sur des fichiers locaux sur chaque système. ONTAP peut utiliser NIS comme alternative à LDAP pour l'authentification de clients NFS.
+
+
+
+[[configure-an-ldap-service]]
+== Configurer un service LDAP
+
+Vous pouvez, si vous le souhaitez, configurer un service LDAP pour une machine virtuelle de stockage afin de fournir l'accès client. Cela fait partie de la procédure pour link:./task_nas_enable_linux_nfs.html["Activer le stockage NAS pour les serveurs Linux à l'aide de NFS avec ONTAP System Manager"].
+
+
+CAUTION: Vous devez activer l'option *Use automatic SID to UNIX ID conversion*, disponible avec ONTAP 9.20.1 et les versions ultérieures, avec précaution, car elle modifie la façon dont ONTAP mappe les SID Windows aux ID UNIX. N'utilisez cette option que pour les nouvelles configurations LDAP où les attributs POSIX n'ont pas encore été attribués aux utilisateurs. L'activer pour une configuration LDAP existante modifiera la propriété des fichiers et pourrait perturber le contrôle d'accès.
+
+.Avant de commencer
+Vous devez disposer des informations de configuration LDAP requises dans votre environnement et utiliser un schéma LDAP ONTAP par défaut. Lors de l'activation de la fonctionnalité SSSD native avec conversion automatique SID vers ID UNIX, vous devrez spécifier un serveur Active Directory comme source d'identité.
 
 .Étapes
-. Configurez le service requis : cliquez sur *stockage > machines virtuelles de stockage*.
-. Sélectionnez la machine virtuelle de stockage, cliquez sur *Paramètres*, puis cliquez sur image:icon_gear.gif["Icône actions"] pour LDAP ou NIS.
-. Inclure toute modification dans le commutateur de services de noms : cliquez image:icon_pencil.gif["Icône Modifier"] sous commutateur de services de noms.
+. Dans System Manager, sélectionnez *Cluster* puis *Storage VMs* dans le volet de navigation de gauche.
+. Sélectionnez dans la liste le SVM que vous souhaitez configurer.
+. Sous l'onglet *Paramètres*, faites défiler vers le bas jusqu'à *Services* et, à côté de *LDAP*, sélectionnez l’une des options suivantes :
++
+.. image:icon_gear.gif["Icône actions"] pour créer une nouvelle configuration
+.. image:icon_kabob.gif["Icône Modifier"] puis *Modifier* pour modifier une configuration existante
+
+
+. Sélectionnez *Active Directory* ou *serveurs LDAP*.
+. Fournissez les informations de configuration appropriées pour le serveur et votre environnement.
++
+Pour une nouvelle configuration LDAP sur ONTAP 9.20.1 ou version ultérieure, avec Active Directory comme serveur de noms, vous pouvez sélectionner l'option *Utiliser la conversion automatique des SID en ID UNIX* pour activer le mappage automatique des SID Windows vers les ID UNIX.
+
+. Sélectionnez *Enregistrer* pour appliquer la configuration.
+
+
+
+
+[[configure-an-nis-service]]
+== Configurer un service NIS
+
+Vous pouvez, si vous le souhaitez, configurer un service NIS pour une machine virtuelle de stockage afin de fournir un accès client. Cela fait partie de la procédure visant à link:./task_nas_enable_windows_smb.html["Activer le stockage NAS pour les serveurs Windows à l'aide de SMB avec ONTAP System Manager"].
+
+.Avant de commencer
+Vous devez disposer des informations de configuration NIS requises dans votre environnement.
+
+.Étapes
+. Dans System Manager, sélectionnez *Cluster* puis *Storage VMs* dans le volet de navigation de gauche.
+. Sélectionnez dans la liste le SVM que vous souhaitez configurer.
+. Sous l'onglet *Paramètres*, faites défiler vers le bas jusqu'à *Services* et à côté de *NIS*, sélectionnez l'une des options suivantes :
++
+.. image:icon_gear.gif["Icône actions"] pour créer une nouvelle configuration
+.. image:icon_kabob.gif["Icône Modifier"] puis *Modifier* pour modifier une configuration existante
+
+
+. Indiquez le domaine NIS et ajoutez les valeurs associées appropriées pour le serveur et votre environnement.
+. Sélectionnez *Enregistrer* pour appliquer la configuration.
+
+
+
+
+[[related-information]]
+== Informations associées
+
+* link:./nfs-admin/ontap-name-services-concept.html["Découvrez comment ONTAP utilise les services de noms"]
+* link:./nfs-config/configure-name-services-concept.html["En savoir plus sur les services de noms ONTAP NFS"]
+* link:./authentication/enable-nis-ldap-users-access-cluster-task.html["Configurez l'accès au serveur LDAP ou NIS dans ONTAP"]
+* link:./smb-admin/configure-nis-ldap-name-services-svm-task.html["Configurer les services de noms NIS ou LDAP sur les SVM SMB ONTAP"]
+* link:./nfs-config/configure-name-service-switch-table-task.html["Configurer la table de commutation du service de noms NFS ONTAP"]
+* https://www.netapp.com/pdf.html?item=/media/19423-tr-4835.pdf["Rapport technique : Comment configurer LDAP dans ONTAP"^]
 

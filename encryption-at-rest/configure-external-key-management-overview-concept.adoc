@@ -1,7 +1,7 @@
 ---
 permalink: encryption-at-rest/configure-external-key-management-overview-concept.html 
 sidebar: sidebar 
-keywords: external key management, kmip, configure 
+keywords: external key management, kmip, configure, intracluster key sharing, key restore 
 summary: 'Vous pouvez utiliser un ou plusieurs serveurs externes de gestion des clés pour sécuriser les clés que le cluster utilise pour accéder aux données chiffrées. Un serveur externe de gestion des clés est un système tiers de votre environnement de stockage qui transmet des clés aux nœuds à l"aide du protocole KMIP (Key Management Interoperability Protocol).' 
 ---
 = En savoir plus sur la configuration de la gestion des clés externes avec ONTAP NetApp Volume Encryption
@@ -14,3 +14,14 @@ summary: 'Vous pouvez utiliser un ou plusieurs serveurs externes de gestion des 
 Vous pouvez utiliser un ou plusieurs serveurs de gestion de clés externes pour sécuriser les clés utilisées par le cluster pour accéder aux données chiffrées. Un serveur de gestion de clés externe est un système tiers de votre environnement de stockage qui fournit des clés aux nœuds via le protocole KMIP (Key Management Interoperability Protocol). Outre le gestionnaire de clés intégré, ONTAP prend en charge plusieurs serveurs de gestion de clés externes.
 
 À partir d' ONTAP 9.10.1, vous pouvez utiliser xref:manage-keys-azure-google-task.html[Azure Key Vault ou Google Cloud Key Manager] pour protéger vos clés NVE pour les SVM de données. À partir d' ONTAP 9.11.1, vous pouvez configurer plusieurs gestionnaires de clés externes dans un cluster. Voirxref:configure-cluster-key-server-task.html[Configurer les serveurs de clés en cluster] . À partir d' ONTAP 9.12.0, vous pouvez utiliser link:https://docs.aws.amazon.com/kms/latest/developerguide/overview.html["KMS D'AWS"^] pour protéger vos clés NVE pour les SVM de données. À partir d' ONTAP 9.17.1, vous pouvez utiliser OpenStack xref:manage-keys-barbican-task.html[Barbican KMS] pour protéger vos clés NVE pour les SVM de données.
+
+[[intracluster-key-sharing]]
+À partir de ONTAP 9.20.1, les nœuds d’un cluster qui utilisent un gestionnaire de clés KMIP externe partagent leurs clés de chiffrement entre eux. Les clés partagées sont chiffrées et authentifiées avec AES-GCM-256. ONTAP partage les clés dans deux cas :
+
+* *Création de clés.* Lorsque ONTAP crée une nouvelle clé, par exemple lorsque vous créez un volume FlexVol chiffré, un volume FlexGroup ou un agrégat, le nœud qui crée la clé la stocke sur le serveur de clés, puis l'envoie à tous les autres nœuds du cluster.
+* *Restauration des clés après un redémarrage.* Lorsqu'un nœud redémarre, par exemple lors d'une mise à niveau automatisée sans interruption de service, d'une prise de contrôle et d'un retour, ou d'un redémarrage imprévu, le nœud restaure ses clés auprès de son partenaire HA. ONTAP contacte le serveur de clés uniquement pour les clés que le partenaire ne peut pas fournir. Si le partenaire possède toutes les clés, la restauration des clés peut s'achever même si le serveur de clés est indisponible.
+
+
+Ce comportement est automatiquement activé sur un nouveau cluster ONTAP 9.20.1 et lorsque vous mettez à niveau un cluster vers ONTAP 9.20.1.
+
+Le partage de clés intracluster s'applique uniquement à un gestionnaire de clés KMIP externe. Il n'est pas utilisé avec Onboard Key Manager, Azure Key Vault, Google Cloud Key Management Service, AWS KMS ou Barbican. Il n'est pas utilisé lorsque MetroCluster est configuré. La restauration des clés après un redémarrage nécessite que le partenaire HA soit en ligne et qu'il dispose lui-même des clés.

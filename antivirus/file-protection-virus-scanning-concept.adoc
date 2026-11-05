@@ -11,7 +11,7 @@ summary: 'Vscan est une solution d"analyse antivirus développée par NetApp qui
 
 
 [role="lead"]
-Vscan est une solution d'analyse antivirus développée par NetApp qui permet aux clients de protéger leurs données contre toute compromission par des virus ou d'autres codes malveillants. Il associe un logiciel antivirus fourni par le partenaire aux fonctionnalités de ONTAP pour offrir aux clients la flexibilité dont ils ont besoin pour gérer l'analyse des fichiers.
+Vscan est une solution d'analyse antivirus qui vous permet de protéger vos données contre les virus et autres codes malveillants. Elle combine un logiciel antivirus fourni par un partenaire aux fonctionnalités d'ONTAP pour vous offrir la flexibilité nécessaire à la gestion des analyses de fichiers.
 
 
 
@@ -34,6 +34,42 @@ Vous pouvez utiliser l'analyse à la demande pour n'importe quel chemin du names
 
 Il est généralement possible d'activer les modes d'analyse à la fois on-Access et on-Demand sur une SVM. Dans les deux modes, le logiciel antivirus effectue des actions correctives sur les fichiers infectés en fonction des paramètres de votre logiciel.
 
-Le connecteur antivirus ONTAP, fourni par NetApp et installé sur le serveur externe, gère la communication entre le système de stockage et le logiciel antivirus.
+Le ONTAP Antivirus Connector, fourni par NetApp et installé sur le serveur externe, assure la communication entre le système de stockage et le logiciel antivirus. À partir d'ONTAP 9.20.1, ONTAP prend en charge un chemin d'analyse basé sur le protocole ICAP (Internet Content Adaptation Protocol), ce qui élimine la nécessité de l'Antivirus Connector. Chaque SVM utilise soit ICAP, soit l'Antivirus Connector, mais pas les deux.
+
+
+NOTE: Vscan basé sur ICAP prend uniquement en charge l’analyse à l’accès.
+
+
+
+[[icap-based-vscan-compared-with-the-antivirus-connector]]
+== Comparaison de Vscan basé sur ICAP avec Antivirus Connector
+
+Le tableau suivant récapitule les différences entre Antivirus Connector et Vscan basé sur ICAP :
+
+[cols="30,35,35"]
+|===
+
+
+| Fonction | Connecteur antivirus | Vscan basé sur ICAP 
+
+
+| Composant | ONTAP Antivirus Connector installé sur un serveur Windows | Aucun n'est requis ; ONTAP se connecte directement au moteur d'analyse 
+
+
+| Protocole de communication | Canaux nommés SMB et MS-RPC | ICAP sur TCP 
+
+
+| Infrastructure | Gestionnaire de connexion Vscan dédié | Pipeline de notification de mémoire partagée FPolicy 
+
+
+| Systèmes d'exploitation pris en charge pour le moteur d'analyse | Windows uniquement | Windows et Linux 
+
+
+| Évolutivité | Limité à 400 connexions LIF par instance d’Antivirus Connector | Exploite le regroupement de connexions FPolicy pour une meilleure évolutivité 
+
+
+| Mécanisme de découverte | Découverte de SVM et de LIF par interrogation | Gestion des connexions pilotée par les événements via FPolicy 
+|===
+L'exemple ci-dessous illustre la méthode de communication d'Antivirus Connector.
 
 image:how-virus-scanning-works-new.gif["Flux de travail d'analyse antivirus Cette procédure explique comment le connecteur gère la communication entre le système de stockage et le logiciel antivirus."]

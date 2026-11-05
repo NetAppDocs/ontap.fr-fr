@@ -44,6 +44,13 @@ Cela inclut les LIFs utilisées pour les connexions passthrough-read.
 
 
 
+* À partir d'ONTAP 9.20.1, les politiques FPolicy prennent en charge les événements S3. Pour configurer FPolicy pour les événements d'objets S3, les conditions supplémentaires suivantes doivent être remplies :
++
+** Tous les nœuds du cluster doivent exécuter ONTAP 9.20.1 ou une version ultérieure. Les clusters à versions mixtes bloquent la configuration de FPolicy S3 jusqu'à ce que tous les nœuds prennent en charge cette fonctionnalité.
+** Seuls les compartiments NAS, et non les compartiments S3 natifs, sont pris en charge.
+** Un serveur FPolicy externe prenant en charge le format de notification protobuf. Le format XML n'est pas pris en charge pour les événements S3.
+
+
 
 
 
@@ -136,12 +143,41 @@ La surveillance des opérations de fichiers influence votre expérience globale.
 +
 ** Surveillance des types minimaux d'opérations de fichiers et activation du nombre maximal de filtres sans rompre le cas d'utilisation.
 ** Utilisation de filtres pour les opérations getattr, lecture, écriture, ouverture et fermeture. La part des environnements de home Directory SMB et NFS est élevée.
+** Seules les opérations S3 effectuées avec succès par le client génèrent des notifications. Les opérations internes (telles que l'expiration d'un objet ou les restaurations déclenchées par un instantané) ne génèrent pas de notifications FPolicy.
+** Les opérations S3 prises en charge incluent :
++
+*** Création d'objet (PUT, COPY et CompleteMultipartUpload)
+*** Suppression d'objet (DELETE et multi-delete)
+*** Balise d’objet (balise PUT et balise DELETE)
++
+
+NOTE: Les événements GET et read ne sont pas surveillés.
+
+
+
+** Une requête de suppression multiple S3 peut supprimer jusqu'à 1 000 objets, mais FPolicy n'envoie qu'une notification par objet supprimé avec succès (la taille de l'emplacement SHM est limitée à 32 Ko). Prévoyez la capacité de votre serveur externe en conséquence.
+** Utilisez la portée de la stratégie FPolicy pour inclure ou exclure des compartiments NAS spécifiques par leur nom. Si le nom d'un compartiment configuré est mal orthographié ou si le compartiment est supprimé, FPolicy n'empêche pas les opérations, il ne génère simplement pas de notifications pour ce compartiment.
 
 
 * Configuration du périmètre FPolicy pour les SVM :
 +
 Limitez l'étendue des règles aux objets de stockage concernés, tels que les partages, les volumes et les exportations, au lieu de les activer sur l'ensemble du SVM. NetApp recommande de vérifier les extensions de répertoire. Si le `is-file-extension-check-on-directories-enabled` le paramètre est défini sur `true`, les objets de répertoire sont soumis aux mêmes vérifications d'extension que les fichiers ordinaires.
 
+
+
+
+
+[[s3-fpolicy-limitations]]
+=== Limites de FPolicy S3
+
+À partir d'ONTAP 9.20.1, FPolicy prend en charge la surveillance des objets S3 avec les limitations suivantes :
+
+* S3 FPolicy fonctionne uniquement en mode asynchrone et non obligatoire. Le mode synchrone, les politiques obligatoires et le blocage natif (blocage basé sur l'extension de fichier) ne sont pas pris en charge pour les événements S3.
+* Le stockage persistant n'est pas pris en charge pour les notifications S3 FPolicy.
+* SSL/TLS sur la connexion au moteur externe FPolicy n'est pas pris en charge pour les notifications S3.
+* L’accès privilégié aux données et la lecture directe ne sont pas applicables à S3 FPolicy.
+* La livraison garantie n'est pas prise en charge. Les notifications sont envoyées dans la mesure du possible et peuvent être perdues si le serveur FPolicy externe est déconnecté ou si la mémoire tampon partagée (SHM) reste pleine après plusieurs tentatives.
+* Les notifications d'accès refusé et d'échec d'opération ne sont pas prises en charge pour les événements S3.
 
 
 
@@ -288,9 +324,13 @@ Pour en savoir plus sur `statistics start` et `statistics show` dans le link:htt
 
 NetApp recommande de désactiver une règle FPolicy avant d'apporter toute modification de la configuration. Par exemple, si vous souhaitez ajouter ou modifier une adresse IP dans le moteur externe configuré pour la stratégie activé, désactivez d'abord la stratégie.
 
-Si vous configurez FPolicy pour surveiller les volumes NetApp FlexCache, NetApp vous recommande de ne pas configurer FPolicy pour surveiller les opérations de lecture et de fichier getattr. La surveillance de ces opérations dans ONTAP nécessite la récupération des données I2P (inode-to-path). Les données I2P ne pouvant pas être récupérées à partir de volumes FlexCache, elles doivent être récupérées à partir du volume d'origine. Le contrôle de ces opérations élimine donc les avantages de performance que FlexCache peut offrir.
+Si vous configurez FPolicy pour surveiller les volumes NetApp FlexCache, NetApp vous recommande de ne pas configurer FPolicy pour surveiller les opérations de lecture et de getattr sur les fichiers. La surveillance de ces opérations dans ONTAP nécessite la récupération des données inode-to-path (I2P). Comme les données I2P ne peuvent pas être récupérées à partir des volumes FlexCache, elles doivent être récupérées à partir du volume d'origine. Par conséquent, la surveillance de ces opérations élimine les avantages de performances que FlexCache peut offrir. Pour les compartiments NAS S3 sur des volumes FlexCache, les opérations internes de write-back et de write-around vers le volume d'origine ne génèrent pas de notifications FPolicy. Comme bonne pratique, configurez FPolicy à la fois sur la SVM d'origine et sur la SVM FlexCache afin de capturer tous les événements S3.
 
 Lorsque FPolicy et une solution antivirus externe sont déployés, la solution antivirus reçoit d'abord les notifications. Le traitement FPolicy démarre uniquement une fois l'analyse antivirus terminée. Il est important de dimensionner correctement les solutions antivirus, car une analyse antivirus lente peut affecter les performances globales.
+
+La stratégie FPolicy S3 est prise en charge sur des configurations MetroCluster. Après le basculement, des notifications FPolicy peuvent être générées depuis le site distant (resté opérationnel) si le serveur FPolicy externe est configuré et accessible depuis ce site.
+
+Lors des opérations de prise de contrôle et de restitution de nœuds, la connexion au serveur FPolicy peut être brièvement interrompue si l'interface logique (LIF) associée migre vers un autre nœud. La connexion est automatiquement rétablie dès qu'une LIF appropriée est disponible. Les clients S3 qui tentent de relancer des opérations pendant cette période généreront de nouvelles notifications FPolicy une fois la connexion rétablie.
 
 
 
@@ -306,6 +346,8 @@ Vous devez connaître certaines considérations relatives à la mise à niveau e
 
 Une fois que tous les nœuds sont mis à niveau vers une version de ONTAP qui prend en charge le mode de lecture intermédiaire FPolicy, le cluster est capable d'utiliser la fonctionnalité de lecture intermédiaire. Cependant, la lecture du mot de passe est désactivée par défaut sur les configurations FPolicy existantes. Pour utiliser la lecture passerelle sur les configurations FPolicy existantes, vous devez désactiver la règle FPolicy et modifier la configuration, puis réactiver la configuration.
 
+Une fois tous les nœuds mis à niveau vers ONTAP 9.20.1 ou une version ultérieure, vous pouvez configurer les événements FPolicy avec le protocole S3 et les opérations sur les objets S3 (création, suppression et étiquetage d'objets). Dans les clusters à versions mixtes, la configuration FPolicy S3 est bloquée.
+
 
 
 [[reverting]]
@@ -318,6 +360,8 @@ Avant de revenir à une version de ONTAP qui ne prend pas en charge la lecture p
 
 
 Avant de revenir à une version de ONTAP qui ne prend pas en charge les magasins persistants, assurez-vous qu'aucune des règles FPolicy ne dispose d'un magasin persistant configuré. Si un magasin persistant est configuré, la restauration échouera.
+
+Avant de revenir à une version de ONTAP qui ne prend pas en charge S3 FPolicy, vous devez supprimer tous les événements FPolicy configurés avec le protocole S3. Si la configuration S3 FPolicy subsiste, le retour à la version antérieure échouera.
 
 .Informations associées
 * link:https://docs.netapp.com/us-en/ontap-cli/statistics-show.html["les statistiques montrent"^]

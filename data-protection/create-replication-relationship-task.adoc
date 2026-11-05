@@ -13,17 +13,30 @@ summary: La relation entre le volume source du stockage primaire et le volume de
 [role="lead"]
 La relation entre le volume source du stockage primaire et le volume de destination du stockage secondaire est appelée _relation de protection des données._ vous pouvez utiliser la commande pour créer des relations SnapMirror DR, SnapVault ou de protection des données de réplication unifiée. `snapmirror create`
 
+.Description de la tâche
+* Cette procédure s'applique aux systèmes FAS, AFF et ASA. Si vous possédez un système ASA r2 (ASA A1K, ASA A90, ASA A70, ASA A50, ASA A30, ASA A20 ou ASA C30), suivez link:https://docs.netapp.com/us-en/asa-r2/data-protection/snapshot-replication.html["procédure à suivre"^] pour créer une relation de réplication. Les systèmes ASA r2 simplifient l'expérience ONTAP propre aux clients SAN.
+* À partir de ONTAP 9.20.1, vous pouvez configurer la réplication asynchrone back-end de SnapMirror pour utiliser le transport IP ou FC. La réplication back-end utilise le réseau IP par défaut. Utilisez une stratégie de protection des données asynchrone prise en charge et l `-transport fc`option lors de la création de votre relation Snapmirror pour effectuer la réplication sur votre structure FC. link:default-protection-policies-concept.html["Découvrez quelles stratégies de protection des données asynchrones par défaut sont prises en charge pour la réplication FC back-end"].
++
+** Pour modifier le protocole de transport sélectionné après avoir créé une relation de réplication SnapMirror, vous devez supprimer puis recréer cette relation.
+** Les configurations FC à connexion directe ne sont pas prises en charge pour la réplication FC back-end.
 
-NOTE: Cette procédure s'applique aux systèmes FAS, AFF et ASA. Si vous possédez un système ASA r2 (ASA A1K, ASA A90, ASA A70, ASA A50, ASA A30, ASA A20 ou ASA C30), suivez link:https://docs.netapp.com/us-en/asa-r2/data-protection/snapshot-replication.html["procédure à suivre"^] pour créer une relation de réplication. Les systèmes ASA r2 simplifient l'expérience ONTAP propre aux clients SAN.
 
-Depuis ONTAP 9.11.1, System Manager permet de sélectionner des règles de copie en miroir et de copie à distance prédéfinies et personnalisées, d'afficher et de sélectionner des règles existantes, et de remplacer les planifications de transfert définies dans une règle de protection lorsque les volumes et les machines virtuelles de stockage sont protégés. Cette fonctionnalité est également disponible dans ONTAP 9.8P12 et versions ultérieures de ONTAP 9.8.
-
+* Depuis ONTAP 9.11.1, System Manager permet de sélectionner des règles de copie en miroir et de copie à distance prédéfinies et personnalisées, d'afficher et de sélectionner des règles existantes, et de remplacer les planifications de transfert définies dans une règle de protection lorsque les volumes et les machines virtuelles de stockage sont protégés. Cette fonctionnalité est également disponible dans ONTAP 9.8P12 et versions ultérieures de ONTAP 9.8.
++
 [NOTE]
 ====
 Si vous utilisez ONTAP 9.8P12 ou une version ultérieure de correctif ONTAP 9.8 et si vous avez configuré SnapMirror à l'aide de System Manager, vous devez utiliser ONTAP 9.9.1P13 ou version ultérieure et ONTAP 9.10.1P10 ou version ultérieure pour une mise à niveau vers ONTAP 9.9.1 ou ONTAP 9.10.1.
 
 ====
+
+
 .Avant de commencer
+* Dans ONTAP 9.20.1 et les versions ultérieures, si vous configurez une relation asynchrone SnapMirror pour utiliser FC comme protocole de transport :
++
+** Le backend de votre système ONTAP doit être configuré pour la réplication FC, et la structure FC ainsi que le réseau IP intercluster doivent être opérationnels. Les données de réplication peuvent transiter par la structure FC, mais le réseau IP intercluster est nécessaire pour les communications du cluster et les fonctions de gestion de la réplication. link:configure-backend-fc-replication.html["Apprenez à configurer le back-end de votre système ONTAP pour la réplication FC"].
+** Dans une configuration MetroCluster, l’initiateur de stockage utilisé pour le MetroCluster doit être distinct de l’initiateur utilisé pour la réplication via FC. Le partage de l’initiateur de stockage entre les deux n’est pas pris en charge.
+
+
 * Les clusters source et de destination et les SVM doivent être associés.
 +
 link:../peering/index.html["Cluster et SVM peering"]
@@ -160,12 +173,12 @@ L'exemple suivant illustre la création d'une relation SnapVault à l'aide de la
 cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy XDPDefault
 ----
 +
-L'exemple suivant illustre la création d'une relation de réplication unifiée à l'aide de la valeur par défaut `MirrorAndVault` règle :
+L'exemple suivant crée une relation de réplication unifiée utilisant la `MirrorAndVault` stratégie asynchrone par défaut et le `fc` protocole de transport:
 
 +
 [listing]
 ----
-cluster_dst:> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy MirrorAndVault
+cluster_dst:> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy MirrorAndVault -transport fc
 ----
 +
 L'exemple suivant illustre la création d'une relation de réplication unifiée à l'aide de la commande personnalisée `my_unified` règle :

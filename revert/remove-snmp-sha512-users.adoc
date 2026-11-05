@@ -1,0 +1,58 @@
+---
+permalink: revert/remove-snmp-sha512-users.html 
+sidebar: sidebar 
+keywords: revert, reverting, reversion, snmp, snmpv3, sha512, sha-512, authentication, users, switches, 9.20.1 
+summary: 'Si vous avez des utilisateurs SNMPv3 qui utilisent l"authentification SHA-512, ONTAP bloque le retour à des versions antérieures à ONTAP 9.20.1. Avant d"effectuer le retour, supprimez ces utilisateurs et recréez-les avec un protocole d"authentification pris en charge.' 
+---
+= Supprimez les utilisateurs SNMPv3 qui utilisent l'authentification SHA-512 avant de revenir à une version antérieure depuis ONTAP 9.20.1
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+À partir d'ONTAP 9.20.1, vous pouvez créer des utilisateurs SNMPv3 utilisant l'authentification SHA-512. Les versions d'ONTAP antérieures à 9.20.1 ne prennent pas en charge l'authentification SHA-512 ; par conséquent, ONTAP bloque la restauration si des utilisateurs SNMPv3 utilisant l'authentification SHA-512 existent. Avant de procéder à une restauration, supprimez ces utilisateurs et recréez-les avec un protocole d'authentification pris en charge.
+
+.Étapes
+. Afficher les utilisateurs SNMPv3 qui utilisent l'authentification SHA-512:
++
+[source, cli]
+----
+security snmpusers -authmethod usm -authprotocol sha512
+----
+. Supprimez chaque utilisateur SHA-512:
++
+[source, cli]
+----
+security login delete -vserver <vserver_name> -user-or-group-name <user_name> -application snmp -authentication-method usm
+----
+. Si vous avez encore besoin de ces utilisateurs, recréez-les avec un protocole d'authentification pris en charge, tel que `sha` ou `sha2-256`:
++
+[source, cli]
+----
+security login create -vserver <vserver_name> -user-or-group-name <user_name> -application snmp -authentication-method usm
+----
++
+Si l'utilisateur surveille un commutateur, incluez le `-remote-switch-ipaddress` paramètre avec l'adresse IP du commutateur:
+
++
+[source, cli]
+----
+security login create -user-or-group-name <user_name> -application snmp -authentication-method usm -remote-switch-ipaddress <switch_ip_address>
+----
++
+En savoir plus sur link:../networking/configure_snmpv3_users_in_a_cluster.html["configuration des utilisateurs SNMPv3"].
+
+. Si des commutateurs Ethernet utilisaient les utilisateurs SHA-512 supprimés pour la surveillance, mettez à jour chaque commutateur pour utiliser l'utilisateur recréé :
++
+[source, cli]
+----
+system switch ethernet modify -device <switch_name> -snmp-version SNMPv3 -community-or-username <snmp_user_name>
+----
++
+En savoir plus sur  `system switch ethernet modify`dans la link:https://docs.netapp.com/us-en/ontap-cli/system-switch-ethernet-modify.html["Référence de commande ONTAP"^].
+
++
+Pour plus d'informations sur SNMPv3 pour le contrôle de l'état des commutateurs Ethernet (CSHM), notamment sur la façon de configurer les commutateurs Ethernet, consultez link:https://docs.netapp.com/us-en/ontap-systems-switches/switch-cshm/config-snmpv3.html["Configurer SNMPv3 pour le contrôle de l'état du commutateur Ethernet"^].
+
+

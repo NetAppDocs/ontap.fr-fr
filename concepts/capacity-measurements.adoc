@@ -4,7 +4,7 @@ permalink: concepts/capacity-measurements.html
 keywords: capacity, measurement, physical, logical, storage, used storage, local tier capacity, aggregate capacity, block, capacity concern, add capacity, volume, used capacity, available capacity, total capacity, inactive capacity, static insights, dynamic insights, snapshot copy, snapshot copies, inactive data, overprovision, overflows, snapshot copy policy, snapshot copy reserves, reserves, policy, top volumes 
 summary: 'Votre capacité de stockage ONTAP peut être mesurée en espace physique ou en espace logique. La façon dont ces mesures sont rapportées varie selon votre version d"ONTAP et si vous utilisez System Manager ou l"interface de ligne de commande (CLI). Comprendre les différents termes liés à la capacité, les différences entre la capacité physique et logique, ainsi que la manière dont les types de capacité sont rapportés, est important lorsque vous surveillez votre utilisation du stockage.' 
 ---
-= Découvrez les rapports et les mesures de capacité d'ONTAP
+= Découvrez comment ONTAP indique le stockage utilisé
 :hardbreaks:
 :toclevels: 1
 :allow-uri-read: 
@@ -16,18 +16,70 @@ summary: 'Votre capacité de stockage ONTAP peut être mesurée en espace physiq
 
 
 [role="lead"]
-La capacité de stockage de votre ONTAP peut être mesurée en espace physique ou en espace logique. La manière dont ces mesures sont rapportées varie selon votre version d'ONTAP et selon que vous utilisez System Manager ou l'interface de ligne de commande (CLI). Comprendre les différents termes relatifs à la capacité, les différences entre capacité physique et capacité logique, ainsi que la façon dont les types de capacité sont rapportés, est important lorsque vous surveillez votre utilisation du stockage.
-
-* *Capacité physique* : l'espace physique fait référence aux blocs physiques de stockage utilisés dans le volume ou le niveau local. La valeur de la capacité physique utilisée est généralement inférieure à la valeur de la capacité logique utilisée grâce à la réduction des données provenant des fonctionnalités d'efficacité du stockage (telles que la déduplication et la compression).
-* *Capacité logique* : l'espace logique fait référence à l'espace utilisable (les blocs logiques) dans un volume ou un niveau local. L'espace logique désigne la manière dont l'espace théorique peut être utilisé, sans tenir compte des résultats obtenus grâce à la déduplication ou à la compression. La valeur de l'espace logique utilisé est issue de la quantité d'espace physique utilisé, plus les économies réalisées grâce aux fonctionnalités d'efficacité du stockage (telles que la déduplication et la compression) qui ont été configurées. Cette mesure apparaît souvent plus grande que la capacité physique utilisée, car elle inclut des snapshots, des clones et d'autres composants, et elle ne reflète pas la compression des données et d'autres réductions de l'espace physique. La capacité logique totale peut donc être supérieure à l'espace provisionné.
+Dans ONTAP System Manager, la quantité de stockage utilisée est indiquée comme _utilisation logique_ ou espace _utilisé_, et dans l'interface de ligne de commandes (CLI) ONTAP comme  `physical used`espace ou  `effective-total-footprint`. Le fait que ces valeurs incluent l'espace utilisé par les snapshots dépend de votre version d'ONTAP et, si vous utilisez la CLI, de la commande ONTAP que vous choisissez. Comprendre comment la capacité utilisée est indiquée vous aide à surveiller précisément l'utilisation du stockage.
 
 
+
+[[capacity-reporting-in-system-manager]]
+== Rapport de capacité dans System Manager
+
+Selon votre version d'ONTAP, System Manager utilise le terme _logical used_ ou _used_ pour indiquer la capacité.
+
+
+NOTE: Dans System Manager, les représentations de capacité ne prennent pas en compte les capacités du niveau de stockage racine (agrégat).
+
+[cols="15,15,30,40"]
+|===
+
+
+| Version ONTAP | Terme utilisé pour indiquer la capacité | L'espace utilisé pour les instantanés est-il inclus ? | Définition 
+
+
+ a| 
+9.13.1 et versions ultérieures
+ a| 
+_logique utilisé_
+ a| 
+Non. L'espace utilisé pour les instantanés est indiqué séparément.
+| L'espace utilisable (les blocs logiques) dans un volume ou un niveau local (agrégat) correspond à la quantité d'espace physique utilisé, plus les économies d'espace réalisées grâce à l'application des fonctionnalités d'efficacité du stockage. 
+
+
+ a| 
+9.12.1-9.9.1
+ a| 
+_Utilisation logique_
+ a| 
+Oui.
+| Identique à ce qui précède 
+
+
+ a| 
+9,8-9,7
+ a| 
+_Utilisé_
+ a| 
+Oui.
+| Identique à ce qui précède 
+
+
+ a| 
+9,6-9,5
+ a| 
+_Utilisé_
+ a| 
+Non
+ a| 
+Les blocs physiques de stockage utilisés dans le volume ou le niveau local (agrégat).
+
+|===
 
 
 [[capacity-reporting-in-the-cli]]
 == Rapports de capacité dans la CLI
 
-L'espace physique utilisé est signalé différemment dans l'interface de ligne de commande ONTAP selon votre version de ONTAP. Dans ONTAP 9.13.1 et versions antérieures, le  `physical used` paramètre affiché dans la sortie de la commande  `volume show` inclut toutes les économies d'efficacité de stockage appliquées au volume. À partir de ONTAP 9.14.1, le  `physical used` paramètre n'inclut pas les économies d'efficacité de stockage au niveau agrégé, telles que le stockage sensible à la température (TSSE), la compression en ligne, la compaction et la déduplication inter-volumes, il ne reflète donc pas précisément l'espace physique utilisé du volume. Dans ONTAP 9.14.1 et versions ultérieures, vous devez utiliser la commande  `vol show-footprint` avec le paramètre  `effective_total_footprint` pour afficher l'espace physique utilisé précis d'un volume.
+L'interface de ligne de commandes ONTAP utilise les paramètres  `physical used` et  `effective-total-footprint` pour indiquer la capacité.
+
+À partir de ONTAP 9.14.1, le `physical used` paramètre n’inclut pas les gains d’efficacité du stockage au niveau de l’agrégat, tels que l’efficacité du stockage sensible à la température (TSSE), la compression en ligne, le compactage et la déduplication entre volumes. Par conséquent, il ne reflète pas entièrement l’espace physique utilisé du volume. Dans ONTAP 9.14.1 et les versions ultérieures, utilisez la commande `vol show-footprint` avec le paramètre `effective_total_footprint` pour obtenir une vue complète de l’espace physique utilisé d’un volume.
 
 [cols="4"]
 |===
@@ -58,70 +110,14 @@ L'espace physique utilisé est signalé différemment dans l'interface de ligne 
 
 
 
-[[capacity-reporting-in-system-manager]]
-== Rapport de capacité dans System Manager
+[[data-reduction-rate]]
+== Taux de réduction des données
 
-L'affichage des mesures de capacité utilisée dans System Manager varie selon la version d'ONTAP. À partir d'ONTAP 9.7, System Manager fournit des mesures de capacité physique et logique.
+Le taux de réduction des données indique dans quelle mesure la quantité de stockage consommée par vos données est réduite après l'application de fonctions d'optimisation du stockage, telles que la compression, le compactage et la déduplication.
 
-
-NOTE: Dans System Manager, les représentations de capacité ne prennent pas en compte les capacités du niveau de stockage racine (agrégat).
-
-[cols="30,30,40"]
-|===
-
-
-| Version de System Manager | Terme utilisé pour la capacité | Type de capacité visé 
-
-
- a| 
-9.9.1 et versions ultérieures
- a| 
-Utilisation logique
- a| 
-Espace logique utilisé
-si les paramètres d'efficacité du stockage ont été activés)
-
-
-
- a| 
-9.7 et 9.8
- a| 
-Utilisé
- a| 
-Espace logique utilisé
-(si les paramètres d'efficacité du stockage ont été activés)
-
-
-
- a| 
-9.5 et 9.6
-(Vue classique)
- a| 
-Utilisé
- a| 
-Espace physique utilisé
-
-|===
-
-
-[[capacity-measurement-terms]]
-== Termes de mesure de la capacité
-
-Les termes suivants sont utilisés pour décrire la capacité :
-
-* *Capacité allouée* : quantité d'espace allouée aux volumes d'une machine virtuelle de stockage.
-* *Disponible* : quantité d'espace physique disponible pour stocker des données ou provisionner des volumes dans une machine virtuelle de stockage ou sur un niveau local.
-* *Capacité sur les volumes* : somme du stockage utilisé et du stockage disponible de tous les volumes sur une machine virtuelle de stockage.
-* *Données client* : quantité d'espace utilisée par les données client (physique ou logique).
+* À partir de ONTAP 9.20.1, le taux de réduction des données (TRD) est indiqué avec et sans _données réductibles_. Les _données réductibles_ sont des données pour lesquelles des économies d'espace sont réalisées après l'application des fonctionnalités d'optimisation du stockage. Dans ONTAP 9.19.1 et les versions antérieures, le TRD inclut à la fois les données réductibles et les _données non réductibles_. Les _données non réductibles_ sont des données pour lesquelles aucune économie d'espace n'est réalisée après l'application des fonctionnalités d'optimisation du stockage, ou des données auxquelles les fonctionnalités d'optimisation du stockage ne peuvent pas être appliquées. Le TRD sans données réductibles fournit une représentation plus précise de l'espace économisé grâce à l'optimisation du stockage ONTAP. Découvrez comment link:../task_admin_monitor_capacity_in_sm.html["consultez le DRR."]
+* Depuis la version ONTAP 9.13.1, la réduction des données prend en compte les résultats de la plupart des fonctionnalités d'efficacité du stockage, telles que la déduplication et la compression. Toutefois, les snapshots et le provisionnement fin ne sont pas pris en compte dans le taux de réduction des données.
 +
-** À partir de ONTAP 9.13.1, la capacité utilisée par les données client est appelée *logique utilisée* et la capacité utilisée par les snapshots est affichée séparément.
-** Dans ONTAP 9.12.1 et versions antérieures, la capacité utilisée par les données client ajoutées à la capacité utilisée par les snapshots est appelée *logique utilisée*.
-
-
-* *Validé* : le montant de la capacité engagée pour un niveau local.
-* *Réduction des données* : rapport entre la taille des données ingérées et la taille des données stockées.
-+
-** Depuis la version ONTAP 9.13.1, la réduction des données prend en compte les résultats de la plupart des fonctionnalités d'efficacité du stockage, telles que la déduplication et la compression. Toutefois, les snapshots et le provisionnement fin ne sont pas pris en compte dans le taux de réduction des données.
 ** Dans la ONTAP 9.12.1 et les versions antérieures, les taux de réduction des données sont affichés comme suit :
 +
 *** La valeur de réduction des données affichée sur le panneau *capacité* correspond au rapport global de tout l'espace logique utilisé par rapport à l'espace physique utilisé, et inclut les avantages découlant de l'utilisation des snapshots et d'autres fonctionnalités d'efficacité du stockage.
@@ -130,12 +126,20 @@ Les termes suivants sont utilisés pour décrire la capacité :
 
 
 
-* *Logique utilisée* :
-+
-** À partir de ONTAP 9.13.1, la capacité utilisée par les données client est appelée *logique utilisée* et la capacité utilisée par les snapshots est affichée séparément.
-** Dans ONTAP 9.12.1 et les versions antérieures, la capacité utilisée par les données client ajoutées à la capacité utilisée par les snapshots est appelée *logique utilisée*.
 
 
+
+
+[[capacity-measurement-terms]]
+== Termes de mesure de la capacité
+
+Les termes suivants sont utilisés pour décrire la capacité dans System Manager :
+
+* *Capacité allouée* : quantité d'espace allouée aux volumes d'une machine virtuelle de stockage.
+* *Disponible* : quantité d'espace physique disponible pour stocker des données ou provisionner des volumes dans une machine virtuelle de stockage ou sur un niveau local.
+* *Capacité sur les volumes* : somme du stockage utilisé et du stockage disponible de tous les volumes sur une machine virtuelle de stockage.
+* *Données client* : quantité d'espace utilisée par les données client (physique ou logique).
+* *Validé* : le montant de la capacité engagée pour un niveau local.
 * *Utilisation logique %* : pourcentage de la capacité logique utilisée actuelle par rapport à la taille provisionnée, à l'exclusion des réserves de snapshots. Cette valeur peut être supérieure à 100 %, grâce aux économies en termes d'efficacité réalisées dans le volume.
 * *Capacité maximale* : quantité maximale d'espace allouée aux volumes sur une machine virtuelle de stockage.
 * *Physical Used*: La capacité utilisée dans les blocs physiques d'un volume ou d'un niveau local.
@@ -163,7 +167,7 @@ Le tableau suivant explique comment la mesure de la capacité sur l'ensemble des
 
 image:max-cap-limit-cap-x-volumes.gif["La limite de capacité maximale comprend l'espace alloué et l'espace disponible, et la capacité entre les volumes n'occupe que l'espace alloué."]
 
-À partir de ONTAP 9.13.1, les administrateurs du cluster peuvent link:../manage-max-cap-limit-svm-in-sm-task.html["Limite de capacité maximale pour une VM de stockage"]. Toutefois, il est impossible de définir des limites de stockage pour une VM de stockage qui contient des volumes destinés à la protection des données, dans une relation SnapMirror ou dans une configuration MetroCluster. De même, les quotas ne peuvent pas être configurés pour dépasser la capacité maximale d'une machine virtuelle de stockage.
+À partir d'ONTAP 9.13.1, les administrateurs du cluster peuvent link:../manage-max-cap-limit-svm-in-sm-task.html["Limite de capacité maximale pour une VM de stockage"]. Pour plus d'informations sur les configurations prises en charge et non prises en charge, consultez link:../volumes/manage-svm-capacity.html["Gérer les limites de capacité des SVM ONTAP"].
 
 Une fois la limite de capacité maximale définie, elle ne peut pas être modifiée pour obtenir une taille inférieure à la capacité actuellement allouée.
 

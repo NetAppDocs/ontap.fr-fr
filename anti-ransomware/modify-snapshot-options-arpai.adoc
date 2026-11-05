@@ -4,17 +4,118 @@ permalink: anti-ransomware/modify-snapshot-options-arpai.html
 keywords: ARP AI, arpai, snapshot settings, retention, arw snap, autonomous ransomware protection AI, ONTAP 9.17.1, SAN snapshot parameters, machine learning ransomware 
 summary: Ajustez les paramètres de création et de conservation des instantanés ARP/AI générés automatiquement en réponse aux menaces potentielles de ransomware. 
 ---
-= Ajuster les paramètres des snapshots ONTAP ARP/AI générés automatiquement
+= Configurer les stratégies et les paramètres de réponse aux instantanés pour ONTAP ARP/AI
 :allow-uri-read: 
 :icons: font
 :imagesdir: ../media/
 
 
 [role="lead"]
-À partir d'ONTAP 9.16.1, vous pouvez utiliser l'interface de ligne de commande (CLI) pour contrôler les paramètres de rétention des instantanés de la protection autonome contre les ransomwares avec IA (ARP/AI) qui sont générés automatiquement en réponse à des attaques de ransomware suspectées.
+À partir d'ONTAP 9.16.1, vous pouvez utiliser l'interface de ligne de commande (CLI) pour contrôler les paramètres de création et de conservation des instantanés de la protection autonome contre les ransomwares avec intelligence artificielle (ARP/AI). À partir d'ONTAP 9.20.1, vous pouvez également configurer la stratégie de réponse aux instantanés périodiques et aux instantanés d'attaque afin de contrôler si ARP/AI crée des instantanés lorsqu'il détecte une activité anormale.
 
 
 NOTE: Si vous utilisez ONTAP 9.15.1 ou une version antérieure, consultez link:modify-snapshot-options-arp.html["Ajuster les paramètres des instantanés ARP générés automatiquement"].
+
+
+
+[[configure-a-snapshot-response-policy]]
+== Configurer une stratégie de réponse d'instantané
+
+À partir d'ONTAP 9.20.1, vous pouvez configurer la stratégie de réponse aux snapshots ARP/AI pour les snapshots périodiques et d'attaque afin de contrôler si ARP/AI crée des snapshots lorsqu'il détecte une activité anormale. Vous pouvez définir cette stratégie au niveau de la SVM (tous les volumes de la SVM héritent alors du paramètre) ou la remplacer au niveau du volume.
+
+Les stratégies de réponse Snapshot suivantes sont disponibles :
+
+[cols="1,3"]
+|===
+| Politique | Comportement 
+
+
+| `alert-with-proactive-and-periodic-snapshot` | (Par défaut) ARP/AI génère des alertes et des journaux d'événements, crée des instantanés à intervalles réguliers et crée des instantanés supplémentaires lorsqu'une attaque est détectée. 
+
+
+| `alert-with-proactive-snapshot` | ARP/AI génère des alertes et des journaux d'événements et crée des instantanés uniquement lorsqu'une attaque est détectée. Aucun instantané périodique n'est créé. 
+
+
+| `alert-only` | ARP/AI génère uniquement des alertes et des journaux d'événements. Aucune capture instantanée ARP/AI n'est créée. 
+|===
+
+CAUTION: Si vous définissez la stratégie sur `alert-only`« non », ARP/AI ne crée aucun instantané. Si une attaque par ransomware est confirmée, aucun instantané ARP/AI n’est disponible pour la restauration des données, même pendant une attaque active. Avant d’utiliser `alert-only`, assurez-vous de disposer d’une protection externe adéquate des données, telle que des instantanés ONTAP planifiés, des sauvegardes SnapCenter ou une autre solution de sauvegarde.
+
+
+NOTE: Lorsque vous modifiez la stratégie de réponse aux instantanés, les instantanés ARP/AI existants ne sont pas supprimés immédiatement. Ils le sont à l'expiration de leur délai prévu. Ne vous attendez pas à une récupération immédiate de l'espace de stockage après une modification de stratégie.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Configurez la stratégie de réponse aux instantanés au niveau de la SVM :*
+
+. Sélectionnez *Cluster* > *Machines virtuelles de stockage* et sélectionnez la machine virtuelle de stockage.
+. Accédez à l'onglet *Paramètres*. Sous *Sécurité*, repérez la vignette *Anti-ransomware* et sélectionnez image:icon_pencil.gif["Icône Modifier"].
+. Sous *Niveau de protection*, sélectionnez le type de protection à appliquer à tous les volumes sur lesquels ARP/AI est activé sur la SVM.
+. Sélectionnez *Enregistrer*.
+
+
+*Configurez la stratégie de réponse aux instantanés au niveau du volume :*
+
+. Sélectionnez *Storage* > *Volumes* et sélectionnez le volume.
+. Dans l'onglet *Sécurité*, repérez la section *Anti-ransomware* et sélectionnez image:icon_pencil.gif["Icône Modifier"].
+. Sous *Niveau de protection*, sélectionnez la stratégie de réponse Snapshot pour remplacer le paramètre au niveau de la SVM pour ce volume.
+. Sélectionnez *Enregistrer*.
+
+
+--
+.CLI
+--
+. Afficher la stratégie de réponse actuelle de l’instantané ARP/AI :
++
+Au niveau SVM :
+
++
+[source, cli]
+----
+security anti-ransomware vserver snapshot-settings show -vserver <svm_name>
+----
++
+Au niveau du volume:
+
++
+[source, cli]
+----
+security anti-ransomware volume snapshot-settings show -vserver <svm_name> -volume <volume_name>
+----
+. Configurer la stratégie de réponse aux instantanés ARP/AI:
++
+Au niveau SVM :
+
++
+[source, cli]
+----
+security anti-ransomware vserver snapshot-settings modify -vserver <svm_name> -anti-ransomware-snapshot-policy <policy>
+----
++
+
+NOTE: Ce paramètre s'applique aux volumes pour lesquels ARP/AI est activé. Il n'a pas d'effet rétroactif sur les volumes déjà configurés pour ARP/AI.
+
++
+Au niveau du volume (remplace le paramètre au niveau du SVM) :
+
++
+[source, cli]
+----
+security anti-ransomware volume snapshot-settings modify -vserver <svm_name> -volume <volume_name> -anti-ransomware-snapshot-policy <policy>
+----
+
+
+--
+====
+
+
+[[adjust-snapshot-creation-and-retention-settings]]
+== Ajuster les paramètres de création et de conservation des instantanés
+
+
+NOTE: À partir d'ONTAP 9.20.1, les paramètres suivants s'appliquent uniquement lorsque la stratégie de réponse d'instantané est  `alert-with-proactive-snapshot` ou  `alert-with-proactive-and-periodic-snapshot`.
 
 .Avant de commencer
 Vous pouvez uniquement modifier les options de snapshot ARP/AI sur un link:../system-admin/types-svms-concept.html["nœud SVM"] et non sur d'autres types de SVM.
@@ -49,6 +150,9 @@ Vous pouvez modifier les paramètres suivants (ONTAP 9.16.1 et versions ultérie
 
 | `arw.snap.max.count`  a| 
 Spécifie le nombre maximal d'instantanés ARP/AI pouvant exister simultanément dans un volume. Les copies les plus anciennes sont supprimées afin de garantir que le nombre total d'instantanés ARP/AI reste dans cette limite.
+
+
+NOTE: À partir d'ONTAP 9.20.1, ce paramètre s'applique uniquement lorsque la stratégie de réponse aux instantanés est définie sur `alert-with-proactive-and-periodic-snapshot`. Lorsque la stratégie est définie sur `alert-with-proactive-snapshot` ou `alert-only`, ONTAP ignore ce paramètre.
  a| 
 ONTAP 9.16.1 et versions ultérieures
 
@@ -200,4 +304,5 @@ ONTAP 9.17.1 et versions ultérieures
 .Informations associées
 * link:learn-about-arpai.html#arp-ai-snapshots["Évaluation des menaces et snapshots ARP/IA"]
 * link:entropy-eval-period-arpai.html["Période d'évaluation de l'entropie ARP/AI pour les volumes SAN"]
+* link:recover-arpai.html["Récupérez des données après une attaque de ransomware avec ARP/IA"]
 

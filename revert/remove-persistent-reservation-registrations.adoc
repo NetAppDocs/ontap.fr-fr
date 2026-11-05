@@ -1,0 +1,39 @@
+---
+permalink: revert/remove-persistent-reservation-registrations.html 
+sidebar: sidebar 
+keywords: revert, persistent reservation, registrations, SCSI-3, LUN, 9.20.1 
+summary: Si un LUN a historiquement dépassé 182 enregistrements de réservation persistante SCSI-3, ONTAP bloque le retour à des versions antérieures à ONTAP 9.20.1. Avant de revenir à une version antérieure, vérifiez chaque LUN et supprimez tous les enregistrements. 
+---
+= Supprimez les enregistrements de réservation persistante avant de revenir à une version antérieure à ONTAP 9.20.1
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+Les versions d'ONTAP antérieures à la version 9.20.1 prennent en charge un maximum de 182 enregistrements de réservation persistante SCSI-3 par LUN. À partir d'ONTAP 9.20.1, cette limite passe à 256. Si une LUN a déjà dépassé 182 enregistrements, ONTAP bloque tout retour à une version antérieure, quel que soit le nombre actuel d'enregistrements. Avant de revenir de la version 9.20.1 à la version 9.19.1, identifiez et supprimez les enregistrements de réservation persistante sur les LUN concernées.
+
+
+IMPORTANT: La suppression des enregistrements de réservation persistante peut nécessiter une reconfiguration côté hôte dans les environnements clusterisés. Selon le système d'exploitation hôte et le logiciel de clustering, vous devrez peut-être mettre hors ligne les ressources du cluster, retirer les LUN concernées de la gestion du cluster et rétablir l'accès au cluster après le retour à la version précédente. Consultez la documentation de votre solution de clustering et validez le workflow de récupération dans un environnement de test avant de revenir à la version précédente.
+
+.Étapes
+. Vérifiez si des LUN ont historiquement dépassé 182 enregistrements de réservation persistants :
++
+[source, cli]
+----
+lun show -field persistent-reservation-scale-tier
+----
++
+Une valeur supérieure à 182 dans le champ persistent-reservation-scale-tier indique que le LUN a alloué des métadonnées de réservation persistante supplémentaires. Cela bloque le retour à une version antérieure, quel que soit le nombre actuel d'enregistrements.
+
+. Pour chaque LUN concerné, afficher le nombre actuel d'enregistrements actifs :
++
+[source, cli]
+----
+lun persistent-reservation show -vserver <vserver_name> -path <lun_path>
+----
+. Supprimez les enregistrements de réservation persistante sur tous les LUN concernés.
++
+Exécutez la vérification préalable de rétablissement. Si cette condition est détectée, le résultat de la vérification préalable inclut les commandes de nettoyage spécifiques requises.
+
+

@@ -67,17 +67,30 @@ NOTE: Dans ONTAP 9.13.1, vous ne pouvez récupérer les métriques historiques q
 [[protect-consistency-groups]]
 == Protégez les groupes de cohérence
 
-Les groupes de cohérence offrent une protection cohérente au niveau des applications, garantissant la cohérence de vos données sur plusieurs volumes ou LIF. Lors de la création d'un instantané d'un groupe de cohérence, une « barrière » est établie sur le groupe de cohérence. La barrière initie une file d'attente pour les E/S jusqu'à la fin de l'opération d'instantané, assurant ainsi la cohérence des données à un instant donné sur toutes les entités du groupe de cohérence. La barrière peut entraîner un pic de latence transitoire lors des opérations de création d'instantanés, telles qu'une stratégie d'instantané planifiée ou la création d'un instantané avec System Manager. Pour en savoir plus sur le contexte de l'API REST ONTAP et de l'interface de ligne de commande ONTAP, consultez la link:https://kb.netapp.com/on-prem/ontap/DM/REST-API["Documentation de l'API REST ONTAP"^] et la link:https://docs.netapp.com/us-en/ontap-cli/["Référence de commande ONTAP"^].
+Les groupes de cohérence offrent une protection cohérente au niveau des applications, garantissant la cohérence de vos données sur plusieurs volumes ou LIF. Lors de la création d'un instantané d'un groupe de cohérence, une « barrière » est établie sur le groupe de cohérence. La barrière initie une file d'attente pour les E/S jusqu'à la fin de l'opération d'instantané, assurant ainsi la cohérence des données à un instant donné sur toutes les entités du groupe de cohérence. La barrière peut entraîner un pic de latence transitoire lors des opérations de création d'instantanés, telles qu'une stratégie d'instantané planifiée ou la création d'un instantané avec System Manager.
 
-La protection est assurée par des groupes de cohérence :
+Le type de protection des données disponible pour les groupes de cohérence varie en fonction de votre version d'ONTAP.
 
+[cols="2"]
+|===
+| Disponible à partir d'ONTAP... | Protection des données pour les groupes de cohérence 
+
+
+| 9.20.1 | link:protect-task.html#configure-snaplock-for-snapvault-replication-from-a-non-snaplock-source["SnapLock pour SnapVault à partir de volumes non-SnapLock"] 
+
+
+| 9.14.1 | link:../data-protection/snapmirror-svm-replication-concept.html["Reprise d'activité de SVM"] 
+
+
+| 9.13.1 | xref:../data-protection/snapmirror-disaster-recovery-concept.html[Réplication asynchrone SnapMirror] 
+
+
+| 9.10.1  a| 
 * Règles relatives aux snapshots
 * xref:../snapmirror-active-sync/index.html[Synchronisation active SnapMirror]
-* <<mcc>> (À partir de ONTAP 9.11.1)
-* xref:../data-protection/snapmirror-disaster-recovery-concept.html[Réplication asynchrone SnapMirror] (À partir de ONTAP 9.13.1)
-* link:../data-protection/snapmirror-svm-replication-concept.html["Reprise d'activité de SVM"] (À partir de ONTAP 9.14.1)
 
 
+|===
 La création d'un groupe de cohérence n'active pas automatiquement la protection. Il est possible de définir des règles de protection locale et à distance lors de la création ou après la création d'un groupe de cohérence.
 
 Pour configurer la protection sur un groupe de cohérence, reportez-vous à la section link:protect-task.html["Protéger un groupe de cohérence"].
@@ -125,9 +138,7 @@ NOTE: Il est recommandé de conserver au moins 20 % d'espace libre pour les agr�
 [[upgrade-considerations]]
 == Mise à niveau
 
-Lors de la mise à niveau vers ONTAP 9.10.1 ou une version ultérieure, les groupes de cohérence créés avec la synchronisation active SnapMirror (auparavant appelée SnapMirror Business Continuity) dans ONTAP 9.8 et 9.9.1 sont automatiquement mis à niveau et deviennent gérables sous *stockage > groupes de cohérence* dans le Gestionnaire système ou l'API REST ONTAP pour plus d'informations sur la mise à niveau à partir de ONTAP 9.8 ou 9.9.1, voir link:../snapmirror-active-sync/upgrade-revert-task.html["Considérations relatives à la mise à niveau et à la restauration de la synchronisation active SnapMirror"].
-
-Les instantanés de groupe de cohérence créés dans l'API REST ONTAP peuvent être gérés via l'interface Groupe de cohérence de System Manager et via les points de terminaison de l'API REST ONTAP pour les groupes de cohérence. À partir de ONTAP 9.14.1, les instantanés de groupe de cohérence peuvent également être gérés avec l'interface de ligne de commande ONTAP (CLI).
+Lors de la mise à niveau vers ONTAP 9.10.1 ou une version ultérieure, les groupes de cohérence créés avec SnapMirror active sync (précédemment appelé SnapMirror Business Continuity) dans ONTAP 9.8 et 9.9.1 sont automatiquement mis à niveau et peuvent être gérés sous *Storage > Consistency Groups* dans System Manager ou l'API REST ONTAP. Pour plus d'informations sur la mise à niveau depuis ONTAP 9.8 ou 9.9.1, consultez link:../snapmirror-active-sync/upgrade-revert-task.html["Considérations relatives à la mise à niveau et à la restauration de la synchronisation active SnapMirror"].
 
 
 NOTE: Les snapshots créés avec les commandes ONTAPI et `cg-commit` ne sont pas reconnus comme des snapshots de groupes de cohérence. Ils `cg-start` ne peuvent donc pas être gérés via l'interface des groupes de cohérence de System Manager ou les terminaux des groupes de cohérence de l'API REST ONTAP. Depuis la version ONTAP 9.14.1, ces snapshots peuvent être mis en miroir sur le volume de destination si vous utilisez une règle asynchrone SnapMirror. Pour plus d'informations, voir xref:protect-task.html#configure-snapmirror-asynchronous[Configurer SnapMirror asynchrone].
@@ -137,60 +148,58 @@ NOTE: Les snapshots créés avec les commandes ONTAPI et `cg-commit` ne sont pas
 [[supported-features-by-release]]
 == Fonctionnalités prises en charge par version
 
-[cols="3,1,1,1,1,1,1,1"]
+[cols="2"]
 |===
-|  | ONTAP 9.16.1 | ONTAP 9.15.1 | ONTAP 9.14.1 | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
+| Depuis ONTAP... | Fonctionnalités prises en charge 
 
 
-| Groupes de cohérence hiérarchiques | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ 
+| 9.20.1 | SnapLock pour la protection SnapVault sur les systèmes secondaires 
 
 
-| Protection locale avec snapshots | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ 
+| 9.16.1  a| 
+Vérification multi-administrateurs
 
 
-| Synchronisation active SnapMirror | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ 
+
+| 9.14.1  a| 
+* Récupération après sinistre SVM (un seul groupe de cohérence uniquement)
+* Prise en charge de la CLI
 
 
-| Prise en charge de MetroCluster | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  
 
 
-| Validations en deux phases (API REST uniquement) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  
+| 9.13.1  a| 
+* Déplacez des volumes entre des groupes de cohérence enfants
+* Modifier la géométrie du groupe de cohérence
+* Contrôle
+* SnapMirror asynchrone (groupes de cohérence uniques uniquement)
 
 
-| Balises d'application et de composant | ✓ | ✓ | ✓ | ✓ | ✓ |  |  
 
 
-| Cloner des groupes de cohérence | ✓ | ✓ | ✓ | ✓ | ✓ |  |  
+| 9.12.1  a| 
+* Ajouter et supprimer des volumes
+* Balises d'application et de composant
+* Cloner des groupes de cohérence
+* Créer des CGs avec de nouveaux volumes NAS (API REST uniquement)
+* Créer des CG avec des namespaces NVMe (API REST uniquement)
 
 
-| Ajouter et supprimer des volumes | ✓ | ✓ | ✓ | ✓ | ✓ |  |  
 
 
-| Créez un CGS avec de nouveaux volumes NAS | ✓ | ✓ | ✓ | ✓ | API REST uniquement |  |  
+| 9.11.1  a| 
+* Configurations MetroCluster
+* Validations en deux phases (API REST uniquement)
 
 
-| Créez un CGS avec les nouveaux espaces de noms NVMe | ✓ | ✓ | ✓ | ✓ | API REST uniquement |  |  
 
 
-| Déplacez des volumes entre des groupes de cohérence enfants | ✓ | ✓ | ✓ | ✓ |  |  |  
+| 9.10.1  a| 
+* Groupes de cohérence hiérarchiques
+* Protection locale avec snapshots
+* Synchronisation active SnapMirror
 
 
-| Modifier la géométrie du groupe de cohérence | ✓ | ✓ | ✓ | ✓ |  |  |  
-
-
-| Contrôle | ✓ | ✓ | ✓ | ✓ |  |  |  
-
-
-| Vérification multi-administrateurs | ✓ |  |  |  |  |  |  
-
-
-| SnapMirror asynchrone (groupes de cohérence uniques uniquement) | ✓ | ✓ | ✓ | ✓ |  |  |  
-
-
-| Reprise d'activité de SVM (groupes de cohérence uniques uniquement) | ✓ | ✓ | ✓ |  |  |  |  
-
-
-| Prise en charge de la CLI | ✓ | ✓ | ✓ |  |  |  |  
 |===
 
 

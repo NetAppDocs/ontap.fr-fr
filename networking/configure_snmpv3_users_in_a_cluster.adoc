@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar 
 permalink: networking/configure_snmpv3_users_in_a_cluster.html 
-keywords: configure, configuration, configuring, setup, setting, set, up, snmp, snmpv3, users, user, cluster, security, secure, configure an snmpv3 user to run the snmp utilities from the snmp manager, security login create command, configure snmpv3 users in a cluster, snmpv3 security parameters, examples for different security levels, security level authpriv, fips mode, snmpwalk test, security level authnopriv 
+keywords: configure, configuration, configuring, setup, setting, set, up, snmp, snmpv3, users, user, cluster, security, secure, sha512, sha-512, authentication protocol, configure an snmpv3 user to run the snmp utilities from the snmp manager, security login create command, configure snmpv3 users in a cluster, snmpv3 security parameters, examples for different security levels, security level authpriv, fips mode, snmpwalk test, security level authnopriv 
 summary: Configurez un utilisateur SNMPv3 pour exécuter les utilitaires SNMP à partir du gestionnaire SNMP. 
 ---
 = Configurer les utilisateurs SNMPv3 dans un cluster ONTAP
@@ -30,6 +30,9 @@ Vous êtes invité à fournir les informations suivantes :
 
 .Résultat
 L'utilisateur SNMPv3 peut se connecter à partir du gestionnaire SNMP en utilisant le nom d'utilisateur et le mot de passe et en exécutant les commandes de l'utilitaire SNMP.
+
+
+NOTE: À partir d'ONTAP 9.20.1, vous pouvez créer des utilisateurs SNMPv3 utilisant l'authentification SHA-512. Vous pouvez uniquement créer et supprimer des utilisateurs utilisant l'authentification SHA-512. Vous ne pouvez pas modifier le protocole d'authentification d'un utilisateur existant. Pour modifier le protocole d'authentification, supprimez l'utilisateur, puis recréez-le.
 
 
 
@@ -68,9 +71,9 @@ Le nom d'utilisateur ne doit pas dépasser 32 caractères.
  a| 
 Protocole d'authentification
  a| 
--A {none | MD5 | SHA | SHA-256}
+-a {none | MD5 | SHA | SHA-256 | SHA-512}
  a| 
-Le type d'authentification peut être aucun, MD5, SHA ou SHA-256.
+Le type d'authentification peut être aucun, MD5, SHA, SHA-256 ou SHA-512. À partir d'ONTAP 9.20.1, SHA-512 est pris en charge.
 
 
 
@@ -119,7 +122,7 @@ Cet exemple montre comment un utilisateur SNMPv3 créé avec différents niveaux
 Pour améliorer les performances, vous devez récupérer tous les objets d'un tableau plutôt qu'un seul objet ou quelques objets du tableau.
 
 
-NOTE: Vous devez utiliser `snmpwalk` 5.3.1 ou version ultérieure lorsque le protocole d'authentification est SHA.
+NOTE: Vous devez utiliser  `snmpwalk`la version 5.3.1 ou ultérieure lorsque le protocole d'authentification est SHA. Pour utiliser l'authentification SHA-512, le client SNMP doit prendre en charge SNMPv3 et le protocole d'authentification SHA-512.
 
 
 
@@ -131,7 +134,7 @@ Le résultat suivant montre la création d'un utilisateur SNMPv3 avec le niveau 
 ....
 security login create -user-or-group-name snmpv3user -application snmp -authentication-method usm
 Enter the authoritative entity's EngineID [local EngineID]:
-Which authentication protocol do you want to choose (none, md5, sha, sha2-256) [none]: md5
+Which authentication protocol do you want to choose (none, md5, sha, sha2-256, sha512) [none]: md5
 
 Enter the authentication protocol password (minimum 8 characters long):
 Enter the authentication protocol password again:
@@ -146,7 +149,7 @@ Enter privacy protocol password again:
 ....
 security login create -user-or-group-name snmpv3user -application snmp -authmethod usm
 Enter the authoritative entity's EngineID [local EngineID]:
-Which authentication protocol do you want to choose (sha, sha2-256) [sha]
+Which authentication protocol do you want to choose (sha, sha2-256, sha512) [sha]
 
 Enter authentication protocol password (minimum 8 characters long):
 Enter authentication protocol password again:
@@ -164,6 +167,16 @@ Pour améliorer les performances, vous devez récupérer tous les objets d'un ta
 
 ....
 $ snmpwalk -v 3 -u snmpv3user -a SHA -A password1! -x DES -X password1! -l authPriv 192.0.2.62 .1.3.6.1.4.1.789.1.5.8.1.2
+Enterprises.789.1.5.8.1.2.1028 = "vol0"
+Enterprises.789.1.5.8.1.2.1032 = "vol0"
+Enterprises.789.1.5.8.1.2.1038 = "root_vs0"
+Enterprises.789.1.5.8.1.2.1042 = "root_vstrap"
+Enterprises.789.1.5.8.1.2.1064 = "vol1"
+....
+La sortie suivante montre un utilisateur SNMPv3 qui utilise l'authentification SHA-512 et exécute la commande snmpwalk :
+
+....
+$ snmpwalk -v 3 -u snmpv3user -a SHA-512 -A password1! -x AES -X password1! -l authPriv 192.0.2.62 .1.3.6.1.4.1.789.1.5.8.1.2
 Enterprises.789.1.5.8.1.2.1028 = "vol0"
 Enterprises.789.1.5.8.1.2.1032 = "vol0"
 Enterprises.789.1.5.8.1.2.1038 = "root_vs0"
@@ -239,3 +252,5 @@ Enterprises.789.1.5.8.1.2.1042 = "root_vstrap"
 Enterprises.789.1.5.8.1.2.1064 = "vol1"
 ....
 Pour en savoir plus, `security login create` consultez le link:https://docs.netapp.com/us-en/ontap-cli/security-login-create.html["Référence de commande ONTAP"^].
+
+Pour plus d'informations sur SNMPv3 pour le contrôle de l'état des commutateurs Ethernet (CSHM), notamment sur la façon de configurer les commutateurs Ethernet, consultez link:https://docs.netapp.com/us-en/ontap-systems-switches/switch-cshm/config-snmpv3.html["Configurer SNMPv3 pour le contrôle de l'état du commutateur Ethernet"^].

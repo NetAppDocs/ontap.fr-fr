@@ -1,8 +1,8 @@
 ---
 permalink: volumes/cautions-increasing-maximum-directory-size-concept.html 
 sidebar: sidebar 
-keywords: flexvol, maximum, limits, maxdir-size, maxdirsize, caution, caveats, directory, size, directory size, max, allowed, default, volume 
-summary: 'La taille maximale du répertoire par défaut pour les volumes FlexVol dépend du modèle et est optimisée pour la taille de la mémoire système. Avant d"augmenter la taille maximale du répertoire, faites appel à un support technique.' 
+keywords: flexvol, flexgroup, maximum, limits, maxdir-size, maxdirsize, directory, size, directory size, max, 25 million files, large directory, directory index, is-dir-index-transfer-enabled 
+summary: 'Vous pouvez configurer la taille maximale des répertoires sur un volume FlexVol. La taille maximale à définir dépend de la version d"ONTAP et de votre configuration spécifique. La fonctionnalité d"application de la taille des répertoires dans ONTAP a été améliorée dans ONTAP 9.20.1 pour prendre en charge des tailles de répertoire plus importantes.' 
 ---
 = Taille maximale des répertoires pour les volumes ONTAP FlexVol
 :allow-uri-read: 
@@ -11,8 +11,106 @@ summary: 'La taille maximale du répertoire par défaut pour les volumes FlexVol
 
 
 [role="lead"]
-Vous pouvez augmenter la taille maximale par défaut du répertoire pour un FlexVol volume spécifique en utilisant le `-maxdir-size` option de la `volume modify` commande, mais cela pourrait avoir un impact sur les performances du système. Voir lelink:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/What_is_maxdirsize["Base de connaissances NetApp : Qu’est-ce que maxdirsize ?"^] .
+Vous pouvez configurer la taille maximale des répertoires sur un volume FlexVol. La taille maximale à définir dépend de la version d'ONTAP et de votre configuration spécifique. La fonctionnalité d'application de la taille des répertoires dans ONTAP a été améliorée dans ONTAP 9.20.1 pour prendre en charge des tailles de répertoire plus importantes.
 
-Pour en savoir plus sur les tailles de répertoire maximales dépendantes du modèle des volumes FlexVol, rendez-vous sur le link:https://hwu.netapp.com/["NetApp Hardware Universe"^].
 
-Pour en savoir plus, `volume modify` consultez le link:https://docs.netapp.com/us-en/ontap-cli/volume-modify.html["Référence de commande ONTAP"^].
+NOTE: La configuration de la taille maximale des répertoires s'applique aux volumes FlexVol individuels ainsi qu'à tous les volumes d'un FlexGroup.
+
+
+
+[[considerations-for-directory-size-limit-processing]]
+== Considérations relatives au traitement des limites de taille des répertoires
+
+La taille d'un répertoire varie en fonction du nombre de fichiers, de dossiers et d'autres entrées qu'il contient, ainsi que de la longueur des noms. À mesure que cette taille totale augmente, elle peut affecter les performances et la capacité d'ONTAP à gérer efficacement les répertoires. Vous pouvez limiter la taille maximale d'un répertoire à l'aide du `maxdir-size` paramètre de commande. La taille maximale du répertoire est définie une seule fois pour un volume spécifique et s'applique à chaque dossier du volume.
+
+
+
+[[operational-characteristics]]
+=== Caractéristiques opérationnelles
+
+Le traitement des répertoires ONTAP présente plusieurs caractéristiques liées à l'établissement et à l'application d'une taille maximale.
+
+Maximum par défaut:: La taille maximale de répertoire par défaut pour les versions d'ONTAP antérieures à 9.20.1 est de 320 Mo. La valeur exacte dépend du modèle et est optimisée en fonction de la quantité de mémoire système sur la plateforme. Consultez la https://hwu.netapp.com/["NetApp Hardware Universe"^] pour connaître les détails et les valeurs par défaut spécifiques au modèle.
+Augmenter la taille maximale du répertoire:: La valeur maximale par défaut est suffisante pour la plupart des charges de travail prenant en charge les applications métier classiques ; la plupart des environnements n’ont pas besoin de modifier cette valeur. Si nécessaire, vous pouvez augmenter la taille maximale de répertoire autorisée à l’aide du paramètre `-maxdir-size` dans les commandes CLI `volume create` et `volume modify`.
+Plafond recommandé:: NetApp déconseille généralement d'étendre un répertoire au-delà de 1 Go, même si certains répertoires ont pu dépasser cette taille en toute sécurité. Une taille excessive présente des risques pour les performances avant ONTAP 9.20.1.
+
+
+
+
+[[performance-considerations]]
+=== Performances
+
+La taille d'un répertoire influe directement sur les performances de recherche, notamment pour les répertoires très volumineux et actifs. À mesure qu'un répertoire s'agrandit, ONTAP crée automatiquement un index interne pour accélérer les recherches de noms, évitant ainsi à la plupart des requêtes de nécessiter l'analyse de l'intégralité du répertoire.
+
+Cependant, en cas de création et de suppression de fichiers rapides et soutenues, le processus de gestion de l'index peut prendre du retard par rapport au rythme des modifications. Dans certains cas, cela peut entraîner la création d'un répertoire volumineux partiellement indexé. Dès lors, les requêtes de recherche et d'affichage du contenu du répertoire peuvent subir une dégradation significative des performances, qui persiste jusqu'à ce que le processus d'indexation rattrape son retard.
+
+
+
+[[enhanced-directory-size-supporting-25-million-files]]
+== Taille de répertoire étendue prenant en charge 25 millions de fichiers
+
+À partir d'ONTAP 9.20.1, vous pouvez augmenter en toute sécurité la valeur de taille maximale des répertoires au-delà de la limite des versions précédentes d'ONTAP. La limite supérieure avec la version 9.20.1 et les versions ultérieures est de 4 Go ; cela permet de prendre en charge environ 25 millions de fichiers, dossiers et autres entrées. Cette amélioration est conçue pour prendre en charge des charges de travail, comme l'IA, qui nécessitent un très grand nombre de fichiers dans un seul répertoire.
+
+
+
+[[two-step-configuration-process]]
+=== Processus de configuration en deux étapes
+
+Configurer un volume pour prendre en charge en toute sécurité des répertoires plus volumineux se fait en deux étapes. Vous pouvez effectuer cette configuration lors de la création du volume ou en modifiant un volume existant. Voici les étapes :
+
+* Activez la fonctionnalité. Vous devez définir le paramètre  `-is-dir-index-transfer-enabled` sur  `true` (à partir de la valeur par défaut  `false`) pour un volume spécifique à l'aide de la commande  `volume create` ou  `volume modify`.
+* Augmentez la taille maximale du répertoire. Vous pouvez définir la valeur maximale du volume à l'aide du paramètre  `-maxdir-size` lors de la création du volume ou d'une modification ultérieure. Il s'agit du même paramètre que celui utilisé avec les systèmes ONTAP antérieurs à la version 9.20.1.
+
+
+Ces deux paramètres sont indépendants et l’ordre dans lequel vous effectuez la configuration est donc flexible. Toutefois, NetApp recommande d’activer d’abord l’option de taille améliorée (`-is-dir-index-transfer-enabled`) avant d’autoriser les répertoires de volume à augmenter jusqu’à la taille maximale configurée. Les répertoires qui deviennent plus volumineux avant l’activation de cette fonctionnalité ne bénéficieront pas pleinement des améliorations tant que l’option n’est pas activée et que le processus de conversion en arrière-plan associé n’est pas terminé.
+
+
+
+[[benefits]]
+=== Avantages
+
+L'augmentation de la taille maximale des répertoires apporte plusieurs améliorations :
+
+* L'indexation améliorée des répertoires permet de suivre le rythme des requêtes rapides et volumineuses de création et de suppression de fichiers, ce qui réduit le risque de grands répertoires non indexés.
+* Les informations d'index de répertoire sont répliquées vers les volumes de destination SnapMirror ; un volume de destination reste indexé et offre de bonnes performances même si une relation SnapMirror est rompue.
+* L'accès aux répertoires lors des vérifications de cohérence en arrière-plan est plus rapide, ce qui réduit l'impact des répertoires volumineux sur les vérifications de l'état du système.
+* Les performances de recherche sont plus homogènes sur un plus large éventail d'opérations, offrant une solution de repli fiable même lorsque l'index d'un répertoire n'est pas disponible.
+
+
+
+
+[[enhanced-internal-processing]]
+=== Traitement interne amélioré
+
+Lorsque vous activez l'option de taille maximale améliorée des répertoires, ONTAP lance une analyse en arrière-plan qui convertit les informations d'index des répertoires existants du volume vers un nouveau format flexible. Ce processus s'exécute de manière asynchrone et peut prendre un certain temps, notamment pour un volume contenant de nombreux répertoires existants. Les répertoires existants volumineux peuvent ne pas bénéficier pleinement des gains de performance et de réplication tant que l'analyse n'est pas terminée.
+
+Une fois l'option activée sur un volume, il est déconseillé de la désactiver. Sa désactivation déclenche une analyse en arrière-plan qui rétablit les informations d'index du répertoire dans leur format d'origine ; cette analyse doit être terminée avant que l'option ne soit complètement rétablie.
+
+
+
+[[restrictions-and-cautions]]
+=== Restrictions et précautions
+
+Avant d’activer cette fonctionnalité à l’aide du `-is-dir-index-transfer-enabled` paramètre, tenez compte des restrictions suivantes :
+
+* Il n'est pas compatible avec S3 duality. Il existe une limite connue quant au nombre d'objets dans un répertoire que S3 duality peut prendre en charge. Les deux fonctionnalités s'excluent mutuellement et ne doivent pas être utilisées ensemble.
+* Cette fonctionnalité n'est pas prise en charge sur un volume qui se trouve dans une relation NAS synchrone SnapMirror ou de synchronisation active SnapMirror, ou que vous prévoyez d'y placer.
+* Cette fonctionnalité n'est pas prise en charge sur un volume candidat à la migration de SVM.
+* Les destinations asynchrones SnapMirror et cloud SnapMirror doivent exécuter ONTAP 9.17.1 ou une version ultérieure; la réplication vers des versions antérieures n'est pas prise en charge.
+* La réplication de répertoire logique (LDR) n'est pas prise en charge pour un volume sur lequel cette fonctionnalité est activée.
+* Il ne peut pas être activé directement sur un volume de destination (DP) SnapMirror ; son état suit toujours celui du volume source.
+* Un volume FlexCache ne met jamais en cache les informations d'index de répertoire de son origine. L'état d'activation de cette fonctionnalité est synchronisé du volume d'origine vers ses caches, mais la conversion d'index sous-jacente s'applique uniquement à l'origine.
+
+
+Assurez-vous de vérifier votre topologie de protection des données avant d’activer cette fonctionnalité sur un volume. Ces restrictions peuvent affecter vos projets actuels ou futurs, notamment les relations SnapMirror et la migration SVM.
+
+
+
+[[related-information]]
+== Informations associées
+
+* link:../volumes/enable-large-dir-max-support-task.html["Activer la prise en charge ONTAP pour la taille maximale des grands répertoires"]
+* https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/What_is_maxdirsize["Base de connaissances NetApp : Qu’est-ce que maxdirsize ?"^]
+* https://kb.netapp.com/on-prem/ontap/Ontap_OS/OS-KBs/How_to_modify_the_maxdir-size_in_ONTAP_9["NetApp Base de connaissances : Comment modifier la taille maximale du répertoire dans ONTAP 9"^]
+* https://hwu.netapp.com/["NetApp Hardware Universe"^]
+

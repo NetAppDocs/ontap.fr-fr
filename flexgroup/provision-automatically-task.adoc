@@ -24,10 +24,22 @@ Lors de la création d'un volume FlexGroup qui hiérarchise les données inactiv
 .Description de la tâche
 Pour créer le volume FlexGroup, ONTAP sélectionne deux tiers locaux avec la plus grande quantité d'espace utilisable sur chaque nœud. Si deux tiers locaux ne sont pas disponibles, ONTAP sélectionne un Tier local par nœud pour créer le volume FlexGroup.
 
+À partir d'ONTAP 9.20.1, vous pouvez utiliser des profils de stockage pour sélectionner le niveau de performance le mieux adapté à vos besoins. Les profils de stockage vous permettent de basculer entre le provisionnement FlexGroup standard et haute performance. Le paramètre `-storage-profile` définit le profil de stockage utilisé par ONTAP.
+
+* performances : provisionnement optimisé pour le débit pour les charges de travail haute performance.
+* standard : provisionnement orienté capacité pour les charges de travail à usage général.
+
+
 À partir de ONTAP 9.15.1, lorsque vous provisionnez automatiquement un volume FlexGroup, ONTAP utilise le placement équilibré (BP) pour choisir la disposition des niveaux locaux et des volumes membres FlexGroup (constituants). L'un des aspects de BP est la manière dont elle limite le sur-provisionnement des niveaux locaux lors de la création de volumes FlexGroup « aucun » garantis (à provisionnement fin). La taille du volume FlexGroup global est limitée par la quantité d'espace libre sur le Tier local, bien que la limite soit supérieure à celle des volumes FlexGroup garantis (à provisionnement lourd) par « volume ». La création d'un volume FlexGroup à l'aide d'API REST ou `auto-provision-as` de l'interface de ligne de commandes ONTAP peut entraîner l'échec du provisionnement en raison d'un espace insuffisant pour cause de cette limite. Vous pouvez éviter cela en créant des volumes FlexGroup plus petits ou en link:create-task.html["Création d'un volume FlexGroup et sélection manuelle des niveaux locaux"] utilisant le `aggr-list` paramètre.
 
 .Étapes
-. Provisionnez le volume FlexGroup :
+. Choisissez l'une des options suivantes.
++
+.. Provisionnez un volume FlexGroup avec un profil de stockage à l'aide de ONTAP 9.20.1 ou version ultérieure :
++
+`volume create -vserver <svm name> -volume <fg_vol_name> -size <fg_size> [-storage-profile {standard|performance}]`
+
+.. Provisionnez un volume FlexGroup à l'aide d'ONTAP 9.19.1 ou d'une version antérieure :
 +
 `volume create -vserver svm_name -volume fg_vol_name –auto-provision-as flexgroup -size fg_size [–encrypt true] [-qos-policy-group qos_policy_group_name] [-support-tiering true] [-granular-data advanced]`
 
@@ -72,6 +84,14 @@ Do you want to continue? {y|n}: y
 [Job 34] Job succeeded: Successful
 ----
 +
+À partir d'ONTAP 9.20.1, vous pouvez utiliser des profils de stockage pour provisionner des volumes FlexGroup. L'exemple suivant utilise un profil de stockage de performance pour créer un volume FlexGroup de 100 To :
+
++
+[listing]
+----
+cluster1::> volume create -vserver vs0 -volume fg -size 100TB -storage-profile performance
+----
++
 L'exemple suivant montre comment créer une « policy group » QoS pour le plafond de débit et comment l'appliquer à un volume FlexGroup :
 
 +
@@ -105,6 +125,8 @@ Le volume FlexGroup est créé avec huit volumes membres sur chaque nœud du clu
 
 +
 Par défaut, le volume FlexGroup est créé avec le `volume` Paramètre de garantie d'espace disponible sauf sur les systèmes AFF. Pour les systèmes AFF, le volume FlexGroup est créé par défaut avec le `none` garantie d'espace.
+
+
 
 . Montez le volume FlexGroup avec une Junction path :
 +

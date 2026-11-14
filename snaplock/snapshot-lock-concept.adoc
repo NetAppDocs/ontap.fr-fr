@@ -2,7 +2,7 @@
 permalink: snaplock/snapshot-lock-concept.html 
 sidebar: sidebar 
 keywords: snaplock, snapshot, lock, tamperproof 
-summary: À partir de la version ONTAP 9.12.1, vous pouvez verrouiller une copie Snapshot sur un volume non SnapLock afin de protéger les données contre les attaques par ransomware. Le verrouillage des snapshots empêche leur suppression accidentelle ou malveillante. 
+summary: Vous pouvez verrouiller un instantané sur un volume non SnapLock afin d’assurer une protection contre les attaques de ransomware. Le verrouillage des instantanés empêche leur suppression accidentelle ou malveillante. 
 ---
 = Verrouillez un instantané ONTAP pour vous protéger contre les attaques de ransomware
 :allow-uri-read: 
@@ -15,14 +15,14 @@ summary: À partir de la version ONTAP 9.12.1, vous pouvez verrouiller une copie
 
 Vous utilisez la fonction horloge SnapLock Compliance pour verrouiller les instantanés pendant une période donnée afin qu'ils ne puissent pas être supprimés tant que l'heure d'expiration n'est pas atteinte. Le verrouillage des snapshots les rend inviolables et les protège contre les menaces de ransomware. Vous pouvez utiliser des snapshots verrouillés pour restaurer des données si un volume est compromis par une attaque par ransomware.
 
-À partir de ONTAP 9.14.1, le verrouillage des snapshots prend en charge la conservation à long terme des snapshots sur les destinations des coffres-forts SnapLock et sur les volumes de destination non SnapLock SnapMirror. Le verrouillage des snapshots est activé en définissant la période de rétention à l'aide des règles de stratégie SnapMirror associées à un xref:Modify an existing policy to apply long-term retention[libellé de police existant]. La règle remplace la période de rétention par défaut définie sur le volume. Si aucune période de conservation n'est associée au label SnapMirror, la période de conservation par défaut du volume est utilisée.
+Depuis ONTAP 9.14.1, le verrouillage des snapshots prend en charge les snapshots de conservation à long terme sur les volumes de destination SnapMirror mirror-vault et vault non-SnapLock. Vous activez le verrouillage des snapshots en définissant la période de conservation avec des règles de stratégie SnapMirror associées à un xref:Modify an existing policy to apply long-term retention[libellé de police existant]. La règle remplace la période de conservation par défaut définie sur le volume. Si aucune période de conservation n'est associée au libellé SnapMirror, la période de conservation par défaut du volume est appliquée.
 
 .Exigences et considérations relatives aux copies Snapshot inviolables
 * Si vous utilisez l'interface de ligne de commandes ONTAP, tous les nœuds du cluster doivent exécuter ONTAP 9.12.1 ou une version ultérieure. Si vous utilisez System Manager, tous les nœuds doivent exécuter ONTAP 9.13.1 ou une version ultérieure.
 * link:../system-admin/install-license-task.html["La licence SnapLock doit être installée sur le cluster"]. Cette licence est incluse dans link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one["ONTAP One"].
 * link:../snaplock/initialize-complianceclock-task.html["L'horloge de conformité du cluster doit être initialisée"].
-* Lorsque le verrouillage des snapshots est activé sur un volume, vous pouvez mettre à niveau les clusters vers une version de ONTAP ultérieure à ONTAP 9.12.1. Cependant, vous ne pouvez pas revenir à une version antérieure de ONTAP tant que tous les snapshots verrouillés n'ont pas atteint leur date d'expiration et qu'ils sont supprimés et que le verrouillage des snapshots est désactivé.
-* Lorsqu'un instantané est verrouillé, le temps d'expiration du volume est défini sur le temps d'expiration de l'instantané. Si plusieurs snapshots sont verrouillés, l'heure d'expiration du volume reflète l'heure d'expiration la plus élevée parmi tous les snapshots.
+* Lorsque le verrouillage des instantanés est activé sur un volume, vous pouvez mettre à niveau les clusters vers une version d'ONTAP ultérieure à ONTAP 9.12.1. Cependant, vous ne pouvez pas revenir à une version antérieure d'ONTAP tant que tous les instantanés verrouillés n'ont pas atteint leur date d'expiration et n'ont pas été supprimés, et que le verrouillage des instantanés n'a pas été désactivé.
+* Lorsqu'un instantané est verrouillé, l'heure d'expiration du volume est définie sur l'heure d'expiration de l'instantané. Si plusieurs instantanés sont verrouillés, l'heure d'expiration du volume correspond à la plus grande heure d'expiration parmi tous les instantanés.
 * La période de conservation des snapshots verrouillés prévaut sur le nombre de conservation des snapshots, ce qui signifie que la limite de conservation du nombre n'est pas respectée si la période de conservation des snapshots verrouillés n'a pas expiré.
 * Dans une relation SnapMirror, vous pouvez définir une période de conservation sur une règle de règle de copie miroir et la période de conservation est appliquée pour les snapshots répliqués sur la destination si le verrouillage des snapshots est activé sur le volume de destination. La période de conservation est prioritaire sur le nombre de conservation ; par exemple, les snapshots qui n'ont pas dépassé leur expiration seront conservés même si le nombre de conservation est dépassé.
 * Vous pouvez renommer un snapshot sur un volume non SnapLock. Les opérations de renommage de snapshot sur le volume principal d'une relation SnapMirror sont reflétées sur le volume secondaire uniquement si la règle est MirrorAllsnapshots. Pour les autres types de stratégie, l'instantané renommé n'est pas propagé pendant les mises à jour.
@@ -71,7 +71,7 @@ Vous pouvez créer des clones de volume et de fichier à partir d'un snapshot ve
 
 
 .Fonctions non prises en charge
-Les fonctionnalités suivantes ne sont actuellement pas prises en charge avec les snapshots inviolables :
+Les instantanés inviolables ne prennent pas en charge ces fonctionnalités :
 
 * Groupes de cohérence
 * link:../fabricpool/index.html["FabricPool"]
@@ -181,7 +181,7 @@ Cette sélection ne s'affiche pas si la licence SnapLock n'est pas installée.
 . Dans la fenêtre *Ajouter une stratégie d'instantanés*, entrez le nom de la stratégie.
 . Sélectionnez image:icon_add.gif["Ajouter une icône"].
 . Fournissez les détails de la planification des snapshots, y compris le nom de la planification, le nombre maximal de snapshots à conserver et la période de conservation SnapLock.
-. Dans la colonne *SnapLock Retention Period*, entrez le nombre d'heures, de jours, de mois ou d'années pour conserver les instantanés. Par exemple, une règle de snapshot avec une période de conservation de 5 jours verrouille un snapshot pendant 5 jours à compter de sa création et ne peut pas être supprimée pendant cette période. Les périodes de conservation suivantes sont prises en charge :
+. Dans la colonne *Période de conservation SnapLock*, saisissez le nombre d'heures, de jours, de mois ou d'années pendant lequel conserver les instantanés. Par exemple, une stratégie d'instantanés avec une durée de conservation de cinq jours verrouille un instantané pendant cinq jours à compter de sa création, et celui-ci ne peut pas être supprimé durant cette période. Les plages de durées de conservation suivantes sont prises en charge :
 +
 ** Années: 0 - 100
 ** Mois: 0 - 1200
@@ -322,19 +322,19 @@ cluster1> volume snapshot modify-snaplock-expiry-time -volume vol1 -snapshot sna
 
 Dans une relation SnapMirror, vous pouvez définir une période de conservation sur une règle de règle de copie miroir et la période de conservation est appliquée pour les snapshots répliqués sur la destination si le verrouillage des snapshots est activé sur le volume de destination. La période de conservation est prioritaire sur le nombre de conservation ; par exemple, les snapshots qui n'ont pas dépassé leur expiration seront conservés même si le nombre de conservation est dépassé.
 
-Depuis ONTAP 9.14.1, vous pouvez modifier une règle SnapMirror existante en ajoutant une règle afin de définir la conservation à long terme des snapshots. La règle permet de remplacer la période de conservation par défaut du volume sur les destinations du coffre-fort SnapLock et sur les volumes de destination non SnapLock SnapMirror.
+À partir de ONTAP 9.14.1, vous pouvez modifier une stratégie SnapMirror existante en ajoutant une règle pour définir la conservation à long terme des copies Snapshot. Cette règle remplace la période de conservation par défaut du volume sur les volumes de destination de coffre-fort et miroir-coffre-fort non-SnapLock SnapMirror.
 
 . Ajouter une règle à une règle SnapMirror existante :
 +
 `snapmirror policy add-rule -vserver <SVM name> -policy <policy name> -snapmirror-label <label name> -keep <number of snapshots> -retention-period [<integer> days|months|years]`
 
 +
-L'exemple suivant crée une règle qui applique une période de rétention de 6 mois à la stratégie existante appelée « lockvault » :
+L'exemple suivant crée une règle qui applique une période de rétention de 6 mois à la politique existante appelée "snapvault":
 
 +
 [listing]
 ----
-snapmirror policy add-rule -vserver vs1 -policy lockvault -snapmirror-label test1 -keep 10 -retention-period "6 months"
+snapmirror policy add-rule -vserver vs1 -policy snapvault -snapmirror-label test1 -keep 10 -retention-period "6 months"
 ----
 +
 Pour en savoir plus, `snapmirror policy add-rule` consultez le link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-policy-add-rule.html["Référence de commande ONTAP"^].

@@ -14,16 +14,16 @@ summary: 'Cette relation permet de rétablir la relation initiale de protection 
 Cette relation permet de rétablir la relation initiale de protection des données entre les SVM source et destination lorsque vous n'avez plus besoin de transmettre des données depuis la destination. La procédure est en grande partie identique à la procédure de réplication de volume, à exception près. On doit arrêter le SVM de destination avant de réactiver la SVM source.
 
 .Avant de commencer
-* Si vous avez augmenté la taille du volume de destination tout en y servant des données, avant de réactiver le volume source, vous devez augmenter manuellement la taille automatique maximale sur le volume source d'origine afin de garantir une croissance suffisante.
+* Si vous avez augmenté la taille du volume de destination pendant la diffusion des données à partir de celui-ci, augmentez manuellement la valeur max-autosize du volume source d'origine avant de réactiver ce dernier afin de garantir une croissance suffisante.
 
 
 link:destination-volume-grows-automatically-concept.html["Lorsqu'un volume de destination augmente automatiquement"]
 
 
-WARNING: L'administrateur du cluster doit suspendre les écritures provenant du client avant de réactiver la SVM source d'origine afin d'éviter toute perte de données.
+WARNING: Pour éviter la perte de données, suspendez les applications clientes avant de réactiver la source d'origine. Lorsque la SVM de destination est arrêtée, les applications clientes subissent une interruption d'E/S jusqu'à la réactivation de la SVM source.
 
 .Description de la tâche
-Depuis la version ONTAP 9.11.1, vous pouvez réduire le temps de resynchronisation pendant une répétition de reprise d'activité à l'aide  `-quick-resync true`de l'option de l'interface de ligne de  `snapmirror resync`commande de la commande tout en effectuant une resynchronisation inverse d'une relation de SVM DR. Une resynchronisation rapide permet de réduire le temps nécessaire au retour à la production en contournant les opérations de reconstruction et de restauration des entrepôts de données. Pour en savoir plus, `snapmirror resync` consultez le link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-resync.html["Référence de commande ONTAP"^].
+À partir de ONTAP 9.11.1, vous pouvez réduire le temps de resynchronisation lors d'un exercice de reprise après sinistre en utilisant l'option CLI `-quick-resync true` de la commande `snapmirror resync` lors d'une resynchronisation inverse d'une relation SVM DR. Une resynchronisation rapide peut réduire le temps nécessaire au retour à la production en contournant les opérations de reconstruction et de restauration de l'entrepôt de données. Pour en savoir plus sur  `snapmirror resync`, consultez le link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-resync.html["Référence de commande ONTAP"^].
 
 
 NOTE: La resynchronisation rapide ne permet pas de préserver l'efficacité du stockage des volumes de destination. L'activation des synchronisations rapides peut augmenter l'espace volume utilisé par les volumes de destination.
@@ -39,37 +39,37 @@ Vous pouvez effectuer cette tâche à l'aide de System Manager ou de l'interface
 ====
 .Gestionnaire de système ONTAP 9.17.1 et versions ultérieures
 --
-. Sur le cluster de destination, sélectionnez la relation de protection souhaitée : cliquez sur *Protection > Réplication*.
-. Placez votre curseur sur le nom de la source, cliquez image:icon_kabob.gif["Icône des options de menu"], puis cliquez sur *Resynchronisation inverse*.
-. Dans la fenêtre *Reverse resync Relationship*, cliquez sur *Reverse resync*.
+. Sur le cluster de destination, sélectionnez la relation de protection souhaitée : sélectionnez *Protection > Replication*.
+. Placez votre curseur sur le nom de la source, sélectionnez image:icon_kabob.gif["Icône des options de menu"], puis *Resynchronisation inverse*.
+. Dans la fenêtre *Relation de resynchronisation inverse*, sélectionnez *Resynchronisation inverse*.
 +
 La relation disparaît de la table *Réplication* et est désormais gérée par le cluster source d'origine.
 
-. Sur le cluster source d'origine, cliquez sur *Protection > Réplication* et vérifiez que la resynchronisation inverse est terminée en vous assurant que l'état affiche *Miroir*.
+. Sur le cluster source d'origine, sélectionnez *Protection > Replication* et vérifiez que la resynchronisation inverse est terminée en vous assurant que l'état affiche *Mirrored*.
 . Sur le cluster de destination d'origine, accédez à *Cluster > Machines virtuelles de stockage*.
-. Localisez la machine virtuelle de stockage, placez votre curseur sur le nom de la machine virtuelle de stockage, cliquez image:icon_kabob.gif["Icône des options de menu"], puis cliquez sur *Arrêter*.
-. Dans la fenêtre *Arrêter la machine virtuelle de stockage*, cliquez sur *Arrêter*.
-. Sur le cluster source, accédez à *Protection > Réplication*, repérez la machine virtuelle de stockage que vous souhaitez réactiver, placez votre curseur sur le nom de la machine virtuelle de stockage, puis cliquez sur image:icon_kabob.gif["Icône des options de menu"], puis cliquez sur *Activer la machine virtuelle de stockage de destination*.
-. Dans la fenêtre *Activer la VM de stockage de destination*, sélectionnez *Activer la VM de stockage de destination et rompre la relation*, puis cliquez sur *Activer*.
-. Lorsque vous revenez à la page *Réplication*, placez à nouveau votre curseur sur le nom de la machine virtuelle de stockage, puis cliquez sur image:icon_kabob.gif["Icône des options de menu"], puis cliquez sur *Resynchronisation inverse*.
+. Localisez la machine virtuelle de stockage, placez votre curseur sur le nom de la machine virtuelle de stockage, sélectionnez image:icon_kabob.gif["Icône des options de menu"], puis sélectionnez *Arrêter*.
+. Dans la fenêtre *Arrêter la machine virtuelle de stockage*, sélectionnez *Arrêter*.
+. Sur le cluster source, accédez à *Protection > Réplication*, localisez la machine virtuelle de stockage que vous souhaitez réactiver, placez votre curseur sur le nom de la machine virtuelle de stockage, sélectionnez image:icon_kabob.gif["Icône des options de menu"], puis sélectionnez *Activer la machine virtuelle de stockage de destination*.
+. Dans la fenêtre *Activer la VM de stockage de destination*, sélectionnez *Activer la VM de stockage de destination et rompre la relation*, puis sélectionnez *Activer*.
+. Lorsque vous revenez à la page *Réplication*, placez à nouveau votre curseur sur le nom de la machine virtuelle de stockage, sélectionnez image:icon_kabob.gif["Icône des options de menu"], puis sélectionnez *Resynchronisation inverse*.
 
 
 --
 .Gestionnaire de système ONTAP 9.16.1 et versions antérieures
 --
-. Sur le cluster de destination, sélectionnez la relation de protection souhaitée : cliquez sur *Protection > Relations*.
-. Placez votre curseur sur le nom de la source, cliquez image:icon_kabob.gif["Icône des options de menu"], puis cliquez sur *Resynchronisation inverse*.
-. Dans la fenêtre *Reverse resync Relationship*, cliquez sur *Reverse resync*.
+. Sur le cluster de destination, sélectionnez la relation de protection souhaitée : sélectionnez *Protection > Relations*.
+. Placez votre curseur sur le nom de la source, sélectionnez image:icon_kabob.gif["Icône des options de menu"], puis *Resynchronisation inverse*.
+. Dans la fenêtre *Relation de resynchronisation inverse*, sélectionnez *Resynchronisation inverse*.
 +
 La relation disparaît du tableau *Relations* car elle est désormais gérée par le cluster source d'origine.
 
-. Sur le cluster source d'origine, cliquez sur *Protection > Relations* et vérifiez que la resynchronisation inverse est terminée en vous assurant que l'état affiché est *Miroir*.
+. Sur le cluster source d'origine, sélectionnez *Protection > Relations* et vérifiez que la resynchronisation inverse est terminée en contrôlant que l'état s'affiche comme *Mirrored*.
 . Sur le cluster de destination d'origine, accédez à *Stockage > Machines virtuelles de stockage*.
-. Localisez la machine virtuelle de stockage, placez votre curseur sur le nom de la machine virtuelle de stockage, cliquez image:icon_kabob.gif["Icône des options de menu"], puis cliquez sur *Arrêter*.
-. Dans la fenêtre *Arrêter la machine virtuelle de stockage*, cliquez sur *Arrêter*.
-. Sur le cluster source, repérez la machine virtuelle de stockage (qui est maintenant la SVM source de la relation inversée), placez votre curseur sur le nom de la SVM, cliquez image:icon_kabob.gif["Icône des options de menu"], puis cliquez sur *Activer la machine virtuelle de stockage de destination*.
-. Dans la fenêtre *Activer la VM de stockage de destination*, sélectionnez *Activer la VM de stockage de destination et rompre la relation* et cliquez sur *Activer*.
-. Lorsque vous revenez à la page *Relations*, placez à nouveau votre curseur sur le nom de la machine virtuelle de stockage, puis cliquez image:icon_kabob.gif["Icône des options de menu"], puis cliquez sur *Resynchronisation inverse*.
+. Localisez la machine virtuelle de stockage, placez votre curseur sur le nom de la machine virtuelle de stockage, sélectionnez image:icon_kabob.gif["Icône des options de menu"], puis sélectionnez *Arrêter*.
+. Dans la fenêtre *Arrêter la machine virtuelle de stockage*, sélectionnez *Arrêter*.
+. Sur le cluster source, localisez la VM de stockage (qui est maintenant la SVM source de la relation inversée), placez votre curseur sur le nom de la SVM, sélectionnez image:icon_kabob.gif["Icône des options de menu"], puis sélectionnez *Activer la VM de stockage de destination*.
+. Dans la fenêtre *Activer la machine virtuelle de stockage de destination*, sélectionnez *Activer la machine virtuelle de stockage de destination et rompre la relation* puis sélectionnez *Activer*.
+. Lorsque vous revenez à la page *Relations*, placez à nouveau votre curseur sur le nom de la machine virtuelle de stockage, sélectionnez image:icon_kabob.gif["Icône des options de menu"], puis sélectionnez *Resynchronisation inverse*.
 
 
 --
@@ -164,7 +164,7 @@ snapmirror update -source-path <SVM>: -destination-path <SVM>:
 NOTE: Vous devez entrer deux-points (:) après le nom de SVM dans la `-source-path` et `-destination-path` options. Voir l'exemple ci-dessous.
 
 +
-L'exemple suivant met à jour la relation entre le SVM de destination d'origine à partir duquel vous accédez aux données,`svm_backup`, Et le SVM source d'origine, `svm1`:
+L'exemple suivant met à jour la relation entre la SVM de destination d'origine à partir de laquelle vous servez des données, `svm_backup`, et la SVM source d'origine, `svm1`:
 
 +
 [listing]
@@ -274,7 +274,7 @@ snapmirror release -source-path <SVM>: -destination-path <SVM>:
 NOTE: Vous devez entrer deux-points (:) après le nom de SVM dans la `-source-path` et `-destination-path` options. Voir l'exemple ci-dessous.
 
 +
-L'exemple suivant libère la relation inversée entre le SVM de destination d'origine, svm_backup et le SVM source d'origine, `svm1`
+L'exemple suivant libère la relation inversée entre le SVM de destination d'origine, `svm_backup`, et le SVM source d'origine, `svm1`.
 
 +
 [listing]

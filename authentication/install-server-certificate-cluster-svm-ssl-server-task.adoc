@@ -2,7 +2,7 @@
 permalink: authentication/install-server-certificate-cluster-svm-ssl-server-task.html 
 sidebar: sidebar 
 keywords: generate, install, ca-signed, server, certificate, csr, signing request, signed 
-summary: 'Sur les systèmes de production, il est recommandé d"installer un certificat numérique signé par une autorité de certification pour l"authentification du cluster ou d"un SVM en tant que serveur SSL.' 
+summary: 'Générez une demande de signature de certificat et installez un certificat de serveur signé par une autorité de certification afin d"authentifier un cluster ONTAP ou une SVM en tant que serveur SSL.' 
 ---
 = Générez et installez un certificat de serveur signé par une autorité de certification dans ONTAP
 :allow-uri-read: 
@@ -11,7 +11,7 @@ summary: 'Sur les systèmes de production, il est recommandé d"installer un cer
 
 
 [role="lead"]
-Sur les systèmes de production, il est recommandé d'installer un certificat numérique signé par une autorité de certification pour l'authentification du cluster ou d'un SVM en tant que serveur SSL. Vous pouvez utiliser `security certificate generate-csr` la commande pour générer une requête de signature de certificat (CSR) et la `security certificate install` commande pour installer le certificat que vous recevez de l'autorité de certification. Pour en savoir plus sur `security certificate generate-csr` et `security certificate install` dans le link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+certificate["Référence de commande ONTAP"^].
+Sur les systèmes de production, il est recommandé, comme bonne pratique, d’installer un certificat numérique signé par une autorité de certification afin d’authentifier le cluster ou la SVM en tant que serveur SSL. Vous pouvez utiliser la commande `security certificate generate-csr` pour générer une demande de signature de certificat (CSR), et la commande `security certificate install` pour installer le certificat que vous recevez en retour de l’autorité de certification. Pour en savoir plus sur `security certificate generate-csr` et `security certificate install`, consultez le link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+certificate["Référence de commande ONTAP"^].
 
 
 
@@ -31,7 +31,7 @@ Pour effectuer cette tâche, vous devez être un administrateur de cluster ou de
 security certificate generate-csr -common-name FQDN_or_common_name -size 512|1024|1536|2048 -country country -state state -locality locality -organization organization -unit unit -email-addr email_of_contact -hash-function SHA1|SHA256|MD5
 ----
 +
-La commande suivante crée une RSC avec une clé privée de 2048 bits générée par `SHA256` la fonction de hachage pour utilisation par le `Software` groupe du `IT` service d'une société dont le nom commun personnalisé est `server1.companyname.com`, située à Sunnyvale, en Californie, aux États-Unis. L'adresse e-mail de l'administrateur de contact du SVM est `web@example.com`. Le système affiche la RSC et la clé privée dans la sortie.
+La commande suivante crée une CSR avec une clé privée de 2048 bits générée par la `SHA256` fonction de hachage. Cette CSR est destinée à être utilisée par le `Software` groupe du `IT` département d'une entreprise située à Sunnyvale, Californie, États-Unis. Le nom commun personnalisé de l'entreprise est `server1.companyname.com`. L'adresse e-mail de l'administrateur de contact SVM est `web@example.com`. Le système affiche la CSR et la clé privée dans la sortie.
 
 +
 .Exemple de création d'une RSC
@@ -57,6 +57,10 @@ NOTE: Keep a copy of your certificate request and private key for future referen
 ====
 . Copiez la demande de certificat à partir de la sortie CSR et envoyez-la sous forme électronique (par exemple un courriel) à une autorité de certification tierce approuvée pour signature.
 +
+
+NOTE: L'autorité de certification doit renvoyer le certificat signé au format PEM encodé en base64 ou PKCS12.
+
++
 Après le traitement de votre demande, l'AC vous envoie le certificat numérique signé. Vous devez conserver une copie de la clé privée et du certificat numérique signé par l'autorité de certification.
 
 
@@ -81,14 +85,14 @@ security certificate install -vserver SVM_name -type certificate_type
 +
 [NOTE]
 ====
-ONTAP vous invite à entrer les certificats racine et intermédiaire de l'autorité de certification qui constituent la chaîne de certificats du certificat du serveur. La chaîne commence par le certificat de l'autorité de certification qui a émis le certificat du serveur et peut atteindre le certificat racine de l'autorité de certification. Tout certificat intermédiaire manquant entraîne l'échec de l'installation du certificat du serveur.
+ONTAP vous invite à fournir le certificat racine et les certificats intermédiaires de l'autorité de certification (AC) qui constituent la chaîne de certificats du serveur. Cette chaîne commence par le certificat de l'AC ayant émis le certificat serveur et peut aller jusqu'au certificat racine de cette même AC. L'absence de certificats intermédiaires entraîne l'échec de l'installation du certificat serveur.
 
 ====
 +
 La commande suivante installe le certificat de serveur signé par l'autorité de certification et les certificats intermédiaires sur SVM `engData2`.
 
 +
-.Exemple d'installation de certificats intermédiaires de certificat de serveur signés par une autorité de certification
+.Exemple d'installation d'un certificat serveur signé par une autorité de certification et de certificats intermédiaires
 [%collapsible]
 ====
 [listing]
